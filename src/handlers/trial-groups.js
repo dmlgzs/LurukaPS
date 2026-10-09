@@ -1,4 +1,4 @@
-import fs from 'node:fs'
+import { trialSoulEssence } from '../trial-equipment.js'
 import { TaskGraphs, asList, nodeConditions } from '../tasks.js'
 import { ensure, manager, group } from './common.js'
 import { syncBattle, pairs } from '../battle.js'
@@ -324,9 +324,7 @@ export function registerTrialGroups(on, tables) {
         output.push('CSProtoSyncPlayerData', { group_mgrs: c.state.player.group_mgrs })
     }
     const graphs = new TaskGraphs(tables),
-        rows = JSON.parse(
-            fs.readFileSync(new URL('../../configs/task-tables/hero_interim.json', import.meta.url), 'utf8'),
-        ),
+        rows = tables.get('hero_interim'),
         configs = new Map(rows.map((r) => [r.id, r]))
     on('TrialGroupChange', (c, r) => {
         const m = manager(c.state),
@@ -444,10 +442,11 @@ export function registerTrialGroups(on, tables) {
             const cfg = configs.get(item.id)
             ensure(cfg && tables.find('hero', cfg.heroId), 'Unknown trial hero', 1007)
             ensure(
-                !cfg.soulessence && !cfg.accessorySet && !cfg.talentrune,
-                'Trial equipment configuration not implemented',
+                !cfg.accessorySet && !cfg.talentrune,
+                'Trial accessory or talent configuration not implemented',
                 1007,
             )
+            trialSoulEssence(tables, cfg)
             const guid = trialHeroGuid(c.id, cfg.id)
             return {
                 guid,

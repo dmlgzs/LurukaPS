@@ -1,3 +1,4 @@
+import { heroTrialSoulEssence } from './trial-equipment.js'
 import { soulEssenceGrade } from './equipment.js'
 import { soulSkillsAtGrade } from './skills.js'
 // CBT3 client evidence: ui_configtpl_herotpl.lua:getHeroConfigAtt;
@@ -87,7 +88,9 @@ export function heroModules(tables, state, hero) {
             ],
         },
     ]
-    const soul = state.player.soulessence_infos.soulessences.find((x) => x.guid === hero.wguid)
+    const soul = hero.trail
+        ? heroTrialSoulEssence(tables, hero)
+        : state.player.soulessence_infos.soulessences.find((x) => x.guid === hero.wguid)
     const soulAttributes = new Map(),
         soulSkills = []
     if (soul) {
