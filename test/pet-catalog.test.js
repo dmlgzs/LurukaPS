@@ -49,8 +49,8 @@ test('old accounts receive recorded pet IDs on login; GM grants sync new IDs bef
     }
     try {
         const login = call('EnterGame', { open_id: 'catalog-test' })
-        const owned = [...new Set(store.load(session.id).state.pets.map((p) => p.config_id))]
-        assert.deepEqual(login.find((p) => p.id === 6517).data.record_pets, owned)
+        assert.ok(store.load(session.id).state.pets.length > 0)
+        assert.deepEqual(login.find((p) => p.id === 6517).data.record_pets, [])
         store.transact(session.id, 0, (s) => {
             s.pets = []
             delete s.recordPets
@@ -78,4 +78,30 @@ test('old accounts receive recorded pet IDs on login; GM grants sync new IDs bef
         store.close()
         fs.rmSync(dir, { recursive: true, force: true })
     }
+})
+
+test('legacy starter unlocks are removed once; later acquisition of the same species survives release and relog', () => {
+    const state = seedPlayer(tables, 1, 'legacy-starters')
+    delete state.petCatalogVersion
+    const starter = state.pets[0]
+    const id = starter.config_id
+    state.recordPets = state.pets.map((p) => p.config_id)
+    repairPetCatalog(tables, state)
+    assert.deepEqual(state.recordPets, [])
+    assert.equal(state.pets[0].guid, String(id))
+    createPets(tables, state, id, 1)
+    assert.deepEqual(state.recordPets, [id])
+    state.pets = state.pets.filter((p) => String(p.guid) === String(p.config_id))
+    repairPetCatalog(tables, state)
+    assert.deepEqual(state.recordPets, [id])
+})
+test('legacy real obtained pets and successful capture receipts remain unlocked alongside starter gifts', () => {
+    const state = seedPlayer(tables, 1, 'legacy-earned'),
+        id = state.pets[0].config_id
+    createPets(tables, state, id, 1)
+    delete state.petCatalogVersion
+    state.recordPets = state.pets.map((p) => p.config_id)
+    state.petCaptureResults = { past: { pet_id: state.pets[1].config_id } }
+    repairPetCatalog(tables, state)
+    assert.deepEqual(new Set(state.recordPets), new Set([id, state.pets[1].config_id]))
 })
