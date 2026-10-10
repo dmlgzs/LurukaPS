@@ -1,3 +1,4 @@
+import { ensureFlightUnlocked, explorationSnapshot } from './flight-unlock.js'
 import { repairSavedPetPuzzleVisibility } from './pet-puzzles.js'
 import { repairSavedElevatorVisibility } from './handlers/world-elevator.js'
 import { hiddenTaskPetGuids, taskPetPresentation } from './task-pet-presentation.js'
@@ -569,6 +570,7 @@ export class Game {
                 repairPetProfiles(this.tables, state, now)
                 repairPetCatalog(this.tables, state)
                 repairMountSelection(this.tables, state)
+                ensureFlightUnlocked(this.tables, state, now)
                 upgradeSkillState(this.tables, state)
                 upgradeEggState(state)
                 ensureHome(this.tables, state)
@@ -1086,6 +1088,7 @@ export class Game {
                 egg_infos: { eggs: state.petEggs || [] },
             }),
             this.packet('CSProtoPetBoxInfoSync', { box_infos: state.petBoxes }),
+            this.packet('CSProtoWorldExplorationSync', explorationSnapshot(state)),
             this.packet('SCProtoClothesInfoSync', clothesSnapshot(this.tables, state)),
             this.packet('SCProtoPresetWardrobeSync', { info_list: state.wardrobePresets ?? [] }),
             this.packet('SCProtoHeroSkinMessageSync', heroSkinsSnapshot(this.tables, state)),
