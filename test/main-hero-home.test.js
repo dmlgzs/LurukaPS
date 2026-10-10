@@ -129,3 +129,62 @@ test('character customization publishes one HT_MAIN of the selected sex', () => 
         store.close()
     }
 })
+
+test('home can edit and select exploration teams without replacing the home default hero', () => {
+    const store = new Store(':memory:'),
+        game = new Game(protocol, store, tables),
+        session = {}
+    const call = (name, body = {}) => request(game, session, name, body)
+    try {
+        call('EnterGame', { open_id: 'home-edit-formation' })
+        call('EnterHome', { creator_id: session.id })
+        const before = store.load(session.id).state,
+            defaultHero = clientDefaultHero(before.player)
+        const selected = before.player.heros_info.heros.slice(0, 2)
+        const saved = call('QuickChangeGroupInfo', {
+            type: 1,
+            id: 2,
+            infos: selected.map((hero) => ({ hero_guid: hero.guid, pet_guid: '0' })),
+        })
+        const groupSync = saved.filter((p) => p.data.group_mgrs?.some((m) => m.type === 1))
+        assert.ok(groupSync.length)
+        assert.ok(groupSync.every((p) => p.data.group_mgrs.find((m) => m.type === 1).src === 1))
+        assert.ok(saved.findIndex((p) => p.data.group_mgrs?.length) < saved.findIndex((p) => p.id === 5981))
+        const state = store.load(session.id).state,
+            manager = state.player.group_mgrs.find((m) => m.type === 1)
+        assert.deepEqual(
+            manager.groups.find((g) => g.id === 2).heros.map((h) => h.hero_id),
+            selected.map((h) => h.guid),
+        )
+        assert.equal(clientDefaultHero(state.player), defaultHero)
+        assert.deepEqual(state.world.pos, before.world.pos)
+        const invalid = store.load(session.id)
+        assert.throws(
+            () => call('QuickChangeGroupInfo', { type: 1, id: 2, infos: [{ hero_guid: '999', pet_guid: '0' }] }),
+            /not owned/,
+        )
+        assert.deepEqual(store.load(session.id), invalid)
+        const switchPackets = call('SwitchWorldGroup', { type: 1, group_id: 2 })
+        assert.equal(switchPackets.find((p) => p.data.group_mgrs?.length).data.group_mgrs[0].src, 1)
+        assert.equal(store.load(session.id).state.player.group_mgrs.find((m) => m.type === 1).cur_group, 2)
+        const controls = call('SwitchWorldGroupControl', { type: 1, control: selected[1].guid })
+        assert.equal(controls.find((p) => p.data.group_mgrs?.length).data.group_mgrs[0].src, 1)
+        assert.equal(clientDefaultHero(store.load(session.id).state.player), defaultHero)
+        assert.deepEqual(store.load(session.id).state.world.pos, before.world.pos)
+        call('WorldQuitHome')
+        assert.notEqual(store.load(session.id).state.world.map_id, before.world.map_id)
+        assert.equal(store.load(session.id).state.player.group_mgrs.find((m) => m.type === 1).cur_group, 2)
+        const reconnect = request(game, {}, 'EnterGame', { open_id: 'home-edit-formation', reconnect: true })
+        const player = reconnect.find((p) => p.id === 5001).data.data
+        assert.equal(player.group_mgrs.find((m) => m.type === 1).cur_group, 2)
+        assert.deepEqual(
+            player.group_mgrs
+                .find((m) => m.type === 1)
+                .groups.find((g) => g.id === 2)
+                .heros.map((h) => h.hero_id),
+            selected.map((h) => h.guid),
+        )
+    } finally {
+        store.close()
+    }
+})

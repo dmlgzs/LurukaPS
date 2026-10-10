@@ -5,10 +5,15 @@ import { mountPayload, repairMountSelection } from '../mounts.js'
 import { ensure, textValue, hero, pet, manager, group, syncPlayer, syncPets } from './common.js'
 import { isHomeMap } from '../home-formation.js'
 export function registerCollection(on) {
-    const ensureFormationEditable = (c) =>
-        ensure(!isHomeMap(c.tables, c.state), 'Formation cannot be changed in home', 1021)
+    const syncFormation = (c, data) => {
+        // HomePlayerUnitAdapter creates the default hero independently. Save
+        // exploration teams with metadata-only src=1, not an avatar reload.
+        if (isHomeMap(c.tables, c.state) && data.group_mgrs)
+            data = { ...data, group_mgrs: data.group_mgrs.map((m) => ({ ...m, src: 1 })) }
+        syncPlayer(c, data)
+    }
     const syncGroups = (c) => {
-        syncPlayer(c, { group_mgrs: c.state.player.group_mgrs })
+        syncFormation(c, { group_mgrs: c.state.player.group_mgrs })
         syncBattle(c)
     }
     const syncEquipment = (c) => {
@@ -17,7 +22,6 @@ export function registerCollection(on) {
         syncBattle(c)
     }
     on('QuickChangeGroupInfo', (c, r) => {
-        ensureFormationEditable(c)
         const g = group(c.state, r.type, r.id),
             infos = r.infos ?? []
         ensure(infos.length >= 1 && infos.length <= 3, 'Invalid quick formation size')
@@ -45,13 +49,12 @@ export function registerCollection(on) {
         reconcileFormationPets(c.state)
         if (!heroIds.includes(g.control)) g.control = heroIds[0]
         const syncContext = { ...c, push: c.pushBefore }
-        syncPlayer(syncContext, { group_mgrs: c.state.player.group_mgrs, heros_info: c.state.player.heros_info })
+        syncFormation(syncContext, { group_mgrs: c.state.player.group_mgrs, heros_info: c.state.player.heros_info })
         syncPets(syncContext)
         syncBattle(syncContext)
         return {}
     })
     on('ChangeHeroGroupIndex', (c, r) => {
-        ensureFormationEditable(c)
         const old = group(c.state, r.type, r.group?.id)
         ensure(r.group && r.group.heros.length > 0 && r.group.heros.length <= 3, 'Invalid group size')
         const ids = r.group.heros.filter((x) => x.hero_id && x.hero_id !== '0').map((x) => x.hero_id)
@@ -64,7 +67,6 @@ export function registerCollection(on) {
         return {}
     })
     on('SwitchWorldGroup', (c, r) => {
-        ensureFormationEditable(c)
         const m = manager(c.state, r.type)
         group(c.state, r.type, r.group_id)
         m.last_group = m.cur_group
@@ -73,7 +75,6 @@ export function registerCollection(on) {
         return {}
     })
     on('SwitchWorldGroupControl', (c, r) => {
-        ensureFormationEditable(c)
         const g = group(c.state, r.type)
         if (!g.heros.some((h) => h.hero_id === r.control) && isPreviousTrialActor(c.state, r.control)) {
             manager(c.state, r.type).src = 0
@@ -85,6 +86,8 @@ export function registerCollection(on) {
             'Control not in group',
         )
         g.control = r.control
+        if (isHomeMap(c.tables, c.state))
+            syncFormation({ ...c, push: c.pushBefore }, { group_mgrs: c.state.player.group_mgrs })
         return {}
     })
     on('ChangeGroupName', (c, r) => {
