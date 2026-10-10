@@ -1,8 +1,10 @@
 import fs from 'node:fs'
-import { ensure } from './common.js'
+import { ensure, syncPlayer } from './common.js'
+import { spend, spendCurrency } from '../inventory.js'
+import { rewardSource } from '../reward-source.js'
 import { WorldObjectCatalog } from '../world-objects.js'
 import { TaskGraphs, nodeConditions } from '../tasks.js'
-import { grantRewards } from '../rewards.js'
+import { grantRewards, parseRewards } from '../rewards.js'
 const configs = new Map(
     JSON.parse(fs.readFileSync(new URL('../../configs/playable-tables/playable.json', import.meta.url))).map((r) => [
         r.id,
@@ -21,9 +23,22 @@ export function playableSnapshot(state) {
     return {
         plays: Object.values(state.playableRuns ?? {})
             .filter((r) => r.map_id === state.world.map_id && r.status !== 3)
-            .map(({ map_id, selected_step, selected_pet_group, selected_pet_guid, rewarded_steps, ...r }) => r),
+            .map(
+                ({
+                    map_id,
+                    selected_step,
+                    selected_pet_group,
+                    selected_pet_guid,
+                    rewarded_steps,
+                    prior_reward_info,
+                    ...r
+                }) => r,
+            ),
         finish_plays: finish.map((r) => r.play_id),
         finish: finish.map(({ play_id, score, reward_info }) => ({ play_id, score, reward_info })),
+        step_flags: Object.entries(state.playableStageClaims ?? {})
+            .filter(([, entry]) => entry.map_id === state.world.map_id)
+            .map(([id, entry]) => ({ play_id: Number(id), flag: entry.flag })),
         all_sync: true,
     }
 }
@@ -79,7 +94,8 @@ export function registerPlayableLifecycle(on, tables) {
     // All-sync recycles every unit and destroys graph start subscriptions.
     // Ordinary lifecycle updates must keep the graph waiting for OnRealStart.
     // Login still uses playableSnapshot's full snapshot to rebuild the world.
-    const sync = (c) => c.pushBefore('CSProtoPlayableSync', { ...playableSnapshot(c.state), all_sync: false })
+    const sync = (c, extra = {}) =>
+        c.pushBefore('CSProtoPlayableSync', { ...playableSnapshot(c.state), all_sync: false, ...extra })
     const taskForPlayable = (state, playId) =>
         state.tasks?.find((task) => {
             const graph = graphs.get(task.task_id)
@@ -97,12 +113,32 @@ export function registerPlayableLifecycle(on, tables) {
             )
         })
     const activeTaskPlayable = (state, playId) => !!taskForPlayable(state, playId)
-    const choiceDrops = new Map(
-        String(configs.get(60001)?.stepRewards ?? '')
-            .split('|')
-            .filter(Boolean)
-            .map((token) => token.split('#').map(Number)),
-    )
+    const stageRewards = (row) =>
+        new Map(
+            String(row.stepRewards || '')
+                .split('|')
+                .filter(Boolean)
+                .map((token) => {
+                    const [step, drop, ...rest] = token.split('#').map(Number)
+                    ensure(
+                        !rest.length &&
+                            Number.isInteger(step) &&
+                            step > 0 &&
+                            step < 64 &&
+                            step <= stepLimit(row) &&
+                            Number.isInteger(drop) &&
+                            drop > 0,
+                        'Invalid playable stage reward mapping',
+                        1007,
+                    )
+                    return [step, drop]
+                }),
+        )
+    const markStage = (state, row, map, step) => {
+        const ledger = (state.playableStageClaims ??= {})
+        const old = ledger[row.id]
+        ledger[row.id] = { map_id: map, flag: String(BigInt(old?.flag ?? 0) | (1n << BigInt(step))) }
+    }
     const selectPetChoice = (c, row, run, step, drop) => {
         const task = taskForPlayable(c.state, row.id)
         ensure(
@@ -149,13 +185,37 @@ export function registerPlayableLifecycle(on, tables) {
             return {}
         ensure(
             world.get('worldmap_' + c.state.world.map_id).some((o) => o.expandId === row.id) ||
-                activeTaskPlayable(c.state, row.id),
+                activeTaskPlayable(c.state, row.id) ||
+                (row.parentID > 0 &&
+                    runs[row.parentID]?.map_id === c.state.world.map_id &&
+                    runs[row.parentID]?.status !== 3),
             'Playable is not in current map',
         )
-        ensure(!row.cost, 'Playable entry costs are not implemented', 1021)
-        if (runs[row.id]?.map_id === c.state.world.map_id) return {}
+        const previous = runs[row.id]
+        const finished = c.state.playableFinishes?.[row.id]
+        if (previous?.map_id === c.state.world.map_id && previous.status !== 3) return {}
+        if (finished?.map_id === c.state.world.map_id && row.canReset !== 1) return {}
+        const costs = parseRewards(row.cost, true).filter((cost) => cost.itemnum > 0)
+        ensure(
+            costs.every((cost) => [3, 10].includes(cost.itemtype)),
+            'Unsupported playable entry cost',
+            1007,
+        )
+        const bag = new Map()
+        for (const cost of costs) {
+            if (cost.itemtype === 3) bag.set(cost.itemid, (bag.get(cost.itemid) ?? 0) + cost.itemnum)
+            else spendCurrency(c.state, cost.itemid, cost.itemnum)
+        }
+        if (bag.size) spend(c.state, bag, 0, c.now)
+        if (costs.length) syncPlayer({ ...c, push: c.pushBefore })
+        if (finished) {
+            ;(c.state.playableScoreClaims ??= {})[row.id] = finished.reward_info ?? 0
+            delete c.state.playableFinishes[row.id]
+        }
         // Client simulator keeps children of the newly started parent, replaces other runs.
-        for (const [id, run] of Object.entries(runs)) if (configs.get(run.play_id)?.parentID !== row.id) delete runs[id]
+        if (!row.parentID)
+            for (const [id, run] of Object.entries(runs))
+                if (configs.get(run.play_id)?.parentID !== row.id) delete runs[id]
         runs[row.id] = {
             play_id: row.id,
             map_id: c.state.world.map_id,
@@ -163,13 +223,26 @@ export function registerPlayableLifecycle(on, tables) {
             sub_datas: [],
             status: 1,
             time: c.now,
+            prior_reward_info:
+                c.state.playableScoreClaims?.[row.id] ?? finished?.reward_info ?? previous?.prior_reward_info ?? 0,
         }
-        sync(c)
+        sync(c, finished ? { del_finish_plays: [row.id] } : {})
         return {}
     })
     on('PlayableCancel', (c, r) => {
         config(r.playId)
-        delete (c.state.playableRuns ??= {})[r.playId]
+        const runs = (c.state.playableRuns ??= {})
+        const removed = new Set([r.playId])
+        let changed = true
+        while (changed) {
+            changed = false
+            for (const [id, run] of Object.entries(runs))
+                if (!removed.has(Number(id)) && removed.has(configs.get(run.play_id)?.parentID)) {
+                    removed.add(Number(id))
+                    changed = true
+                }
+        }
+        for (const id of removed) delete runs[id]
         sync(c)
         return {}
     })
@@ -178,38 +251,61 @@ export function registerPlayableLifecycle(on, tables) {
             run = c.state.playableRuns?.[row.id]
         ensure(run && run.map_id === c.state.world.map_id, 'Playable is not running')
         if (run.status === 3 && c.state.playableFinishes?.[row.id]?.map_id === run.map_id) {
-            const { map_id, selected_step, selected_pet_group, selected_pet_guid, ...play } = run
+            const {
+                map_id,
+                selected_step,
+                selected_pet_group,
+                selected_pet_guid,
+                rewarded_steps,
+                prior_reward_info,
+                ...play
+            } = run
             return { play, pos: c.state.world.pos, rewards: { rewards: [] }, drop_id: [] }
         }
-        ensure(
-            !row.stepRewards || (row.id === 60001 && activeTaskPlayable(c.state, row.id)),
-            'Playable stage reward mapping is not implemented',
-            1021,
-        )
         let rewards = [],
             dropIds = [],
             changed = false
         if (r.is_step) {
             const step = r.finish_step ?? 0
-            ensure(Number.isInteger(step) && step >= run.finish_step && step <= stepLimit(row), 'Invalid playable step')
-            const drop = choiceDrops.get(step)
+            ensure(
+                Number.isInteger(step) && step >= 0 && step >= run.finish_step && step <= stepLimit(row),
+                'Invalid playable step',
+            )
+            const drop = stageRewards(row).get(step)
             if (row.id === 60001 && drop) {
                 ensure(!run.selected_step || run.selected_step === step, 'Playable pet choice already made')
                 ;({ rewards, dropIds } = selectPetChoice(c, row, run, step, drop))
+                markStage(c.state, row, run.map_id, step)
+            } else if (drop && !(BigInt(c.state.playableStageClaims?.[row.id]?.flag ?? 0) & (1n << BigInt(step)))) {
+                ensure(
+                    world.get('drop').some((entry) => entry.dropId === drop),
+                    `Unknown world drop ${drop} for playable ${row.id} stage ${step}`,
+                    1007,
+                )
+                rewards = grantRewards(tables, c.state, world.drops(drop, c.randomInt))
+                dropIds = [drop]
+                markStage(c.state, row, run.map_id, step)
             }
             if (row.id === 60001 && step === row.stepMax) ensure(run.selected_step, 'Playable pet choice is missing')
             const status = step >= requiredStep(row) ? 2 : 1
-            changed = run.finish_step !== step || run.status !== status
+            changed = run.finish_step !== step || run.status !== status || dropIds.length > 0
             run.finish_step = step
             run.status = status
         } else {
             const subs = r.sub_datas ?? []
             ensure(subs.length <= 256, 'Too many playable substeps')
             for (const sub of subs) {
-                ensure(Number.isInteger(sub.sub_id) && sub.sub_id > 0, 'Invalid playable substep')
+                ensure(
+                    Number.isInteger(sub.sub_id) && sub.sub_id >= 0 && sub.sub_id <= 0xffffffff,
+                    'Invalid playable substep',
+                )
                 const existing = run.sub_datas.find((s) => s.sub_id === sub.sub_id)
                 const next = { sub_id: sub.sub_id, finish_step: sub.finish_step ?? 0, complete: !!sub.complete }
-                ensure(!existing || next.finish_step >= existing.finish_step, 'Playable substep moved backwards')
+                // PlayableObject state is a reversible enum, independent of the parent progress.
+                ensure(
+                    Number.isInteger(next.finish_step) && next.finish_step >= 0 && next.finish_step <= 0xffffffff,
+                    'Invalid playable substep state',
+                )
                 if (existing) {
                     if (existing.finish_step !== next.finish_step || existing.complete !== next.complete) changed = true
                     Object.assign(existing, next)
@@ -223,9 +319,23 @@ export function registerPlayableLifecycle(on, tables) {
         // SCPlayableStep only calls SetStep on the client; it does not set
         // stateComplete. Publish status2 through PlayableSync before Finish
         // removes the run, otherwise OnPlayableSync force-resets its objects.
+        if (rewards.length) syncPlayer({ ...c, push: c.pushBefore })
         if (changed || run.status === 2) sync(c)
-        const { map_id, selected_step, selected_pet_group, selected_pet_guid, ...play } = run
-        return { play, pos: c.state.world.pos, rewards: { rewards }, drop_id: dropIds }
+        const {
+            map_id,
+            selected_step,
+            selected_pet_group,
+            selected_pet_guid,
+            rewarded_steps,
+            prior_reward_info,
+            ...play
+        } = run
+        return {
+            play,
+            pos: c.state.world.pos,
+            rewards: { rewards, ...(rewards.length ? { src: rewardSource(tables, 'playableStep') } : {}) },
+            drop_id: dropIds,
+        }
     })
     on('PlayableFinish', (c, r) => {
         const row = config(r.playId),
@@ -246,7 +356,7 @@ export function registerPlayableLifecycle(on, tables) {
                 play_id: row.id,
                 map_id: run.map_id,
                 score,
-                reward_info: 0,
+                reward_info: run.prior_reward_info ?? 0,
                 selected_pet_group: run.selected_pet_group,
                 selected_pet_guid: run.selected_pet_guid,
                 finished_at: c.now,
@@ -293,6 +403,7 @@ export function registerPlayableLifecycle(on, tables) {
             : []
         if (fresh) {
             finish.reward_info = Number(claimed | fresh)
+            ;(c.state.playableScoreClaims ??= {})[row.id] = finish.reward_info
             sync(c)
         }
         return { play_id: row.id, rewards: { rewards }, drop_id: awarded }

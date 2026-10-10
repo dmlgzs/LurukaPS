@@ -1,3 +1,4 @@
+import { petPuzzleRule } from '../pet-puzzles.js'
 import { registerWorldElevator } from './world-elevator.js'
 import { rewardSource } from '../reward-source.js'
 import { ensure, syncPlayer } from './common.js'
@@ -213,12 +214,15 @@ export function registerWorldObjects(on, tables) {
                 }
             ensure([0, 1, 2].includes(input.interact_type ?? 0), 'Unknown world interaction mode')
             const incoming = stateData(input.obj.state_data ?? {}),
-                step = incoming.step ?? old.state_data.step ?? 0
-            ensure(step >= old.state_data.step, 'World state cannot move backwards')
+                step = incoming.step ?? old.state_data?.step ?? 0
+            const puzzle = petPuzzleRule(tables, row, spawner)
+            ensure(puzzle || step >= (old.state_data?.step ?? 0), 'World state cannot move backwards')
             const full = !!input.obj.complete,
                 stage = !!incoming.complete,
-                stageAdvanced = step > (old.state_data.step ?? 0),
-                claim = full || stage
+                stageAdvanced = step > (old.state_data?.step ?? 0),
+                // CommonState.complete means solved; TryInteractObject separately
+                // sets WorldObj.complete when collecting the resulting chest.
+                claim = full || (!puzzle && stage)
             validateEntrustObjectInteraction(c, id, claim)
             const drops = String(row.statusReward || '')
                 .split('|')
@@ -231,11 +235,12 @@ export function registerWorldObjects(on, tables) {
             )
             const record = {
                 ...old,
-                state_data: { ...old.state_data, ...incoming },
+                state_data: { ...old.state_data, ...incoming, ...(puzzle ? { children: incoming.children ?? [] } : {}) },
                 time: old.complete ? old.time : c.now,
                 pos,
                 complete: old.complete || full,
             }
+            if (puzzle) record.active = record.complete ? !!row.keepOnComplete : (old.active ?? true)
             const claims = old.claims ?? {}
             let rewards = [],
                 dropIds = []
@@ -303,7 +308,7 @@ export function registerWorldObjects(on, tables) {
                     awarded = true
                 }
                 if (!collecting.length) claims[full ? 'complete' : stageKey] = true
-                record.last_reward_step = Math.max(old.last_reward_step, step)
+                record.last_reward_step = Math.max(old.last_reward_step ?? 0, step)
             }
             record.claims = claims
             records[key] = record
@@ -312,7 +317,7 @@ export function registerWorldObjects(on, tables) {
                 trace.push({
                     time: c.now,
                     obj_id: id,
-                    old_step: old.state_data.step ?? 0,
+                    old_step: old.state_data?.step ?? 0,
                     step,
                     stage_complete: stage,
                     obj_complete: full,

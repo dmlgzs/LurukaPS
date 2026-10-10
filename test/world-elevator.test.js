@@ -122,7 +122,7 @@ test('visibility migration does not revive explicitly inactive, collected or unr
         const reconnect = {}
         f.call('EnterGame', { open_id: 'elevator-puzzle' }, reconnect)
         assert.equal(f.state().worldObjects['100:4300008'].active, false)
-        assert.equal(f.state().worldObjects['100:4300017'].active, undefined)
+        assert.equal(f.state().worldObjects['100:4300017'].active, false)
         assert.equal(f.state().worldObjects['100:4500001'].active, undefined)
     } finally {
         f.store.close()
