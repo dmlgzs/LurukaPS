@@ -47,3 +47,17 @@ export function mountPayload(tables, state) {
         mount_saddlerys: state.mountSaddles ?? tables.get('mount_saddle').map((row) => row.id),
     }
 }
+
+// Active riding is scene-local. The selected roulette mount remains available.
+export function clearSceneMount(state) {
+    const world = state.world
+    const changed = world.status === 1 || (world.mount && world.mount !== '0') || !!world.mount_status
+    if (world.status === 1) {
+        world.status = 0
+        world.status_arg = '0'
+    }
+    world.mount = '0'
+    world.mount_status = 0
+    delete world.pendingMountExit
+    return !!changed
+}

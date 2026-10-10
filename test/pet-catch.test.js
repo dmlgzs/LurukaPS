@@ -214,3 +214,25 @@ test('logged mixed scan query resolves task monster and ordinary world enemy pac
         f.store.close()
     }
 })
+
+test('successful capture unlocks the acquired species in 6517 before the catch result and repeated catch does not duplicate history', () => {
+    const f = fixture(),
+        target = ((4n << 56n) | 102056n).toString()
+    try {
+        f.store.transact(f.session.id, 0, (s) => {
+            s.recordPets = []
+        })
+        const key = f
+            .call('CatchPetCard', { item_id: 1000001, is_create: true, client_param: 'catalog' })
+            .find((p) => p.id === 11223).data.catch_key
+        const request = { tar_id: target, item_id: 1000001, catch_key: key }
+        const packets = f.call('CatchPet', request)
+        const sync = packets.find((p) => p.id === 6517)
+        assert.deepEqual(sync.data.record_pets, [500297])
+        assert.ok(packets.findIndex((p) => p.id === 6517) < packets.findIndex((p) => p.id === 10714))
+        f.call('CatchPet', request)
+        assert.deepEqual(f.state().recordPets, [500297])
+    } finally {
+        f.store.close()
+    }
+})

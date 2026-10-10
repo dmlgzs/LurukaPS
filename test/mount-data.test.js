@@ -1,3 +1,4 @@
+import { beginSceneTransition } from '../src/scene-transition.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
@@ -88,6 +89,72 @@ test('mount roulette selection supplies short-press ride ID and mount actions ig
         assert.deepEqual(f.store.load(f.session.id), snapshot)
         const remove = f.call('PetRemoveRoulettePos', { u32: 2 })
         assert.equal(remove.find((x) => x.id === 6565).data.ride_id, wolf.guid)
+    } finally {
+        f.close()
+    }
+})
+
+test('scene mount cleanup runs only for a real map change and preserves selected ride and unrelated player status', () => {
+    const state = {
+        world: { map_id: 100, status: 1, status_arg: 'mount', mount: 'mount', mount_status: 2, pendingMountExit: true },
+        mountRideId: 'mount',
+    }
+    assert.equal(beginSceneTransition(state, 100, 1, 256), false)
+    assert.equal(state.world.status, 1)
+    state.world.map_id = 102 // even a destination permitting mounts must start dismounted
+    assert.equal(beginSceneTransition(state, 100, 2, 256), true)
+    assert.equal(state.world.status, 0)
+    assert.equal(state.world.mount, '0')
+    assert.equal(state.world.mount_status, 0)
+    assert.equal(state.world.status_arg, '0')
+    assert.equal(state.world.pendingMountExit, undefined)
+    assert.equal(state.mountRideId, 'mount')
+    state.world.status = 2
+    state.world.status_arg = 'other'
+    state.world.map_id = 104
+    beginSceneTransition(state, 102, 3, 256)
+    assert.equal(state.world.status, 2)
+    assert.equal(state.world.status_arg, 'other')
+})
+
+test('login repairs retained riding in a table-forbidden scene but keeps valid big-world riding', () => {
+    const f = fixture()
+    try {
+        const mount = f.state().pets.find((p) => p.config_id === 500022)
+        f.store.transact(f.session.id, 0, (s) => {
+            Object.assign(s.world, tables.position(tables.find('world_borthpos', 10401)), {
+                status: 1,
+                status_arg: mount.guid,
+                mount: mount.guid,
+                mount_status: 2,
+                mountSyncVersion: 1,
+            })
+            s.mountRideId = mount.guid
+            s.pets.find((p) => p.guid === mount.guid).roulette_pos = 1
+            s.taskRecords = tables
+                .get('task')
+                .filter((row) => row.type === 1)
+                .map((row) => ({ task_id: row.id, count: 1, time: 1 }))
+            s.tasks = []
+        })
+        f.call('EnterGame', { open_id: 'mount-data' }, {})
+        assert.equal(f.state().world.map_id, 104)
+        assert.equal(f.state().world.status, 0)
+        assert.equal(f.state().world.mount, '0')
+        assert.equal(f.state().world.mount_status, 0)
+        assert.equal(f.state().mountRideId, mount.guid)
+        f.store.transact(f.session.id, 0, (s) => {
+            Object.assign(s.world, tables.position(tables.find('world_borthpos', 10045)), {
+                status: 1,
+                status_arg: mount.guid,
+                mount: mount.guid,
+                mount_status: 2,
+                mountSyncVersion: 1,
+            })
+        })
+        f.call('EnterGame', { open_id: 'mount-data' }, {})
+        assert.equal(f.state().world.status, 1)
+        assert.equal(f.state().world.mount, mount.guid)
     } finally {
         f.close()
     }

@@ -36,4 +36,5 @@ export function group(s, type = 1, id) {
     return g
 }
 export const syncPlayer = (c, data) => c.push('CSProtoSyncPlayerData', data || c.state.player)
-export const syncPets = (c) => c.push('CSProtoPetInfoSync', { pet_infos: { pets: c.state.pets } })
+export const syncPets = (c) =>
+    c.push('CSProtoPetInfoSync', { pet_infos: { pets: c.state.pets }, record_pets: c.state.recordPets ?? [] })

@@ -1,3 +1,4 @@
+import { repairPetCatalog } from './pet-catalog.js'
 import { announcementSnapshot } from './announcements.js'
 import { optimizeSyncPackets } from './sync-delta.js'
 import { registerPetCatch } from './handlers/pet-catch.js'
@@ -504,7 +505,7 @@ export class Game {
                 upgradeInventory(state)
                 reconcileWorldCollectionFinalDrops(this.tables, state)
                 repairSavedWorldRepairs(this.tables, state)
-                repairLegacyMountState(state)
+                repairLegacyMountState(state, this.tables)
                 this.recoverFailedPetChoice(state, session.id, now)
                 this.recoverClosedPetPageAfterChoice(state, session.id)
                 this.recoverFailedInvestigationPlayable(state, session.id, now)
@@ -551,6 +552,7 @@ export class Game {
                 syncCurrencyMirrors(state.player)
                 restoreMissingStamina(this.tables, state)
                 repairPetProfiles(this.tables, state, now)
+                repairPetCatalog(this.tables, state)
                 repairMountSelection(this.tables, state)
                 upgradeSkillState(this.tables, state)
                 upgradeEggState(state)
@@ -847,6 +849,7 @@ export class Game {
                         ? [
                               this.packet('CSProtoPetInfoSync', {
                                   ...releaseFields(state, 'pet', now, this.releaseResetHour),
+                                  record_pets: state.recordPets ?? [],
                                   pet_infos: {
                                       pets: state.pets,
                                       guid: petIdsBefore.filter((id) => !state.pets.some((p) => p.guid === id)),
@@ -975,6 +978,7 @@ export class Game {
                     packets.push(
                         this.packet('CSProtoPetInfoSync', {
                             ...releaseFields(state, 'pet', now, this.releaseResetHour),
+                            record_pets: state.recordPets ?? [],
                             pet_infos: { pets: state.pets },
                         }),
                     )
@@ -1041,6 +1045,7 @@ export class Game {
             ...(state.trialGroup ? [this.packet('CSProtoTrialDatas', trialPayload(state))] : []),
             this.packet('CSProtoPetInfoSync', {
                 ...releaseFields(state, 'pet', now, this.releaseResetHour),
+                record_pets: state.recordPets ?? [],
                 pet_infos: { pets: state.pets },
             }),
             this.packet('CSProtoPetEggInfoSync', {

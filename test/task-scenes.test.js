@@ -282,6 +282,9 @@ test('task cross-scene transfer uses configured birthpoint10401 and rejects forg
             s.tasks = [{ task_id: 106002, nodes: [makeNode(graph, 59, s)], finish_nodes: [1, 56], reward_nodes: [] }]
             delete s.pendingTaskScene
         })
+        const mount = f.state().pets.find((p) => p.config_id === 500022)
+        f.call('WorldMapPlayerStatus', { status: 1, arg: mount.guid })
+        f.call('WorldMapPlayerMountStatus', { u32: 2 })
         const before = f.state()
         assert.throws(
             () => f.call('EnterWorldMap', { task_id: 106002, node_id: 59, map_id: 100, point_id: 10045 }),
@@ -296,6 +299,16 @@ test('task cross-scene transfer uses configured birthpoint10401 and rejects forg
             client_trans_data: 2,
         })
         assert.equal(f.state().world.map_id, 104)
+        assert.equal(f.state().world.status, 0)
+        assert.equal(f.state().world.status_arg, '0')
+        assert.equal(f.state().world.mount, '0')
+        assert.equal(f.state().world.mount_status, 0)
+        assert.equal(f.state().mountRideId, mount.guid)
+        const entryPlayer = packets.find((p) => p.id === 9103).data.map_info.players[0]
+        assert.equal(entryPlayer.status, 0)
+        assert.equal(entryPlayer.mount, '0')
+        assert.equal(entryPlayer.mount_status, 0)
+        assert.equal(entryPlayer.mount_move, undefined)
         assert.deepEqual(f.state().world.pos, tables.position(tables.find('world_borthpos', 10401)).pos)
         assert.equal(packets.find((p) => p.id === 9103).data.client_trans_data, 2)
         assert.throws(

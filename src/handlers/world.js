@@ -3,7 +3,7 @@ import { expireTaskTrialGroup, trialPayload } from './trial-groups.js'
 import { validateTaskTransfer } from '../task-scenes.js'
 import { heroBattleLimits, heroModules, syncBattle } from '../battle.js'
 import { ensure, group, pet } from './common.js'
-import { mountPayload } from '../mounts.js'
+import { mountPayload, clearSceneMount } from '../mounts.js'
 import { restoreLegacyHomeFormation } from '../home-formation.js'
 import { repairMainHeroType } from '../main-hero.js'
 import { campaignSnapshot, entrustChestSnapshot } from '../entrust.js'
@@ -109,9 +109,12 @@ function teleportFromTestMark(c, mark) {
     syncBattle(c)
     return { ...mark, guid }
 }
-export function repairLegacyMountState(state) {
+export function repairLegacyMountState(state, tables) {
     const w = state.world
     if (w.pendingMountExit) delete w.pendingMountExit
+    // CBT3 MountUtil.CheckSceneCanMount reads world_city.mountAvailable.
+    // Recover saves already transferred before scene-local riding was cleared.
+    if (tables?.find('world_city', w.map_id)?.mountAvailable === 0) return clearSceneMount(state)
     if (w.status !== 1 || w.mountSyncVersion || !w.mount || w.mount === '0') return false
     w.status = 0
     w.status_arg = '0'

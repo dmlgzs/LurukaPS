@@ -1,3 +1,4 @@
+import { recordPetAcquisition } from './pet-catalog.js'
 import fs from 'node:fs'
 import { randomInt } from 'node:crypto'
 import { initialPetSkills } from './skills.js'
@@ -251,6 +252,7 @@ export function createPets(tables, state, configId, count, builderRuleId = 1001)
             state.petBoxes.push({ id: box, box_name: Buffer.from(`奇波小屋${box}`).toString('base64') })
     }
     state.pets.push(...created)
+    recordPetAcquisition(tables, state, configId)
     state.nextPetSequence = sequence
     state.petRevision = (state.petRevision || 0) + 1
     return created
