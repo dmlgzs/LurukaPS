@@ -1,4 +1,5 @@
 import { repairSavedPetPuzzleVisibility } from '../pet-puzzles.js'
+import { activeDormVisit } from '../home-dorm.js'
 import { repairSavedElevatorVisibility } from './world-elevator.js'
 import { recordWorldDiscovery } from '../world-discovery.js'
 import { expireTaskTrialGroup, trialPayload } from './trial-groups.js'
@@ -125,6 +126,8 @@ export function repairLegacyMountState(state, tables) {
     return true
 }
 export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = true) {
+    // A task/GM/home transfer may leave a dorm without using protocol 6213.
+    if (c.state.home?.dormVisit && !activeDormVisit(c.tables, c.state)) delete c.state.home.dormVisit
     repairSavedElevatorVisibility(c.tables, c.state)
     repairSavedPetPuzzleVisibility(c.tables, c.state)
     const restoredFormation = restoreLegacyHomeFormation(c.state),

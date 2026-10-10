@@ -56,7 +56,12 @@ test('home name, shortcuts and wishlist survive login; invalid updates roll back
         const login = call('EnterGame', { open_id: 'home' }, {})
         const home = p.decode('SCHomeSync', login.find((x) => x.id === 6102).payload)
         assert.equal(Buffer.from(home.home_name, 'base64').toString(), '小花园')
-        assert.deepEqual(home.shortcut_bars[0].item_id, [10000, 0, -1])
+        assert.deepEqual(home.shortcut_bars[0].item_id.slice(0, 3), [10000, 0, -1])
+        assert.equal(
+            home.shortcut_bars[0].item_id.length,
+            Number(tables.get('game').find((row) => row.title === 'HOME_BELT_NUM_PC').value),
+        )
+        assert(home.shortcut_bars[0].item_id.slice(3).every((id) => id === 0))
         assert.equal(home.wishlist[0].trace, true)
         const before = store.load(session.id)
         assert.throws(() =>

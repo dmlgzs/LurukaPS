@@ -1,5 +1,6 @@
 import { createPets, createCustomizedPets } from './pets.js'
-import { addHomeBuildings, refreshAutoCropShortcut } from './home.js'
+import { ensureHome, addHomeBuildings, refreshAutoCropShortcut } from './home.js'
+import { ensureHomeDormitories, grantDormStyle } from './home-dorm.js'
 import { ensure } from './handlers/common.js'
 import { addItems } from './inventory.js'
 import { createEggs } from './eggs.js'
@@ -50,6 +51,7 @@ export function grantRewards(tables, state, rewards, depth = 0) {
                 ensure(!heroes.some((h) => h.guid === hero.guid), 'Reward hero identity collision', 1007)
                 heroes.push(hero)
             }
+            if (state.home) ensureHomeDormitories(tables, state)
             granted.push({ ...reward, guid: hero.guid })
             continue
         }
@@ -84,6 +86,9 @@ export function grantRewards(tables, state, rewards, depth = 0) {
             ensure(tables.find('mount_saddle', itemid), 'Unknown mount saddle', 1007)
             state.mountSaddles ??= tables.get('mount_saddle').map((r) => r.id)
             if (!state.mountSaddles.includes(itemid)) state.mountSaddles.push(itemid)
+        } else if (itemtype === 40) {
+            ensureHome(tables, state)
+            grantDormStyle(tables, state, itemid)
         } else if (itemtype === 28) {
             ensure(tables.find('library_readings', itemid), 'Unknown reading', 1007)
             const books = (state.readingBooks ??= {})

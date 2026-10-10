@@ -9,6 +9,7 @@ import { syncBattle } from '../battle.js'
 import { clearFarmPetSlots } from './farm-workers.js'
 import { clearProductionPetSlots } from './production-workers.js'
 import { rememberMap, worldSync, WORLD_MAP_CMD_ENTER } from './world.js'
+import { dormTopics } from '../home-dorm.js'
 
 function homeScenePosition(tables) {
     const homeMapId = Number(tables.get('game').find((row) => row.title === 'HOME_ID')?.value)
@@ -97,6 +98,7 @@ export function registerHome(on, tables) {
         delete c.state.combat
         change(c)
         const sceneContext = { ...c, push: c.pushBefore }
+        c.pushBefore('SCProtoHomeHeroStoryInfoNtf', dormTopics(tables, c.state, c.now))
         // The client starts SceneService.EnterScene from WorldMapSync cmd 256.
         worldSync(sceneContext, r, WORLD_MAP_CMD_ENTER)
         syncBattle(sceneContext)

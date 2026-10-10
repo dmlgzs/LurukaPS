@@ -1,5 +1,6 @@
 import { technologyPayload } from './technology.js'
 import { ensure } from './handlers/common.js'
+import { ensureHomeDormitories, dormPayload } from './home-dorm.js'
 export function ensureHome(tables, state) {
     if (state.home) return state.home
     const raw = tables.get('game').find((x) => x.title === 'HOME_DEFAULT_PLACEMENT')?.value
@@ -88,6 +89,7 @@ export function ensureHomeFarmHouses(tables, state) {
 export function homePayload(tables, state) {
     const h = ensureHome(tables, state)
     ensureHomeFarmHouses(tables, state)
+    ensureHomeDormitories(tables, state)
     // The CBT3 client's getBeltItems starts zero-filling at #list, overwriting
     // the last entry unless the wire list already has the full slot count.
     const shortcutSlots = Math.max(
@@ -103,6 +105,7 @@ export function homePayload(tables, state) {
         home_name: h.name,
         builds: h.inventory,
         home_builds: h.builds,
+        dorm: dormPayload(tables, state),
         shortcut_bars: h.shortcuts.map((bar) => ({
             ...bar,
             item_id: Array.from(

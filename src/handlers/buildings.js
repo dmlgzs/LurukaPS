@@ -1,6 +1,7 @@
 import { ensureHome, ensureHomeCanteens, ensureHomeFarmHouses, refreshAutoBuildShortcut } from '../home.js'
 import { validatePlacement } from '../home-grid.js'
 import { ensure } from './common.js'
+import { ensureHomeDormitories, syncDormResidents, activeDormVisit } from '../home-dorm.js'
 function inactive(build) {
     return (
         build.status === 1 &&
@@ -46,6 +47,7 @@ export function registerBuildingPlacement(on, tables) {
         }
         ensureHomeCanteens(tables, c.state)
         ensureHomeFarmHouses(tables, c.state)
+        ensureHomeDormitories(tables, c.state)
         c.state.homeRevision = (c.state.homeRevision || 0) + 1
         return build
     }
@@ -59,6 +61,7 @@ export function registerBuildingPlacement(on, tables) {
         const config = tables.find('home_building', build.build_id),
             group = tables.get('home_building_group').find((g) => g.groupId === config.groupId)
         ensure(group?.isStorable === 1, 'Building cannot be stored')
+        ensure(activeDormVisit(tables, c.state)?.build_guid !== build.guid, 'Cannot store the dormitory being visited')
         const inventory = home.inventory.find((x) => x.build_id === build.build_id)
         ensure(inventory && inventory.used_num > 0, 'Invalid building inventory')
         inventory.used_num--
@@ -66,6 +69,11 @@ export function registerBuildingPlacement(on, tables) {
         home.builds = home.builds.filter((b) => b.guid !== r.guid)
         home.storedBuilds ??= []
         const stored = { ...build }
+        if (stored.dorm) {
+            stored.dorm = { ...stored.dorm, hero_ids: [], dorm_heros: [] }
+            syncDormResidents(c.state)
+            c.pushBefore('CSProtoSyncPlayerData', { heros_info: c.state.player.heros_info })
+        }
         delete stored.locate
         home.storedBuilds.push(stored)
         c.state.homeRevision = (c.state.homeRevision || 0) + 1

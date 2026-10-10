@@ -98,6 +98,8 @@ import { registerProductionWorkers } from './handlers/production-workers.js'
 import { registerCanteen } from './handlers/canteen.js'
 import { registerCooking } from './handlers/cooking.js'
 import { registerHome } from './handlers/home.js'
+import { registerHomeDorm } from './handlers/home-dorm.js'
+import { ensureHomeDormitories, syncDormResidents, activeDormVisit, dormTopics, dormDayDue } from './home-dorm.js'
 import {
     ensureHome,
     ensureHomeCanteens,
@@ -334,6 +336,7 @@ export class Game {
         registerItems(on)
         registerShops(on, tables)
         registerHome(on, tables)
+        registerHomeDorm(on, tables)
         registerBuildingPlacement(on, tables)
         registerFarming(on, tables)
         registerFarmWorkers(on, tables)
@@ -576,6 +579,10 @@ export class Game {
                 ensureHome(this.tables, state)
                 ensureHomeCanteens(this.tables, state)
                 ensureHomeFarmHouses(this.tables, state)
+                ensureHomeDormitories(this.tables, state)
+                syncDormResidents(state)
+                dormTopics(this.tables, state, now)
+                if (state.home.dormVisit && !activeDormVisit(this.tables, state)) delete state.home.dormVisit
                 reconcileHomeBuildShortcuts(this.tables, state)
                 reconcileHomeCropShortcuts(this.tables, state)
                 retimeProduction(this.tables, state, now)
@@ -993,12 +1000,22 @@ export class Game {
         const now = this.clock(),
             current = this.store.load(id).state,
             homeDue = productionDue(current, now),
-            simpleDue = simpleProductionDue(current, now)
-        if (!homeDue && !simpleDue) return []
+            simpleDue = simpleProductionDue(current, now),
+            dormDue = dormDayDue(this.tables, current, now)
+        if (!homeDue && !simpleDue && !dormDue) return []
         return this.store.transact(id, 0, (state) => {
             const packets = [],
                 eggRevision = state.eggRevision || 0,
                 petRevision = state.petRevision || 0
+            if (dormDue) {
+                packets.push(this.packet('SCProtoHomeHeroStoryInfoNtf', dormTopics(this.tables, state, now)))
+                packets.push(
+                    this.packet('CSProtoSyncPlayerData', {
+                        basic_info: state.player.basic_info,
+                        heros_info: state.player.heros_info,
+                    }),
+                )
+            }
             if (homeDue && refreshProduction(state, now)) {
                 if ((state.eggRevision || 0) !== eggRevision)
                     packets.push(
@@ -1130,6 +1147,10 @@ export class Game {
             this.packet('CSProtoMailSync', { mails: state.mail }),
             this.packet('CSProtoStorySync', { infos: { infos: state.storyIds || [] } }),
             this.packet('CSProtoHomeSync', homePayload(this.tables, state)),
+            this.packet('SCProtoHomeHeroStoryInfoNtf', dormTopics(this.tables, state, now)),
+            ...(activeDormVisit(this.tables, state)
+                ? [this.packet('SCProtoHomeDormReEnterNtf', { hero_id: state.home.dormVisit.hero_id })]
+                : []),
             this.packet('CSProtoSimpleProductFinish', simpleProductSnapshot(state)),
             this.packet('SCProtoMonthlyCardInfoSync', monthlyPayload(state)),
             this.packet('CSProtoReadHandbookInfoSync', {
