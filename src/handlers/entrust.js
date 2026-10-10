@@ -1,3 +1,4 @@
+import { rewardSource } from '../reward-source.js'
 import { ensure, syncPlayer } from './common.js'
 import { syncBattle } from '../battle.js'
 import { grantRewards, parseRewards } from '../rewards.js'
@@ -374,7 +375,10 @@ export function registerEntrust(on, tables) {
         const run = c.state.entrust?.run
         ensure(run && r.box_id === catalog.chest(run.entrust_id).id, 'Invalid entrust chest claim')
         ensureEntrustSceneObjects(tables, c.state)
-        return { reward: { rewards: claimEntrustChest(c, r.times) }, extra_reward: { rewards: [] } }
+        return {
+            reward: { rewards: claimEntrustChest(c, r.times), src: rewardSource(c.tables, 'staminaChest') },
+            extra_reward: { rewards: [], src: rewardSource(c.tables, 'staminaChest') },
+        }
     })
     on('EntrustStarReward', (c, r) => {
         const ids = [...new Set([r.reward_id, ...(r.reward_id_list ?? [])].filter(Boolean))]

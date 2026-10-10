@@ -1,3 +1,4 @@
+import { rewardSource } from '../reward-source.js'
 import { ensure, syncPlayer } from './common.js'
 import { settleStoryCampaignScene } from './story-campaign.js'
 import { WorldObjectCatalog } from '../world-objects.js'
@@ -322,7 +323,7 @@ export function registerWorldObjects(on, tables) {
             output.push({
                 obj: wire,
                 pos,
-                rewards: { rewards },
+                rewards: { rewards, src: rewardSource(c.tables, 'worldObjectInteract') },
                 drop_ids: dropIds,
                 interact_type: input.interact_type ?? 0,
                 tool_type: input.tool_type ?? 0,

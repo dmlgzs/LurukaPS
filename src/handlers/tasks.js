@@ -1,3 +1,4 @@
+import { rewardSource } from '../reward-source.js'
 import { submitTaskItems, deliveryKey, deliveryComplete } from '../task-delivery.js'
 import { applyTaskItemActions } from '../task-items.js'
 import { grantRewards, parseRewards } from '../rewards.js'
@@ -21,6 +22,11 @@ import {
     canRecoverClearedDungeonNode,
     reconcileClearedDungeonBefore,
 } from '../tasks.js'
+// Use the table distinction between whole-task and node completion.
+const taskRewards = (tables, rewards, operation = 'taskNodeComplete') => ({
+    rewards,
+    src: rewardSource(tables, operation),
+})
 export function registerTasks(register, tables) {
     const handlers = new Map()
     const on = (name, fn) => {
@@ -93,7 +99,7 @@ export function registerTasks(register, tables) {
         if (!task) {
             const receipt = c.state.taskFinishReceipts?.[key]
             ensure(receipt, 'Task is not active')
-            return { rewards: receipt }
+            return taskRewards(tables, receipt, 'taskComplete')
         }
         const end = graph.nodes.get(graph.end)
         ensure(
@@ -119,7 +125,7 @@ export function registerTasks(register, tables) {
         if (c.state.pendingTaskStorySync?.task_id === r.u32) delete c.state.pendingTaskStorySync
         c.push('CSProtoSyncPlayerData', c.state.player)
         sync(c, { del_tasks: [r.u32], del_trace_list: [r.u32] })
-        return { rewards }
+        return taskRewards(tables, rewards, 'taskComplete')
     })
     on('TaskClientTrace', (c, r) => {
         const task = activeTask(c.state, r.task_id)
@@ -197,7 +203,7 @@ export function registerTasks(register, tables) {
         )
         const rewards = rewardNode(c, task, r.node_id)
         sync(c)
-        return { rewards }
+        return taskRewards(tables, rewards)
     })
     on('TaskClientCondAfter', (c, r) => {
         if (finished(c, r)) return {}
@@ -228,7 +234,10 @@ export function registerTasks(register, tables) {
         const previous = finished(c, r)
         if (previous) {
             sync(c)
-            return { rewards: c.state.taskAfterReceipts?.[deliveryKey(c.state, r.task_id, r.node_id, 'after')] ?? [] }
+            return taskRewards(
+                tables,
+                c.state.taskAfterReceipts?.[deliveryKey(c.state, r.task_id, r.node_id, 'after')] ?? [],
+            )
         }
         const { graph, task, node, config } = current(c, r)
         ensure(node.client_before, 'Node pre-action is not acknowledged')
@@ -246,7 +255,7 @@ export function registerTasks(register, tables) {
                 epoch: c.state.taskEpochs?.[r.task_id] ?? 0,
             }
             sync(c)
-            return { rewards: [] }
+            return taskRewards(tables, [])
         }
         ensure(
             node.node_values.every((n, i) => conditionSatisfied(conditions[i], n)),
@@ -263,7 +272,7 @@ export function registerTasks(register, tables) {
             task.final_time ??= c.now
             sync(c)
             if (first) c.push('CSProtoNotifyTaskEndNode', { task_id: r.task_id })
-            return { rewards }
+            return taskRewards(tables, rewards)
         }
         const next = asList(config.nextNodeIdList)
         ensure(next.length > 0, 'Task node has no successor', 1007)
@@ -280,7 +289,7 @@ export function registerTasks(register, tables) {
         advancePetChoiceBranch(graph, task, c.state)
         deferTaskSyncUntilAfterStories(c.state, r.task_id, r.node_id, config)
         sync(c)
-        return { rewards }
+        return taskRewards(tables, rewards)
     })
     for (const suffix of ['Before', 'After', 'CondAfter'])
         on('MultiTaskClient' + suffix, (c, r) => {
@@ -297,7 +306,7 @@ export function registerTasks(register, tables) {
                 const result = handlers.get('TaskClient' + suffix)(c, param)
                 rewards.push(...(result?.rewards ?? []))
             }
-            return suffix === 'After' ? { rewards } : {}
+            return suffix === 'After' ? taskRewards(tables, rewards) : {}
         })
     const finishPendingCharacterTask = (c) => {
         const pending = c.state.pendingCharacterTask

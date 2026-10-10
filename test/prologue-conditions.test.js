@@ -164,6 +164,9 @@ test('prologue saddle pickup commits reward and satisfies configured object30000
         }
         const packets = f.call('WorldObjInteract', request)
         assert(f.state().mountSaddles.includes(500024))
+        const entry = p.byName.get('CSProtoWorldObjInteract')
+        const body = p.decode(entry.rsp, packets.find((packet) => packet.id === entry.id).payload)
+        assert.equal(body.objs[0].rewards.src, 84)
         assert.equal(f.state().worldObjects['102:300000'].complete, true)
         assert.equal(f.state().tasks[0].nodes[0].node_values[0], 1)
         assert(packets.some((x) => x.id === 9853))
@@ -424,6 +427,60 @@ test('second prologue quest follows actual configured nodes through capture, pag
         assert.deepEqual(visited, [56, 65, 61, 58, 63, 62, 57, 59, 64, 60])
         assert(f.state().tasks.some((t) => t.task_id === 106009))
         assert.equal(f.state().taskRecords.find((t) => t.task_id === 106002).count, 1)
+    } finally {
+        f.store.close()
+    }
+})
+
+test('table task106009 grants Tll as a hero and marks task reward source for the new-partner page', () => {
+    const f = fixture(106009, 10, 100)
+    try {
+        f.edit((s) => {
+            s.player.heros_info.heros = s.player.heros_info.heros.filter((h) => h.conf_id !== 108001)
+        })
+        const bag = structuredClone(f.state().player.sbag_infos)
+        const request = { task_id: 106009, node_id: 10 }
+        const packets = f.call('TaskClientAfter', request)
+        const reward = p.decode('cs.Rewards', packets.find((packet) => packet.id === 9862).payload)
+        assert.equal(reward.src, 88)
+        assert.equal(reward.rewards[0].itemtype, 1)
+        assert.equal(reward.rewards[0].itemid, 108001)
+        assert.equal(reward.rewards[0].guid, f.state().player.heros_info.heros.find((h) => h.conf_id === 108001).guid)
+        assert.deepEqual(f.state().player.sbag_infos, bag)
+        const retry = p.decode(
+            'cs.Rewards',
+            f.call('TaskClientAfter', request).find((packet) => packet.id === 9862).payload,
+        )
+        assert.equal(retry.src, 88)
+        assert.deepEqual(retry.rewards, reward.rewards)
+        assert.equal(f.state().player.heros_info.heros.filter((h) => h.conf_id === 108001).length, 1)
+        const claimed = p.decode(
+            'cs.Rewards',
+            f.call('TaskRewardNode', request).find((packet) => packet.id === 9856).payload,
+        )
+        assert.equal(claimed.src, 88)
+        assert.equal(claimed.rewards?.length ?? 0, 0)
+        const batchEntry = p.byName.get('CSProtoMultiTaskClientAfter')
+        const batch = f.call('MultiTaskClientAfter', { task_params: [request] })
+        assert.equal(p.decode(batchEntry.rsp, batch.find((packet) => packet.id === batchEntry.id).payload).src, 88)
+        const finished = f.call('TaskFinish', { u32: 106009 })
+        assert.equal(p.decode('cs.Rewards', finished.find((packet) => packet.id === 9852).payload).src, 26)
+        const finishRetry = f.call('TaskFinish', { u32: 106009 })
+        assert.equal(p.decode('cs.Rewards', finishRetry.find((packet) => packet.id === 9852).payload).src, 26)
+    } finally {
+        f.store.close()
+    }
+})
+
+test('ordinary task node materials use the table node-completion source', () => {
+    const f = fixture(106009, 7, 200)
+    try {
+        f.edit((s) => s.tasks[0].finish_nodes.push(7))
+        const packet = f.call('TaskRewardNode', { task_id: 106009, node_id: 7 }).find((p) => p.id === 9856)
+        const reward = p.decode('cs.Rewards', packet.payload)
+        assert.equal(reward.src, 88)
+        assert.ok(reward.rewards.length > 0)
+        assert.ok(reward.rewards.every((item) => item.itemtype === 3))
     } finally {
         f.store.close()
     }
