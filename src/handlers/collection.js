@@ -88,8 +88,10 @@ export function registerCollection(on) {
         return {}
     })
     on('ChangeGroupName', (c, r) => {
-        group(c.state, r.type, r.group_id).group_name = textValue(r.name, 30)
-        syncGroups(c)
+        const changed = group(c.state, r.type, r.group_id)
+        changed.group_name = textValue(r.name, 30)
+        // This changes metadata, not the active formation or its attributes.
+        syncPlayer(c, { group_mgrs: [{ type: r.type, src: 1, groups: [changed] }] })
         return {}
     })
     on('WearPet', (c, r) => {

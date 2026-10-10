@@ -436,7 +436,7 @@ export async function startServer(config, logger = console) {
         for (const [socket, { session, replay }] of sessions) {
             if (!session.entered || owners.get(session.id) !== socket) continue
             try {
-                const packets = game.tick(session.id)
+                const packets = game.tick(session.id, session)
                 if (packets.length) replay.invalidate()
                 for (const packet of packets) {
                     if (socket.writableLength > 8 * 1024 * 1024) {

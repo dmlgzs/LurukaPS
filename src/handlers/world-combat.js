@@ -11,11 +11,29 @@ function runtime(c) {
     state.hatred ??= { objects: {}, players: {} }
     return state
 }
-function syncHatred(c, battle) {
-    c.pushBefore('SCProtoWorldHatredSync', {
-        obj_info: Object.values(battle.hatred.objects),
-        player_info: Object.values(battle.hatred.players),
-    })
+function clearHatredWithDeltas(c, battle, id) {
+    // Clear only affected edges. A target reset may also reset its entire
+    // monster group; full10808 would reset unrelated battles as well.
+    const before = Object.fromEntries(
+        Object.entries(battle.hatred).map(([field, entries]) => [
+            field,
+            Object.fromEntries(Object.entries(entries).map(([key, info]) => [key, { ...info }])),
+        ]),
+    )
+    const changed = clearHatred(battle, id)
+    if (!changed) return false
+    for (const [field, entries] of Object.entries(before))
+        for (const [key, old] of Object.entries(entries)) {
+            const next = battle.hatred[field][key]
+            const targets = old.target_obj_ids.filter((target) => !next?.target_obj_ids.includes(target))
+            const players = old.player_obj_ids.filter((player) => !next?.player_obj_ids.includes(player))
+            if (targets.length || players.length)
+                c.pushBefore(field === 'players' ? 'CSProtoPlayerHatredIncSync' : 'CSProtoObjHatredIncSync', {
+                    inc: false,
+                    info: { id: old.id, target_obj_ids: targets, player_obj_ids: players },
+                })
+        }
+    return true
 }
 function clearHatred(battle, id, isPlayer = false) {
     let changed = false
@@ -47,9 +65,8 @@ export function retireCapturedEnemy(c, id) {
     const battle = runtime(c),
         previous = battle.entities[id] ?? { uuid: id }
     removeAssociated(battle, id)
-    const hatredChanged = clearHatred(battle, id)
+    clearHatredWithDeltas(c, battle, id)
     battle.entities[id] = { ...previous, uuid: id, hp: 0, alive_state: 1, captured: true, updated_at: c.now }
-    if (hatredChanged) syncHatred(c, battle)
 }
 export function pruneInactiveCampaignRelations(c, ids = []) {
     const battle = runtime(c),
@@ -281,7 +298,7 @@ export function registerWorldCombat(on) {
         delete battle.summons[id]
         if (battle.summonRequests[record.request_key]) battle.summonRequests[record.request_key].removed = true
         removeAssociated(battle, id)
-        if (clearHatred(battle, id)) syncHatred(c, battle)
+        clearHatredWithDeltas(c, battle, id)
         c.push('CSProtoRemoveSummonSync', { unit_id: id, op: r.op ?? 0, op_time: u64(r.op_time) })
     })
     on('FightBreak', (c, r) => {

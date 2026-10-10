@@ -78,6 +78,8 @@ test('stationing a hero pet clears its ordinary formation slot and respects five
             h.pet_id = p.guid
             s.player.group_mgrs[0].groups[0].heros[0] = { hero_id: h.guid, pet_id: p.guid }
         })
+        // Publish the injected binding to the client before testing its removal.
+        f.call('WearPet', { hero_guid: hero, pet_guid: id })
         const packets = f.call('PetStationInHomeHub', { pet_guid: id, type: 0 })
         assert(packets.some((x) => x.id === 5008))
         assert.equal(f.state().player.heros_info.heros[0].pet_id, '0')

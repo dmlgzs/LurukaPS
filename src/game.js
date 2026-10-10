@@ -1,4 +1,5 @@
 import { announcementSnapshot } from './announcements.js'
+import { optimizeSyncPackets } from './sync-delta.js'
 import { registerPetCatch } from './handlers/pet-catch.js'
 import { refundPendingCatchCards } from './handlers/pet-catch.js'
 import { repairCharacterCreationMarker } from './character-creation.js'
@@ -260,9 +261,11 @@ export class Game {
             gmEnabled = true,
             offlinePayments = true,
             taskEventDiagnosticsFile = null,
+            syncOptimization = true,
         } = {},
     ) {
         this.announcementBaseUrl = 'http://127.0.0.1:20001/'
+        this.syncOptimization = syncOptimization
         this.clock = clock
         this.rng = rng
         this.crcDelay = crcDelay
@@ -437,6 +440,17 @@ export class Game {
         return { id: e.id, payload: this.protocol.encode(e.rsp, value), ...meta }
     }
     dispatch(session, frame) {
+        const packets = this.dispatchRaw(session, frame)
+        if (!this.syncOptimization) return packets
+        const entry = this.protocol.byId.get(frame.id)
+        const taskId = ['CSProtoTaskClientCondAfter', 'CSProtoTaskClientAfter', 'CSProtoTaskAccept'].includes(
+            entry?.name,
+        )
+            ? this.protocol.decode(entry.req, frame.payload).task_id
+            : undefined
+        return optimizeSyncPackets(this.protocol, session, packets, entry?.name, taskId)
+    }
+    dispatchRaw(session, frame) {
         const e = this.protocol.byId.get(frame.id)
         const now = this.clock()
         if (!e) throw new GameError('Unknown message ID', 1021)
@@ -725,8 +739,6 @@ export class Game {
                         const { sbag_infos, soulessence_infos, ...other } = value
                         value = {
                             ...other,
-                            ...(value.basic_info ? { basic_info: state.player.basic_info } : {}),
-                            ...(value.attr_infos ? { attr_infos: state.player.attr_infos } : {}),
                         }
                         if (!Object.keys(value).length) return null
                     }
@@ -936,7 +948,11 @@ export class Game {
             },
         )
     }
-    tick(id) {
+    tick(id, session) {
+        const packets = this.tickRaw(id)
+        return this.syncOptimization && session ? optimizeSyncPackets(this.protocol, session, packets, 'tick') : packets
+    }
+    tickRaw(id) {
         const now = this.clock(),
             current = this.store.load(id).state,
             homeDue = productionDue(current, now),
