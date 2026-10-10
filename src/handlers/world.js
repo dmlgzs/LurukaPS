@@ -4,7 +4,7 @@ import { recordWorldDiscovery } from '../world-discovery.js'
 import { expireTaskTrialGroup, trialPayload } from './trial-groups.js'
 import { validateTaskTransfer } from '../task-scenes.js'
 import { heroBattleLimits, heroModules, syncBattle } from '../battle.js'
-import { ensure, group, pet } from './common.js'
+import { ensure, group, pet, syncGroupControl } from './common.js'
 import { mountPayload, clearSceneMount } from '../mounts.js'
 import { restoreLegacyHomeFormation } from '../home-formation.js'
 import { repairMainHeroType } from '../main-hero.js'
@@ -424,6 +424,7 @@ export function registerWorld(on) {
             delete w.pendingMountExit
             const mount = pet(c.state, arg)
             ensure(!mount.work_status, 'Stationed pet cannot be mounted')
+            syncGroupControl(c)
             w.mount = mount.guid
             if (c.state.mountRideId !== mount.guid) {
                 c.state.mountRideId = mount.guid

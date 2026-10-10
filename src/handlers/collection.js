@@ -2,7 +2,7 @@ import { isPreviousTrialActor } from './trial-groups.js'
 import { syncBattle } from '../battle.js'
 import { reconcileFormationPets } from '../formation-pets.js'
 import { mountPayload, repairMountSelection } from '../mounts.js'
-import { ensure, textValue, hero, pet, manager, group, syncPlayer, syncPets } from './common.js'
+import { ensure, textValue, hero, pet, manager, group, syncPlayer, syncPets, syncGroupControl } from './common.js'
 import { isHomeMap } from '../home-formation.js'
 export function registerCollection(on) {
     const syncFormation = (c, data) => {
@@ -86,8 +86,7 @@ export function registerCollection(on) {
             'Control not in group',
         )
         g.control = r.control
-        if (isHomeMap(c.tables, c.state))
-            syncFormation({ ...c, push: c.pushBefore }, { group_mgrs: c.state.player.group_mgrs })
+        syncGroupControl(c, r.type)
         return {}
     })
     on('ChangeGroupName', (c, r) => {

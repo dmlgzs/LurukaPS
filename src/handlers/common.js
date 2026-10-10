@@ -38,3 +38,12 @@ export function group(s, type = 1, id) {
 export const syncPlayer = (c, data) => c.push('CSProtoSyncPlayerData', data || c.state.player)
 export const syncPets = (c) =>
     c.push('CSProtoPetInfoSync', { pet_infos: { pets: c.state.pets }, record_pets: c.state.recordPets ?? [] })
+
+// src=1 refreshes cached formation metadata without recreating its entities.
+export function syncGroupControl(c, type = 1) {
+    const m = manager(c.state, type),
+        g = group(c.state, type)
+    c.pushBefore('CSProtoSyncPlayerData', {
+        group_mgrs: [{ type: m.type, cur_group: m.cur_group, src: 1, groups: [g] }],
+    })
+}
