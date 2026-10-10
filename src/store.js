@@ -94,7 +94,7 @@ export class Store {
             )
             .get().count
     }
-    transact(id, messageId, fn, { defer = false, fork } = {}) {
+    transact(id, messageId, fn, { defer = false, fork, persistWhen, logDeferred = false } = {}) {
         if (defer) {
             const pending = this.pending.get(id),
                 row = pending ? null : this.playerById.get(id)
@@ -104,7 +104,22 @@ export class Store {
             const state = fork ? fork(base) : structuredClone(base),
                 result = fn(state)
             if (result?.then) throw Error('Asynchronous player transaction is forbidden')
-            this.pending.set(id, { state, revision })
+            const previousLogs = pending?.logs ?? []
+            if (persistWhen?.(state, base)) {
+                this.db
+                    .transaction(() => {
+                        this.savePlayer.run(JSON.stringify(state), Date.now(), id)
+                        for (const entry of previousLogs) this.log.run(id, entry.messageId, 'ok', entry.createdAt)
+                        this.log.run(id, messageId, 'ok', Date.now())
+                    })
+                    .immediate()
+                this.pending.delete(id)
+            } else {
+                const logs = logDeferred
+                    ? [...previousLogs, { messageId, createdAt: Date.now() }].slice(-256)
+                    : previousLogs
+                this.pending.set(id, { state, revision, ...(logs.length ? { logs } : {}) })
+            }
             return result
         }
         const result = this.db
@@ -113,6 +128,8 @@ export class Store {
                 const result = fn(state)
                 if (result?.then) throw Error('Asynchronous player transaction is forbidden')
                 this.savePlayer.run(JSON.stringify(state), Date.now(), id)
+                for (const entry of this.pending.get(id)?.logs ?? [])
+                    this.log.run(id, entry.messageId, 'ok', entry.createdAt)
                 this.log.run(id, messageId, 'ok', Date.now())
                 return result
             })
@@ -180,7 +197,10 @@ export class Store {
         if (!this.pending.size) return
         this.db
             .transaction(() => {
-                for (const [id, { state }] of this.pending) this.savePlayer.run(JSON.stringify(state), Date.now(), id)
+                for (const [id, { state, logs }] of this.pending) {
+                    this.savePlayer.run(JSON.stringify(state), Date.now(), id)
+                    for (const entry of logs ?? []) this.log.run(id, entry.messageId, 'ok', entry.createdAt)
+                }
             })
             .immediate()
         this.pending.clear()

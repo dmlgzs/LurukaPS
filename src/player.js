@@ -119,6 +119,8 @@ export function seedPlayer(tables, id, openId) {
             custom_options: { entries: [] },
         },
         pets,
+        recordPets: [],
+        petCatalogVersion: 2,
         petBoxes: Array.from({ length: Math.ceil(pets.length / 30) }, (_, i) => ({
             id: i + 1,
             box_name: bytes(`奇波小屋${i + 1}`),

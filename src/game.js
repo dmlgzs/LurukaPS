@@ -127,7 +127,17 @@ import { ensureAppearance, clothesSnapshot, heroSkinsSnapshot } from './appearan
 import { registerCollection } from './handlers/collection.js'
 import { registerWorld, repairLegacyMountState } from './handlers/world.js'
 import { registerMail } from './handlers/mail.js'
+const deferredTaskProgress = new Set([
+    'CSProtoTaskClientBefore',
+    'CSProtoTaskClientCondAfter',
+    'CSProtoTaskClientAfter',
+    'CSProtoMultiTaskClientBefore',
+    'CSProtoMultiTaskClientCondAfter',
+    'CSProtoMultiTaskClientAfter',
+    'CSProtoTaskClientTrace',
+])
 const deferredMessages = new Set([
+    ...deferredTaskProgress,
     'CSProtoBattleInfoReduce',
     'CSProtoSkillStart',
     'CSProtoSkillStop',
@@ -948,6 +958,18 @@ export class Game {
             },
             {
                 defer: deferredMessages.has(e.name),
+                // Pure phase/trace acknowledgments do not require a disk commit.
+                // Item actions and newly granted After rewards remain durable.
+                logDeferred: deferredTaskProgress.has(e.name),
+                persistWhen: deferredTaskProgress.has(e.name)
+                    ? (draft, base) => {
+                          if ((draft.taskItemRevision ?? 0) !== (base.taskItemRevision ?? 0)) return true
+                          // Also cover another task completed by the normal recovery pass.
+                          return Object.entries(draft.taskAfterReceipts ?? {}).some(
+                              ([key, rewards]) => !base.taskAfterReceipts?.[key] && rewards.length > 0,
+                          )
+                      }
+                    : undefined,
                 fork:
                     e.name === 'CSProtoBattleInfoReduce'
                         ? forkBattleReport
