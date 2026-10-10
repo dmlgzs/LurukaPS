@@ -1,7 +1,7 @@
 import { ensure, textValue, pet } from './common.js'
 import { ensurePetName } from '../pets.js'
 import { caressPet } from '../pet-caress.js'
-import { ensureHome } from '../home.js'
+import { ensureHome, dormSceneMap } from '../home.js'
 import { homeCondition } from '../home-grid.js'
 import { reconcileFormationPets } from '../formation-pets.js'
 import { mountPayload, repairMountSelection } from '../mounts.js'
@@ -183,4 +183,118 @@ export function registerHome(on, tables) {
             change(c)
             return {}
         })
+    // Dorm / 宿舍角色入住
+    on('HomeDormCheckIn', (c, r) => {
+        const home = ensureHome(tables, c.state)
+        const build = home.builds.find((b) => b.guid === r.build_guid)
+        ensure(build?.build_type === 5, 'Building is not a dorm', 1021)
+        build.dorm ??= { hero_ids: [], dorm_heros: [] }
+        const inId = String(r.hero_in ?? '0'),
+            outId = String(r.hero_out ?? '0')
+        if (outId !== '0') {
+            build.dorm.hero_ids = build.dorm.hero_ids.filter((id) => id !== outId)
+            build.dorm.dorm_heros = build.dorm.dorm_heros.filter((h) => h.hero_id !== outId)
+        }
+        if (inId !== '0') {
+            if (build.dorm.hero_ids.includes(inId)) {
+                // Already checked in; client may re-send after login sync. Silently accept.
+                return {}
+            }
+            const config = tables.find('home_building', build.build_id)
+            const max = config?.dormCharacterNum ?? 3
+            ensure(build.dorm.hero_ids.length < max, 'Dorm is full')
+            build.dorm.hero_ids.push(inId)
+            build.dorm.dorm_heros.push({ hero_id: inId, dorm_index: r.dorm_index ?? build.dorm.dorm_heros.length })
+        }
+        build.dorm.dorm_heros = build.dorm.dorm_heros.filter((h) => build.dorm.hero_ids.includes(h.hero_id))
+        change(c)
+        return {}
+    })
+    on('HomeDormEnter', (c, r) => {
+        const home = ensureHome(tables, c.state)
+        const build = home.builds.find((b) => b.guid === r.build_guid)
+        ensure(build?.build_type === 5, 'Building is not a dorm', 1021)
+        ensure(build.dorm, 'Dorm has no resident heroes', 1021)
+        if (r.is_change) {
+            // Switching heroes within the dorm — just refresh the sync.
+            c.push('SCProtoHomeDormReEnterNtf', { hero_id: r.hero_id ?? '0' })
+            change(c)
+            return {}
+        }
+        // First entry: transition to the dorm interior sub-scene via world sync.
+        const heroId = String(r.hero_id ?? '0')
+        const hero = c.state.player.heros_info.heros.find((h) => h.guid === heroId)
+        if (hero) {
+            const scene = dormSceneMap.get(hero.conf_id)
+            const bg = home.dormBackgrounds?.[heroId]
+            if (scene) {
+                const sceneId = Number(bg?.sceneid ?? (scene.exclusivedormScene || scene.sceneId))
+                if (sceneId) {
+                    const point = tables
+                        .get('world_borthpos')
+                        .find((row) => row.cityId === sceneId && Number(row.mainPoint) === 1)
+                    if (point) {
+                        rememberMap(c, c.state.world.map_id)
+                        Object.assign(c.state.world, tables.position(point))
+                        delete c.state.combat
+                        change(c)
+                        const sceneContext = { ...c, push: c.pushBefore }
+                        sceneContext.push('SCProtoHomeDormReEnterNtf', { hero_id: heroId })
+                        worldSync(sceneContext, r, WORLD_MAP_CMD_ENTER)
+                        syncBattle(sceneContext)
+                        return {}
+                    }
+                }
+            }
+        }
+        // Fallback: just refresh the home sync if anything went wrong above.
+        change(c)
+        return {}
+    })
+    on('HomeDormQuit', () => {
+        return {}
+    })
+    on('HomeDormChangeName', (c, r) => {
+        const home = ensureHome(tables, c.state)
+        const build = home.builds.find((b) => b.guid === r.build_guid)
+        ensure(build?.build_type === 5, 'Building is not a dorm', 1021)
+        build.dorm ??= { hero_ids: [], dorm_heros: [] }
+        build.dorm.name = textValue(r.name, 30)
+        change(c)
+        return {}
+    })
+    on('HomeHeroDressUp', (c, r) => {
+        const hero = c.state.player.heros_info.heros.find((h) => h.guid === String(r.hero_id ?? '0'))
+        ensure(hero, 'Hero not found', 1021)
+        // hearthDormItem on hero state tracks which dorm pajama is equipped.
+        c.state.heroDormItems ??= {}
+        c.state.heroDormItems[hero.guid] = r.item_id
+        change(c)
+        return {}
+    })
+    on('ChangeHeroBackGround', (c, r) => {
+        const home = ensureHome(tables, c.state)
+        const heroId = String(r.hero_id ?? '0')
+        const bg = (home.dormBackgrounds ??= {})
+        if (r.is_change) {
+            // Look up the scene for this item from the dorm_scene table.
+            const hero = c.state.player.heros_info.heros.find((h) => h.guid === heroId)
+            const scene = hero && dormSceneMap.get(hero.conf_id)
+            if (scene?.exclusivedormScene) {
+                bg[heroId] = {
+                    sceneid: scene.exclusivedormScene,
+                    night_sceneid: scene.exclusivedormSceneNight || scene.sceneIdNight,
+                    itemid: r.itemid || 0,
+                }
+            }
+        } else if (bg[heroId]) {
+            // Restore to default exclusive scene.
+            delete bg[heroId]
+        }
+        change(c)
+        return {}
+    })
+    on('HomeFurnitureRecommend', () => {
+        return { id: [] }
+    })
 }

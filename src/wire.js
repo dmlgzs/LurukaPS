@@ -38,7 +38,12 @@ export function decodeFrame(raw, { encryptionKey } = {}) {
         seq: b.readUInt32BE(9),
         pushSeq: b.readUInt32BE(13),
         signature: b.readBigUInt64BE(17),
-        payload: b[4] & 1 ? decompressLz4(b.subarray(HEADER_SIZE)) : b.subarray(HEADER_SIZE),
+        payload: b[4] & 1 ? (() => {
+            const candidate = b.subarray(HEADER_SIZE)
+            try { return decompressLz4(candidate) } catch {
+                return candidate
+            }
+        })() : b.subarray(HEADER_SIZE),
     }
 }
 export class FrameReader {

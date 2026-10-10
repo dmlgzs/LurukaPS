@@ -121,6 +121,22 @@ Additional discovery settings include `LURUKAPS_VERSION`, `LURUKAPS_HOT_REVISION
 
 The corresponding legacy `AZUR_*` variables remain supported. When both namespaces are configured, `LURUKAPS_*` takes precedence.
 
+## Connection Protocol Flow
+
+The CBT3 client uses the following connection sequence to establish a game session:
+
+1. **HTTP CONNECT tunnel** — The client connects to the game TCP port and sends an `HTTP CONNECT` request (e.g., `CONNECT 36.155.186.181:10012 HTTP/1.1`). The server must respond with `HTTP/1.1 200 Connection Established\r\n\r\n` before the client proceeds to framed protocol messages.
+
+2. **Handshake (id=321)** — After the tunnel is established, the client sends a framed message with message ID `321` (not in the protocol map, internal networking handshake) and flag `0x01` (wire obfuscation, not LZ4 compression). The server acknowledges the frame even without a dedicated handler; the flag-1-without-compression case is handled gracefully.
+
+3. **TLS upgrade** — The client then initiates a TLS 1.2 handshake (Client Hello, `0x16030301`). The game protocol runs inside this TLS session. Full TLS termination on the server side is **not yet implemented** — a `tls.TLSSocket` wrapper around the raw TCP socket with a self-signed certificate is the expected solution.
+
+### Known limitations
+
+- TLS termination is required after the initial handshake; the server currently rejects TLS Client Hello as an invalid frame length.
+- Message ID `321` has no protobuf schema registered; only the internal low-level network layer handles it.
+- The `tls: false` flag in the PatchV1 discovery response does **not** prevent the client from using TLS on the game connection.
+
 ## Saved Data
 
 `configs/` and `.proto` files are static inputs maintained with the source. Runtime data is written to `data/`. The server creates the database directory when needed.

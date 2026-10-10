@@ -1,5 +1,17 @@
 import { technologyPayload } from './technology.js'
 import { ensure } from './handlers/common.js'
+import fs from 'node:fs'
+
+const dormItemMap = new Map(
+    JSON.parse(
+        fs.readFileSync(new URL('../configs/client-tables-builtin/home_dorm_item.json', import.meta.url), 'utf8'),
+    ).map((row) => [row.heroId, row.id]),
+)
+export const dormSceneMap = new Map(
+    JSON.parse(
+        fs.readFileSync(new URL('../configs/client-tables-builtin/home_dorm_scene.json', import.meta.url), 'utf8'),
+    ).map((row) => [row.heroId, row]),
+)
 export function ensureHome(tables, state) {
     if (state.home) return state.home
     const raw = tables.get('game').find((x) => x.title === 'HOME_DEFAULT_PLACEMENT')?.value
@@ -97,6 +109,37 @@ export function homePayload(tables, state) {
             .map((row) => Number(row.value)),
     )
     ensure(Number.isInteger(shortcutSlots) && shortcutSlots > 0, 'Invalid home shortcut capacity', 1007)
+    // Build dorm payload — include all heroes that have dorm items so the
+    // decoration feature shows as available even before any hero checks in.
+    const heroPajamas = [],
+        heroBackGround = [],
+        heroMap = new Map(state.player.heros_info.heros.map((h) => [h.guid, h.conf_id]))
+    // Also collect checked-in hero GUIDs from dorm buildings.
+    const checkedIn = new Set()
+    for (const build of h.builds) {
+        if (build.build_type !== 5 || !build.dorm?.hero_ids?.length) continue
+        for (const heroId of build.dorm.hero_ids) checkedIn.add(heroId)
+    }
+    const saved = h.dormBackgrounds ?? {}
+const ownedItems = []
+    for (const [heroId, confId] of heroMap) {
+        const itemId = dormItemMap.get(confId)
+        if (!itemId) continue
+        heroPajamas.push({ hero_id: heroId, pajamas_itemid: itemId })
+ownedItems.push({ itemid: itemId, itemnum: 1 })
+        // Use saved background choice, or default to the exclusive scene if one
+        // exists (the exclusive scene is what the dorm item unlocks).
+        const scene = dormSceneMap.get(confId)
+        if (scene) {
+            const bg = saved[heroId]
+            heroBackGround.push({
+                hero_id: heroId,
+                sceneid: bg?.sceneid ?? (scene.exclusivedormScene || scene.sceneId),
+                night_sceneid: bg?.night_sceneid ?? (scene.exclusivedormSceneNight || scene.sceneIdNight),
+                itemid: bg?.itemid ?? itemId,
+            })
+        }
+    }
     return {
         technology: technologyPayload(tables, state),
         home_lv: h.level,
@@ -117,6 +160,11 @@ export function homePayload(tables, state) {
         })),
         home_hub: { pos_infos: [], station_pets: h.stationPets ?? [] },
         home_level_new_base: { level: h.level, exp: h.exp, option_setting: 0 },
+        dorm: {
+            hero_pajamas: heroPajamas,
+            back_ground_scene: ownedItems.length ? { rewards: ownedItems } : { rewards: [] },
+            hero_back_ground: heroBackGround,
+        },
     }
 }
 
