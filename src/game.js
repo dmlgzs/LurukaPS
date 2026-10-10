@@ -1,3 +1,4 @@
+import { hiddenTaskPetGuids, taskPetPresentation } from './task-pet-presentation.js'
 import { repairPetCatalog } from './pet-catalog.js'
 import { announcementSnapshot } from './announcements.js'
 import { optimizeSyncPackets } from './sync-delta.js'
@@ -736,6 +737,7 @@ export class Game {
                 const bagBefore = JSON.stringify(state.player.sbag_infos)
                 upgradeInventory(state)
                 const statePacket = (name, value, meta = {}) => {
+                    if (name === 'CSProtoPetInfoSync') value = taskPetPresentation(this.tables, state, value)
                     if (name === 'CSProtoSyncPlayerData' && value) {
                         syncCurrencyMirrors(state.player)
                         const { sbag_infos, soulessence_infos, ...other } = value
@@ -754,6 +756,7 @@ export class Game {
                 const eggIdsBefore = (state.petEggs || []).map((e) => e.guid)
                 const ornamentIdsBefore = (state.ornaments || []).map((entry) => entry.guid)
                 const petRevision = state.petRevision || 0
+                const petViewBefore = battleReport ? null : hiddenTaskPetGuids(this.tables, state).join(',')
                 const playerLevelBefore = state.player.basic_info.lv
                 const taskItemRevision = state.taskItemRevision ?? 0
                 const homeBuildIdsBefore = (state.home?.builds || []).map((b) => b.guid)
@@ -845,15 +848,18 @@ export class Game {
                     syncBattle({ ...context, push: context.pushBefore })
                 }
                 const petSync =
-                    (state.petRevision || 0) !== petRevision
+                    (state.petRevision || 0) !== petRevision ||
+                    (!battleReport && petViewBefore !== hiddenTaskPetGuids(this.tables, state).join(','))
                         ? [
                               this.packet('CSProtoPetInfoSync', {
                                   ...releaseFields(state, 'pet', now, this.releaseResetHour),
                                   record_pets: state.recordPets ?? [],
-                                  pet_infos: {
-                                      pets: state.pets,
-                                      guid: petIdsBefore.filter((id) => !state.pets.some((p) => p.guid === id)),
-                                  },
+                                  pet_infos: taskPetPresentation(this.tables, state, {
+                                      pet_infos: {
+                                          pets: state.pets,
+                                          guid: petIdsBefore.filter((id) => !state.pets.some((p) => p.guid === id)),
+                                      },
+                                  }).pet_infos,
                               }),
                               this.packet('CSProtoPetBoxInfoSync', { box_infos: state.petBoxes }),
                           ]
@@ -979,7 +985,8 @@ export class Game {
                         this.packet('CSProtoPetInfoSync', {
                             ...releaseFields(state, 'pet', now, this.releaseResetHour),
                             record_pets: state.recordPets ?? [],
-                            pet_infos: { pets: state.pets },
+                            pet_infos: taskPetPresentation(this.tables, state, { pet_infos: { pets: state.pets } })
+                                .pet_infos,
                         }),
                     )
             }
@@ -1046,7 +1053,7 @@ export class Game {
             this.packet('CSProtoPetInfoSync', {
                 ...releaseFields(state, 'pet', now, this.releaseResetHour),
                 record_pets: state.recordPets ?? [],
-                pet_infos: { pets: state.pets },
+                pet_infos: taskPetPresentation(this.tables, state, { pet_infos: { pets: state.pets } }).pet_infos,
             }),
             this.packet('CSProtoPetEggInfoSync', {
                 ...releaseFields(state, 'egg', now, this.releaseResetHour),
