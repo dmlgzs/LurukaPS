@@ -229,3 +229,37 @@ test('cleardevtasks removes only active dev tasks, syncs deletion and preserves 
         f.store.close()
     }
 })
+
+test('giveallgifts grants every table-backed ordinary and furniture hero gift 999 each through central inventory', () => {
+    const f = fixture()
+    try {
+        const items = tables
+            .get('common_item')
+            .filter((i) =>
+                i.type === 110
+                    ? !!tables.find('hero_favorability_gift', i.id)
+                    : i.type === 111
+                      ? !!tables.find('home_dorm_furniture', i.id)
+                      : false,
+            )
+        assert.equal(items.length, 22)
+        const quantity = (s, id) =>
+            s.player.sbag_infos.items.filter((i) => i.itemid === id).reduce((sum, i) => sum + i.itemnum, 0)
+        const before = f.state()
+        const result = f.call('GMCommand', command('giveallgifts'))
+        for (const i of items) assert.equal(quantity(f.state(), i.id), quantity(before, i.id) + 999)
+        assert.equal(quantity(f.state(), 300000), quantity(before, 300000))
+        assert.match(
+            Buffer.from(result.find((p) => p.id === 19903).data.result, 'base64').toString(),
+            /22 hero gifts x999/,
+        )
+        const saved = f.state()
+        assert.throws(() => f.call('GMCommand', command('giveallgifts', ['extra'])), /Usage/)
+        assert.deepEqual(f.state(), saved)
+        // The existing world-channel slash route uses the same implementation.
+        f.call('AddChat', { target: { chat_type: 2, tid: '0' }, msg: text('/giveallgifts'), type: 0 })
+        for (const i of items) assert.equal(quantity(f.state(), i.id), quantity(before, i.id) + 1998)
+    } finally {
+        f.store.close()
+    }
+})

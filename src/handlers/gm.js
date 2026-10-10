@@ -16,7 +16,7 @@ import {
     taskSnapshot,
 } from '../tasks.js'
 const help =
-    'help | acceptall [dev] | cleardevtasks | giveall | item <id> <count> | give <type> <id> <count> | gold <count> | diamond <count> | level <level> | monthcard <count> | heal | tp <birth-point-id> | taskgoal | unlockmaps'
+    'help | acceptall [dev] | cleardevtasks | giveall | giveallgifts | item <id> <count> | give <type> <id> <count> | gold <count> | diamond <count> | level <level> | monthcard <count> | heal | tp <birth-point-id> | taskgoal | unlockmaps'
 const decoder = new TextDecoder('utf-8', { fatal: true })
 function string(value) {
     const bytes = Buffer.from(value ?? '', 'base64')
@@ -90,6 +90,25 @@ export function registerGM(on, { enabled = true } = {}) {
                     })
             }
             result = 'Removed ' + ids.length + ' active development/test tasks'
+        } else if (name === 'giveallgifts') {
+            count(0)
+            const ids = new Set()
+            const items = c.tables.get('common_item').filter((item) => {
+                if (ids.has(item.id)) return false
+                const gift = item.type === 110 && c.tables.find('hero_favorability_gift', item.id)
+                const furniture = item.type === 111 && c.tables.find('home_dorm_furniture', item.id)
+                if (!gift && !(furniture && c.tables.find('hero', furniture.heroId))) return false
+                ids.add(item.id)
+                return true
+            })
+            ensure(items.length > 0, 'Hero gift catalog is empty', 1007)
+            grantRewards(
+                c.tables,
+                c.state,
+                items.map((item) => ({ itemtype: 3, itemid: item.id, itemnum: 999 })),
+            )
+            syncPlayer({ ...c, push: c.pushBefore })
+            result = 'Granted ' + items.length + ' hero gifts x999 each'
         } else if (name === 'giveall') {
             count(0)
             const rewards = giveAllRewards(c.tables, c.state)

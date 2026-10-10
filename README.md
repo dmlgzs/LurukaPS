@@ -121,6 +121,10 @@ Additional discovery settings include `LURUKAPS_VERSION`, `LURUKAPS_HOT_REVISION
 
 The corresponding legacy `AZUR_*` variables remain supported. When both namespaces are configured, `LURUKAPS_*` takes precedence.
 
+## GM Command
+
+TODO: Document GM commands and usage.
+
 ## Saved Data
 
 `configs/` and `.proto` files are static inputs maintained with the source. Runtime data is written to `data/`. The server creates the database directory when needed.
