@@ -14,6 +14,8 @@ test('missing source metadata cannot roll back a real task hero reward; retry re
         store = new Store(':memory:')
     const find = tables.find.bind(tables)
     tables.find = (name, id) => (name === 'reason_itemnum_change' ? undefined : find(name, id))
+    const oldSourceLog = process.env.LURUKAPS_REWARD_SOURCE_LOG
+    process.env.LURUKAPS_REWARD_SOURCE_LOG = ''
     const game = new Game(protocol, store, tables),
         session = {}
     let seq = 1
@@ -44,7 +46,7 @@ test('missing source metadata cannot roll back a real task hero reward; retry re
         assert.equal(reward.rewards[0].itemid, 108001)
         assert.equal(store.load(session.id).state.player.heros_info.heros.filter((h) => h.conf_id === 108001).length, 1)
         const retry = protocol.decode('cs.Rewards', call('TaskClientAfter', request).find((p) => p.id === 9862).payload)
-        assert.deepEqual(retry.rewards, reward.rewards)
+        assert.deepEqual(retry.rewards ?? [], [])
         assert.equal(store.load(session.id).state.player.heros_info.heros.filter((h) => h.conf_id === 108001).length, 1)
         assert.throws(
             () => grantRewards(tables, store.load(session.id).state, [{ itemtype: 1, itemid: 108001, itemnum: -1 }]),
@@ -52,5 +54,7 @@ test('missing source metadata cannot roll back a real task hero reward; retry re
         )
     } finally {
         store.close()
+        if (oldSourceLog === undefined) delete process.env.LURUKAPS_REWARD_SOURCE_LOG
+        else process.env.LURUKAPS_REWARD_SOURCE_LOG = oldSourceLog
     }
 })

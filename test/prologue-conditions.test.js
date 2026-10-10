@@ -452,7 +452,7 @@ test('table task106009 grants Tll as a hero and marks task reward source for the
             f.call('TaskClientAfter', request).find((packet) => packet.id === 9862).payload,
         )
         assert.equal(retry.src, 88)
-        assert.deepEqual(retry.rewards, reward.rewards)
+        assert.deepEqual(retry.rewards ?? [], [])
         assert.equal(f.state().player.heros_info.heros.filter((h) => h.conf_id === 108001).length, 1)
         const claimed = p.decode(
             'cs.Rewards',
@@ -462,11 +462,20 @@ test('table task106009 grants Tll as a hero and marks task reward source for the
         assert.equal(claimed.rewards?.length ?? 0, 0)
         const batchEntry = p.byName.get('CSProtoMultiTaskClientAfter')
         const batch = f.call('MultiTaskClientAfter', { task_params: [request] })
-        assert.equal(p.decode(batchEntry.rsp, batch.find((packet) => packet.id === batchEntry.id).payload).src, 88)
+        const batchReward = p.decode(batchEntry.rsp, batch.find((packet) => packet.id === batchEntry.id).payload)
+        assert.equal(batchReward.src, 88)
+        assert.deepEqual(batchReward.rewards ?? [], [])
         const finished = f.call('TaskFinish', { u32: 106009 })
-        assert.equal(p.decode('cs.Rewards', finished.find((packet) => packet.id === 9852).payload).src, 26)
+        const finishReward = p.decode('cs.Rewards', finished.find((packet) => packet.id === 9852).payload)
+        assert.equal(finishReward.src, 26)
+        assert.ok(finishReward.rewards.length > 0)
+        const afterFinish = structuredClone(f.state().player)
         const finishRetry = f.call('TaskFinish', { u32: 106009 })
-        assert.equal(p.decode('cs.Rewards', finishRetry.find((packet) => packet.id === 9852).payload).src, 26)
+        const finishRetryReward = p.decode('cs.Rewards', finishRetry.find((packet) => packet.id === 9852).payload)
+        assert.equal(finishRetryReward.src, 26)
+        assert.deepEqual(finishRetryReward.rewards ?? [], [])
+        assert.deepEqual(f.state().player, afterFinish)
+        assert.ok(f.state().taskFinishReceipts[`106009:${f.state().taskEpochs?.[106009] ?? 0}`].length > 0)
     } finally {
         f.store.close()
     }
@@ -481,6 +490,35 @@ test('ordinary task node materials use the table node-completion source', () => 
         assert.equal(reward.src, 88)
         assert.ok(reward.rewards.length > 0)
         assert.ok(reward.rewards.every((item) => item.itemtype === 3))
+    } finally {
+        f.store.close()
+    }
+})
+
+test('ordinary material reward appears only in its first response, including After/Finish retries', () => {
+    const f = fixture(106009, 7, 200)
+    try {
+        f.edit((s) => {
+            s.tasks[0].finish_nodes.push(7)
+        })
+        const request = { task_id: 106009, node_id: 7 }
+        const first = p.decode(
+            'Rewards',
+            f.call('TaskRewardNode', request).find((packet) => packet.id === 9856).payload,
+        )
+        assert.ok(first.rewards.length > 0)
+        const inventory = structuredClone(f.state().player.sbag_infos)
+        const retry = p.decode(
+            'Rewards',
+            f.call('TaskRewardNode', request).find((packet) => packet.id === 9856).payload,
+        )
+        assert.deepEqual(retry.rewards ?? [], [])
+        const after = p.decode(
+            'Rewards',
+            f.call('TaskClientAfter', request).find((packet) => packet.id === 9862).payload,
+        )
+        assert.deepEqual(after.rewards ?? [], [])
+        assert.deepEqual(f.state().player.sbag_infos, inventory)
     } finally {
         f.store.close()
     }

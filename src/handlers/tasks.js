@@ -99,7 +99,9 @@ export function registerTasks(register, tables) {
         if (!task) {
             const receipt = c.state.taskFinishReceipts?.[key]
             ensure(receipt, 'Task is not active')
-            return taskRewards(tables, receipt, 'taskComplete')
+            // The receipt proves delivery; replaying its contents creates a
+            // second client reward presentation on a new retry request.
+            return taskRewards(tables, [], 'taskComplete')
         }
         const end = graph.nodes.get(graph.end)
         ensure(
@@ -234,10 +236,7 @@ export function registerTasks(register, tables) {
         const previous = finished(c, r)
         if (previous) {
             sync(c)
-            return taskRewards(
-                tables,
-                c.state.taskAfterReceipts?.[deliveryKey(c.state, r.task_id, r.node_id, 'after')] ?? [],
-            )
+            return taskRewards(tables, [])
         }
         const { graph, task, node, config } = current(c, r)
         ensure(node.client_before, 'Node pre-action is not acknowledged')
