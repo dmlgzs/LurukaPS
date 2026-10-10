@@ -1,3 +1,4 @@
+import { finishEnemyGroupRelations } from './handlers/world-combat.js'
 import fs from 'node:fs'
 import { ensure } from './handlers/common.js'
 import { TaskGraphs, nodeConditions, asList } from './tasks.js'
@@ -98,6 +99,10 @@ export function registerStoryBattle(on, tables) {
             infos.push({ uuid, hp: 0, sp: 0, alive_state: 1, reason: 0 })
         }
         if (infos.length) c.push('CSProtoObjBattleInfoSync', { infos })
+        // Scripted kills must finish the same group relation as damage kills.
+        // Only a fully defeated configured group emits the reset; retries can
+        // also repair a prior death whose relation cleanup was omitted.
+        for (const uuid of ids) finishEnemyGroupRelations(c, uuid)
         return {}
     })
 }
