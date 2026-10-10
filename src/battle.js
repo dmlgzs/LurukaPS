@@ -32,14 +32,26 @@ function wireAttributes(map) {
             return { attr_id, attr_val: String(value) }
         })
 }
+export function heroBattleConfig(tables, hero) {
+    const clothing = tables.get('hero_clothing').find((row) => row.clothingid === (hero.hero_skin || hero.conf_id))
+    return clothing && requireRow(tables, 'hero_battle_info', clothing.battleInfo)
+}
 function heroSkills(tables, config, hero) {
+    const battleInfo = heroBattleConfig(tables, hero)
+    const selected = battleInfo || config
     const skills = new Map()
     const system = String(config.skillSystem || '')
         .split('|')
         .map(Number)
     const add = (id, slot = 0) => {
         if (!id) return
-        const index = system.indexOf(id)
+        // CBT3 HeroSkinHelper.IsSkinnedSkill maps battleInfo*100+suffix
+        // back to the base hero skill. Skin variants share its upgrade level.
+        const canonical =
+            battleInfo && Math.floor(id / 100) === battleInfo.id
+                ? Math.floor(battleInfo.id / 100) * 100 + (id % 100)
+                : id
+        const index = system.indexOf(canonical)
         skills.set(`${slot}:${id}`, {
             skill_id: id,
             skill_lv: index < 0 ? 1 : hero.system_skill_levels[index] || 1,
@@ -47,24 +59,27 @@ function heroSkills(tables, config, hero) {
             type: 0,
         })
     }
-    add(config.attackSkill, 1)
-    for (const field of ['skillList', 'aerialSkillList']) for (const [slot, id] of pairs(config[field])) add(id, slot)
+    add(selected.attackSkill, 1)
+    for (const field of ['skillList', 'aerialSkillList']) for (const [slot, id] of pairs(selected[field])) add(id, slot)
     for (const field of ['passiveSkillList', 'backupSkillList'])
-        for (const id of String(config[field] || '')
+        for (const id of String(selected[field] || '')
             .split('|')
             .filter(Boolean)
             .map(Number))
             add(id)
     // Home skills belong to the selected clothing's battle info. The avatar
     // hero rows cross-reference the opposite sex's home skills in CBT3.
-    const clothingId = hero.hero_skin || hero.conf_id
-    const clothing = tables.get('hero_clothing').find((row) => row.clothingid === clothingId)
-    const battleInfo = clothing && tables.find('hero_battle_info', clothing.battleInfo)
     for (const id of String(battleInfo?.homeSkillList || '')
         .split('|')
         .filter(Boolean)
         .map(Number))
         add(id)
+    for (const skill of [...skills.values()]) {
+        if (battleInfo && Math.floor(skill.skill_id / 100) === battleInfo.id) {
+            const canonical = Math.floor(battleInfo.id / 100) * 100 + (skill.skill_id % 100)
+            if (![...skills.values()].some((entry) => entry.skill_id === canonical)) add(canonical)
+        }
+    }
     return [...skills.values()]
 }
 export function heroModules(tables, state, hero) {

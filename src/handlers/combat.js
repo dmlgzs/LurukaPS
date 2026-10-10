@@ -6,7 +6,7 @@ import { advanceEntrustCombat } from './entrust.js'
 import { settleStoryCampaignScene } from './story-campaign.js'
 import { isRetiredTrialActor } from '../trial-actors.js'
 import { ensure } from './common.js'
-import { heroModules, heroBattleLimits, petModules, pairs } from '../battle.js'
+import { heroModules, heroBattleLimits, heroBattleConfig, petModules, pairs } from '../battle.js'
 import { u64, expandBattleReport, combatState, boundedSet } from '../combat-state.js'
 export function actor(c, value) {
     const id = u64(value)
@@ -164,7 +164,7 @@ export function registerCombat(on) {
         const hero = [...c.state.player.heros_info.heros, ...(c.state.trialGroup?.heroes ?? [])].find(
                 (h) => h.guid === id,
             ),
-            config = hero && c.tables.find('hero', hero.conf_id)
+            config = hero && (heroBattleConfig(c.tables, hero) || c.tables.find('hero', hero.conf_id))
         if (config && pairs(config.skillList).get(4) === r.skill.skill_id) {
             const value = c.state.player.heros_info.battle_infos.find((h) => h.hero_id === id)
             if (value) {

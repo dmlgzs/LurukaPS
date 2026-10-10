@@ -1,3 +1,4 @@
+import { syncBattle } from '../battle.js'
 import { ensure, textValue, syncPlayer, hero } from './common.js'
 import { ensureAppearance, appearanceCatalog, normalizeClothes } from '../appearance.js'
 import { initializeCharacterFormation } from '../character-creation.js'
@@ -24,7 +25,11 @@ export function registerCore(on) {
         ensure(skin?.hero === actor.conf_id, 'Skin does not belong to this hero')
         ensure(c.state.unlockedHeroSkins[actor.conf_id]?.includes(id), 'Hero skin is not unlocked')
         actor.hero_skin = id
-        syncPlayer(c, { heros_info: c.state.player.heros_info })
+        // The success callback immediately recreates this formation entity.
+        // Publish the new clothing and skill levels BEFORE the acknowledgement.
+        const before = { ...c, push: c.pushBefore }
+        syncPlayer(before, { heros_info: c.state.player.heros_info })
+        syncBattle(before)
         return {}
     })
     on('PinchFaceDataUp', (c, r) => {
