@@ -1,0 +1,10 @@
+{
+    "version": 1,
+    "blueprints": [
+        {
+            "path": "Config/World/Graph/Blueprint/ast_level_pet_puzzle_chest_double_02.asset",
+            "target_steps": [1],
+            "asset_sha256": "2abba44872a61c17a437cbd53e631228cc13c9263969b29b2d76d7a67b104a8b"
+        }
+    ]
+}

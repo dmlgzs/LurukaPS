@@ -1,3 +1,4 @@
+import { repairSavedElevatorVisibility } from './handlers/world-elevator.js'
 import { hiddenTaskPetGuids, taskPetPresentation } from './task-pet-presentation.js'
 import { repairPetCatalog } from './pet-catalog.js'
 import { announcementSnapshot } from './announcements.js'
@@ -516,6 +517,7 @@ export class Game {
                 upgradeInventory(state)
                 reconcileWorldCollectionFinalDrops(this.tables, state)
                 repairSavedWorldRepairs(this.tables, state)
+                repairSavedElevatorVisibility(this.tables, state)
                 repairLegacyMountState(state, this.tables)
                 this.recoverFailedPetChoice(state, session.id, now)
                 this.recoverClosedPetPageAfterChoice(state, session.id)

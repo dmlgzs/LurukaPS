@@ -1,3 +1,4 @@
+import { registerWorldElevator } from './world-elevator.js'
 import { rewardSource } from '../reward-source.js'
 import { ensure, syncPlayer } from './common.js'
 import { settleStoryCampaignScene } from './story-campaign.js'
@@ -117,6 +118,7 @@ export function reconcileWorldCollectionFinalDrops(tables, state) {
     return changed
 }
 export function registerWorldObjects(on, tables) {
+    registerWorldElevator(on, tables)
     const catalog = new WorldObjectCatalog(tables)
     on('WorldCommonRepair', (c, r) => {
         const config = tables.find('common_world_repair', r.repair_id)

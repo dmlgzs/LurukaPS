@@ -1,3 +1,4 @@
+import { repairSavedElevatorVisibility } from './world-elevator.js'
 import { recordWorldDiscovery } from '../world-discovery.js'
 import { expireTaskTrialGroup, trialPayload } from './trial-groups.js'
 import { validateTaskTransfer } from '../task-scenes.js'
@@ -123,6 +124,7 @@ export function repairLegacyMountState(state, tables) {
     return true
 }
 export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = true) {
+    repairSavedElevatorVisibility(c.tables, c.state)
     const restoredFormation = restoreLegacyHomeFormation(c.state),
         repairedMainHero = repairMainHeroType(c.tables, c.state)
     if (restoredFormation || repairedMainHero)
