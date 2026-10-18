@@ -27,7 +27,7 @@ export function homeCondition(text, state) {
                 (state.tasks ?? []).some((task) => task.task_id === n && task.finish_nodes?.includes(level)) ||
                 (state.taskRecords ?? []).some((record) => record.task_id === n && record.count > 0)
             )
-        if (id === 11009) return (state.home?.level || 1) >= n
+        if (id === 11009) return (state.home?.stage || 1) >= n
         if (id === 11012) return (state.home?.technology?.levels[n]?.level || 0) >= (level || 1)
         return false
     })

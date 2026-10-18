@@ -1,15 +1,13 @@
 import { ErrorCode } from '../error-codes.js'
+import { registerFarmStorage } from '../farm-storage.js'
+import { farmWorkSlots } from '../farm-work-context.js'
 import { ensureHome, ensureHomeFarmHouses } from '../home.js'
 import { homeCondition } from '../home-grid.js'
 import { reconcileFormationPets } from '../formation-pets.js'
 import { repairMountSelection, mountPayload } from '../mounts.js'
 import { ensure, pet } from './common.js'
 
-export const farmWorkSlots = new Map([
-    [1001, 'plant_pet'],
-    [1002, 'water_pet'],
-    [1003, 'harvest_pet'],
-])
+export { farmWorkSlots }
 
 export function clearFarmPetSlots(state, guid) {
     let changed = false
@@ -23,6 +21,7 @@ export function clearFarmPetSlots(state, guid) {
 }
 
 export function registerFarmWorkers(on, tables) {
+    registerFarmStorage(on, tables)
     const capacities = new Map(tables.get('home_labor_capacity').map((row) => [row.laborCapacityId, row]))
     on('ChoseAutoWorkPet', (c, r) => {
         ensure(

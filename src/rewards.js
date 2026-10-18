@@ -1,4 +1,5 @@
 import { ErrorCode } from './error-codes.js'
+import { grantHomeExperience } from './home-experience.js'
 import { grantDuelAreaExperience, grantDuelPetExperience } from './kibo-duel-progress.js'
 import { recordResourceAcquisition } from './item-acquisition.js'
 import { createPets, createCustomizedPets } from './pets.js'
@@ -126,6 +127,10 @@ export function grantRewards(tables, state, rewards, depth = 0, context = {}) {
                 ensure(basic[key] + itemnum <= 0x7fffffff, 'Currency overflow')
                 basic[key] += itemnum
                 syncCurrencyMirrors(state.player)
+            } else if (itemid === 1003) {
+                ensureHome(tables, state)
+                for (const text of grantHomeExperience(tables, state, itemnum))
+                    granted.push(...grantRewards(tables, state, parseRewards(text), depth + 1, context))
             } else if (itemid === 14 && Array.isArray(context.petGuids)) {
                 const changes = grantDuelPetExperience(tables, state, context.petGuids, itemnum)
                 context.petExpChanges?.push(...changes)

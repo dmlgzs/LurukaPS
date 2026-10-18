@@ -1,4 +1,6 @@
 import { ErrorCode } from './error-codes.js'
+import { prepareCropOutcomes } from './crop-rewards.js'
+import { reconcileHomeStage } from './home-stage.js'
 import { npcArenaTickDue, forkNpcArenaRuntime, tickNpcArena } from './npc-kibo-service.js'
 import { secondsToArenaMs } from './npc-kibo-time.js'
 import { arenaFeverInfo } from './npc-kibo-stage-buffs.js'
@@ -568,6 +570,7 @@ export class Game {
                 delete state.pendingTaskStorySync
                 if (state.storyCampaign) delete state.storyCampaign.task_context_loaded_map
                 repairPendingDuelEntry(state, now, this.tables)
+                ensureHome(this.tables, state)
                 this.activities.ensureGuideTasks(state, now)
                 if (!state.storyCampaign && !state.entrust?.run && !state.multiCampaign && !state.cultTrial) {
                     const point = this.activities.guideReturnPoint(state, now)
@@ -648,6 +651,7 @@ export class Game {
                 ensureHome(this.tables, state)
                 ensureHomeCanteens(this.tables, state)
                 ensureHomeFarmHouses(this.tables, state)
+                prepareCropOutcomes(this.tables, state, this.rng)
                 ensureHomeDormitories(this.tables, state)
                 syncDormResidents(state)
                 dormTopics(this.tables, state, now)
@@ -1041,6 +1045,7 @@ export class Game {
                               }),
                           ]
                         : []
+                reconcileHomeStage(this.tables, state)
                 const homeSync =
                     (state.homeRevision || 0) !== homeRevision
                         ? [

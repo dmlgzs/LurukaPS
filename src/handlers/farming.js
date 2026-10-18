@@ -4,6 +4,8 @@ import { validatePlacement } from '../home-grid.js'
 import { spend } from '../inventory.js'
 import { grantRewards } from '../rewards.js'
 import { ensure } from './common.js'
+import { cropGrowth, ensureCropOutcome, applyWateringUpgrade } from '../crop-rewards.js'
+import { farmWorker, consumeFarmSeed, storeFarmHarvest } from '../farm-storage.js'
 
 function homeInScene(tables, state) {
     const mapId = Number(tables.get('game').find((row) => row.title === 'HOME_ID')?.value)
@@ -28,18 +30,16 @@ function seed(tables, itemId, fieldType) {
         config && String(config.fieldType).split('|').map(Number).includes(fieldType),
         'Seed is not compatible with this field',
     )
+    ensure(
+        config.harvestType === 1,
+        'Perennial crops require their dedicated planting lifecycle',
+        ErrorCode.FunctionClosed,
+    )
     return config
 }
 
-function growthSeconds(config) {
-    const grow = Number(String(config.growParam).split('#')[1])
-    const pre = Number(String(config.preHarvestParam).split('|')[1])
-    ensure(
-        Number.isInteger(grow) && grow > 0 && Number.isInteger(pre) && pre >= 0,
-        'Invalid crop growth time',
-        ErrorCode.GameConfig,
-    )
-    return { grow, pre }
+function growthSeconds(config, tables, state, build) {
+    return cropGrowth(config, tables, state, build)
 }
 
 function clearCrop(build) {
@@ -47,7 +47,7 @@ function clearCrop(build) {
     build.crop_info = { field_type, water_num: water_max, water_max }
 }
 
-function harvest(tables, c, home, build) {
+function harvest(tables, c, home, build, isPet = false) {
     const crop = build.crop_info
     ensure(
         crop?.seed_id && crop.state === 2 && c.now >= crop.state_finish_time + crop.pre_cost_time,
@@ -55,24 +55,47 @@ function harvest(tables, c, home, build) {
     )
     const config = tables.find('home_seeds', crop.seed_id)
     ensure(config, 'Missing planted crop configuration', ErrorCode.HomeSeedIdNotInSeedConf)
-    const drops = String(config.homeDropId).split('|').filter(Boolean).map(Number)
-    const rewards = drops.map((id) => {
-        const row = tables.find('home_drop', id)
-        ensure(
-            row && row.rate === 10000 && row.minValue === row.maxValue && /^\d+$/.test(String(row.itemId)),
-            'Unsupported crop drop configuration',
-            ErrorCode.InvalidProtoID,
-        )
-        return { itemtype: row.itemType, itemid: Number(row.itemId), itemnum: row.minValue }
-    })
-    ensure(rewards.length > 0, 'Crop has no harvest reward', ErrorCode.GameConfig)
-    const granted = grantRewards(tables, c.state, rewards)
+    const plan = ensureCropOutcome(tables, c.state, build, c.randomInt)
+    ensure(plan, 'Perennial crops require their dedicated harvest lifecycle', ErrorCode.FunctionClosed)
+    const house = isPet ? farmWorker(tables, c.state, build, 'harvest_pet') : null
+    let granted = []
+    if (house) storeFarmHarvest(house, plan.rewards)
+    else granted = grantRewards(tables, c.state, plan.rewards)
     clearCrop(build)
+    delete home.cropOutcomes[build.guid]
     c.state.homeRevision = (c.state.homeRevision || 0) + 1
-    return { build_guid: build.guid, reward: { rewards: granted }, drop_ids: drops }
+    return { build_guid: build.guid, reward: { rewards: granted }, drop_ids: plan.drop_ids }
 }
 
 export function registerFarming(on, tables) {
+    on('HomeFieldOptionSet', (c, r) => {
+        const home = homeInScene(tables, c.state)
+        ensure(
+            Number.isInteger(r.option_setting) && r.option_setting >= 0 && r.option_setting <= 0xffffffff,
+            'Invalid crop options',
+            ErrorCode.InvalidArgument,
+        )
+        if ((home.cropOptions || 0) !== r.option_setting) {
+            home.cropOptions = r.option_setting
+            c.state.homeRevision = (c.state.homeRevision || 0) + 1
+        }
+        return {}
+    })
+    on('FieldReplant', (c, r) => {
+        const home = homeInScene(tables, c.state)
+        ensure(r.main_build?.locate, 'Missing transplant position', ErrorCode.InvalidArgument)
+        ensure(
+            !r.follower_builds?.length,
+            'Multi-field transplant requires its dedicated lifecycle',
+            ErrorCode.FunctionClosed,
+        )
+        const build = field(tables, home, r.main_build.guid)
+        ensure(!build.crop_info?.is_fixed, 'Fixed field cannot be moved', ErrorCode.FixedFieldCanNotMove)
+        validatePlacement(tables, c.state, build.build_id, r.main_build.locate, build.guid)
+        build.locate = { ...r.main_build.locate, direction: r.main_build.locate.direction || 0 }
+        c.state.homeRevision = (c.state.homeRevision || 0) + 1
+        return {}
+    })
     on('FieldOpen', (c, r) => {
         const home = homeInScene(tables, c.state),
             fieldType = tables.find('home_fieldtype', r.field_type)
@@ -115,13 +138,13 @@ export function registerFarming(on, tables) {
             build = field(tables, home, r.field_id)
         ensure(!build.crop_info?.seed_id, 'Planted farmland cannot be closed')
         home.builds = home.builds.filter((item) => item.guid !== build.guid)
+        if (home.cropOutcomes) delete home.cropOutcomes[build.guid]
         c.state.homeRevision = (c.state.homeRevision || 0) + 1
         return { rewards: [] }
     })
 
     on('FieldPlant', (c, r) => {
         const home = homeInScene(tables, c.state)
-        ensure(!r.is_pet, 'Pet planting requires an assigned farm worker', ErrorCode.InvalidProtoID)
         ensure(r.plant_info.length > 0 && r.plant_info.length <= 32, 'Invalid planting batch')
         const seen = new Set(),
             costs = new Map(),
@@ -142,10 +165,13 @@ export function registerFarming(on, tables) {
             const config = seed(tables, row.seed_id, build.crop_info.field_type)
             growthSeconds(config)
             costs.set(row.seed_id, (costs.get(row.seed_id) || 0) + 1)
-            plantings.push({ build, config })
+            const house = r.is_pet ? farmWorker(tables, c.state, build, 'plant_pet') : null
+            plantings.push({ build, config, house, itemId: row.seed_id })
         }
-        spend(c.state, costs, 0, c.now)
-        for (const { build, config } of plantings)
+        if (r.is_pet) {
+            for (const { house, itemId } of plantings) consumeFarmSeed(tables, c.state, house, itemId, 1)
+        } else spend(c.state, costs, 0, c.now)
+        for (const { build, config } of plantings) {
             Object.assign(build.crop_info, {
                 seed_id: config.id,
                 state: 1,
@@ -155,19 +181,22 @@ export function registerFarming(on, tables) {
                 pre_cost_time: 0,
                 is_player_water: false,
             })
+            if (home.cropOutcomes) delete home.cropOutcomes[build.guid]
+        }
         c.state.homeRevision = (c.state.homeRevision || 0) + 1
         return {}
     })
 
     on('FieldWater', (c, r) => {
         const home = homeInScene(tables, c.state)
-        ensure(!r.is_pet, 'Pet watering requires an assigned farm worker', ErrorCode.InvalidProtoID)
         const build = field(tables, home, r.build_guid),
             crop = build.crop_info
         ensure(crop?.seed_id && crop.state === 1, 'Crop does not need watering')
+        const house = r.is_pet ? farmWorker(tables, c.state, build, 'water_pet') : null
+        if (house) applyWateringUpgrade(tables, c.state, build, c.randomInt)
         const config = tables.find('home_seeds', crop.seed_id)
         ensure(config, 'Missing planted crop configuration', ErrorCode.HomeSeedIdNotInSeedConf)
-        const { grow, pre } = growthSeconds(config)
+        const { grow, pre } = growthSeconds(config, tables, c.state, build)
         Object.assign(crop, {
             state: 2,
             state_start_time: c.now,
@@ -175,17 +204,30 @@ export function registerFarming(on, tables) {
             grow_cost_time: grow,
             pre_cost_time: pre,
             water_num: crop.water_max,
-            is_player_water: true,
+            is_player_water: !r.is_pet,
+            water_pet: house?.auto_info.water_pet ?? '0',
         })
-        home.manualWaterCount = (home.manualWaterCount || 0) + 1
+        ensureCropOutcome(tables, c.state, build, c.randomInt)
+        if (!r.is_pet) home.manualWaterCount = (home.manualWaterCount || 0) + 1
+        if (house) house.auto_info.water_target = build.guid
         c.state.homeRevision = (c.state.homeRevision || 0) + 1
         return {}
     })
 
     on('WaterFinish', (c, r) => {
         const home = homeInScene(tables, c.state)
-        ensure(!r.is_pet, 'Pet watering requires an assigned farm worker', ErrorCode.InvalidProtoID)
         const build = field(tables, home, r.build_guid)
+        if (r.is_pet) {
+            const house = farmWorker(tables, c.state, build, 'water_pet')
+            if (
+                (build.crop_info.water_pet && build.crop_info.water_pet !== '0') ||
+                house.auto_info.water_target === build.guid
+            ) {
+                build.crop_info.water_pet = '0'
+                if (house.auto_info.water_target === build.guid) house.auto_info.water_target = 0
+                c.state.homeRevision = (c.state.homeRevision || 0) + 1
+            }
+        }
         if (build.crop_info?.is_player_water) {
             build.crop_info.is_player_water = false
             c.state.homeRevision = (c.state.homeRevision || 0) + 1
@@ -198,19 +240,18 @@ export function registerFarming(on, tables) {
             build = field(tables, home, r.u32)
         ensure(build.crop_info?.seed_id, 'Farmland is empty')
         clearCrop(build)
+        if (home.cropOutcomes) delete home.cropOutcomes[build.guid]
         c.state.homeRevision = (c.state.homeRevision || 0) + 1
         return { rewards: [] }
     })
 
     on('FieldHarvest', (c, r) => {
         const home = homeInScene(tables, c.state)
-        ensure(!r.is_pet, 'Pet harvesting requires an assigned farm worker', ErrorCode.InvalidProtoID)
-        return harvest(tables, c, home, field(tables, home, r.build_guid))
+        return harvest(tables, c, home, field(tables, home, r.build_guid), r.is_pet)
     })
 
     on('FieldHarvestList', (c, r) => {
         const home = homeInScene(tables, c.state)
-        ensure(!r.is_pet, 'Pet harvesting requires an assigned farm worker', ErrorCode.InvalidProtoID)
         ensure(
             r.build_guids.length > 0 &&
                 r.build_guids.length <= 32 &&
@@ -225,6 +266,6 @@ export function registerFarming(on, tables) {
                 'Crop is not ready to harvest',
             )
         }
-        return { results: builds.map((build) => harvest(tables, c, home, build)) }
+        return { results: builds.map((build) => harvest(tables, c, home, build, r.is_pet)) }
     })
 }

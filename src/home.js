@@ -1,9 +1,15 @@
 import { ErrorCode } from './error-codes.js'
+import { reconcileHomeExperience } from './home-experience.js'
+import { reconcileHomeStage } from './home-stage.js'
 import { technologyPayload } from './technology.js'
 import { ensure } from './handlers/common.js'
 import { ensureHomeDormitories, dormPayload } from './home-dorm.js'
 export function ensureHome(tables, state) {
-    if (state.home) return state.home
+    if (state.home) {
+        reconcileHomeExperience(tables, state)
+        reconcileHomeStage(tables, state)
+        return state.home
+    }
     const raw = tables.get('game').find((x) => x.title === 'HOME_DEFAULT_PLACEMENT')?.value
     const values = String(raw || '')
         .split('|')
@@ -20,7 +26,7 @@ export function ensureHome(tables, state) {
     ensure(group, 'Missing home building group', ErrorCode.BuildGroupConfNotFound)
     state.home = {
         name: Buffer.from('我的家园').toString('base64'),
-        level: state.player.basic_info.home_lv || 1,
+        level: 1,
         exp: 0,
         inventory: [{ build_id: id, total_num: 1, used_num: 1, unlock: true }],
         builds: [
@@ -37,6 +43,8 @@ export function ensureHome(tables, state) {
         nextBuildGuid: 2,
         nextWishUid: 1,
     }
+    reconcileHomeExperience(tables, state)
+    reconcileHomeStage(tables, state)
     state.homeRevision = (state.homeRevision || 0) + 1
     return state.home
 }
@@ -102,7 +110,7 @@ export function homePayload(tables, state) {
     ensure(Number.isInteger(shortcutSlots) && shortcutSlots > 0, 'Invalid home shortcut capacity', ErrorCode.GameConfig)
     return {
         technology: technologyPayload(tables, state),
-        home_lv: h.level,
+        home_lv: h.stage,
         home_name: h.name,
         builds: h.inventory,
         home_builds: h.builds,
@@ -120,7 +128,7 @@ export function homePayload(tables, state) {
             craft_count: count,
         })),
         home_hub: { pos_infos: [], station_pets: h.stationPets ?? [] },
-        home_level_new_base: { level: h.level, exp: h.exp, option_setting: 0 },
+        home_level_new_base: { level: h.level, exp: h.exp, option_setting: h.cropOptions || 0 },
     }
 }
 
