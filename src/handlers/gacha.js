@@ -3,11 +3,38 @@ import { ErrorCode } from '../error-codes.js'
 import { ensure } from './common.js'
 import { grantRewards, parseRewards } from '../rewards.js'
 import { rewardSource } from '../reward-source.js'
+import { gachaTables } from '../gacha-tables.js'
 
 export function registerGacha(on, tables) {
+    tables = gachaTables(tables)
     // Loaded on first request: an unrelated login need not parse the entire gacha catalog.
     let catalog
     const data = () => (catalog ??= new GachaCatalog(tables))
+    on('GachaAimTarget', (c, r) => {
+        const config = data().configuration(r.pool_id)
+        const allowed = parseRewards(config.selfChooseuplist)
+        ensure(allowed.length, 'This gacha pool does not offer an aimed target', ErrorCode.FunctionClosed)
+        ensure(
+            allowed.every((row) => [1, 9].includes(row.itemtype) && row.itemnum === 1),
+            'Invalid gacha target list',
+            ErrorCode.GameConfig,
+        )
+        ensure(
+            allowed.every((row) => tables.find(row.itemtype === 1 ? 'hero' : 'soulessence', row.itemid)),
+            'Gacha target references an unavailable item',
+            ErrorCode.GameConfig,
+        )
+        ensure(
+            !r.item_id || allowed.some((row) => row.itemid === r.item_id),
+            'Gacha target is not offered by this pool',
+        )
+        data().snapshot(c.state, config.gachaId)
+        const pool = data().state(c.state, config).gacha_pool
+        // Setting a target is not drawing, claiming or spending a resource.
+        // No table field specifies a reset of the ordinary pity counters here.
+        pool.aimed_item_ids = r.item_id ? [r.item_id] : []
+        return { gacha_pool: data().snapshot(c.state, config.gachaId).gacha_pool }
+    })
     const claimCumulative = (c, id, spec) => {
         const catalog = data(),
             config = catalog.configuration(id),

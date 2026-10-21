@@ -7,6 +7,7 @@ import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { ErrorCode } from '../src/error-codes.js'
 import { GachaCatalog } from '../src/gacha.js'
+import { gachaTables } from '../src/gacha-tables.js'
 
 export function gachaFixture(name) {
     const cfg = configuration(),
@@ -45,10 +46,14 @@ test('9700 returns every actual table pool and guarantee counter without grantin
         const data = f.response('GachaData')
         assert.deepEqual(
             data.gacha_pools.map((entry) => entry.gacha_pool.pool_id),
-            f.tables.get('gacha').map((row) => row.gachaId),
+            gachaTables(f.tables)
+                .get('gacha')
+                .map((row) => row.gachaId),
         )
         for (const entry of data.gacha_pools) {
-            const config = f.tables.get('gacha').find((row) => row.gachaId === entry.gacha_pool.pool_id)
+            const config = gachaTables(f.tables)
+                .get('gacha')
+                .find((row) => row.gachaId === entry.gacha_pool.pool_id)
             assert.deepEqual(
                 entry.pity.map((item) => item.pity_id),
                 config.guaranteeId.split('|').map(Number),
