@@ -4,6 +4,7 @@ import { syncBattle } from '../battle.js'
 import { reconcileFormationPets } from '../formation-pets.js'
 import { mountPayload, repairMountSelection } from '../mounts.js'
 import { ensure, textValue, hero, pet, manager, group, syncPlayer, syncPets, syncGroupControl } from './common.js'
+import { ErrorCode } from '../error-codes.js'
 import { isHomeMap } from '../home-formation.js'
 export function registerCollection(on) {
     const syncFormation = (c, data) => {
@@ -23,6 +24,39 @@ export function registerCollection(on) {
         syncBattle(c)
     }
     registerHeroEquipment(on, syncEquipment)
+    on('SetPetBoxInfo', (c, r) => {
+        const item = c.state.pets.find((entry) => entry.guid === String(r.guid))
+        ensure(item, 'Pet not owned', ErrorCode.PetNotExist)
+        const value = (title) => Number(c.tables.get('game').find((row) => row.title === title)?.value)
+        const maxBox = value('PET_BOX_NUM'),
+            slots = value('PET_BOX_LIMIT')
+        ensure(
+            Number.isInteger(maxBox) && maxBox > 0 && Number.isInteger(slots) && slots > 0 && slots < 100,
+            'Invalid pet box limits',
+            ErrorCode.GameConfig,
+        )
+        const box = Math.floor(r.box_id / 100),
+            slot = r.box_id % 100
+        ensure(
+            Number.isInteger(r.box_id) && box >= 1 && box <= maxBox && slot >= 1 && slot <= slots,
+            'Invalid pet box position',
+            ErrorCode.PetBoxNumLimimt,
+        )
+        ensure(
+            !c.state.pets.some((other) => other.guid !== item.guid && other.box_id === r.box_id),
+            'Pet box position occupied',
+            ErrorCode.PetBoxIdIsExist,
+        )
+        item.box_id = r.box_id
+        // The page can move to an empty box with no saved custom name yet.
+        if (!c.state.petBoxes.some((entry) => entry.id === box)) {
+            c.state.petBoxes.push({ id: box, box_name: Buffer.from(`奇波小屋${box}`).toString('base64') })
+            c.pushBefore('CSProtoPetBoxInfoSync', { box_infos: c.state.petBoxes })
+        }
+        c.state.petRevision = (c.state.petRevision ?? 0) + 1
+        syncPets({ ...c, push: c.pushBefore })
+        return {}
+    })
     on('QuickChangeGroupInfo', (c, r) => {
         const g = group(c.state, r.type, r.id),
             infos = r.infos ?? []
