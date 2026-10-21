@@ -18,5 +18,6 @@
   "ornamentStar": 154,
   "ornamentSmelt": 95,
   "accessoryProductionFinish": 37,
-  "accessoryProductionCancel": 38
+  "accessoryProductionCancel": 38,
+  "ranchStoreHarvest": 77
 }

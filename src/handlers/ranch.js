@@ -15,6 +15,8 @@ import {
     settleRanches,
 } from '../ranch.js'
 import { pickRanchDrops, storeRanchDrop } from '../ranch-claims.js'
+import { grantRewards } from '../rewards.js'
+import { rewardSource } from '../reward-source.js'
 
 export function ranchContext(c, block) {
     const map = ranchCatalog(c.tables).constants.get('HOME_ID')
@@ -23,6 +25,14 @@ export function ranchContext(c, block) {
     return ranchAt(c.tables, c.state, block)
 }
 export function registerRanch(on, tables) {
+    on('RanchGetStoreReward', (c, request) => {
+        const ranch = ranchContext(c, request.u32)
+        ensure(ranch.stores.length > 0, 'Ranch storage is empty', ErrorCode.HomeRanchStoreIsNull)
+        const rewards = grantRewards(tables, c.state, ranch.stores)
+        ranch.stores = []
+        c.state.homeRevision = (c.state.homeRevision || 0) + 1
+        return { rewards, src: rewardSource(tables, 'ranchStoreHarvest') }
+    })
     on('RanchPetAutoGetReward', (c, request) => {
         const ranch = ranchContext(c, request.block_id)
         storeRanchDrop(tables, c.state, ranch, request.reward_guid)
