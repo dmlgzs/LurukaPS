@@ -60,6 +60,18 @@ export function registerGacha(on, tables) {
             source: 'gachaStageReward',
         }),
     )
+    on('GachaUp', (c, r) =>
+        claimCumulative(c, r.u32, {
+            group: 'upReward',
+            table: 'gacha_up_reward',
+            groupKey: 'upRewardId',
+            order: 'upCount',
+            threshold: 'upCount',
+            receipt: 'received_up_count',
+            progress: 'draw_up_hero_count',
+            source: 'gachaUpReward',
+        }),
+    )
     on('GachaData', (c) => ({
         // This is progress data, not permission to draw in a closed banner.
         gacha_pools: [...data().pools.keys()].map((id) => data().snapshot(c.state, id)),

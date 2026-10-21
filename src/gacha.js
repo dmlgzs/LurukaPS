@@ -42,7 +42,17 @@ export class GachaCatalog {
     }
     state(state, row) {
         const ledger = (state.gacha ??= { pools: {}, history: [], nextRecordId: '1' })
+        ensure(
+            ledger && typeof ledger === 'object' && !Array.isArray(ledger),
+            'Invalid saved gacha ledger',
+            ErrorCode.GameConfig,
+        )
         ledger.pools ??= {}
+        ensure(
+            typeof ledger.pools === 'object' && !Array.isArray(ledger.pools),
+            'Invalid saved gacha pool ledger',
+            ErrorCode.GameConfig,
+        )
         const entry = (ledger.pools[row.gachaId] ??= {
             gacha_pool: {
                 pool_id: row.gachaId,
@@ -57,6 +67,11 @@ export class GachaCatalog {
             },
             pity: [],
         })
+        ensure(
+            entry && typeof entry === 'object' && !Array.isArray(entry),
+            'Invalid saved gacha pool entry',
+            ErrorCode.GameConfig,
+        )
         return entry
     }
     snapshot(state, id) {
@@ -86,6 +101,7 @@ export class GachaCatalog {
             )
         ensure(
             Array.isArray(entry.pity) &&
+                entry.pity.every((item) => item && typeof item === 'object') &&
                 new Set(entry.pity.map((item) => item.pity_id)).size === entry.pity.length &&
                 entry.pity.every(
                     (item) => uint(item.pity_id) && uint(item.pity_count) && typeof item.is_completed === 'boolean',
