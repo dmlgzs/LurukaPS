@@ -1,4 +1,5 @@
 import { ErrorCode } from '../error-codes.js'
+import { registerExplorationRewards } from './exploration-rewards.js'
 import { recordNpcArenaMovement } from '../npc-kibo-battle.js'
 import { expireArenaTrialTrainer } from '../npc-kibo-trainer.js'
 import { repairSavedPetPuzzleVisibility } from '../pet-puzzles.js'
@@ -250,6 +251,7 @@ export function rememberMap(c, destination) {
     if (history.length > 8) history.shift()
 }
 export function registerWorld(on) {
+    registerExplorationRewards(on)
     on('QuitPhotoGraphScene', (c) => {
         // LeaveScenario sends 9811 without a callback. SceneService only calls
         // EnterScene/CutWorld for cmd 49/256; a bare ACK cannot dismiss the UI.
