@@ -25,6 +25,7 @@ import { refundPendingCatchCards } from './handlers/pet-catch.js'
 import { repairCharacterCreationMarker } from './character-creation.js'
 import { reconcileFormationPets } from './formation-pets.js'
 import { syncCurrencyMirrors, restoreMissingStamina } from './currency.js'
+import { registerGacha } from './handlers/gacha.js'
 import {
     registerTrialGroups,
     trialPayload,
@@ -334,6 +335,7 @@ export class Game {
         registerPlayableLifecycle(on, tables)
         const runGM = registerGM(on, { enabled: gmEnabled })
         registerCore(on)
+        registerGacha(on, tables)
         on('AnnounceRequest', (c) => announcementSnapshot(this.announcementBaseUrl, c.now))
         registerAIHeroes(on, tables)
         registerMonthly(on, tables)
