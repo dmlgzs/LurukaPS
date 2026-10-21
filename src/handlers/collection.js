@@ -1,3 +1,4 @@
+import { registerHeroEquipment } from './hero-equipment.js'
 import { isPreviousTrialActor } from './trial-groups.js'
 import { syncBattle } from '../battle.js'
 import { reconcileFormationPets } from '../formation-pets.js'
@@ -21,6 +22,7 @@ export function registerCollection(on) {
         syncPets(c)
         syncBattle(c)
     }
+    registerHeroEquipment(on, syncEquipment)
     on('QuickChangeGroupInfo', (c, r) => {
         const g = group(c.state, r.type, r.id),
             infos = r.infos ?? []

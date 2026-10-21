@@ -1063,8 +1063,14 @@ export class Game {
                 const playerDelta = {}
                 if (JSON.stringify(state.player.sbag_infos) !== bagBefore)
                     playerDelta.sbag_infos = state.player.sbag_infos
-                if (JSON.stringify(state.player.soulessence_infos) !== essenceBefore)
-                    playerDelta.soulessence_infos = state.player.soulessence_infos
+                if (JSON.stringify(state.player.soulessence_infos) !== essenceBefore) {
+                    const previous = JSON.parse(essenceBefore).soulessences ?? []
+                    const current = new Set(state.player.soulessence_infos.soulessences.map((item) => item.guid))
+                    playerDelta.soulessence_infos = {
+                        ...state.player.soulessence_infos,
+                        del_pos: previous.filter((item) => !current.has(item.guid)).map((item) => item.guid),
+                    }
+                }
                 if (JSON.stringify(state.player.basic_info) !== basicBefore)
                     playerDelta.basic_info = state.player.basic_info
                 if (JSON.stringify(state.player.attr_infos) !== attrsBefore)

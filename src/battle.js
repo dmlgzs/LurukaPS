@@ -1,3 +1,4 @@
+import { runeBonuses, ornamentAttributes, ornamentSkills } from './hero-equipment.js'
 import { temporaryHeroes, temporaryPets, activeFormationManager } from './trial-actors.js'
 import { heroTrialSoulEssence } from './trial-equipment.js'
 import { soulEssenceGrade } from './equipment.js'
@@ -38,6 +39,7 @@ export function heroBattleConfig(tables, hero) {
     return clothing && requireRow(tables, 'hero_battle_info', clothing.battleInfo)
 }
 function heroSkills(tables, config, hero) {
+    const runeSkills = runeBonuses(tables, hero).skills
     const battleInfo = heroBattleConfig(tables, hero)
     const selected = battleInfo || config
     const skills = new Map()
@@ -55,7 +57,7 @@ function heroSkills(tables, config, hero) {
         const index = system.indexOf(canonical)
         skills.set(`${slot}:${id}`, {
             skill_id: id,
-            skill_lv: index < 0 ? 1 : hero.system_skill_levels[index] || 1,
+            skill_lv: (index < 0 ? 1 : hero.system_skill_levels[index] || 1) + (runeSkills.get(index) ?? 0),
             skill_slot: slot,
             type: 0,
         })
@@ -92,6 +94,8 @@ export function heroModules(tables, state, hero) {
     const base = pairs(requireRow(tables, 'template_value', growth.baseAttribute).baseAttribute)
     const attributes = new Map()
     for (const [id, value] of base) if (factors.has(id)) attributes.set(id, value * factors.get(id))
+    for (const [id, value] of runeBonuses(tables, hero).attrs)
+        attributes.set(id, (attributes.get(id) ?? 0) + value * (specialAttributes.has(id) ? 10000 : 1))
     const modules = [
         {
             module_type: 0,
@@ -124,6 +128,17 @@ export function heroModules(tables, state, hero) {
         module_type: 1,
         sub_modules: [
             { sub_module_id: 0, attrs: { attrs: wireAttributes(soulAttributes) }, skills: { skills: soulSkills } },
+        ],
+    })
+    const ornamentAttrs = ornamentAttributes(tables, state, hero)
+    modules.push({
+        module_type: 2,
+        sub_modules: [
+            {
+                sub_module_id: 0,
+                attrs: { attrs: wireAttributes(ornamentAttrs) },
+                skills: { skills: ornamentSkills(tables, state, hero) },
+            },
         ],
     })
     return { hero_guid: hero.guid, hero_conf_id: hero.conf_id, type: hero.trail ? 5 : 1, modules }

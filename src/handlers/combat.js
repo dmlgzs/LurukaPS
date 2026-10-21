@@ -1,3 +1,4 @@
+import { ornamentSkills } from '../hero-equipment.js'
 import { recordNpcArenaDeaths } from '../npc-kibo-battle.js'
 import { recordArenaHpStatistics, publishArenaStatistics } from '../npc-kibo-statistics.js'
 import { recordArenaTrainerSkill, recordArenaTrainerStop } from '../npc-kibo-trainer-skills.js'
@@ -57,7 +58,11 @@ function isFormationPassive(c, skillId) {
     return [...c.state.player.heros_info.heros, ...temporaryHeroes(c.state)].some(
         (hero) =>
             active.has(hero.guid) &&
-            String(c.tables.find('hero', hero.conf_id)?.passiveSkillList ?? '')
+            [
+                String(c.tables.find('hero', hero.conf_id)?.passiveSkillList ?? ''),
+                ...ornamentSkills(c.tables, c.state, hero).map((skill) => skill.skill_id),
+            ]
+                .join('|')
                 .split('|')
                 .map(Number)
                 .includes(skillId),
