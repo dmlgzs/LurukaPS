@@ -11,6 +11,7 @@ import { nextHeroRank } from '../hero-rank.js'
 import { nextSoulRank } from '../soul-rank.js'
 import { planSoulStar } from '../soul-star.js'
 import { soulDecomposePlan } from '../soul-decompose.js'
+import { nextOrnamentLevel } from '../ornament-upgrade.js'
 
 function ownedHero(state, id) {
     const result = state.player.heros_info.heros.find((item) => item.guid === String(id))
@@ -269,6 +270,28 @@ export function registerHeroEquipment(on, publishEquipment) {
         c.pushBefore('CSProtoUpdateOrnament', { ornaments: c.state.ornaments ?? [], guid: [] })
         publishEquipment({ ...c, push: c.pushBefore })
     }
+    on('UpgradeOrnament', (c, r) => {
+        const item = c.state.ornaments?.find((item) => item.guid === r.u32)
+        ensure(item, 'Ornament not owned', ErrorCode.OrnamentNotExist)
+        const plan = nextOrnamentLevel(c.tables, item),
+            bag = new Map(),
+            currency = new Map()
+        for (const cost of plan.costs) {
+            const target = cost.itemtype === 3 ? bag : currency
+            const total = (target.get(cost.itemid) ?? 0) + cost.itemnum
+            ensure(
+                Number.isSafeInteger(total) && total <= 0xffffffff,
+                'Ornament upgrade cost overflow',
+                ErrorCode.GameConfig,
+            )
+            target.set(cost.itemid, total)
+        }
+        spend(c.state, bag, 0, c.now)
+        for (const [id, amount] of currency) spendCurrency(c.state, id, amount)
+        item.lv = plan.level
+        publishOrnaments(c)
+        return {}
+    })
     on('MoveOrnament', (c, r) => {
         const hero = ownedHero(c.state, r.hero_id)
         const item = c.state.ornaments?.find((entry) => entry.guid === r.ornament_guid)

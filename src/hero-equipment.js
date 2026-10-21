@@ -1,6 +1,7 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { pairs } from './battle.js'
+import { ornamentValueTables } from './ornament-values.js'
 
 export function runeSkillPairs(text) {
     return new Map(
@@ -84,6 +85,7 @@ export function runeBonuses(tables, hero) {
     return { attrs, skills }
 }
 export function ornamentAttributes(tables, state, hero) {
+    tables = ornamentValueTables(tables)
     const attrs = new Map()
     for (const guid of hero.oguid ?? []) {
         if (!guid) continue
@@ -96,7 +98,7 @@ export function ornamentAttributes(tables, state, hero) {
         const quality = item.quality ? tables.find('accessory_quality', item.quality)?.value : 0
         ensure(quality !== undefined, 'Ornament quality unavailable', ErrorCode.OrnamentConfFail)
         for (const row of mains) {
-            const id = Number(row.battleInfo)
+            const id = Number(String(row.battleInfo).split('|')[0])
             ensure(Number.isInteger(id) && id > 0, 'Ornament battle attribute unavailable', ErrorCode.GameConfig)
             const value = Math.trunc(row.value * (1 + quality / 10000))
             attrs.set(id, (attrs.get(id) ?? 0) + value)

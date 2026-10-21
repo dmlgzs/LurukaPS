@@ -1,0 +1,2688 @@
+{
+  "accessory": [
+    {
+      "id": 1370311,
+      "mainAttr": 1370311,
+      "elementAttr": 0
+    },
+    {
+      "id": 1370411,
+      "mainAttr": 1370411,
+      "elementAttr": 0
+    },
+    {
+      "id": 1370711,
+      "mainAttr": 1370911,
+      "elementAttr": 0
+    },
+    {
+      "id": 1370811,
+      "mainAttr": 1371011,
+      "elementAttr": 0
+    },
+    {
+      "id": 1371111,
+      "mainAttr": 1371511,
+      "elementAttr": 0
+    },
+    {
+      "id": 1371211,
+      "mainAttr": 1371611,
+      "elementAttr": 0
+    },
+    {
+      "id": 1371511,
+      "mainAttr": 1371911,
+      "elementAttr": 0
+    },
+    {
+      "id": 1371611,
+      "mainAttr": 1372011,
+      "elementAttr": 0
+    },
+    {
+      "id": 1371911,
+      "mainAttr": 1372311,
+      "elementAttr": 0
+    },
+    {
+      "id": 1372011,
+      "mainAttr": 1372411,
+      "elementAttr": 0
+    },
+    {
+      "id": 1372111,
+      "mainAttr": 1371111,
+      "elementAttr": 0
+    },
+    {
+      "id": 1372211,
+      "mainAttr": 1371211,
+      "elementAttr": 0
+    },
+    {
+      "id": 1372311,
+      "mainAttr": 1370511,
+      "elementAttr": 0
+    },
+    {
+      "id": 1372411,
+      "mainAttr": 1370611,
+      "elementAttr": 0
+    },
+    {
+      "id": 1372511,
+      "mainAttr": 1372511,
+      "elementAttr": 0
+    },
+    {
+      "id": 1372611,
+      "mainAttr": 1372611,
+      "elementAttr": 0
+    }
+  ],
+  "removed_accessory": [],
+  "accessory_main": [
+    {
+      "id": 2124,
+      "groupId": 1370311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "2001",
+      "value": 20,
+      "patternId": 1370311
+    },
+    {
+      "id": 2125,
+      "groupId": 1370311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "2001",
+      "value": 25,
+      "patternId": 1370311
+    },
+    {
+      "id": 2126,
+      "groupId": 1370311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "2001",
+      "value": 30,
+      "patternId": 1370311
+    },
+    {
+      "id": 2127,
+      "groupId": 1370311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "2001",
+      "value": 35,
+      "patternId": 1370311
+    },
+    {
+      "id": 2128,
+      "groupId": 1370311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "2001",
+      "value": 40,
+      "patternId": 1370311
+    },
+    {
+      "id": 2129,
+      "groupId": 1370311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "2001",
+      "value": 45,
+      "patternId": 1370311
+    },
+    {
+      "id": 2130,
+      "groupId": 1370311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "2001",
+      "value": 50,
+      "patternId": 1370311
+    },
+    {
+      "id": 2131,
+      "groupId": 1370311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "2001",
+      "value": 55,
+      "patternId": 1370311
+    },
+    {
+      "id": 2132,
+      "groupId": 1370311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "2001",
+      "value": 60,
+      "patternId": 1370311
+    },
+    {
+      "id": 2133,
+      "groupId": 1370311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "2001",
+      "value": 65,
+      "patternId": 1370311
+    },
+    {
+      "id": 2134,
+      "groupId": 1370311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "2001",
+      "value": 70,
+      "patternId": 1370311
+    },
+    {
+      "id": 2135,
+      "groupId": 1370311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "2001",
+      "value": 75,
+      "patternId": 1370311
+    },
+    {
+      "id": 2136,
+      "groupId": 1370311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "2001",
+      "value": 80,
+      "patternId": 1370311
+    },
+    {
+      "id": 2150,
+      "groupId": 1370411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "2001",
+      "value": 20,
+      "patternId": 1370411
+    },
+    {
+      "id": 2151,
+      "groupId": 1370411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "2001",
+      "value": 25,
+      "patternId": 1370411
+    },
+    {
+      "id": 2152,
+      "groupId": 1370411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "2001",
+      "value": 30,
+      "patternId": 1370411
+    },
+    {
+      "id": 2153,
+      "groupId": 1370411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "2001",
+      "value": 35,
+      "patternId": 1370411
+    },
+    {
+      "id": 2154,
+      "groupId": 1370411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "2001",
+      "value": 40,
+      "patternId": 1370411
+    },
+    {
+      "id": 2155,
+      "groupId": 1370411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "2001",
+      "value": 45,
+      "patternId": 1370411
+    },
+    {
+      "id": 2156,
+      "groupId": 1370411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "2001",
+      "value": 50,
+      "patternId": 1370411
+    },
+    {
+      "id": 2157,
+      "groupId": 1370411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "2001",
+      "value": 55,
+      "patternId": 1370411
+    },
+    {
+      "id": 2158,
+      "groupId": 1370411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "2001",
+      "value": 60,
+      "patternId": 1370411
+    },
+    {
+      "id": 2159,
+      "groupId": 1370411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "2001",
+      "value": 65,
+      "patternId": 1370411
+    },
+    {
+      "id": 2160,
+      "groupId": 1370411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "2001",
+      "value": 70,
+      "patternId": 1370411
+    },
+    {
+      "id": 2161,
+      "groupId": 1370411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "2001",
+      "value": 75,
+      "patternId": 1370411
+    },
+    {
+      "id": 2162,
+      "groupId": 1370411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "2001",
+      "value": 80,
+      "patternId": 1370411
+    },
+    {
+      "id": 2163,
+      "groupId": 1370511,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "231",
+      "value": 80,
+      "patternId": 1370511
+    },
+    {
+      "id": 2164,
+      "groupId": 1370511,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "231",
+      "value": 105,
+      "patternId": 1370511
+    },
+    {
+      "id": 2165,
+      "groupId": 1370511,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "231",
+      "value": 125,
+      "patternId": 1370511
+    },
+    {
+      "id": 2166,
+      "groupId": 1370511,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "231",
+      "value": 145,
+      "patternId": 1370511
+    },
+    {
+      "id": 2167,
+      "groupId": 1370511,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "231",
+      "value": 165,
+      "patternId": 1370511
+    },
+    {
+      "id": 2168,
+      "groupId": 1370511,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "231",
+      "value": 190,
+      "patternId": 1370511
+    },
+    {
+      "id": 2169,
+      "groupId": 1370511,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "231",
+      "value": 210,
+      "patternId": 1370511
+    },
+    {
+      "id": 2170,
+      "groupId": 1370511,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "231",
+      "value": 230,
+      "patternId": 1370511
+    },
+    {
+      "id": 2171,
+      "groupId": 1370511,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "231",
+      "value": 250,
+      "patternId": 1370511
+    },
+    {
+      "id": 2172,
+      "groupId": 1370511,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "231",
+      "value": 270,
+      "patternId": 1370511
+    },
+    {
+      "id": 2173,
+      "groupId": 1370511,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "231",
+      "value": 295,
+      "patternId": 1370511
+    },
+    {
+      "id": 2174,
+      "groupId": 1370511,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "231",
+      "value": 315,
+      "patternId": 1370511
+    },
+    {
+      "id": 2175,
+      "groupId": 1370511,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "231",
+      "value": 335,
+      "patternId": 1370511
+    },
+    {
+      "id": 2176,
+      "groupId": 1370511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "2001",
+      "value": 24,
+      "patternId": 1370511
+    },
+    {
+      "id": 2177,
+      "groupId": 1370511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "2001",
+      "value": 30,
+      "patternId": 1370511
+    },
+    {
+      "id": 2178,
+      "groupId": 1370511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "2001",
+      "value": 36,
+      "patternId": 1370511
+    },
+    {
+      "id": 2179,
+      "groupId": 1370511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "2001",
+      "value": 42,
+      "patternId": 1370511
+    },
+    {
+      "id": 2180,
+      "groupId": 1370511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "2001",
+      "value": 48,
+      "patternId": 1370511
+    },
+    {
+      "id": 2181,
+      "groupId": 1370511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "2001",
+      "value": 54,
+      "patternId": 1370511
+    },
+    {
+      "id": 2182,
+      "groupId": 1370511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "2001",
+      "value": 60,
+      "patternId": 1370511
+    },
+    {
+      "id": 2183,
+      "groupId": 1370511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "2001",
+      "value": 66,
+      "patternId": 1370511
+    },
+    {
+      "id": 2184,
+      "groupId": 1370511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "2001",
+      "value": 72,
+      "patternId": 1370511
+    },
+    {
+      "id": 2185,
+      "groupId": 1370511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "2001",
+      "value": 78,
+      "patternId": 1370511
+    },
+    {
+      "id": 2186,
+      "groupId": 1370511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "2001",
+      "value": 84,
+      "patternId": 1370511
+    },
+    {
+      "id": 2187,
+      "groupId": 1370511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "2001",
+      "value": 90,
+      "patternId": 1370511
+    },
+    {
+      "id": 2188,
+      "groupId": 1370511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "2001",
+      "value": 96,
+      "patternId": 1370511
+    },
+    {
+      "id": 2202,
+      "groupId": 1370611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "2001",
+      "value": 24,
+      "patternId": 1370611
+    },
+    {
+      "id": 2203,
+      "groupId": 1370611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "2001",
+      "value": 30,
+      "patternId": 1370611
+    },
+    {
+      "id": 2204,
+      "groupId": 1370611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "2001",
+      "value": 36,
+      "patternId": 1370611
+    },
+    {
+      "id": 2205,
+      "groupId": 1370611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "2001",
+      "value": 42,
+      "patternId": 1370611
+    },
+    {
+      "id": 2206,
+      "groupId": 1370611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "2001",
+      "value": 48,
+      "patternId": 1370611
+    },
+    {
+      "id": 2207,
+      "groupId": 1370611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "2001",
+      "value": 54,
+      "patternId": 1370611
+    },
+    {
+      "id": 2208,
+      "groupId": 1370611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "2001",
+      "value": 60,
+      "patternId": 1370611
+    },
+    {
+      "id": 2209,
+      "groupId": 1370611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "2001",
+      "value": 66,
+      "patternId": 1370611
+    },
+    {
+      "id": 2210,
+      "groupId": 1370611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "2001",
+      "value": 72,
+      "patternId": 1370611
+    },
+    {
+      "id": 2211,
+      "groupId": 1370611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "2001",
+      "value": 78,
+      "patternId": 1370611
+    },
+    {
+      "id": 2212,
+      "groupId": 1370611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "2001",
+      "value": 84,
+      "patternId": 1370611
+    },
+    {
+      "id": 2213,
+      "groupId": 1370611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "2001",
+      "value": 90,
+      "patternId": 1370611
+    },
+    {
+      "id": 2214,
+      "groupId": 1370611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "2001",
+      "value": 96,
+      "patternId": 1370611
+    },
+    {
+      "id": 2254,
+      "groupId": 1370911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "2001",
+      "value": 20,
+      "patternId": 1370911
+    },
+    {
+      "id": 2255,
+      "groupId": 1370911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "2001",
+      "value": 25,
+      "patternId": 1370911
+    },
+    {
+      "id": 2256,
+      "groupId": 1370911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "2001",
+      "value": 30,
+      "patternId": 1370911
+    },
+    {
+      "id": 2257,
+      "groupId": 1370911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "2001",
+      "value": 35,
+      "patternId": 1370911
+    },
+    {
+      "id": 2258,
+      "groupId": 1370911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "2001",
+      "value": 40,
+      "patternId": 1370911
+    },
+    {
+      "id": 2259,
+      "groupId": 1370911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "2001",
+      "value": 45,
+      "patternId": 1370911
+    },
+    {
+      "id": 2260,
+      "groupId": 1370911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "2001",
+      "value": 50,
+      "patternId": 1370911
+    },
+    {
+      "id": 2261,
+      "groupId": 1370911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "2001",
+      "value": 55,
+      "patternId": 1370911
+    },
+    {
+      "id": 2262,
+      "groupId": 1370911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "2001",
+      "value": 60,
+      "patternId": 1370911
+    },
+    {
+      "id": 2263,
+      "groupId": 1370911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "2001",
+      "value": 65,
+      "patternId": 1370911
+    },
+    {
+      "id": 2264,
+      "groupId": 1370911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "2001",
+      "value": 70,
+      "patternId": 1370911
+    },
+    {
+      "id": 2265,
+      "groupId": 1370911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "2001",
+      "value": 75,
+      "patternId": 1370911
+    },
+    {
+      "id": 2266,
+      "groupId": 1370911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "2001",
+      "value": 80,
+      "patternId": 1370911
+    },
+    {
+      "id": 2280,
+      "groupId": 1371011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "2001",
+      "value": 20,
+      "patternId": 1371011
+    },
+    {
+      "id": 2281,
+      "groupId": 1371011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "2001",
+      "value": 25,
+      "patternId": 1371011
+    },
+    {
+      "id": 2282,
+      "groupId": 1371011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "2001",
+      "value": 30,
+      "patternId": 1371011
+    },
+    {
+      "id": 2283,
+      "groupId": 1371011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "2001",
+      "value": 35,
+      "patternId": 1371011
+    },
+    {
+      "id": 2284,
+      "groupId": 1371011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "2001",
+      "value": 40,
+      "patternId": 1371011
+    },
+    {
+      "id": 2285,
+      "groupId": 1371011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "2001",
+      "value": 45,
+      "patternId": 1371011
+    },
+    {
+      "id": 2286,
+      "groupId": 1371011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "2001",
+      "value": 50,
+      "patternId": 1371011
+    },
+    {
+      "id": 2287,
+      "groupId": 1371011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "2001",
+      "value": 55,
+      "patternId": 1371011
+    },
+    {
+      "id": 2288,
+      "groupId": 1371011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "2001",
+      "value": 60,
+      "patternId": 1371011
+    },
+    {
+      "id": 2289,
+      "groupId": 1371011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "2001",
+      "value": 65,
+      "patternId": 1371011
+    },
+    {
+      "id": 2290,
+      "groupId": 1371011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "2001",
+      "value": 70,
+      "patternId": 1371011
+    },
+    {
+      "id": 2291,
+      "groupId": 1371011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "2001",
+      "value": 75,
+      "patternId": 1371011
+    },
+    {
+      "id": 2292,
+      "groupId": 1371011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "2001",
+      "value": 80,
+      "patternId": 1371011
+    },
+    {
+      "id": 2306,
+      "groupId": 1371111,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "2001",
+      "value": 24,
+      "patternId": 1371111
+    },
+    {
+      "id": 2307,
+      "groupId": 1371111,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "2001",
+      "value": 30,
+      "patternId": 1371111
+    },
+    {
+      "id": 2308,
+      "groupId": 1371111,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "2001",
+      "value": 36,
+      "patternId": 1371111
+    },
+    {
+      "id": 2309,
+      "groupId": 1371111,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "2001",
+      "value": 42,
+      "patternId": 1371111
+    },
+    {
+      "id": 2310,
+      "groupId": 1371111,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "2001",
+      "value": 48,
+      "patternId": 1371111
+    },
+    {
+      "id": 2311,
+      "groupId": 1371111,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "2001",
+      "value": 54,
+      "patternId": 1371111
+    },
+    {
+      "id": 2312,
+      "groupId": 1371111,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "2001",
+      "value": 60,
+      "patternId": 1371111
+    },
+    {
+      "id": 2313,
+      "groupId": 1371111,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "2001",
+      "value": 66,
+      "patternId": 1371111
+    },
+    {
+      "id": 2314,
+      "groupId": 1371111,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "2001",
+      "value": 72,
+      "patternId": 1371111
+    },
+    {
+      "id": 2315,
+      "groupId": 1371111,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "2001",
+      "value": 78,
+      "patternId": 1371111
+    },
+    {
+      "id": 2316,
+      "groupId": 1371111,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "2001",
+      "value": 84,
+      "patternId": 1371111
+    },
+    {
+      "id": 2317,
+      "groupId": 1371111,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "2001",
+      "value": 90,
+      "patternId": 1371111
+    },
+    {
+      "id": 2318,
+      "groupId": 1371111,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "2001",
+      "value": 96,
+      "patternId": 1371111
+    },
+    {
+      "id": 2319,
+      "groupId": 1371211,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "8",
+      "value": 243,
+      "patternId": 1371211
+    },
+    {
+      "id": 2320,
+      "groupId": 1371211,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "8",
+      "value": 304,
+      "patternId": 1371211
+    },
+    {
+      "id": 2321,
+      "groupId": 1371211,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "8",
+      "value": 364,
+      "patternId": 1371211
+    },
+    {
+      "id": 2322,
+      "groupId": 1371211,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "8",
+      "value": 425,
+      "patternId": 1371211
+    },
+    {
+      "id": 2323,
+      "groupId": 1371211,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "8",
+      "value": 486,
+      "patternId": 1371211
+    },
+    {
+      "id": 2324,
+      "groupId": 1371211,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "8",
+      "value": 546,
+      "patternId": 1371211
+    },
+    {
+      "id": 2325,
+      "groupId": 1371211,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "8",
+      "value": 607,
+      "patternId": 1371211
+    },
+    {
+      "id": 2326,
+      "groupId": 1371211,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "8",
+      "value": 668,
+      "patternId": 1371211
+    },
+    {
+      "id": 2327,
+      "groupId": 1371211,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "8",
+      "value": 729,
+      "patternId": 1371211
+    },
+    {
+      "id": 2328,
+      "groupId": 1371211,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "8",
+      "value": 789,
+      "patternId": 1371211
+    },
+    {
+      "id": 2329,
+      "groupId": 1371211,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "8",
+      "value": 850,
+      "patternId": 1371211
+    },
+    {
+      "id": 2330,
+      "groupId": 1371211,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "8",
+      "value": 911,
+      "patternId": 1371211
+    },
+    {
+      "id": 2331,
+      "groupId": 1371211,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "8",
+      "value": 972,
+      "patternId": 1371211
+    },
+    {
+      "id": 2332,
+      "groupId": 1371211,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "2001",
+      "value": 24,
+      "patternId": 1371211
+    },
+    {
+      "id": 2333,
+      "groupId": 1371211,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "2001",
+      "value": 30,
+      "patternId": 1371211
+    },
+    {
+      "id": 2334,
+      "groupId": 1371211,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "2001",
+      "value": 36,
+      "patternId": 1371211
+    },
+    {
+      "id": 2335,
+      "groupId": 1371211,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "2001",
+      "value": 42,
+      "patternId": 1371211
+    },
+    {
+      "id": 2336,
+      "groupId": 1371211,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "2001",
+      "value": 48,
+      "patternId": 1371211
+    },
+    {
+      "id": 2337,
+      "groupId": 1371211,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "2001",
+      "value": 54,
+      "patternId": 1371211
+    },
+    {
+      "id": 2338,
+      "groupId": 1371211,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "2001",
+      "value": 60,
+      "patternId": 1371211
+    },
+    {
+      "id": 2339,
+      "groupId": 1371211,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "2001",
+      "value": 66,
+      "patternId": 1371211
+    },
+    {
+      "id": 2340,
+      "groupId": 1371211,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "2001",
+      "value": 72,
+      "patternId": 1371211
+    },
+    {
+      "id": 2341,
+      "groupId": 1371211,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "2001",
+      "value": 78,
+      "patternId": 1371211
+    },
+    {
+      "id": 2342,
+      "groupId": 1371211,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "2001",
+      "value": 84,
+      "patternId": 1371211
+    },
+    {
+      "id": 2343,
+      "groupId": 1371211,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "2001",
+      "value": 90,
+      "patternId": 1371211
+    },
+    {
+      "id": 2344,
+      "groupId": 1371211,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "2001",
+      "value": 96,
+      "patternId": 1371211
+    },
+    {
+      "id": 2384,
+      "groupId": 1371511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "2005",
+      "value": 156,
+      "patternId": 1371511
+    },
+    {
+      "id": 2385,
+      "groupId": 1371511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "2005",
+      "value": 201,
+      "patternId": 1371511
+    },
+    {
+      "id": 2386,
+      "groupId": 1371511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "2005",
+      "value": 240,
+      "patternId": 1371511
+    },
+    {
+      "id": 2387,
+      "groupId": 1371511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "2005",
+      "value": 279,
+      "patternId": 1371511
+    },
+    {
+      "id": 2388,
+      "groupId": 1371511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "2005",
+      "value": 318,
+      "patternId": 1371511
+    },
+    {
+      "id": 2389,
+      "groupId": 1371511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "2005",
+      "value": 357,
+      "patternId": 1371511
+    },
+    {
+      "id": 2390,
+      "groupId": 1371511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "2005",
+      "value": 399,
+      "patternId": 1371511
+    },
+    {
+      "id": 2391,
+      "groupId": 1371511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "2005",
+      "value": 438,
+      "patternId": 1371511
+    },
+    {
+      "id": 2392,
+      "groupId": 1371511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "2005",
+      "value": 477,
+      "patternId": 1371511
+    },
+    {
+      "id": 2393,
+      "groupId": 1371511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "2005",
+      "value": 516,
+      "patternId": 1371511
+    },
+    {
+      "id": 2394,
+      "groupId": 1371511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "2005",
+      "value": 555,
+      "patternId": 1371511
+    },
+    {
+      "id": 2395,
+      "groupId": 1371511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "2005",
+      "value": 597,
+      "patternId": 1371511
+    },
+    {
+      "id": 2396,
+      "groupId": 1371511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "2005",
+      "value": 633,
+      "patternId": 1371511
+    },
+    {
+      "id": 2397,
+      "groupId": 1371611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "230",
+      "value": 30,
+      "patternId": 1371611
+    },
+    {
+      "id": 2398,
+      "groupId": 1371611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "230",
+      "value": 37,
+      "patternId": 1371611
+    },
+    {
+      "id": 2399,
+      "groupId": 1371611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "230",
+      "value": 45,
+      "patternId": 1371611
+    },
+    {
+      "id": 2400,
+      "groupId": 1371611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "230",
+      "value": 52,
+      "patternId": 1371611
+    },
+    {
+      "id": 2401,
+      "groupId": 1371611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "230",
+      "value": 60,
+      "patternId": 1371611
+    },
+    {
+      "id": 2402,
+      "groupId": 1371611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "230",
+      "value": 67,
+      "patternId": 1371611
+    },
+    {
+      "id": 2403,
+      "groupId": 1371611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "230",
+      "value": 75,
+      "patternId": 1371611
+    },
+    {
+      "id": 2404,
+      "groupId": 1371611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "230",
+      "value": 82,
+      "patternId": 1371611
+    },
+    {
+      "id": 2405,
+      "groupId": 1371611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "230",
+      "value": 90,
+      "patternId": 1371611
+    },
+    {
+      "id": 2406,
+      "groupId": 1371611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "230",
+      "value": 98,
+      "patternId": 1371611
+    },
+    {
+      "id": 2407,
+      "groupId": 1371611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "230",
+      "value": 105,
+      "patternId": 1371611
+    },
+    {
+      "id": 2408,
+      "groupId": 1371611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "230",
+      "value": 113,
+      "patternId": 1371611
+    },
+    {
+      "id": 2409,
+      "groupId": 1371611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "230",
+      "value": 120,
+      "patternId": 1371611
+    },
+    {
+      "id": 2410,
+      "groupId": 1371611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "2005",
+      "value": 156,
+      "patternId": 1371611
+    },
+    {
+      "id": 2411,
+      "groupId": 1371611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "2005",
+      "value": 201,
+      "patternId": 1371611
+    },
+    {
+      "id": 2412,
+      "groupId": 1371611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "2005",
+      "value": 240,
+      "patternId": 1371611
+    },
+    {
+      "id": 2413,
+      "groupId": 1371611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "2005",
+      "value": 279,
+      "patternId": 1371611
+    },
+    {
+      "id": 2414,
+      "groupId": 1371611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "2005",
+      "value": 318,
+      "patternId": 1371611
+    },
+    {
+      "id": 2415,
+      "groupId": 1371611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "2005",
+      "value": 357,
+      "patternId": 1371611
+    },
+    {
+      "id": 2416,
+      "groupId": 1371611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "2005",
+      "value": 399,
+      "patternId": 1371611
+    },
+    {
+      "id": 2417,
+      "groupId": 1371611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "2005",
+      "value": 438,
+      "patternId": 1371611
+    },
+    {
+      "id": 2418,
+      "groupId": 1371611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "2005",
+      "value": 477,
+      "patternId": 1371611
+    },
+    {
+      "id": 2419,
+      "groupId": 1371611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "2005",
+      "value": 516,
+      "patternId": 1371611
+    },
+    {
+      "id": 2420,
+      "groupId": 1371611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "2005",
+      "value": 555,
+      "patternId": 1371611
+    },
+    {
+      "id": 2421,
+      "groupId": 1371611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "2005",
+      "value": 597,
+      "patternId": 1371611
+    },
+    {
+      "id": 2422,
+      "groupId": 1371611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "2005",
+      "value": 633,
+      "patternId": 1371611
+    },
+    {
+      "id": 2462,
+      "groupId": 1371911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "2005",
+      "value": 156,
+      "patternId": 1371911
+    },
+    {
+      "id": 2463,
+      "groupId": 1371911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "2005",
+      "value": 201,
+      "patternId": 1371911
+    },
+    {
+      "id": 2464,
+      "groupId": 1371911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "2005",
+      "value": 240,
+      "patternId": 1371911
+    },
+    {
+      "id": 2465,
+      "groupId": 1371911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "2005",
+      "value": 279,
+      "patternId": 1371911
+    },
+    {
+      "id": 2466,
+      "groupId": 1371911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "2005",
+      "value": 318,
+      "patternId": 1371911
+    },
+    {
+      "id": 2467,
+      "groupId": 1371911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "2005",
+      "value": 357,
+      "patternId": 1371911
+    },
+    {
+      "id": 2468,
+      "groupId": 1371911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "2005",
+      "value": 399,
+      "patternId": 1371911
+    },
+    {
+      "id": 2469,
+      "groupId": 1371911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "2005",
+      "value": 438,
+      "patternId": 1371911
+    },
+    {
+      "id": 2470,
+      "groupId": 1371911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "2005",
+      "value": 477,
+      "patternId": 1371911
+    },
+    {
+      "id": 2471,
+      "groupId": 1371911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "2005",
+      "value": 516,
+      "patternId": 1371911
+    },
+    {
+      "id": 2472,
+      "groupId": 1371911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "2005",
+      "value": 555,
+      "patternId": 1371911
+    },
+    {
+      "id": 2473,
+      "groupId": 1371911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "2005",
+      "value": 597,
+      "patternId": 1371911
+    },
+    {
+      "id": 2474,
+      "groupId": 1371911,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "2005",
+      "value": 633,
+      "patternId": 1371911
+    },
+    {
+      "id": 2488,
+      "groupId": 1372011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "2005",
+      "value": 156,
+      "patternId": 1372011
+    },
+    {
+      "id": 2489,
+      "groupId": 1372011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "2005",
+      "value": 201,
+      "patternId": 1372011
+    },
+    {
+      "id": 2490,
+      "groupId": 1372011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "2005",
+      "value": 240,
+      "patternId": 1372011
+    },
+    {
+      "id": 2491,
+      "groupId": 1372011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "2005",
+      "value": 279,
+      "patternId": 1372011
+    },
+    {
+      "id": 2492,
+      "groupId": 1372011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "2005",
+      "value": 318,
+      "patternId": 1372011
+    },
+    {
+      "id": 2493,
+      "groupId": 1372011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "2005",
+      "value": 357,
+      "patternId": 1372011
+    },
+    {
+      "id": 2494,
+      "groupId": 1372011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "2005",
+      "value": 399,
+      "patternId": 1372011
+    },
+    {
+      "id": 2495,
+      "groupId": 1372011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "2005",
+      "value": 438,
+      "patternId": 1372011
+    },
+    {
+      "id": 2496,
+      "groupId": 1372011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "2005",
+      "value": 477,
+      "patternId": 1372011
+    },
+    {
+      "id": 2497,
+      "groupId": 1372011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "2005",
+      "value": 516,
+      "patternId": 1372011
+    },
+    {
+      "id": 2498,
+      "groupId": 1372011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "2005",
+      "value": 555,
+      "patternId": 1372011
+    },
+    {
+      "id": 2499,
+      "groupId": 1372011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "2005",
+      "value": 597,
+      "patternId": 1372011
+    },
+    {
+      "id": 2500,
+      "groupId": 1372011,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "2005",
+      "value": 633,
+      "patternId": 1372011
+    },
+    {
+      "id": 2540,
+      "groupId": 1372311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "2005",
+      "value": 156,
+      "patternId": 1372311
+    },
+    {
+      "id": 2541,
+      "groupId": 1372311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "2005",
+      "value": 201,
+      "patternId": 1372311
+    },
+    {
+      "id": 2542,
+      "groupId": 1372311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "2005",
+      "value": 240,
+      "patternId": 1372311
+    },
+    {
+      "id": 2543,
+      "groupId": 1372311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "2005",
+      "value": 279,
+      "patternId": 1372311
+    },
+    {
+      "id": 2544,
+      "groupId": 1372311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "2005",
+      "value": 318,
+      "patternId": 1372311
+    },
+    {
+      "id": 2545,
+      "groupId": 1372311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "2005",
+      "value": 357,
+      "patternId": 1372311
+    },
+    {
+      "id": 2546,
+      "groupId": 1372311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "2005",
+      "value": 399,
+      "patternId": 1372311
+    },
+    {
+      "id": 2547,
+      "groupId": 1372311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "2005",
+      "value": 438,
+      "patternId": 1372311
+    },
+    {
+      "id": 2548,
+      "groupId": 1372311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "2005",
+      "value": 477,
+      "patternId": 1372311
+    },
+    {
+      "id": 2549,
+      "groupId": 1372311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "2005",
+      "value": 516,
+      "patternId": 1372311
+    },
+    {
+      "id": 2550,
+      "groupId": 1372311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "2005",
+      "value": 555,
+      "patternId": 1372311
+    },
+    {
+      "id": 2551,
+      "groupId": 1372311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "2005",
+      "value": 597,
+      "patternId": 1372311
+    },
+    {
+      "id": 2552,
+      "groupId": 1372311,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "2005",
+      "value": 633,
+      "patternId": 1372311
+    },
+    {
+      "id": 2566,
+      "groupId": 1372411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "2005",
+      "value": 156,
+      "patternId": 1372411
+    },
+    {
+      "id": 2567,
+      "groupId": 1372411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "2005",
+      "value": 201,
+      "patternId": 1372411
+    },
+    {
+      "id": 2568,
+      "groupId": 1372411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "2005",
+      "value": 240,
+      "patternId": 1372411
+    },
+    {
+      "id": 2569,
+      "groupId": 1372411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "2005",
+      "value": 279,
+      "patternId": 1372411
+    },
+    {
+      "id": 2570,
+      "groupId": 1372411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "2005",
+      "value": 318,
+      "patternId": 1372411
+    },
+    {
+      "id": 2571,
+      "groupId": 1372411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "2005",
+      "value": 357,
+      "patternId": 1372411
+    },
+    {
+      "id": 2572,
+      "groupId": 1372411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "2005",
+      "value": 399,
+      "patternId": 1372411
+    },
+    {
+      "id": 2573,
+      "groupId": 1372411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "2005",
+      "value": 438,
+      "patternId": 1372411
+    },
+    {
+      "id": 2574,
+      "groupId": 1372411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "2005",
+      "value": 477,
+      "patternId": 1372411
+    },
+    {
+      "id": 2575,
+      "groupId": 1372411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "2005",
+      "value": 516,
+      "patternId": 1372411
+    },
+    {
+      "id": 2576,
+      "groupId": 1372411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "2005",
+      "value": 555,
+      "patternId": 1372411
+    },
+    {
+      "id": 2577,
+      "groupId": 1372411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "2005",
+      "value": 597,
+      "patternId": 1372411
+    },
+    {
+      "id": 2578,
+      "groupId": 1372411,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "2005",
+      "value": 633,
+      "patternId": 1372411
+    },
+    {
+      "id": 2592,
+      "groupId": 1372511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "2001",
+      "value": 24,
+      "patternId": 1372511
+    },
+    {
+      "id": 2593,
+      "groupId": 1372511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "2001",
+      "value": 30,
+      "patternId": 1372511
+    },
+    {
+      "id": 2594,
+      "groupId": 1372511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "2001",
+      "value": 36,
+      "patternId": 1372511
+    },
+    {
+      "id": 2595,
+      "groupId": 1372511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "2001",
+      "value": 42,
+      "patternId": 1372511
+    },
+    {
+      "id": 2596,
+      "groupId": 1372511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "2001",
+      "value": 48,
+      "patternId": 1372511
+    },
+    {
+      "id": 2597,
+      "groupId": 1372511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "2001",
+      "value": 54,
+      "patternId": 1372511
+    },
+    {
+      "id": 2598,
+      "groupId": 1372511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "2001",
+      "value": 60,
+      "patternId": 1372511
+    },
+    {
+      "id": 2599,
+      "groupId": 1372511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "2001",
+      "value": 66,
+      "patternId": 1372511
+    },
+    {
+      "id": 2600,
+      "groupId": 1372511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "2001",
+      "value": 72,
+      "patternId": 1372511
+    },
+    {
+      "id": 2601,
+      "groupId": 1372511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "2001",
+      "value": 78,
+      "patternId": 1372511
+    },
+    {
+      "id": 2602,
+      "groupId": 1372511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "2001",
+      "value": 84,
+      "patternId": 1372511
+    },
+    {
+      "id": 2603,
+      "groupId": 1372511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "2001",
+      "value": 90,
+      "patternId": 1372511
+    },
+    {
+      "id": 2604,
+      "groupId": 1372511,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "2001",
+      "value": 96,
+      "patternId": 1372511
+    },
+    {
+      "id": 2605,
+      "groupId": 1372611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "230",
+      "value": 30,
+      "patternId": 1372611
+    },
+    {
+      "id": 2606,
+      "groupId": 1372611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "230",
+      "value": 37,
+      "patternId": 1372611
+    },
+    {
+      "id": 2607,
+      "groupId": 1372611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "230",
+      "value": 45,
+      "patternId": 1372611
+    },
+    {
+      "id": 2608,
+      "groupId": 1372611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "230",
+      "value": 52,
+      "patternId": 1372611
+    },
+    {
+      "id": 2609,
+      "groupId": 1372611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "230",
+      "value": 60,
+      "patternId": 1372611
+    },
+    {
+      "id": 2610,
+      "groupId": 1372611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "230",
+      "value": 67,
+      "patternId": 1372611
+    },
+    {
+      "id": 2611,
+      "groupId": 1372611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "230",
+      "value": 75,
+      "patternId": 1372611
+    },
+    {
+      "id": 2612,
+      "groupId": 1372611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "230",
+      "value": 82,
+      "patternId": 1372611
+    },
+    {
+      "id": 2613,
+      "groupId": 1372611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "230",
+      "value": 90,
+      "patternId": 1372611
+    },
+    {
+      "id": 2614,
+      "groupId": 1372611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "230",
+      "value": 98,
+      "patternId": 1372611
+    },
+    {
+      "id": 2615,
+      "groupId": 1372611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "230",
+      "value": 105,
+      "patternId": 1372611
+    },
+    {
+      "id": 2616,
+      "groupId": 1372611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "230",
+      "value": 113,
+      "patternId": 1372611
+    },
+    {
+      "id": 2617,
+      "groupId": 1372611,
+      "mainAttrId": 2,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "230",
+      "value": 120,
+      "patternId": 1372611
+    },
+    {
+      "id": 2618,
+      "groupId": 1372611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 0,
+      "battleInfo": "2001",
+      "value": 24,
+      "patternId": 1372611
+    },
+    {
+      "id": 2619,
+      "groupId": 1372611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 1,
+      "battleInfo": "2001",
+      "value": 30,
+      "patternId": 1372611
+    },
+    {
+      "id": 2620,
+      "groupId": 1372611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 2,
+      "battleInfo": "2001",
+      "value": 36,
+      "patternId": 1372611
+    },
+    {
+      "id": 2621,
+      "groupId": 1372611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 3,
+      "battleInfo": "2001",
+      "value": 42,
+      "patternId": 1372611
+    },
+    {
+      "id": 2622,
+      "groupId": 1372611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 4,
+      "battleInfo": "2001",
+      "value": 48,
+      "patternId": 1372611
+    },
+    {
+      "id": 2623,
+      "groupId": 1372611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 5,
+      "battleInfo": "2001",
+      "value": 54,
+      "patternId": 1372611
+    },
+    {
+      "id": 2624,
+      "groupId": 1372611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 6,
+      "battleInfo": "2001",
+      "value": 60,
+      "patternId": 1372611
+    },
+    {
+      "id": 2625,
+      "groupId": 1372611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 7,
+      "battleInfo": "2001",
+      "value": 66,
+      "patternId": 1372611
+    },
+    {
+      "id": 2626,
+      "groupId": 1372611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 8,
+      "battleInfo": "2001",
+      "value": 72,
+      "patternId": 1372611
+    },
+    {
+      "id": 2627,
+      "groupId": 1372611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 9,
+      "battleInfo": "2001",
+      "value": 78,
+      "patternId": 1372611
+    },
+    {
+      "id": 2628,
+      "groupId": 1372611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 10,
+      "battleInfo": "2001",
+      "value": 84,
+      "patternId": 1372611
+    },
+    {
+      "id": 2629,
+      "groupId": 1372611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 11,
+      "battleInfo": "2001",
+      "value": 90,
+      "patternId": 1372611
+    },
+    {
+      "id": 2630,
+      "groupId": 1372611,
+      "mainAttrId": 1,
+      "AttrType": 1,
+      "level": 12,
+      "battleInfo": "2001",
+      "value": 96,
+      "patternId": 1372611
+    }
+  ],
+  "removed_accessory_main": []
+}
