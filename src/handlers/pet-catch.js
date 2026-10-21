@@ -1,3 +1,4 @@
+import { recordNoviceCounter } from '../novice-counters.js'
 import { ensure } from './common.js'
 import { enemyDefinition } from '../enemy-state.js'
 import { createPets, petData } from '../pets.js'
@@ -115,6 +116,7 @@ export function registerPetCatch(on) {
         if (c.state.petCatchPreviews) delete c.state.petCatchPreviews[id]
         card.state = 'used'
         card.target_id = id
+        recordNoviceCounter(c.state, 'captures', 1)
         c.state.petCaptureResults ??= {}
         c.state.petCaptureResults[id] = {
             guid: pet.guid,

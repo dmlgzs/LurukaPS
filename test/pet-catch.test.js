@@ -109,6 +109,7 @@ test('real prologue target102056 queries catch info, consumes one card, creates 
         const retry = f.call('CatchPet', { tar_id: target, item_id: 1000001, catch_key: card.catch_key })
         assert.equal(retry.find((x) => x.id === 10714).data.guid, result.guid)
         assert.equal(f.state().pets.length, before.pets.length + 1)
+        assert.equal(f.state().noviceCounters.captures, 1)
         f.call('CatchPetPlayOver', { tar_id: target, day_weather: 2 })
         const condition =
             f.g.nodes.get(56).__type_TaskConditionNodeData.conditionList[0].__type_TaskConditionBaseData

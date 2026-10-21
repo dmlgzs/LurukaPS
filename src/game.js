@@ -9,6 +9,7 @@ import { npcArenaOutcome } from './npc-kibo-result.js'
 import { selectedArenaGroup } from './npc-kibo-duel.js'
 import { arenaTrainer } from './npc-kibo-trainer.js'
 import { ensureFlightUnlocked, explorationSnapshot } from './flight-unlock.js'
+import { registerNoviceTasks } from './handlers/novice-tasks.js'
 import { registerActivities } from './handlers/activities.js'
 import { registerGrowup } from './handlers/growup.js'
 import { registerCultTrial } from './handlers/cult-trial.js'
@@ -363,6 +364,7 @@ export class Game {
         registerWorld(on)
         registerMail(on)
         registerProgression(on)
+        this.noviceTasks = registerNoviceTasks(on, tables)
         const taskHandlers = registerTasks(on, tables)
         this.finishPendingCharacterTask = taskHandlers.finishPendingCharacterTask
         this.recoverCompletedCampaignTasks = taskHandlers.recoverCompletedCampaignTasks
@@ -936,7 +938,9 @@ export class Game {
                     context.push('CSProtoPlayableSync', playableSnapshot(state))
                     context.push('CSProtoTaskSync', taskSnapshot(this.tables, state))
                 }
+                if (!battleReport) this.noviceTasks.observe(state)
                 const response = recoveredChoice ? {} : handler(context, r)
+                if (!battleReport) this.noviceTasks.notify(context)
                 if (!battleReport && retimeProduction(this.tables, state, now)) refreshProduction(state, now)
                 if (e.name === 'CSProtoPlayerCustomData') this.finishPendingCharacterTask(context)
                 if (!battleReport) this.recoverCompletedCampaignTasks(context)
@@ -1347,6 +1351,7 @@ export class Game {
             this.packet('CSProtoPetBoxInfoSync', { box_infos: state.petBoxes }),
             this.packet('CSProtoKiboDuelGroupInfoSync', kiboDuelSnapshot(state, this.tables)),
             this.packet('CSProtoWorldExplorationSync', explorationSnapshot(state)),
+            this.packet('CSProtoNoviceTaskInfoSync', this.noviceTasks.initial(state)),
             this.packet('SCProtoClothesInfoSync', clothesSnapshot(this.tables, state)),
             this.packet('SCProtoPresetWardrobeSync', { info_list: state.wardrobePresets ?? [] }),
             this.packet('SCProtoHeroSkinMessageSync', heroSkinsSnapshot(this.tables, state)),

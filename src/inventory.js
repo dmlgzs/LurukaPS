@@ -1,3 +1,4 @@
+import { recordNoviceCounter } from './novice-counters.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { syncCurrencyMirrors } from './currency.js'
@@ -86,6 +87,7 @@ export function spendCurrency(state, id, amount) {
     const attr = state.player.attr_infos.attrs.find((a) => a.attr_id === id)
     ensure(attr && BigInt(attr.attr_val) >= BigInt(amount), 'Insufficient currency', ErrorCode.ItemNotEnough)
     attr.attr_val = String(BigInt(attr.attr_val) - BigInt(amount))
+    if (id === 3) recordNoviceCounter(state, 'staminaSpent', amount)
 }
 export function addItems(state, items) {
     if (state.inventoryVersion !== 1) upgradeInventory(state)
