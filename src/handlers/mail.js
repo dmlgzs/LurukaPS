@@ -1,8 +1,25 @@
 import { ErrorCode } from '../error-codes.js'
 import { grantRewards } from '../rewards.js'
 export { addItems } from '../inventory.js'
-import { ensure } from './common.js'
+import { ensure, syncPlayer } from './common.js'
+import languageCodes from '../../configs/client-language-codes.json' with { type: 'json' }
 export function registerMail(on) {
+    const languages = new Set(Object.values(languageCodes))
+    ensure(
+        languages.size > 0 &&
+            languages.size === Object.keys(languageCodes).length &&
+            [...languages].every((value) => Number.isInteger(value) && value > 0 && value <= 0x7fffffff),
+        'Invalid client language configuration',
+        ErrorCode.GameConfig,
+    )
+    on('SetLanguage', (c, r) => {
+        // SettingItem_Text sends SettingConst.mailLanguage values, not the
+        // zero-based I18N ELanguage enum or the menu's one-based selection.
+        ensure(languages.has(r.u32), 'Unsupported client language')
+        c.state.player.basic_info.language = r.u32
+        syncPlayer({ ...c, push: c.pushBefore }, { basic_info: { language: r.u32 } })
+        return {}
+    })
     on('MailList', (c) => ({ mails: c.state.mail }))
     on('ReadMail', (c, r) => {
         const m = c.state.mail.find((m) => m.guid === r.u64)
