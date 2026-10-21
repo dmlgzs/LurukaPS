@@ -9,6 +9,8 @@ import { parseRewards, grantRewards } from '../rewards.js'
 import { spend, spendCurrency } from '../inventory.js'
 import { completed, refreshProduction, rescheduleJobs } from '../production.js'
 import { productionSeconds } from '../production-time.js'
+import { accessoryProductionPlan } from '../accessory-production.js'
+import { rewardSource } from '../reward-source.js'
 function multiplied(rows, count) {
     return rows.map((r) => {
         const n = r.itemnum * count
@@ -19,12 +21,74 @@ function multiplied(rows, count) {
 function owned(c, guid) {
     const h = ensureHome(c.tables, c.state),
         b = h.builds.find((b) => b.guid === guid)
-    ensure(b, 'Production building is not owned/placed')
-    ensure([1, 4].includes(b.status), 'Building is under construction')
+    ensure(b?.locate, 'Production building is not owned/placed', ErrorCode.HomeNoBuild)
+    ensure([1, 4].includes(b.status), 'Building is under construction', ErrorCode.HomeBuildInvalidStatus)
     return { h, b }
 }
 export function registerProduction(on, tables) {
     tables = productionTables(tables)
+    on('ProductOrnamentStart', (c, r) => {
+        const { h, b } = owned(c, r.build_guid),
+            plan = accessoryProductionPlan(tables, c.state, b, r)
+        // TODO: settle technologyExp through the category/rule XP model.
+        // "1#10201" identifies an XP category/rule, not 10201 XP to grant.
+        h.productionJobs ??= {}
+        const jobs = h.productionJobs[b.guid] ?? [],
+            allJobs = Object.values(h.productionJobs).flat()
+        ensure(
+            h.nextProductGuid === undefined || (Number.isSafeInteger(h.nextProductGuid) && h.nextProductGuid > 0),
+            'Invalid product GUID allocator',
+            ErrorCode.GameConfig,
+        )
+        let next = Math.max(h.nextProductGuid ?? 1, ...allJobs.map((job) => job.guid + 1))
+        ensure(next + r.count - 1 <= 0xffffffff, 'Product GUID space exhausted', ErrorCode.GameConfig)
+        let start = Math.max(c.now, ...jobs.map((job) => job.start + job.count * job.seconds))
+        ensure(
+            Number.isSafeInteger(start) && start + r.count * plan.seconds <= 0xffffffff,
+            'Production timestamp overflow',
+            ErrorCode.GameConfig,
+        )
+        const bag = new Map()
+        for (const cost of multiplied(plan.costs, r.count)) {
+            if (cost.itemtype === 3) bag.set(cost.itemid, (bag.get(cost.itemid) ?? 0) + cost.itemnum)
+            else spendCurrency(c.state, cost.itemid, cost.itemnum)
+        }
+        spend(c.state, bag, 0, c.now)
+        for (let i = 0; i < r.count; i++) {
+            // Local policy: retain the pool result with the accepted job so a
+            // failed claim cannot reroll it. Official roll timing is unverified.
+            const rewards = plan.target
+                ? [{ ...plan.leaves.get(plan.target) }]
+                : plan.drops.drops(plan.recipe.dropId, c.randomInt)
+            ensure(
+                rewards.length === 1 &&
+                    rewards[0].itemtype === 33 &&
+                    rewards[0].itemnum === 1 &&
+                    plan.leaves.has(rewards[0].itemid),
+                'Accessory production result is outside the validated pool',
+                ErrorCode.GameConfig,
+            )
+            jobs.push({
+                kind: 'accessory',
+                guid: next++,
+                productId: plan.recipe.id,
+                count: 1,
+                claimed: 0,
+                start,
+                seconds: plan.seconds,
+                costs: plan.costs,
+                rewards,
+                designatedItemId: plan.target,
+                designateCosts: plan.locateCosts,
+                reportedDone: 0,
+            })
+            start += plan.seconds
+        }
+        h.nextProductGuid = next
+        h.productionJobs[b.guid] = jobs
+        refreshProduction(c.state, c.now)
+        return { rewards: [] }
+    })
     on('ProductStart', (c, r) => {
         const { h, b } = owned(c, r.build_guid),
             recipe = tables.find('products', r.product_id),
@@ -146,6 +210,20 @@ export function registerProduction(on, tables) {
             refreshProduction(c.state, c.now)
             c.state.homeRevision = (c.state.homeRevision || 0) + 1
             syncPlayer(c)
-            return { build: b, reward: { rewards } }
+            const accessory = selected.some((job) => job.kind === 'accessory')
+            return {
+                build: b,
+                reward: {
+                    rewards,
+                    ...(accessory
+                        ? {
+                              src: rewardSource(
+                                  c.tables,
+                                  cancel ? 'accessoryProductionCancel' : 'accessoryProductionFinish',
+                              ),
+                          }
+                        : {}),
+                },
+            }
         })
 }

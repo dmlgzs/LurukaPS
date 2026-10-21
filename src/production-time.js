@@ -83,7 +83,7 @@ export function productionSeconds(tables, state, build, recipe) {
     }
     const reduction = buffValue(tables, rows, 2011, station.type)
     let laborReduction = 0
-    if (pet && [2, 10].includes(build.build_type)) {
+    if (pet && [2, 8, 10].includes(build.build_type)) {
         const types = list(station.laborType)
         // Match the client's iteration order when a pet has multiple eligible
         // abilities. The last matching labor entry supplies the grade.
@@ -91,7 +91,9 @@ export function productionSeconds(tables, state, build, recipe) {
         if (labor) {
             const efficiency = tables.find('home_labor_efficiency', labor.labor_grade)
             ensure(efficiency, 'Missing labor efficiency grade', ErrorCode.GameConfig)
-            laborReduction = Math.max(0, Number(efficiency.TimeReduct)) / 10000
+            laborReduction =
+                Math.max(0, Number(build.build_type === 8 ? efficiency.AccessoryTimeReduct : efficiency.TimeReduct)) /
+                10000
             if (pet.satiety_val <= data.constants.get('PET_HOME_TIRED_SATIETY'))
                 laborReduction *= data.constants.get('HOME_LABOR_PROCESS_DECREASE') / 10000
         }
@@ -114,8 +116,15 @@ export function retimeProduction(tables, state, now) {
         const jobs = state.home.productionJobs?.[build.guid] ?? []
         const updates = jobs.map((job) => {
             if (job.kind === 'hatch' || now >= job.start + job.count * job.seconds) return job.seconds
-            const recipe = tables.find('products', job.productId)
-            return recipe ? productionSeconds(tables, state, build, recipe) : job.seconds
+            const recipe = tables.find(job.kind === 'accessory' ? 'accessory_product' : 'products', job.productId)
+            return recipe
+                ? productionSeconds(
+                      tables,
+                      state,
+                      build,
+                      job.kind === 'accessory' ? { ...recipe, time: recipe.time * 60 } : recipe,
+                  )
+                : job.seconds
         })
         if (!jobs.some((job, i) => job.seconds !== updates[i])) continue
         let end = now

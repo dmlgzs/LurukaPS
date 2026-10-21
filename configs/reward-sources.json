@@ -16,5 +16,7 @@
   "soulDecompose": 155,
   "gachaSelfChooseReward": 141,
   "ornamentStar": 154,
-  "ornamentSmelt": 95
+  "ornamentSmelt": 95,
+  "accessoryProductionFinish": 37,
+  "accessoryProductionCancel": 38
 }

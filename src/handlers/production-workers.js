@@ -26,7 +26,7 @@ export function registerProductionWorkers(on, tables) {
         const build = home.builds.find((entry) => entry.guid === r.build_guid)
         const station = build && tables.find('home_building_production', build.build_id)
         ensure(
-            build?.locate && [1, 4].includes(build.status) && station && [2, 10].includes(build.build_type),
+            build?.locate && [1, 4].includes(build.status) && station && [2, 8, 10].includes(build.build_type),
             'Production building is not owned or ready',
         )
         const id = String(r.pet_guid ?? '0')

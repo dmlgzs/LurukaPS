@@ -2,7 +2,7 @@ import { ErrorCode } from './error-codes.js'
 import { randomInt } from 'node:crypto'
 import { ensure } from './handlers/common.js'
 
-function quality(text, rng) {
+function qualityEntries(text) {
     const entries = String(text || '')
         .split('|')
         .filter(Boolean)
@@ -17,7 +17,10 @@ function quality(text, rng) {
         })
     const total = entries.reduce((sum, entry) => sum + entry.weight, 0)
     ensure(total > 0 && Number.isSafeInteger(total), 'Missing custom ornament quality', ErrorCode.GameConfig)
-    let draw = rng(total)
+    return entries
+}
+function quality(entries, rng) {
+    let draw = rng(entries.reduce((sum, entry) => sum + entry.weight, 0))
     for (const entry of entries) {
         draw -= entry.weight
         if (draw < 0) return entry.id
@@ -25,10 +28,15 @@ function quality(text, rng) {
     throw Error('Invalid custom ornament quality draw')
 }
 
-export function createCustomOrnaments(tables, state, id, count, rng = randomInt) {
+export function customOrnamentConfiguration(tables, id) {
     const custom = tables.find('accessory_customed', id),
         accessory = tables.find('accessory', custom?.accessoryId)
     ensure(custom && accessory, 'Unknown custom ornament', ErrorCode.OrnamentConfFail)
+    return { custom, accessory, qualities: qualityEntries(custom.quality) }
+}
+
+export function createCustomOrnaments(tables, state, id, count, rng = randomInt) {
+    const { custom, accessory, qualities } = customOrnamentConfiguration(tables, id)
     state.ornaments ??= []
     ensure(
         Number.isInteger(count) && count > 0 && count <= 1000 && state.ornaments.length + count <= 10000,
@@ -50,7 +58,7 @@ export function createCustomOrnaments(tables, state, id, count, rng = randomInt)
             affixes: [],
             ele_group: 0,
             grade: custom.grade || 0,
-            quality: quality(custom.quality, rng),
+            quality: quality(qualities, rng),
         })
     state.ornaments.push(...created)
     state.nextOrnamentGuid = next

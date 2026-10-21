@@ -78,6 +78,27 @@ export function refreshProduction(state, now) {
                 changed = true
             }
         }
+        const accessories = jobs.filter((job) => job.kind === 'accessory')
+        if (accessories.length || build.specials?.some((info) => Object.hasOwn(info, 'designate_item_id'))) {
+            const specials = [
+                ...eggs.map((job) => ({ product_guid: job.guid, extra_guid: job.eggGuid })),
+                ...accessories.map((job) => ({
+                    product_guid: job.guid,
+                    designate_item_id: job.designatedItemId ?? 0,
+                    designate_item_type: job.designatedItemId ? 33 : 0,
+                    designate_cost: (job.designateCosts ?? []).map((item) => ({
+                        itemtype: item.itemtype,
+                        itemid: item.itemid,
+                        itemnum: item.itemnum,
+                    })),
+                    items: [],
+                })),
+            ]
+            if (JSON.stringify(build.specials ?? []) !== JSON.stringify(specials)) {
+                build.specials = specials
+                changed = true
+            }
+        }
     }
     if (changed) state.homeRevision = (state.homeRevision || 0) + 1
     return changed
