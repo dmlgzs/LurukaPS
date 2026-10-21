@@ -90,6 +90,49 @@ function composedRuneCosts(c, itemIds, reserved = new Map()) {
 }
 
 export function registerHeroEquipment(on, publishEquipment) {
+    on('HeroRankReward', (c, r) => {
+        const hero = ownedHero(c.state, r.hero_id)
+        ensure(!hero.trail, 'Temporary hero cannot claim rank rewards', ErrorCode.HeroNotExist)
+        const rows = c.tables
+            .get('talent_rank_reward')
+            .slice()
+            .sort((a, b) => a.level - b.level)
+        ensure(rows.length, 'Hero rank reward configuration unavailable', ErrorCode.HeroRankRewardConfNone)
+        ensure(
+            rows.every((row) => Number.isInteger(row.level) && row.level > 0 && row.level < 64) &&
+                new Set(rows.map((row) => row.level)).size === rows.length,
+            'Invalid hero rank reward levels',
+            ErrorCode.GameConfig,
+        )
+        ensure(Number.isInteger(hero.hero_rank) && hero.hero_rank >= 1, 'Invalid saved hero rank', ErrorCode.GameConfig)
+        const raw = hero.hero_rank_reward ?? '0'
+        ensure(
+            (typeof raw === 'string' || (typeof raw === 'number' && Number.isSafeInteger(raw))) &&
+                /^\d+$/.test(String(raw)) &&
+                BigInt(raw) <= 0xffffffffffffffffn,
+            'Invalid saved hero rank receipts',
+            ErrorCode.GameConfig,
+        )
+        let mask = BigInt(raw)
+        const requested = r.rank_id ?? 0
+        const target = requested ? rows.find((row) => row.level === requested) : null
+        ensure(!requested || target, 'Hero rank reward configuration unavailable', ErrorCode.HeroRankRewardConfNone)
+        ensure(!target || hero.hero_rank >= target.level, 'Hero has not reached this rank reward')
+        // The Lua bulk action sends rank_id=0 and checks rankReward's bit at
+        // reward.level. Never use a JS 32-bit shift or a reward-table row ID.
+        const fresh = (target ? [target] : rows).filter(
+            (row) => hero.hero_rank >= row.level && !(mask & (1n << BigInt(row.level))),
+        )
+        const rewards = grantRewards(
+            c.tables,
+            c.state,
+            fresh.flatMap((row) => parseRewards(row.item)),
+        )
+        for (const row of fresh) mask |= 1n << BigInt(row.level)
+        hero.hero_rank_reward = String(mask)
+        syncPlayer({ ...c, push: c.pushBefore }, { heros_info: { heros: [hero] } })
+        return { rewards, ...(rewards.length ? { src: rewardSource(c.tables, 'heroRankReward') } : {}) }
+    })
     on('ComposeRune', (c, r) => {
         ensure(Number.isInteger(r.num) && r.num >= 1 && r.num <= 999, 'Invalid rune compose count')
         ensure(
