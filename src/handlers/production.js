@@ -1,5 +1,6 @@
 import { ErrorCode } from '../error-codes.js'
 import { productionTables } from '../production-tables.js'
+import { productionMaterials } from '../production-materials.js'
 import { claimHatch, cancelHatch } from '../hatching.js'
 import { ensure, syncPlayer } from './common.js'
 import { ensureHome } from '../home.js'
@@ -41,11 +42,6 @@ export function registerProduction(on, tables) {
             'Quality production requires CookRequest materials',
         )
         ensure(!recipe.isNeedPet, 'Pet-assisted production is not implemented', ErrorCode.InvalidProtoID)
-        ensure(
-            !recipe.materialSelect && !r.select_material.length,
-            'Selectable materials are not implemented',
-            ErrorCode.InvalidProtoID,
-        )
         ensure(!recipe.notReleased, 'Recipe not released')
         ensure(Number.isInteger(r.count) && r.count > 0 && r.count <= recipe.numberLimit, 'Invalid production count')
         ensure(
@@ -53,7 +49,7 @@ export function registerProduction(on, tables) {
             'Unsupported production duration',
             ErrorCode.HomeNoProductConf,
         )
-        const costs = parseRewards(recipe.material),
+        const costs = productionMaterials(tables, recipe, r.select_material ?? []),
             rewards = parseRewards(recipe.rewardId)
         ensure(rewards.length > 0, 'Recipe uses unresolved reward logic', ErrorCode.InvalidProtoID)
         ensure(
