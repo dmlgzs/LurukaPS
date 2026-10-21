@@ -3,7 +3,8 @@ import { ensure, syncPlayer } from './common.js'
 import { spend, spendCurrency } from '../inventory.js'
 import { pairs, syncBattle } from '../battle.js'
 import { currentRunes, runeSkillPairs } from '../hero-equipment.js'
-import { parseRewards } from '../rewards.js'
+import { parseRewards, grantRewards } from '../rewards.js'
+import { rewardSource } from '../reward-source.js'
 
 function ownedHero(state, id) {
     const result = state.player.heros_info.heros.find((item) => item.guid === String(id))
@@ -89,6 +90,50 @@ function composedRuneCosts(c, itemIds, reserved = new Map()) {
 }
 
 export function registerHeroEquipment(on, publishEquipment) {
+    on('ComposeRune', (c, r) => {
+        ensure(Number.isInteger(r.num) && r.num >= 1 && r.num <= 999, 'Invalid rune compose count')
+        ensure(
+            c.tables.find('talent_rune_compose', r.item_id),
+            'Rune material recipe unavailable',
+            ErrorCode.RuneComConfNotFound,
+        )
+        ensure(c.tables.find('common_item', r.item_id), 'Rune item configuration unavailable', ErrorCode.GameConfig)
+        // runeStore.bCanCompose always crafts the root and consumes existing
+        // intermediate items before recursively crafting its missing materials.
+        const expanded = composedRuneCosts(c, Array(r.num).fill(r.item_id))
+        ensure(
+            expanded.every((row) => [3, 10].includes(row.type)),
+            'Invalid rune material resource',
+            ErrorCode.GameConfig,
+        )
+        const required = counts(expanded, ['type', 'id', 'num'])
+        if (r.costItems?.length)
+            ensure(
+                canonical(counts(r.costItems, ['item_type', 'item_id', 'item_num'])) === canonical(required),
+                'Rune compose costs do not match table',
+            )
+        const bag = new Map()
+        for (const [key, num] of required) {
+            ensure(
+                Number.isSafeInteger(num) && num > 0 && num <= 0xffffffff,
+                'Rune cost overflow',
+                ErrorCode.RuneCalcTimesLimit,
+            )
+            const [type, id] = key.split(':').map(Number)
+            if (type === 3) {
+                const have = c.state.player.sbag_infos.items
+                    .filter((item) => item.itemid === id && (!item.deadtime || item.deadtime > c.now))
+                    .reduce((total, item) => total + item.itemnum, 0)
+                ensure(have >= num, 'Rune base materials are insufficient', ErrorCode.RuneBaseMaterialLimt)
+                bag.set(id, num)
+            } else spendCurrency(c.state, id, num)
+        }
+        spend(c.state, bag, 0, c.now)
+        const rewards = grantRewards(c.tables, c.state, [{ itemtype: 3, itemid: r.item_id, itemnum: r.num }])
+        // equip is a UI continuation: the caller subsequently sends HeroRuneEquip.
+        // No verified reason_itemnum_change entry exists for this operation.
+        return { rewards: { rewards, src: rewardSource(c.tables, 'runeCompose') }, equip: r.equip ?? false }
+    })
     const publishOrnaments = (c) => {
         c.state.ornamentRevision = (c.state.ornamentRevision ?? 0) + 1
         c.pushBefore('CSProtoUpdateOrnament', { ornaments: c.state.ornaments ?? [], guid: [] })
