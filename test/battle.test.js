@@ -81,7 +81,8 @@ test('equipping and removing essence replaces module and never heals existing da
     assert.equal(s.player.heros_info.battle_infos[0].hp, 100)
     assert.equal(s.player.heros_info.battle_infos[0].sp, 20)
     const soul = result[0].modules.find((m) => m.module_type === 1).sub_modules[0]
-    assert.equal(soul.attrs.attrs.find((a) => a.attr_id === 5).attr_val, '3220000')
+    // Current 2451868 moves template10001 to group10001: HP309 at level1.
+    assert.equal(soul.attrs.attrs.find((a) => a.attr_id === 5).attr_val, '3090000')
     h.wguid = 0
     result = refreshBattleState(t, s)
     assert.deepEqual(result[0].modules[1].sub_modules[0].attrs.attrs, [])

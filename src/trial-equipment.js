@@ -1,5 +1,6 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
+import { soulEssenceValue } from './soul-values.js'
 export function trialSoulEssence(tables, interim) {
     const text = String(interim?.soulessence ?? '')
     if (!text || text === '0') return null
@@ -12,7 +13,7 @@ export function trialSoulEssence(tables, interim) {
     )
     const soul = tables.find('soulessence', id)
     ensure(
-        soul && tables.find('soulessence_value', soul.attribute * 1000 + level),
+        soul && soulEssenceValue(tables, soul, level),
         'Trial soul essence attributes unavailable',
         ErrorCode.SoulEssenceConfNotExist,
     )

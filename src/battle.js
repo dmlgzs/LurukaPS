@@ -4,6 +4,7 @@ import { heroTrialSoulEssence } from './trial-equipment.js'
 import { soulEssenceGrade } from './equipment.js'
 import { soulSkillsAtGrade } from './skills.js'
 import { heroGradeEffects } from './hero-grade.js'
+import { soulEssenceValue } from './soul-values.js'
 // CBT3 client evidence: ui_configtpl_herotpl.lua:getHeroConfigAtt;
 // ui_store_hero_data_heroattrmoduleinfo.lua:addSub; const.lua:SpecialAttList.
 const specialAttributes = new Set([1, 3, 5, 201, 229, 230])
@@ -117,7 +118,8 @@ export function heroModules(tables, state, hero) {
         soulSkills = []
     if (soul) {
         const cfg = requireRow(tables, 'soulessence', soul.id)
-        const value = requireRow(tables, 'soulessence_value', cfg.attribute * 1000 + soul.lv)
+        const value = soulEssenceValue(tables, cfg, soul.lv)
+        if (!value) throw Error(`Missing soul essence attributes ${soul.id}:${soul.lv}`)
         const rank = tables.get('soulessence_rank').find((r) => r.relatedId === soul.id && r.rank === soul.rank)
         if (!rank) throw Error(`Missing soul essence rank ${soul.id}:${soul.rank}`)
         for (const field of [value.baseAttribute, rank.rankUpAttributeAll])

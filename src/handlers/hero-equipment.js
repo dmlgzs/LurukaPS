@@ -9,6 +9,7 @@ import { heroSkillUpgrade } from '../hero-skill-upgrades.js'
 import { nextHeroGrade } from '../hero-grade.js'
 import { nextHeroRank } from '../hero-rank.js'
 import { nextSoulRank } from '../soul-rank.js'
+import { planSoulStar } from '../soul-star.js'
 
 function ownedHero(state, id) {
     const result = state.player.heros_info.heros.find((item) => item.guid === String(id))
@@ -94,6 +95,18 @@ function composedRuneCosts(c, itemIds, reserved = new Map()) {
 }
 
 export function registerHeroEquipment(on, publishEquipment) {
+    on('RisingStarSoulEssence', (c, r) => {
+        const plan = planSoulStar(c.tables, c.state, r)
+        spend(c.state, plan.costs, 0, c.now)
+        c.state.player.soulessence_infos.soulessences = c.state.player.soulessence_infos.soulessences.filter(
+            (item) => !plan.consumed.has(item.guid),
+        )
+        plan.target.advance = plan.advance
+        const before = { ...c, push: c.pushBefore }
+        syncPlayer(before, { soulessence_infos: { soulessences: [plan.target], del_pos: [...plan.consumed] } })
+        syncBattle(before)
+        return { rewards: [] }
+    })
     on('RankUpSoulEssence', (c, r) => {
         const item = c.state.player.soulessence_infos.soulessences.find((item) => item.guid === r.guid)
         ensure(item, 'Soul essence is not owned', ErrorCode.SoulEssenceNotExist)
