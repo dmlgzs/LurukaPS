@@ -238,7 +238,17 @@ export function expireTaskTrialGroup(tables, state) {
                 .split('|')
                 .some((entry) => Number(entry.split('#')[0]) === id),
         )
+    const teachingTrial =
+        trial.story_campaign &&
+        state.storyCampaign?.teaching_id === trial.task_id &&
+        state.storyCampaign.map_id === state.world.map_id &&
+        trial.ids.every((id) =>
+            String(tables.find('dungeon_scene', state.world.map_id)?.[trial.scene_trial_field ?? 'trailGroup'] ?? '')
+                .split('|')
+                .some((entry) => Number(entry.split('#')[0]) === id),
+        )
     const valid =
+        teachingTrial ||
         storyTrial ||
         (task &&
             graphs.get(task.task_id).controllers.some((controller) => {
@@ -376,7 +386,8 @@ export function registerTrialGroups(on, tables) {
             ensure(
                 existing &&
                     requestedPets.length <= 6 &&
-                    existing.task_id === c.state.tasks.find((t) => t.task_id === existing.task_id)?.task_id,
+                    (existing.task_id === c.state.tasks.find((t) => t.task_id === existing.task_id)?.task_id ||
+                        existing.task_id === c.state.storyCampaign?.teaching_id),
                 'Trial pet requires an active trial task',
             )
             const active = m.groups.find((g) => g.id === 0)
@@ -402,7 +413,11 @@ export function registerTrialGroups(on, tables) {
                     ),
                 ),
             )
-        const story = !!storyTask
+        const teachingTask =
+            c.state.storyCampaign?.map_id === c.state.world.map_id && c.state.storyCampaign.teaching_id
+                ? { task_id: c.state.storyCampaign.teaching_id }
+                : null
+        const story = !!(storyTask || teachingTask)
         const sceneTrialField = r.force ? 'trailGroup' : 'extraTrialGroup'
         const maxSlots = story && !r.force ? 4 : 3
         ensure(
@@ -427,7 +442,7 @@ export function registerTrialGroups(on, tables) {
             }
         }
         if (story) {
-            const task = storyTask
+            const task = storyTask || teachingTask
             const scene = tables.find('dungeon_scene', c.state.world.map_id)
             const members = String(scene?.[sceneTrialField] ?? '')
                 .split('|')

@@ -1,3 +1,4 @@
+import { teachingConfig } from './teaching.js'
 import { ErrorCode } from './error-codes.js'
 import { visibleEnemySlots } from './enemy-group-visibility.js'
 import { tableWaveCampaignRoute, storyCampaignStagePlan } from './table-wave-campaign.js'
@@ -167,6 +168,8 @@ export function storyCampaignConfig(tables, groupId, difficulty) {
         .filter((row) => row.groupId === groupId && row.dungeonGroupOrder === difficulty)
     ensure(matches.length === 1, 'Unknown campaign difficulty')
     const dungeon = matches[0]
+    if (tables.get('train_task').some((row) => row.dungeonId === dungeon.id && [1, 2].includes(row.groupType)))
+        return teachingConfig(tables, dungeon)
     const taskMapping = tables.get('dungeon_task').find((row) => row.dungeonId === dungeon.id)
     const taskIds = taskMapping ? String(taskMapping.taskIds).split('|').map(Number) : []
     const taskPoints = taskMapping

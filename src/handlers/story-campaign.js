@@ -1,3 +1,4 @@
+import { registerTeaching } from './teaching.js'
 import { ErrorCode } from '../error-codes.js'
 import { visibleEnemySlots } from '../enemy-group-visibility.js'
 import { storyCampaignStagePlan } from '../table-wave-campaign.js'
@@ -6,7 +7,7 @@ import { campaignStageSatisfied } from '../campaign-stage-plan.js'
 import { syncBattle } from '../battle.js'
 import { finishEnemyGroupRelations, pruneInactiveCampaignRelations } from './world-combat.js'
 import { inactiveCampaignEnemyGroup } from '../inactive-campaign-enemies.js'
-import { grantRewards } from '../rewards.js'
+import { grantRewards, parseRewards } from '../rewards.js'
 import { worldSync } from './world.js'
 import { TaskGraphs, nodeConditions, acceptTask, taskSnapshot, reconcileClearedDungeonBefore } from '../tasks.js'
 import {
@@ -215,6 +216,18 @@ export function settleStoryCampaignScene(c) {
 }
 
 function creditStoryCampaign(c, dungeonId) {
+    const teaching = c.state.storyCampaign?.teaching_id
+    if (teaching) {
+        const records = (c.state.teachingRecords ??= [])
+        if (records.includes(teaching)) return false
+        const train = c.tables.get('train_task').find((row) => row.taskid === teaching)
+        ensure(train, 'Unknown teaching task', ErrorCode.TrainTaskConfNone)
+        c.state.storyCampaign.rewards = grantRewards(c.tables, c.state, parseRewards(train.passReward))
+        records.push(teaching)
+        c.pushBefore('CSProtoTeachInfoSync', { u32s: records })
+        c.pushBefore('CSProtoSyncPlayerData', c.state.player)
+        return true
+    }
     const clears = (c.state.storyCampaignClears ??= {})
     const existing = clears[dungeonId]
     const clear = (clears[dungeonId] ??= { count: 1, time: c.now })
@@ -286,7 +299,7 @@ export function endStoryCampaignScene(c, r) {
             run.task_ids?.length ? storySceneDefeated(c.tables, c.state) : run.completed_scenes.includes(run.map_id),
             'Story dungeon enemies are not defeated',
         )
-        if (!run.stage_conditions || run.map_id === run.scenes.at(-1)) {
+        if ((!run.stage_conditions && !run.teaching_id) || run.map_id === run.scenes.at(-1)) {
             run.status = 3
             run.end_time = c.now
             creditStoryCampaign(c, run.dungeon_id)
@@ -304,7 +317,7 @@ export function exitStoryCampaign(c) {
     ensure(run, 'No active story dungeon', ErrorCode.EntrustNotInEntrust)
     if (
         run.status === 2 &&
-        (!run.stage_conditions || run.map_id === run.scenes.at(-1)) &&
+        ((!run.stage_conditions && !run.teaching_id) || run.map_id === run.scenes.at(-1)) &&
         run.completed_scenes.includes(run.map_id) &&
         storySceneDefeated(c.tables, c.state)
     ) {
@@ -365,6 +378,7 @@ export function advanceStoryCampaignTask(c, taskId) {
 }
 
 export function registerStoryCampaign(on, tables) {
+    registerTeaching(on, tables)
     on('CampaignCreate', (c, r) => {
         const config = storyCampaignConfig(tables, r.group_id, r.difficulty)
         const graphs = new TaskGraphs(tables)

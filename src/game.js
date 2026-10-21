@@ -1335,6 +1335,7 @@ export class Game {
                 smelt_num: state.ornamentSmeltNum || 0,
             }),
             this.packet('CSProtoRideMountInfo', mountPayload(this.tables, state)),
+            this.packet('CSProtoTeachInfoSync', { u32s: state.teachingRecords ?? [] }),
             this.packet('CSProtoEntrustInfoSync', entrustInfoSnapshot(state)),
             this.packet('CSProtoEntrustStarRewardSync', entrustStarRewardSnapshot(state)),
             ...(state.entrust?.run?.map_id === state.world.map_id
