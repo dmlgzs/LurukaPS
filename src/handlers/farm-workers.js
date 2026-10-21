@@ -6,6 +6,7 @@ import { homeCondition } from '../home-grid.js'
 import { reconcileFormationPets } from '../formation-pets.js'
 import { repairMountSelection, mountPayload } from '../mounts.js'
 import { ensure, pet } from './common.js'
+import { clearRanchPetSlots } from '../ranch.js'
 
 export { farmWorkSlots }
 
@@ -45,7 +46,7 @@ export function registerFarmWorkers(on, tables) {
                 chosen.labor_infos?.some((info) => info.labor_id === capacity.laborType && info.labor_grade > 0),
                 'Pet lacks required farming ability',
             )
-            ensure(!chosen.work_status || [5, 7].includes(chosen.work_status), 'Pet is working elsewhere')
+            ensure(!chosen.work_status || [5, 6, 7].includes(chosen.work_status), 'Pet is working elsewhere')
             if (chosen.work_status === 5)
                 ensure(
                     home.builds.some(
@@ -66,7 +67,10 @@ export function registerFarmWorkers(on, tables) {
                 chosen.capacity_id === r.work_type)
         )
             return {}
-        if (chosen) clearFarmPetSlots(c.state, chosen.guid)
+        if (chosen) {
+            clearFarmPetSlots(c.state, chosen.guid)
+            clearRanchPetSlots(c.state, chosen.guid)
+        }
         if (oldId !== '0' && oldId !== chosen?.guid) {
             const old = pet(c.state, oldId)
             clearFarmPetSlots(c.state, oldId)

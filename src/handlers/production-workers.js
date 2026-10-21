@@ -5,6 +5,7 @@ import { reconcileFormationPets } from '../formation-pets.js'
 import { repairMountSelection, mountPayload } from '../mounts.js'
 import { clearFarmPetSlots } from './farm-workers.js'
 import { ensure, pet } from './common.js'
+import { clearRanchPetSlots } from '../ranch.js'
 
 export function clearProductionPetSlots(state, guid) {
     for (const build of state.home?.builds ?? []) if (build.station_pet_guid === guid) build.station_pet_guid = '0'
@@ -42,7 +43,7 @@ export function registerProductionWorkers(on, tables) {
                 String(station.petSize).split('|').map(Number).includes(tables.find('pet', chosen.config_id)?.bodyType),
                 'Pet size is not supported by this station',
             )
-            ensure(!chosen.work_status || [1, 2, 5, 7].includes(chosen.work_status), 'Pet is working elsewhere')
+            ensure(!chosen.work_status || [1, 2, 5, 6, 7].includes(chosen.work_status), 'Pet is working elsewhere')
             ensure(!r.source_build || chosen.work_build === r.source_build, 'Pet source building does not match')
             const stationed = home.stationPets ?? []
             if (!stationed.includes(chosen.guid)) {
@@ -67,6 +68,7 @@ export function registerProductionWorkers(on, tables) {
         build.station_pet_guid = chosen?.guid ?? '0'
         if (chosen) {
             clearProductionPetSlots(c.state, chosen.guid)
+            clearRanchPetSlots(c.state, chosen.guid)
             clearFarmPetSlots(c.state, chosen.guid)
             build.station_pet_guid = chosen.guid
             const stationed = (home.stationPets ??= [])

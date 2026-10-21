@@ -13,6 +13,8 @@ import { clearFarmPetSlots } from './farm-workers.js'
 import { clearProductionPetSlots } from './production-workers.js'
 import { rememberMap, worldSync, WORLD_MAP_CMD_ENTER } from './world.js'
 import { dormTopics } from '../home-dorm.js'
+import { registerRanch } from './ranch.js'
+import { clearRanchPetSlots } from '../ranch.js'
 
 function homeScenePosition(tables) {
     const homeMapId = Number(tables.get('game').find((row) => row.title === 'HOME_ID')?.value)
@@ -27,6 +29,7 @@ function homeScenePosition(tables) {
 
 export function registerHome(on, tables) {
     tables = productionTables(tables)
+    registerRanch(on, tables)
     const change = (c) => {
         c.state.homeRevision = (c.state.homeRevision || 0) + 1
     }
@@ -100,9 +103,10 @@ export function registerHome(on, tables) {
             const index = station.indexOf(p.guid)
             if (index < 0 && p.work_status !== 7) return {}
             if (p.work_status === 5) clearFarmPetSlots(c.state, p.guid)
+            if (p.work_status === 6) clearRanchPetSlots(c.state, p.guid)
             if ([1, 2].includes(p.work_status)) clearProductionPetSlots(c.state, p.guid)
             if (index >= 0) station.splice(index, 1)
-            if ([1, 2, 5, 7].includes(p.work_status)) {
+            if ([1, 2, 5, 6, 7].includes(p.work_status)) {
                 p.work_status = 0
                 p.work_build = 0
                 p.capacity_id = 0

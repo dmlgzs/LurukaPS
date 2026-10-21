@@ -111,6 +111,7 @@ import { registerProduction } from './handlers/production.js'
 import { registerSimpleProduction } from './handlers/simple-production.js'
 import { refreshProduction, productionDue } from './production.js'
 import { retimeProduction } from './production-time.js'
+import { ranchDue, settleRanches, retimeRanches } from './ranch.js'
 import { simpleProductionDue, settleSimpleProducts, simpleProductSnapshot } from './simple-production.js'
 import { registerTechnology } from './handlers/technology.js'
 import { registerBuildingPlacement } from './handlers/buildings.js'
@@ -624,6 +625,7 @@ export class Game {
                 this.recoverFailedInvestigationPlayable(state, session.id, now)
                 recoverInterruptedFlyTravel(this.tables, state)
                 settleSimpleProducts(this.tables, state, now)
+                settleRanches(this.tables, state, now, this.rng)
                 recoverStoryCampaignClear({ state, tables: this.tables, now, pushBefore: () => {} })
                 recoverFailedSpecialNpcEvents(
                     { state, tables: this.tables, id: session.id, now },
@@ -684,6 +686,7 @@ export class Game {
                 reconcileHomeBuildShortcuts(this.tables, state)
                 reconcileHomeCropShortcuts(this.tables, state)
                 retimeProduction(this.tables, state, now)
+                retimeRanches(this.tables, state, now)
                 refreshProduction(state, now)
                 for (const [id, capture] of Object.entries(state.petCaptureResults ?? {}))
                     if (capture.map_id === state.world.map_id && state.combat?.entities?.[id]?.captured !== true)
@@ -946,6 +949,7 @@ export class Game {
                     push: (name, value) => emit(pushes, name, value, { pushSeq: frame.pushSeq }),
                 }
                 if (!battleReport) {
+                    settleRanches(this.tables, state, now, this.rng)
                     retimeProduction(this.tables, state, now)
                     refreshProduction(state, now)
                 }
@@ -966,6 +970,7 @@ export class Game {
                 if ((state.playerCardRevision || 0) !== cardRevision)
                     context.pushBefore('CSProtoStandPlatesBagInfo', playerCardSnapshot(this.tables, state))
                 if (!battleReport && retimeProduction(this.tables, state, now)) refreshProduction(state, now)
+                if (!battleReport) retimeRanches(this.tables, state, now)
                 if (e.name === 'CSProtoPlayerCustomData') this.finishPendingCharacterTask(context)
                 if (!battleReport) this.recoverCompletedCampaignTasks(context)
                 if ((state.taskItemRevision ?? 0) !== taskItemRevision)
@@ -1222,12 +1227,13 @@ export class Game {
             exact = arenaNowMs / 1000,
             current = this.store.load(id).state,
             homeDue = productionDue(current, now),
+            ranchReady = ranchDue(current, now),
             simpleDue = simpleProductionDue(current, now),
             dormDue = dormDayDue(this.tables, current, now),
             activityDue = this.activities.due(current, now),
             arenaDue = npcArenaTickDue(current, exact),
-            durable = homeDue || simpleDue || dormDue || activityDue || !!npcArenaOutcome(current, exact)
-        if (!homeDue && !simpleDue && !dormDue && !activityDue && !arenaDue) return []
+            durable = homeDue || ranchReady || simpleDue || dormDue || activityDue || !!npcArenaOutcome(current, exact)
+        if (!homeDue && !ranchReady && !simpleDue && !dormDue && !activityDue && !arenaDue) return []
         return this.store.transact(
             id,
             0,
@@ -1262,7 +1268,9 @@ export class Game {
                         }),
                     )
                 }
-                if (homeDue && refreshProduction(state, now)) {
+                const productionChanged = homeDue && refreshProduction(state, now)
+                const ranchChanged = ranchReady && settleRanches(this.tables, state, now, this.rng)
+                if (productionChanged || ranchChanged) {
                     if ((state.eggRevision || 0) !== eggRevision)
                         packets.push(
                             this.packet('CSProtoPetEggInfoSync', {
