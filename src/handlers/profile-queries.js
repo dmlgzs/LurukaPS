@@ -9,6 +9,40 @@ function charInfo(id, records) {
     }
 }
 export function registerProfileQueries(on, tables, store) {
+    on('ChangeShowPet', (c, r) => {
+        // pageSelectPetDisplay saves all selected pets in four one-based slots.
+        const selection = r.pet ?? []
+        ensure(selection.length <= 4, 'Too many displayed pets')
+        const positions = new Set(),
+            guids = new Set()
+        const shown = selection
+            .map((entry) => {
+                const guid = String(entry.pet_guid ?? '0')
+                ensure(
+                    Number.isInteger(entry.pos) &&
+                        entry.pos >= 1 &&
+                        entry.pos <= 4 &&
+                        !positions.has(entry.pos) &&
+                        !guids.has(guid),
+                    'Duplicate or invalid displayed pet slot',
+                )
+                const pet = c.state.pets.find((row) => row.guid === guid)
+                ensure(pet, 'Displayed pet is not owned', ErrorCode.PetNotExist)
+                ensure(
+                    tables.find('pet', pet.config_id),
+                    'Displayed pet configuration missing',
+                    ErrorCode.PetConfNotExist,
+                )
+                positions.add(entry.pos)
+                guids.add(guid)
+                return { guid, id: pet.config_id, lv: pet.lv, pos: entry.pos }
+            })
+            .sort((a, b) => a.pos - b.pos)
+        const basic = c.state.player.basic_info
+        basic.info = { ...basic.info, pet: shown }
+        syncPlayer({ ...c, push: c.pushBefore }, { basic_info: { info: basic.info } })
+        return {}
+    })
     on('ChangeShowHero', (c, r) => {
         // pageDisplayHero uses three one-based slots and sends the complete selection.
         const selection = r.hero ?? []
