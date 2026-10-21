@@ -7,6 +7,7 @@ import { parseRewards, grantRewards } from '../rewards.js'
 import { rewardSource } from '../reward-source.js'
 import { heroSkillUpgrade } from '../hero-skill-upgrades.js'
 import { nextHeroGrade } from '../hero-grade.js'
+import { nextHeroRank } from '../hero-rank.js'
 
 function ownedHero(state, id) {
     const result = state.player.heros_info.heros.find((item) => item.guid === String(id))
@@ -92,6 +93,22 @@ function composedRuneCosts(c, itemIds, reserved = new Map()) {
 }
 
 export function registerHeroEquipment(on, publishEquipment) {
+    on('HeroRuneLevelUp', (c, r) => {
+        const hero = ownedHero(c.state, r.hero_id)
+        ensure(!hero.trail, 'Temporary hero cannot permanently advance rank', ErrorCode.HeroNotExist)
+        const next = nextHeroRank(c.tables, c.state, hero),
+            bag = new Map()
+        for (const cost of next.costs) {
+            if (cost.itemtype === 3) bag.set(cost.itemid, (bag.get(cost.itemid) ?? 0) + cost.itemnum)
+            else spendCurrency(c.state, cost.itemid, cost.itemnum)
+        }
+        spend(c.state, bag, 0, c.now)
+        hero.hero_rank = next.rank
+        hero.rune_ids = Array(next.slots).fill(0)
+        syncPlayer({ ...c, push: c.pushBefore }, { heros_info: { heros: [hero] } })
+        syncBattle({ ...c, push: c.pushBefore })
+        return { atrrs: next.attrs, skills: [] }
+    })
     on('GradeUpHero', (c, r) => {
         const hero = ownedHero(c.state, r.u64)
         ensure(!hero.trail, 'Temporary hero cannot be permanently upgraded', ErrorCode.HeroNotExist)

@@ -68,6 +68,10 @@ export function runeBonuses(tables, hero) {
         skills = new Map()
     const ranks = ranksFor(tables, hero.conf_id).filter((x) => x.rank <= hero.hero_rank)
     for (const rank of ranks) {
+        // L_HeroManager.getHeroStarGiftByHeroIdAndRank includes each completed
+        // rank's flat attributes as well as its runes; current rank is pending.
+        if (rank.rank < hero.hero_rank)
+            for (const [id, n] of pairs(rank.attribute)) attrs.set(id, (attrs.get(id) ?? 0) + n)
         const ids = String(rank.rankBreakthroughItem).split('|').map(Number)
         for (let slot = 0; slot < ids.length; slot++) {
             if (rank.rank === hero.hero_rank && !hero.rune_ids?.[slot]) continue
