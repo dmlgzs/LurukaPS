@@ -165,6 +165,7 @@ const deferredTaskProgress = new Set([
 ])
 const deferredMessages = new Set([
     ...deferredTaskProgress,
+    'CSProtoReviveHero',
     'CSProtoBattleInfoReduce',
     'CSProtoSkillStart',
     'CSProtoSkillStop',
@@ -195,6 +196,7 @@ const fastCombatReplies = new Set([
     'CSProtoControlMapAI',
 ])
 const fastCombatTelemetry = new Set([
+    'CSProtoReviveHero',
     'CSProtoKiboDuelArenaAutoFightSync',
     'CSProtoKiboCastUltraSkill',
     'CSProtoKiboDuelPlaySummonActionFinish',
@@ -258,7 +260,20 @@ function forkBattleReport(base) {
 }
 function forkFastCombat(base, name, request) {
     const battle = base.combat ? { ...base.combat } : undefined,
-        state = { ...base, combat: battle }
+        state = { ...base, ...(battle ? { combat: battle } : {}) }
+    if (name === 'CSProtoReviveHero') {
+        const id = String(request.hero_uuid ?? '0')
+        state.player = {
+            ...base.player,
+            heros_info: {
+                ...base.player.heros_info,
+                battle_infos: base.player.heros_info.battle_infos.map((info) =>
+                    info.hero_id === id ? { ...info } : info,
+                ),
+            },
+        }
+        if (battle) battle.entities = { ...battle.entities }
+    }
     if (name === 'CSProtoSkillStart')
         state.player = {
             ...base.player,

@@ -19,6 +19,7 @@ const forceRequests = new Set([
     'CSWorldObjAIHeroInfo',
     'CSProtoWorldObjEnemyInfo',
     'CSProtoWorldMapPlayerRevive',
+    'CSProtoReviveHero',
     'CSProtoTaskClientBefore',
     'CSProtoPlayableStart',
     'CSProtoPlayableCancel',

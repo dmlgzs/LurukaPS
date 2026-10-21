@@ -1,4 +1,5 @@
 import { ornamentSkills } from '../hero-equipment.js'
+import { reviveFriendlyActor } from '../actor-revival.js'
 import { recordNpcArenaDeaths } from '../npc-kibo-battle.js'
 import { recordArenaHpStatistics, publishArenaStatistics } from '../npc-kibo-statistics.js'
 import { recordArenaTrainerSkill, recordArenaTrainerStop } from '../npc-kibo-trainer-skills.js'
@@ -184,6 +185,7 @@ function advanceEnergy(c, battle, changed) {
     return reported
 }
 export function registerCombat(on) {
+    on('ReviveHero', reviveFriendlyActor)
     on('SkillStart', (c, r) => {
         if (isRetiredTrialActor(c.state, r.unit_id)) return
         const id = skillActorKey(c, r, r.skill?.skill_id)
