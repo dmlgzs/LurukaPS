@@ -1,5 +1,6 @@
 import { ErrorCode } from '../error-codes.js'
 import { productionTables } from '../production-tables.js'
+import { productionMaterials } from '../production-materials.js'
 import { ensure, syncPlayer } from './common.js'
 import { parseRewards, grantRewards } from '../rewards.js'
 import { spend, spendCurrency } from '../inventory.js'
@@ -20,18 +21,13 @@ export function registerSimpleProduction(on, tables) {
         ensure(!r.build_guid, 'Quick production must not use a building')
         ensure(homeCondition(recipe.unlockCondition, c.state), 'Production recipe locked')
         ensure(!recipe.isNeedPet, 'Pet-assisted quick production is not implemented', ErrorCode.InvalidProtoID)
-        ensure(
-            !recipe.materialSelect && !(r.select_material ?? []).length,
-            'Selectable materials are not implemented',
-            ErrorCode.InvalidProtoID,
-        )
         ensure(Number.isInteger(r.count) && r.count > 0 && r.count <= recipe.numberLimit, 'Invalid production count')
         ensure(
             Number.isInteger(recipe.time) && recipe.time > 0 && c.now + r.count * recipe.time <= 0xffffffff,
             'Invalid production duration',
             ErrorCode.HomeNoProductConf,
         )
-        const costs = parseRewards(recipe.material),
+        const costs = productionMaterials(tables, recipe, r.select_material ?? []),
             rewards = parseRewards(recipe.rewardId)
         ensure(
             costs.length && costs.every((x) => [3, 10].includes(x.itemtype)),
