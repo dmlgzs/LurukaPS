@@ -15,13 +15,15 @@ export function registerShops(on, tables) {
     })
     on('ShopBuyItems', (c, r) => {
         const shop = catalog.shop(r.shop_id, c.state, c.now)
+        ensure(shop.open, 'Shop is not open', ErrorCode.ShopNotOpen)
         ensure(r.items.length > 0 && r.items.length <= 100, 'Invalid shop basket')
         const basket = new Map()
         for (const line of r.items) {
             ensure(Number.isInteger(line.times) && line.times > 0, 'Invalid purchase quantity')
             const item = catalog.item(shop.config, line.slot_id, c.state, c.now)
             ensure(item.goods.goodsId === line.goods_id, 'Wrong goods for slot')
-            ensure(item.open, 'Goods are locked or unavailable')
+            ensure(item.in_time, 'Goods are outside their time window', ErrorCode.ShopItemNotInTime)
+            ensure(item.unlocked, 'Goods are locked', ErrorCode.ShopItemUnlock)
             const entry = basket.get(line.slot_id) || { ...item, times: 0 }
             entry.times += line.times
             ensure(Number.isSafeInteger(entry.times) && entry.times <= 0xffffffff, 'Purchase quantity overflow')

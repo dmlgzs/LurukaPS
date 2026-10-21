@@ -102,19 +102,30 @@ export class ShopCatalog {
         this.goods = new Map(tables.get('goods').map((g) => [g.goodsId, g]))
         this.hour = Number(tables.get('game').find((x) => x.title === 'DAILY_REFRESH_TIME')?.value ?? 4)
     }
+    schedule(row) {
+        const launch = row.launchType ?? 0
+        ensure(Number.isInteger(launch) && launch >= 0, 'Invalid shop launch type', ErrorCode.GameConfig)
+        ensure([0, 1].includes(launch), 'Shop launch type is not supported', ErrorCode.InvalidLogic)
+        const limitId = row.timelimit ?? 0
+        ensure(Number.isInteger(limitId) && limitId >= 0, 'Invalid shop time limit reference', ErrorCode.GameConfig)
+        const limit = limitId ? this.tables.get('common_timelimit').find((entry) => entry.id === limitId) : null
+        // Missing exported calendar rows may use the shop/goods' own explicit
+        // dates. Do not invent or extend an activity's open period.
+        const startText = limit?.startTime || row.startTime
+        const endText = limit?.endTime || row.endTime
+        ensure(!limitId || startText || endText, 'Shop schedule configuration unavailable', ErrorCode.GameConfig)
+        const start = configTime(startText),
+            end = configTime(endText)
+        ensure(!start || !end || start < end, 'Invalid shop schedule interval', ErrorCode.GameConfig)
+        return { start, end }
+    }
     shop(id, state, now) {
         const shop = this.shops.get(id)
-        ensure(shop, 'Unknown shop')
-        ensure(
-            !shop.timelimit && !shop.launchType,
-            'Event shop scheduling is not yet available',
-            ErrorCode.InvalidProtoID,
-        )
-        ensure(conditionProgress(shop.unlockCondition, state).open, 'Shop is locked')
-        const start = configTime(shop.startTime),
-            end = configTime(shop.endTime)
-        ensure((!start || now >= start) && (!end || now < end), 'Shop is not open')
-        return { config: shop, start, end }
+        ensure(shop, 'Unknown shop', ErrorCode.ShopConfNotExist)
+        ensure(conditionProgress(shop.unlockCondition, state).open, 'Shop is locked', ErrorCode.ShopNotOpen)
+        const { start, end } = this.schedule(shop)
+        const open = (!start || now >= start) && (!end || now < end)
+        return { config: shop, start, end, open }
     }
     item(shop, id, state, now) {
         ensure(String(shop.goodsList).split('|').map(Number).includes(id), 'Slot does not belong to this shop')
@@ -123,29 +134,26 @@ export class ShopCatalog {
         const goods = this.goods.get(slot.slotParam)
         ensure(goods, 'Missing shop goods', ErrorCode.ShopGoodsConfNotExist)
         ensure(
-            !goods.timelimit && !goods.launchType,
-            'Event goods scheduling is not yet available',
-            ErrorCode.InvalidProtoID,
-        )
-        ensure(
             !goods.specialPrice && !goods.recommend,
             'Special pricing is not yet supported',
             ErrorCode.InvalidProtoID,
         )
-        const start = configTime(goods.startTime),
-            end = configTime(goods.endTime),
-            window = refreshWindow(goods, now, this.hour),
+        const { start, end } = this.schedule(goods)
+        const window = refreshWindow(goods, now, this.hour),
             key = `${shop.shopId}:${id}`,
             record = state.shopPurchases?.[key]
         const bought = record?.period === window.start ? record.count : 0
         ensure(Number.isInteger(goods.goodsNum) && goods.goodsNum >= -1, 'Invalid shop stock', ErrorCode.GameConfig)
+        const inTime = (!start || now >= start) && (!end || now < end)
+        const unlock = conditionProgress(goods.commonCondition, state)
         return {
             goods,
             key,
             window,
             bought,
-            open:
-                (!start || now >= start) && (!end || now < end) && conditionProgress(goods.commonCondition, state).open,
+            in_time: inTime,
+            unlocked: unlock.open,
+            open: inTime && unlock.open,
             wire: {
                 slot_id: id,
                 goods_id: goods.goodsId,
@@ -154,13 +162,13 @@ export class ShopCatalog {
                 dead_time: window.end,
                 begin_time: start,
                 end_time: end,
-                unlock_progress: conditionProgress(goods.commonCondition, state).values,
+                unlock_progress: unlock.values,
             },
         }
     }
     info(id, state, now) {
         const shop = this.shop(id, state, now)
-        const items = String(shop.config.goodsList || '')
+        const items = String(shop.open ? shop.config.goodsList || '' : '')
             .split('|')
             .filter(Boolean)
             .map(Number)
