@@ -13,6 +13,7 @@ import { planSoulStar } from '../soul-star.js'
 import { soulDecomposePlan } from '../soul-decompose.js'
 import { nextOrnamentLevel } from '../ornament-upgrade.js'
 import { ornamentStarPlan } from '../ornament-star.js'
+import { ornamentInheritPlan } from '../ornament-inherit.js'
 
 function ownedHero(state, id) {
     const result = state.player.heros_info.heros.find((item) => item.guid === String(id))
@@ -271,6 +272,15 @@ export function registerHeroEquipment(on, publishEquipment) {
         c.pushBefore('CSProtoUpdateOrnament', { ornaments: c.state.ornaments ?? [], guid: removed })
         publishEquipment({ ...c, push: c.pushBefore })
     }
+    on('OrnamentInherit', (c, r) => {
+        const { current, candidate, gold } = ornamentInheritPlan(c.tables, c.state, r)
+        spend(c.state, new Map(), gold, c.now)
+        const previous = current.quality
+        current.quality = candidate.quality
+        candidate.quality = previous
+        publishOrnaments(c)
+        return {} // Current 6035 response is ProtoNullRsp, not Rewards.
+    })
     on('OrnamentGradeUp', (c, r) => {
         const plan = ornamentStarPlan(c.tables, c.state, r),
             bag = new Map(),
