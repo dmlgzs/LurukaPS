@@ -7,12 +7,13 @@ import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { expandBattleReport } from '../src/combat-state.js'
 import { enemyDefinition } from '../src/enemy-state.js'
+import { populateParty } from './party-fixture.js'
 const config = configuration(),
     protocol = new Protocol(config.base),
     tables = new Tables(config.tables)
-function fixture() {
+function fixture(options = {}) {
     const store = new Store(':memory:'),
-        game = new Game(protocol, store, tables),
+        game = new Game(protocol, store, tables, options),
         session = {}
     const call = (name, r = {}) => {
         const e = protocol.byName.get('CSProto' + name)
@@ -127,8 +128,15 @@ test('CBT3 report indexes and request-relative timestamps expand without roundin
     )
 })
 test('reported damage changes owned HP/SP, clamps healing, persists on relog and rolls back malformed batches', () => {
-    const f = fixture()
+    const f = fixture({ clock: () => 1800000000 })
     try {
+        // Current server preserves newer SP against stale absolute snapshots.
+        // Start empty so this still tests the wire hundredths conversion.
+        f.store.transact(f.session.id, 0, (s) => {
+            populateParty(s)
+            s.player.heros_info.battle_infos[0].sp = 0
+            s.player.heros_info.battle_infos[1].sp = 0
+        })
         const h = f.state().player.heros_info.battle_infos[0],
             original = h.hp,
             source = f.state().player.heros_info.battle_infos[1]
@@ -144,6 +152,17 @@ test('reported damage changes owned HP/SP, clamps healing, persists on relog and
         assert.equal(f.state().player.heros_info.battle_infos[1].sp, 25)
         assert.equal(packets.length, 1)
         assert.equal(packets[0].id, 10009)
+        f.call('BattleInfoReduce', {
+            uint64_dic: [source.hero_id, h.hero_id],
+            battle_info: [{ hurt_info: { from_id: '1', tar_id: '2', from_sp: 100, tar_sp: 100 } }],
+        })
+        assert.equal(f.state().player.heros_info.battle_infos[0].sp, 33)
+        assert.equal(f.state().player.heros_info.battle_infos[1].sp, 25)
+        f.call('BattleInfoReduce', {
+            uint64_dic: [h.hero_id],
+            battle_info: [{ hurt_info: { tar_id: '1', delta_sp: -300 } }],
+        })
+        assert.equal(f.state().player.heros_info.battle_infos[0].sp, 30)
         const before = f.store.load(f.session.id)
         assert.throws(() =>
             f.call('BattleInfoReduce', {

@@ -2,6 +2,7 @@ import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { pairs } from './battle.js'
 import { ornamentValueTables } from './ornament-values.js'
+import { ornamentEntryEffects } from './ornament-entry-effects.js'
 
 export function runeSkillPairs(text) {
     return new Map(
@@ -85,12 +86,15 @@ export function runeBonuses(tables, hero) {
     return { attrs, skills }
 }
 export function ornamentAttributes(tables, state, hero) {
+    const external = tables
     tables = ornamentValueTables(tables)
     const attrs = new Map()
+    const worn = []
     for (const guid of hero.oguid ?? []) {
         if (!guid) continue
         const item = state.ornaments?.find((x) => x.guid === guid && x.wear_hero === hero.guid)
         ensure(item, 'Equipped ornament missing', ErrorCode.OrnamentNotExist)
+        worn.push(item)
         const cfg = tables.find('accessory', item.id)
         ensure(cfg, 'Ornament configuration unavailable', ErrorCode.OrnamentConfFail)
         const mains = mainsFor(tables, cfg.mainAttr, item.lv)
@@ -109,17 +113,21 @@ export function ornamentAttributes(tables, state, hero) {
             attrs.set(row.key, (attrs.get(row.key) ?? 0) + row.val)
         }
     }
+    for (const [id, value] of ornamentEntryEffects(external, worn).attrs) attrs.set(id, (attrs.get(id) ?? 0) + value)
     return attrs
 }
 
 export function ornamentSkills(tables, state, hero) {
     const counts = new Map(),
         skills = new Set()
+    const worn = []
     for (const guid of hero.oguid ?? []) {
         const item = state.ornaments?.find((x) => x.guid === guid && x.wear_hero === hero.guid)
         const setId = item && tables.find('accessory', item.id)?.setId
+        if (item) worn.push(item)
         if (setId) counts.set(setId, (counts.get(setId) ?? 0) + 1)
     }
+    for (const skill of ornamentEntryEffects(tables, worn).skills) skills.add(skill.skill_id)
     for (const [id, count] of counts) {
         const row = tables.find('accessory_set', id)
         ensure(row, 'Ornament set unavailable', ErrorCode.OrnamentConfFail)

@@ -12,6 +12,7 @@ import { nextSoulRank } from '../soul-rank.js'
 import { planSoulStar } from '../soul-star.js'
 import { soulDecomposePlan } from '../soul-decompose.js'
 import { nextOrnamentLevel } from '../ornament-upgrade.js'
+import { ornamentStarPlan } from '../ornament-star.js'
 
 function ownedHero(state, id) {
     const result = state.player.heros_info.heros.find((item) => item.guid === String(id))
@@ -265,11 +266,29 @@ export function registerHeroEquipment(on, publishEquipment) {
         // No verified reason_itemnum_change entry exists for this operation.
         return { rewards: { rewards, src: rewardSource(c.tables, 'runeCompose') }, equip: r.equip ?? false }
     })
-    const publishOrnaments = (c) => {
+    const publishOrnaments = (c, removed = []) => {
         c.state.ornamentRevision = (c.state.ornamentRevision ?? 0) + 1
-        c.pushBefore('CSProtoUpdateOrnament', { ornaments: c.state.ornaments ?? [], guid: [] })
+        c.pushBefore('CSProtoUpdateOrnament', { ornaments: c.state.ornaments ?? [], guid: removed })
         publishEquipment({ ...c, push: c.pushBefore })
     }
+    on('OrnamentGradeUp', (c, r) => {
+        const plan = ornamentStarPlan(c.tables, c.state, r),
+            bag = new Map(),
+            currency = new Map()
+        for (const cost of plan.costs) {
+            const group = cost.itemtype === 3 ? bag : currency
+            const sum = (group.get(cost.itemid) ?? 0) + cost.itemnum
+            ensure(Number.isSafeInteger(sum) && sum <= 0xffffffff, 'Ornament star cost overflow', ErrorCode.GameConfig)
+            group.set(cost.itemid, sum)
+        }
+        spend(c.state, bag, 0, c.now)
+        for (const [id, count] of currency) spendCurrency(c.state, id, count)
+        c.state.ornaments = c.state.ornaments.filter((item) => !plan.consumed.has(item.guid))
+        plan.target.grade = plan.grade
+        const rewards = grantRewards(c.tables, c.state, plan.rewards)
+        publishOrnaments(c, [...plan.consumed])
+        return { rewards, src: rewardSource(c.tables, 'ornamentStar') }
+    })
     on('UpgradeOrnament', (c, r) => {
         const item = c.state.ornaments?.find((item) => item.guid === r.u32)
         ensure(item, 'Ornament not owned', ErrorCode.OrnamentNotExist)

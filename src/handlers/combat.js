@@ -68,6 +68,17 @@ function isFormationPassive(c, skillId) {
                 .includes(skillId),
     )
 }
+function recordedFormationPassive(c, skillId, index) {
+    const battle = c.state.combat
+    if (battle?.map_id !== c.state.world.map_id) return false
+    const prefix = `local-passive:${skillId}:`
+    const matches = (key, cast) => key.startsWith(prefix) && cast?.unit_id === '0' && cast.skill?.skill_id === skillId
+    if (index && index !== '0') {
+        const key = prefix + index
+        return matches(key, battle.skills?.[key])
+    }
+    return Object.entries(battle.skills ?? {}).some(([key, cast]) => matches(key, cast))
+}
 function skillActorKey(c, request, skillId, stopping = false) {
     if (u64(request.unit_id) !== '0') return actor(c, request.unit_id)
     let skills = itemSkillCatalogs.get(c.tables)
@@ -77,7 +88,11 @@ function skillActorKey(c, request, skillId, stopping = false) {
     }
     // Scene battle items can have selfId=0. Match the configured item skill,
     // then track its cast by verify index, never by the player's current hero.
-    const passive = isFormationPassive(c, skillId)
+    // Equipment updates can remove the passive before its matching stop arrives.
+    // Only an already authorized cast in this world may finish after removal.
+    const passive =
+        isFormationPassive(c, skillId) ||
+        (stopping && recordedFormationPassive(c, skillId, String(request.verify_info?.related_index ?? '0')))
     ensure(skills.has(skillId) || passive, 'Missing combat actor')
     const verify = request.verify_info
     // Battle.proto SkillVerifyType describes the trigger (skill, effect,
@@ -215,7 +230,7 @@ export function registerCombat(on) {
         const skillId = Number(u64(r.skill_id))
         if (
             u64(r.unit_id) === '0' &&
-            isFormationPassive(c, skillId) &&
+            (isFormationPassive(c, skillId) || recordedFormationPassive(c, skillId)) &&
             r.verify_info &&
             u64(r.verify_info.battle_index) === '0' &&
             u64(r.verify_info.related_index) === '0'

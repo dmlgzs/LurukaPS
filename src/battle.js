@@ -7,7 +7,7 @@ import { heroGradeEffects } from './hero-grade.js'
 import { soulEssenceValue } from './soul-values.js'
 // CBT3 client evidence: ui_configtpl_herotpl.lua:getHeroConfigAtt;
 // ui_store_hero_data_heroattrmoduleinfo.lua:addSub; const.lua:SpecialAttList.
-const specialAttributes = new Set([1, 3, 5, 201, 229, 230])
+export const specialAttributes = new Set([1, 3, 5, 201, 229, 230])
 export function pairs(value) {
     const result = new Map()
     if (!value) return result
