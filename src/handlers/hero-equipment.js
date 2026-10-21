@@ -14,6 +14,7 @@ import { soulDecomposePlan } from '../soul-decompose.js'
 import { nextOrnamentLevel } from '../ornament-upgrade.js'
 import { ornamentStarPlan } from '../ornament-star.js'
 import { ornamentInheritPlan } from '../ornament-inherit.js'
+import { ornamentSmeltPlan } from '../ornament-smelt.js'
 
 function ownedHero(state, id) {
     const result = state.player.heros_info.heros.find((item) => item.guid === String(id))
@@ -272,6 +273,15 @@ export function registerHeroEquipment(on, publishEquipment) {
         c.pushBefore('CSProtoUpdateOrnament', { ornaments: c.state.ornaments ?? [], guid: removed })
         publishEquipment({ ...c, push: c.pushBefore })
     }
+    on('SmeltOrnament', (c, r) => {
+        // The current global bag UI omits build_guid; its manager only sends
+        // ornament_guid. Do not require a fabricated home building or quota.
+        const plan = ornamentSmeltPlan(c.tables, c.state, r.ornament_guid ?? [])
+        c.state.ornaments = c.state.ornaments.filter((item) => !plan.selected.has(item.guid))
+        const rewards = grantRewards(c.tables, c.state, plan.rewards)
+        publishOrnaments(c, [...plan.selected])
+        return { rewards, src: rewardSource(c.tables, 'ornamentSmelt') }
+    })
     on('OrnamentInherit', (c, r) => {
         const { current, candidate, gold } = ornamentInheritPlan(c.tables, c.state, r)
         spend(c.state, new Map(), gold, c.now)
