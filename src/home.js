@@ -2,6 +2,7 @@ import { ErrorCode } from './error-codes.js'
 import { reconcileHomeExperience } from './home-experience.js'
 import { reconcileHomeStage } from './home-stage.js'
 import { technologyPayload } from './technology.js'
+import { homeTreePayload } from './home-tree.js'
 import { ensure } from './handlers/common.js'
 import { ensureHomeDormitories, dormPayload } from './home-dorm.js'
 export function ensureHome(tables, state) {
@@ -110,6 +111,7 @@ export function homePayload(tables, state) {
     ensure(Number.isInteger(shortcutSlots) && shortcutSlots > 0, 'Invalid home shortcut capacity', ErrorCode.GameConfig)
     return {
         technology: technologyPayload(tables, state),
+        tree: homeTreePayload(tables, state),
         home_lv: h.stage,
         home_name: h.name,
         builds: h.inventory,

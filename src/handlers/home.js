@@ -4,6 +4,7 @@ import { ensure, textValue, pet } from './common.js'
 import { ensurePetName } from '../pets.js'
 import { caressPet } from '../pet-caress.js'
 import { ensureHome } from '../home.js'
+import { homeTreePayload, upgradeHomeTree } from '../home-tree.js'
 import { homeCondition } from '../home-grid.js'
 import { reconcileFormationPets } from '../formation-pets.js'
 import { mountPayload, repairMountSelection } from '../mounts.js'
@@ -29,6 +30,15 @@ export function registerHome(on, tables) {
     const change = (c) => {
         c.state.homeRevision = (c.state.homeRevision || 0) + 1
     }
+    on('HomeTreeUpgrade', (c) => {
+        const map = Number(tables.get('game').find((row) => row.title === 'HOME_ID')?.value)
+        ensure(Number.isSafeInteger(map) && map > 0, 'Missing home map configuration', ErrorCode.GameConfig)
+        ensure(c.state.world.map_id === map, 'Landscape tree requires the home scene', ErrorCode.PlayerNotInHome)
+        ensureHome(tables, c.state)
+        if (!upgradeHomeTree(tables, c.state))
+            c.pushBefore('CSProtoHomeSync', { tree: homeTreePayload(tables, c.state) })
+        return {}
+    })
     on('PetCaress', (c, r) => {
         const homeMapId = Number(tables.get('game').find((row) => row.title === 'HOME_ID')?.value)
         ensure(c.state.world.map_id === homeMapId, 'Pet caress requires the home scene')

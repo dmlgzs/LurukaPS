@@ -34,8 +34,9 @@ test('technology query exposes roots; manual study spends shared points and upda
             s.player.basic_info.lv = 6
         })
         const out = call('HomeTechnologyLevelUp', { type: 1, subType: 10020 })
-        assert.equal(out[0].id, 6102)
-        const home = p.decode('SCHomeSync', out[0].payload)
+        const homePacket = out.find((packet) => packet.id === 6102)
+        assert(homePacket)
+        const home = p.decode('SCHomeSync', homePacket.payload)
         assert.equal(home.technology.totalPoint, 1)
         assert.equal(home.technology.point, 0)
         const state = store.load(session.id).state
