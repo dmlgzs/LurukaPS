@@ -5,6 +5,7 @@ import { pairs, syncBattle } from '../battle.js'
 import { currentRunes, runeSkillPairs } from '../hero-equipment.js'
 import { parseRewards, grantRewards } from '../rewards.js'
 import { rewardSource } from '../reward-source.js'
+import { heroSkillUpgrade } from '../hero-skill-upgrades.js'
 
 function ownedHero(state, id) {
     const result = state.player.heros_info.heros.find((item) => item.guid === String(id))
@@ -90,6 +91,24 @@ function composedRuneCosts(c, itemIds, reserved = new Map()) {
 }
 
 export function registerHeroEquipment(on, publishEquipment) {
+    on('LvUpSkill', (c, r) => {
+        const hero = ownedHero(c.state, r.hero_id)
+        ensure(!hero.trail, 'Temporary hero skills cannot be permanently upgraded', ErrorCode.HeroNotExist)
+        // heroTpl.getSkillIndex returns i-1, and ReqUpgradeHeroSkill places
+        // that index in CSLvUpSkill.skill_id despite the field's name.
+        const upgrade = heroSkillUpgrade(c.tables, hero, r.skill_id ?? 0),
+            bag = new Map()
+        for (const cost of upgrade.costs) {
+            if (cost.itemtype === 3) bag.set(cost.itemid, (bag.get(cost.itemid) ?? 0) + cost.itemnum)
+            else spendCurrency(c.state, cost.itemid, cost.itemnum)
+        }
+        spend(c.state, bag, upgrade.gold, c.now)
+        upgrade.levels[upgrade.slot] = upgrade.nextLevel
+        hero.system_skill_levels = upgrade.levels
+        syncPlayer({ ...c, push: c.pushBefore }, { heros_info: { heros: [hero] } })
+        syncBattle({ ...c, push: c.pushBefore })
+        return {}
+    })
     on('HeroRankReward', (c, r) => {
         const hero = ownedHero(c.state, r.hero_id)
         ensure(!hero.trail, 'Temporary hero cannot claim rank rewards', ErrorCode.HeroNotExist)
