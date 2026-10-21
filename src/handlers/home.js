@@ -4,7 +4,7 @@ import { ensure, textValue, pet } from './common.js'
 import { ensurePetName } from '../pets.js'
 import { caressPet } from '../pet-caress.js'
 import { ensureHome } from '../home.js'
-import { homeTreePayload, upgradeHomeTree } from '../home-tree.js'
+import { homeTreePayload, homeTreeState, upgradeHomeTree } from '../home-tree.js'
 import { homeCondition } from '../home-grid.js'
 import { reconcileFormationPets } from '../formation-pets.js'
 import { mountPayload, repairMountSelection } from '../mounts.js'
@@ -37,6 +37,17 @@ export function registerHome(on, tables) {
         ensureHome(tables, c.state)
         if (!upgradeHomeTree(tables, c.state))
             c.pushBefore('CSProtoHomeSync', { tree: homeTreePayload(tables, c.state) })
+        return {}
+    })
+    on('HomeTreeStageDone', (c) => {
+        ensureHome(tables, c.state)
+        const tree = homeTreeState(tables, c.state)
+        // Presentation acknowledgements may arrive after a scene transition.
+        // They neither award resources nor advance the landscape tree stage.
+        if (tree.is_new) {
+            tree.is_new = false
+            change(c)
+        } else c.pushBefore('CSProtoHomeSync', { tree: homeTreePayload(tables, c.state) })
         return {}
     })
     on('PetCaress', (c, r) => {
