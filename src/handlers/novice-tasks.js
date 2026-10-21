@@ -24,5 +24,25 @@ export function registerNoviceTasks(on, tables) {
         system.notify(c)
         return { rewards, src: rewardSource(tables, 'noviceTaskReward') }
     })
+    on('NoviceTaskFinishGroup', (c, r) => {
+        const row = system.groups.get(r.u32)
+        ensure(row, 'Unknown novice group', ErrorCode.NoviceTaskGroupConfNone)
+        ensure(system.unlocked(c.state, row), 'Novice group locked', ErrorCode.NoviceTaskLock)
+        const ledger = system.ledger(c.state)
+        if (ledger.claimedGroups[row.id]) return { rewards: [] }
+        const children = [...system.tasks.values()].filter((task) => task.groupId === row.id)
+        ensure(children.length > 0, 'Empty novice task group', ErrorCode.GameConfig)
+        // CBT3 displays group progress as the number of status-2 (claimed)
+        // tasks, rather than status-1 completed-but-unclaimed tasks.
+        ensure(
+            children.every((task) => ledger.claimedTasks[task.id]),
+            'Claim all novice tasks first',
+            ErrorCode.NoviceTaskGroupNotFinished,
+        )
+        const rewards = grantRewards(tables, c.state, parseRewards(row.reward))
+        ledger.claimedGroups[row.id] = true
+        system.notify(c)
+        return { rewards, src: rewardSource(tables, 'noviceTaskReward') }
+    })
     return system
 }
