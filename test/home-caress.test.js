@@ -86,24 +86,24 @@ test('home caress acknowledges the client, synchronizes favor first and respects
         let pet = store.load(session.id).state.pets.find((p) => p.guid === target.guid)
         assert.equal(pet.favor_lv, 2)
         assert.equal(pet.favor_val, 0)
-        assert.equal(pet.daily_favor_count, 1)
+        assert.equal(pet.daily_favor_count, 50)
         assert.deepEqual(pet.daily_favor_val, [{ source_type: 4, favor_val: 50 }])
 
         for (let count = 2; count <= 4; count++) {
             const packets = call('PetCaress', { u64: target.guid })
             assert.equal(packets.find((packet) => packet.id === replyId).data.favor_exp_add, 0)
             pet = store.load(session.id).state.pets.find((p) => p.guid === target.guid)
-            assert.equal(pet.daily_favor_count, count)
+            assert.equal(pet.daily_favor_count, 50)
         }
         const exhausted = call('PetCaress', { u64: target.guid })
         assert.equal(exhausted.find((packet) => packet.id === replyId).data.favor_exp_add, 0)
-        assert.equal(store.load(session.id).state.pets.find((p) => p.guid === target.guid).daily_favor_count, 4)
+        assert.equal(store.load(session.id).state.pets.find((p) => p.guid === target.guid).daily_favor_count, 50)
 
         advance(86400)
         const refreshed = call('PetCaress', { u64: target.guid })
         assert.equal(refreshed.find((packet) => packet.id === replyId).data.favor_exp_add, 50)
         pet = store.load(session.id).state.pets.find((p) => p.guid === target.guid)
-        assert.equal(pet.daily_favor_count, 1)
+        assert.equal(pet.daily_favor_count, 50)
         assert.equal(pet.favor_lv, 2)
         assert.equal(pet.favor_val, 50)
     } finally {

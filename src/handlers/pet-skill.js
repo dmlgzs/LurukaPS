@@ -1,6 +1,9 @@
 import { ErrorCode } from '../error-codes.js'
 import { ensure, pet } from './common.js'
 import { isRetiredTrialActor, temporaryPets } from '../trial-actors.js'
+import { petComprehensionPlan } from '../pet-comprehension-training.js'
+import { spend } from '../inventory.js'
+import { petFavorPlan, applyPetFavorPlan } from '../pet-favor.js'
 export function skillFailureRate(tables, state, p) {
     const suppression = p.suppress_lv ?? 0,
         force = BigInt(state.player.attr_infos.attrs.find((a) => a.attr_id === 22)?.attr_val ?? '0')
@@ -15,6 +18,19 @@ export function skillFailureRate(tables, state, p) {
     return rate
 }
 export function registerPetSkill(on) {
+    on('LvUpComprehension', (c, r) => {
+        const target = c.state.pets.find((pet) => pet.guid === String(r.pet_id))
+        ensure(target, 'Pet is not owned', ErrorCode.PetNotExist)
+        ensure(c.tables.find('pet', target.config_id), 'Pet configuration unavailable', ErrorCode.PetConfNotExist)
+        const training = petComprehensionPlan(c.tables, target, r.items ?? [])
+        // Current Lua pet sync uses reason 162 to display fruit favor changes.
+        const favor = petFavorPlan(c.tables, c.state, target, training.favor, 162, c.now)
+        spend(c.state, training.costs, 0, c.now)
+        target.comprehension = training.comprehension
+        applyPetFavorPlan(c.state, target, favor)
+        c.state.petRevision = (c.state.petRevision ?? 0) + 1
+        return {}
+    })
     on('SkillFailVec', (c, r) => {
         if (isRetiredTrialActor(c.state, r.unit_id)) return
         const p = temporaryPets(c.state).find((p) => p.guid === r.unit_id) ?? pet(c.state, r.unit_id),
