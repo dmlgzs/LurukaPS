@@ -127,6 +127,28 @@ export function registerHeroEquipment(on, publishEquipment) {
         c.pushBefore('CSProtoUpdateOrnament', { ornaments: [item], guid: [] })
         return {}
     })
+    on('RemoveOrnament', (c, r) => {
+        const hero = ownedHero(c.state, r.hero_id)
+        ensure(
+            r.remove_all || (Number.isInteger(r.type) && r.type >= 1 && r.type <= 5),
+            'Invalid ornament removal slot',
+        )
+        const current = hero.oguid ?? Array(5).fill(0)
+        ensure(current.length <= 5, 'Invalid equipped ornament slots', ErrorCode.GameConfig)
+        const slots = r.remove_all ? [0, 1, 2, 3, 4] : [r.type - 1]
+        const removed = slots
+            .filter((slot) => current[slot])
+            .map((slot) => {
+                const item = c.state.ornaments?.find((entry) => entry.guid === current[slot])
+                ensure(item, 'Equipped ornament missing', ErrorCode.OrnamentNotExist)
+                ensure(item.wear_hero === hero.guid, 'Equipped ornament owner mismatch', ErrorCode.GameConfig)
+                return item
+            })
+        hero.oguid = Array.from({ length: 5 }, (_, slot) => (slots.includes(slot) ? 0 : (current[slot] ?? 0)))
+        for (const item of removed) item.wear_hero = '0'
+        publishOrnaments(c)
+        return {}
+    })
     on('QuickWear', (c, r) => {
         const h = ownedHero(c.state, r.hero_guid),
             ids = r.ornament_guids ?? []
