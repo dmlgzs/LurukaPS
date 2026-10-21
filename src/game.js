@@ -1256,6 +1256,18 @@ export class Game {
                 if (simpleDue) {
                     const settled = settleSimpleProducts(this.tables, state, now)
                     if (settled.changed) {
+                        const ornamentGuids = new Set(
+                            settled.rewards.filter((item) => item.itemtype === 15).map((item) => String(item.guid)),
+                        )
+                        if (ornamentGuids.size)
+                            packets.push(
+                                this.packet('CSProtoUpdateOrnament', {
+                                    ornaments: (state.ornaments ?? []).filter((item) =>
+                                        ornamentGuids.has(String(item.guid)),
+                                    ),
+                                    guid: [],
+                                }),
+                            )
                         if (settled.rewards.length)
                             packets.push(
                                 this.packet('CSProtoSyncPlayerData', {

@@ -15,7 +15,7 @@ import {
 
 export function registerSimpleProduction(on, tables) {
     tables = productionTables(tables)
-    on('SimpleProductStart', (c, r) => {
+    const start = (c, r, ornament = false) => {
         const recipe = tables.find('products', r.product_id)
         ensure(recipe?.isQuickProduct === 1 && !recipe.notReleased, 'Unknown quick-production recipe')
         ensure(!r.build_guid, 'Quick production must not use a building')
@@ -35,10 +35,25 @@ export function registerSimpleProduction(on, tables) {
             ErrorCode.InvalidProtoID,
         )
         ensure(
-            rewards.length && rewards.every((x) => [3, 10].includes(x.itemtype)),
-            'Unsupported quick-production reward',
-            ErrorCode.InvalidProtoID,
+            rewards.length && rewards.every((x) => (ornament ? x.itemtype === 33 : [3, 10].includes(x.itemtype))),
+            'Recipe requires a different quick-production endpoint',
+            ErrorCode.InvalidArgument,
         )
+        if (ornament) {
+            ensure(!r.ornament_guid, 'This quick recipe does not consume an existing ornament')
+            for (const reward of rewards) {
+                const custom = tables.find('accessory_customed', reward.itemid)
+                ensure(
+                    custom && tables.find('accessory', custom.accessoryId),
+                    'Ornament output configuration unavailable',
+                    ErrorCode.OrnamentConfFail,
+                )
+                ensure(
+                    !r.designated_item_id || r.designated_item_id === custom.accessoryId,
+                    'Designated ornament is not an output of this recipe',
+                )
+            }
+        }
         const settled = settleSimpleProducts(tables, c.state, c.now)
         // CBT3 ProductManager.onIsHadIdleQueueWithFastProduct uses four slots.
         const jobs = (c.state.simpleProducts ??= [])
@@ -71,7 +86,9 @@ export function registerSimpleProduction(on, tables) {
             dels: settled.dels,
         })
         return {}
-    })
+    }
+    on('SimpleProductStart', (c, r) => start(c, r))
+    on('SimpleProductOrnamentStart', (c, r) => start(c, { ...r, count: r.count ?? 1 }, true))
     on('SimpleProductCancel', (c, r) => {
         const known =
             (c.state.simpleProducts ?? []).some((job) => job.guid === r.u32) ||
