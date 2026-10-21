@@ -27,7 +27,7 @@ import { petData, petGrade } from '../pets.js'
 import { ensureEntrustSceneObjects } from '../entrust.js'
 import { storyCampaignSnapshot } from '../story-campaign.js'
 import { syncStoryCampaignEnemies } from './story-campaign.js'
-import { exitEntrust, syncEntrust } from './entrust.js'
+import { exitEntrust, syncEntrust, startMaterialDungeon } from './entrust.js'
 
 const ids = (text) =>
     String(text ?? '')
@@ -420,7 +420,7 @@ export function registerKiboDuel(on, tables, protocol) {
         c.push('SCProtoKiboDuelArenaInfoSync', { ...arenaInfo, status: c.state.multiCampaign.arena_status })
         return {}
     }
-    on('MultiCampaignCreate', createNpcArena)
+    on('MultiCampaignCreate', (c, r) => (r.scene_type === 12 ? startMaterialDungeon(c, r) : createNpcArena(c, r)))
     // The commission teaching panel directly sends10746, without opening
     // the arena formation page. Its configured dungeon is still type400;
     // publish the same native arena state, rather than a fabricated old win.

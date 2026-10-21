@@ -1,5 +1,6 @@
 import { ErrorCode } from '../error-codes.js'
 import { rewardSource } from '../reward-source.js'
+import { materialDungeonSnapshot, materialDungeonUnlocked } from '../material-dungeons.js'
 import { ensure, syncPlayer } from './common.js'
 import { syncBattle } from '../battle.js'
 import { grantRewards, parseRewards } from '../rewards.js'
@@ -72,15 +73,34 @@ function claimEntrustChest(c, times = 1) {
             if (old) old.itemnum += reward.itemnum
             else merged.set(key, { ...reward })
         }
+        if (run.kind === 'material') {
+            // The material row specifies the three challenge bonus drop IDs.
+            // Pay them with the stamina-funded share, never from a win report.
+            // TODO: confirm bonus repetition/multipliers against an official
+            // settlement; current behavior follows the per-share reward data.
+            const ids = String(catalog.get(run.entrust_id).material.challengeReward || '')
+                .split('|')
+                .map(Number)
+            for (let star = 0; star < ids.length; star++) {
+                if (!((run.star_mask >>> star) & 1)) continue
+                for (const reward of drops.drops(ids[star], c.randomInt, budget)) {
+                    const key = `${reward.itemtype}:${reward.itemid}`,
+                        old = merged.get(key)
+                    if (old) old.itemnum += reward.itemnum
+                    else merged.set(key, { ...reward })
+                }
+            }
+        }
     }
     const rewards = [...merged.values()],
         exp = catalog.get(run.entrust_id).dungeon.userExp
-    if (exp > 0) rewards.push({ itemtype: 10, itemid: 10, itemnum: exp * times })
+    // Material chest pools already include player XP through nested drops.
+    if (run.kind !== 'material' && exp > 0) rewards.push({ itemtype: 10, itemid: 10, itemnum: exp * times })
     run.rewards = grantRewards(c.tables, c.state, rewards)
     run.chest_claimed = true
     run.claim_times = times
     run.stage_index = catalog.stages(run.entrust_id).at(-1).index + 1
-    c.state.entrust.records[run.entrust_id].first_reward_claimed = true
+    if (run.kind !== 'material') c.state.entrust.records[run.entrust_id].first_reward_claimed = true
     syncPlayer({ ...c, push: c.pushBefore })
     syncStage(c)
     return run.rewards
@@ -242,7 +262,8 @@ export function syncEntrust(c, run) {
     }
     c.pushBefore('SCProtoMultiCampaignPlayerDmgInfoSync', entrustDamageSnapshot(c.state, c.id))
     if (run.battle_complete) {
-        c.pushBefore('CSProtoEntrustInfoSync', entrustInfoSnapshot(c.state))
+        if (run.kind === 'material') c.pushBefore('SCProtoDungeonMaterialInfoSync', materialDungeonSnapshot(c.state))
+        else c.pushBefore('CSProtoEntrustInfoSync', entrustInfoSnapshot(c.state))
         c.pushBefore('CSProtoStaminaBoxSync', entrustChestSnapshot(c.tables, c.state))
     }
 }
@@ -267,55 +288,78 @@ export function exitEntrust(c) {
     return {}
 }
 
+export function startEntrust(c, id, restart = false, kind = 'entrust') {
+    const tables = c.tables,
+        catalog = getEntrustCatalog(tables)
+    const config = catalog.get(id),
+        active = c.state.entrust?.run
+    ensure((kind === 'material') === !!config.material, 'Dungeon entry type does not match configuration')
+    ensure(
+        kind === 'material'
+            ? materialDungeonUnlocked(config.entrust.taskUnlock, c.state)
+            : unlocked(config.entrust.taskUnlock, c.state),
+        'Dungeon is locked',
+        ErrorCode.EntrustUnlock,
+    )
+    ensure(!c.state.multiCampaign && !c.state.storyCampaign && !c.state.cultTrial, 'Another dungeon is active')
+    ensure(
+        !active || (restart && active.entrust_id === id && [2, 3].includes(active.status)),
+        'Another entrust is active',
+    )
+    const entrust = (c.state.entrust ??= { records: {}, starRewards: {}, nextInstanceId: 1 })
+    {
+        const w = c.state.world
+        // Enter/ReEnter always starts a new challenge. Only login/load
+        // resumes an existing run; historical stars never restore a box.
+        if (entrust.records[id]) delete entrust.records[id].pending_chest
+        const run = {
+            ...(kind === 'material' ? { kind: 'material' } : {}),
+            entrust_id: id,
+            dungeon_id: config.dungeon.id,
+            map_id: config.scene.id,
+            instance_id: entrust.nextInstanceId++,
+            status: 2,
+            star: 0,
+            hero_deaths: 0,
+            damage_total: '0',
+            start_time: c.now,
+            return_world: active?.return_world ?? {
+                map_id: w.map_id,
+                point_id: w.point_id,
+                area_id: w.area_id,
+                pos: { ...w.pos },
+                angle: w.angle,
+            },
+        }
+        entrust.run = run
+        Object.assign(w, tables.position(config.point))
+        delete c.state.combat
+        for (const key of Object.keys(c.state.worldObjects ?? {}))
+            if (key.startsWith(`${run.map_id}:`)) delete c.state.worldObjects[key]
+    }
+    ensureEntrustSceneObjects(tables, c.state, c.now)
+    c.pushBefore('CSProtoCurMultiCampaignInfoSync', { status: 1, dungeon_id: entrust.run.dungeon_id })
+    syncEntrust(c, entrust.run)
+    worldSync({ ...c, push: c.pushBefore }, {}, active ? 49 : 256, false)
+    syncBattle({ ...c, push: c.pushBefore })
+    return {}
+}
+
+export function startMaterialDungeon(c, r) {
+    ensure(
+        r.scene_type === 12 && !r.dungeon_site && !r.stage_id,
+        'Unsupported material dungeon entry parameters',
+        ErrorCode.FunctionClosed,
+    )
+    const rows = c.tables.get('dungeon_material').filter((row) => row.dungeonId === r.dungeon_id)
+    ensure(rows.length === 1, 'Material dungeon configuration unavailable', ErrorCode.DungeonConfNotExist)
+    return startEntrust(c, rows[0].id, false, 'material')
+}
+
 export function registerEntrust(on, tables) {
     const catalog = getEntrustCatalog(tables)
     const sync = syncEntrust
-    const start = (c, id, restart = false) => {
-        const config = catalog.get(id),
-            active = c.state.entrust?.run
-        ensure(unlocked(config.entrust.taskUnlock, c.state), 'Entrust is locked', ErrorCode.EntrustUnlock)
-        ensure(!c.state.multiCampaign, 'Another dungeon is active')
-        ensure(
-            !active || (restart && active.entrust_id === id && [2, 3].includes(active.status)),
-            'Another entrust is active',
-        )
-        const entrust = (c.state.entrust ??= { records: {}, starRewards: {}, nextInstanceId: 1 })
-        {
-            const w = c.state.world
-            // Enter/ReEnter always starts a new challenge. Only login/load
-            // resumes an existing run; historical stars never restore a box.
-            if (entrust.records[id]) delete entrust.records[id].pending_chest
-            const run = {
-                entrust_id: id,
-                dungeon_id: config.dungeon.id,
-                map_id: config.scene.id,
-                instance_id: entrust.nextInstanceId++,
-                status: 2,
-                star: 0,
-                hero_deaths: 0,
-                damage_total: '0',
-                start_time: c.now,
-                return_world: active?.return_world ?? {
-                    map_id: w.map_id,
-                    point_id: w.point_id,
-                    area_id: w.area_id,
-                    pos: { ...w.pos },
-                    angle: w.angle,
-                },
-            }
-            entrust.run = run
-            Object.assign(w, tables.position(config.point))
-            delete c.state.combat
-            for (const key of Object.keys(c.state.worldObjects ?? {}))
-                if (key.startsWith(`${run.map_id}:`)) delete c.state.worldObjects[key]
-        }
-        ensureEntrustSceneObjects(tables, c.state, c.now)
-        c.pushBefore('CSProtoCurMultiCampaignInfoSync', { status: 1, dungeon_id: entrust.run.dungeon_id })
-        sync(c, entrust.run)
-        worldSync({ ...c, push: c.pushBefore }, {}, active ? 49 : 256, false)
-        syncBattle({ ...c, push: c.pushBefore })
-        return {}
-    }
+    const start = (c, id, restart = false) => startEntrust(c, id, restart)
 
     on('EnterEntrust', (c, r) => start(c, r.entrust_id))
     on('ReEnterEntrust', (c, r) => start(c, r.entrust_id, true))

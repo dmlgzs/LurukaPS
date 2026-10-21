@@ -3,6 +3,7 @@ import { visibleEnemySlots } from './enemy-group-visibility.js'
 import { ensure } from './handlers/common.js'
 import { combatState } from './combat-state.js'
 import { enemyDefinition } from './enemy-state.js'
+import { recordMaterialVictory } from './material-dungeons.js'
 
 const catalogs = new WeakMap()
 export function getEntrustCatalog(tables) {
@@ -23,14 +24,18 @@ export class EntrustCatalog {
 
     get(id) {
         ensure(Number.isInteger(id) && id > 0, 'Invalid entrust ID')
-        const entrust = this.tables.find('dungeon_entrust', id)
+        const commission = this.tables.find('dungeon_entrust', id),
+            material = commission ? null : this.tables.find('dungeon_material', id),
+            entrust = commission ?? (material && { ...material, groupId: material.type, taskUnlock: material.unlock })
         ensure(entrust, 'Unknown entrust', ErrorCode.EntrustConfigNone)
         const dungeon = this.tables.find('dungeon', entrust.dungeonId)
         ensure(dungeon, 'Entrust dungeon configuration unavailable', ErrorCode.DungeonConfNotExist)
         if (!this.scenes.has(id)) {
             // The box filter is the explicit dungeon-to-scene relationship.
             // Numbered [test] city labels do NOT correspond to entrust IDs.
-            const chest = this.tables.get('stamina_chest_drop').find((row) => row.worldFilter === `1|${dungeon.id}`)
+            const chest = this.tables
+                .get('stamina_chest_drop')
+                .find((row) => row.worldFilter === `${material ? 4 : 1}|${dungeon.id}`)
             const city = chest && this.tables.find('world_city', chest.worldmapcityid)
             const scene = city && this.tables.find('dungeon_scene', city.id)
             const point =
@@ -44,7 +49,7 @@ export class EntrustCatalog {
             )
             this.scenes.set(id, { city, scene, point, chest })
         }
-        return { entrust, dungeon, ...this.scenes.get(id) }
+        return { entrust, dungeon, material, ...this.scenes.get(id) }
     }
 
     victoryObjects(id) {
@@ -75,7 +80,7 @@ export class EntrustCatalog {
                 .flatMap((row) => {
                     const token = String(row.expandParams ?? '')
                         .split('|')
-                        .find((part) => part.startsWith('autoBattleIndex#'))
+                        .find((part) => part.toLowerCase().startsWith('autobattleindex#'))
                     if (!token) return []
                     const index = Number(token.split('#')[1])
                     const type = this.tables.find('world_spawner', row.spawnerId)?.objectType
@@ -102,10 +107,10 @@ export class EntrustCatalog {
     }
 
     chest(id) {
-        const { dungeon } = this.get(id)
+        const { dungeon, material } = this.get(id)
         const row = this.tables.get('stamina_chest_drop').find((entry) => {
             const [type, target] = String(entry.worldFilter).split('|').map(Number)
-            return type === 1 && target === dungeon.id
+            return type === (material ? 4 : 1) && target === dungeon.id
         })
         ensure(
             row && row.worldmapid === this.stages(id).at(-1).row.id,
@@ -155,6 +160,10 @@ export function settleEntrustVictory(tables, state, now) {
         )
         run.damage_recovered_from_hp = true
     }
+    if (run.kind === 'material') {
+        recordMaterialVictory(tables, state, run, mask)
+        return true
+    }
     const old = state.entrust.records[run.entrust_id]
     state.entrust.records[run.entrust_id] = {
         ...old,
@@ -180,7 +189,7 @@ export function entrustChestSnapshot(tables, state) {
                 finish_time: run.chest_claimed ? 0 : (run.chest_ready_time ?? run.end_time),
                 map_id: run.map_id,
                 box_count: run.chest_claimed ? (run.claim_times ?? 1) : 0,
-                stage_type: 1,
+                stage_type: run.kind === 'material' ? 4 : 1,
                 stage_id: run.dungeon_id,
             },
         ],
@@ -294,7 +303,10 @@ export function ensureEntrustSceneObjects(tables, state, now) {
     if (run.sceneObjectVersion !== 4) {
         for (const key of Object.keys(records)) if (key.startsWith(`${run.map_id}:`)) delete records[key]
         if (state.combat?.map_id === run.map_id) delete state.combat
-        const alreadyWon = run.status === 3 && !!state.entrust.records?.[run.entrust_id]?.success_time
+        const alreadyWon =
+            run.status === 3 &&
+            !!(run.kind === 'material' ? state.materialDungeonRecords : state.entrust.records)?.[run.entrust_id]
+                ?.success_time
         run.stage_index = alreadyWon ? stages.at(-1).index + 1 : stages[0].index
         if (!alreadyWon) {
             run.status = 2

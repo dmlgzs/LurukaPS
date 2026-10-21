@@ -1,4 +1,5 @@
 import { ErrorCode } from './error-codes.js'
+import { materialDungeonSnapshot } from './material-dungeons.js'
 import { prepareCropOutcomes } from './crop-rewards.js'
 import { reconcileHomeStage } from './home-stage.js'
 import { npcArenaTickDue, forkNpcArenaRuntime, tickNpcArena } from './npc-kibo-service.js'
@@ -1371,6 +1372,7 @@ export class Game {
             this.packet('CSProtoRideMountInfo', mountPayload(this.tables, state)),
             this.packet('CSProtoTeachInfoSync', { u32s: state.teachingRecords ?? [] }),
             this.packet('CSProtoEntrustInfoSync', entrustInfoSnapshot(state)),
+            this.packet('SCProtoDungeonMaterialInfoSync', materialDungeonSnapshot(state)),
             this.packet('CSProtoEntrustStarRewardSync', entrustStarRewardSnapshot(state)),
             ...(state.entrust?.run?.map_id === state.world.map_id
                 ? [
