@@ -14,6 +14,7 @@ import { heroData } from './player.js'
 import { mainHeroConfigId } from './main-hero.js'
 import { changeTaskItem } from './task-items.js'
 import { grantPlayerCardItem } from './player-card-items.js'
+import { recordHeroAcquisition } from './hero-acquisition.js'
 export function parseRewards(value, allowZero = false) {
     if (!value) return []
     return String(value)
@@ -49,7 +50,8 @@ export function grantRewards(tables, state, rewards, depth = 0, context = {}) {
                 ErrorCode.GameConfig,
             )
             const heroes = state.player.heros_info.heros
-            let hero = heroes.find((h) => h.conf_id === itemid)
+            let hero = heroes.find((h) => h.conf_id === itemid && !h.trail)
+            const previouslyOwned = !!hero
             if (!hero) {
                 const mainId = mainHeroConfigId(tables, state.player.basic_info.sex)
                 hero = heroData(itemid, state.player.basic_info.id, itemid === mainId ? 1 : 0)
@@ -61,6 +63,7 @@ export function grantRewards(tables, state, rewards, depth = 0, context = {}) {
                 heroes.push(hero)
             }
             if (state.home) ensureHomeDormitories(tables, state)
+            recordHeroAcquisition(state, itemid, previouslyOwned)
             granted.push({ ...reward, guid: hero.guid })
             continue
         }

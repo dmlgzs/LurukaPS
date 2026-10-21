@@ -10,6 +10,7 @@ import { GrowupSystem } from './growup.js'
 const policy = JSON.parse(fs.readFileSync(new URL('../configs/activity-policy.json', import.meta.url)))
 export class ActivityCatalog {
     constructor(tables) {
+        this.commonTimeSources = []
         this.external = tables
         this.graphs = new TaskGraphs(tables)
         tables = activityTables(productionTables(tables))
@@ -193,6 +194,8 @@ export class ActivityCatalog {
                 end_time: String(w.end_time),
             })
         }
+        for (const source of this.commonTimeSources)
+            for (const row of source(now).data_list) times.set(row.time_id, row)
         return { data_list: [...times.values()] }
     }
     snapshot(state, now) {

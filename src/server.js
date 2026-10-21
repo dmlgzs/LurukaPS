@@ -62,6 +62,7 @@ export async function startServer(config, logger = console) {
             gmEnabled: config.gmEnabled ?? true,
             offlinePayments: config.offlinePayments ?? true,
             taskEventDiagnosticsFile: config.diagnosticsFile,
+            gachaPolicy: config.gachaPolicy,
         })
     const diagnostics = new ProtocolDiagnostics(
         config.database === ':memory:' && !config.diagnosticsForTests ? null : config.diagnosticsFile,
@@ -346,6 +347,31 @@ export async function startServer(config, logger = console) {
             return
         }
         switch (url.pathname) {
+            case '/version/client/ClientGachaPoolDetailReq': {
+                if (req.method !== 'POST') {
+                    res.writeHead(405, { 'content-type': 'application/json' })
+                    res.end(JSON.stringify({ code: 405, message: 'Method not allowed' }))
+                    return
+                }
+                try {
+                    if (
+                        requestBody.serverId !== undefined &&
+                        (!Number.isSafeInteger(requestBody.serverId) || requestBody.serverId < 0)
+                    ) {
+                        res.writeHead(400, { 'content-type': 'application/json' })
+                        res.end(JSON.stringify({ code: ErrorCode.InvalidArgument, message: 'Invalid serverId' }))
+                        return
+                    }
+                    data = { detail: game.gacha.detail(requestBody.poolId) }
+                    api = 'ClientGachaPoolDetailReq'
+                } catch (error) {
+                    const status = error.code === ErrorCode.InvalidArgument ? 400 : 500
+                    res.writeHead(status, { 'content-type': 'application/json' })
+                    res.end(JSON.stringify({ code: error.code ?? ErrorCode.GameConfig, message: error.message }))
+                    return
+                }
+                break
+            }
             case '/version/client/patchV1': {
                 api = 'PatchV1'
                 const zoneId = requestInt(requestBody.zoneId, 22),

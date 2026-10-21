@@ -310,6 +310,7 @@ export class Game {
             offlinePayments = true,
             taskEventDiagnosticsFile = null,
             syncOptimization = true,
+            gachaPolicy = undefined,
         } = {},
     ) {
         this.announcementBaseUrl = 'http://127.0.0.1:20001/'
@@ -339,7 +340,7 @@ export class Game {
         registerPlayableLifecycle(on, tables)
         const runGM = registerGM(on, { enabled: gmEnabled })
         registerCore(on)
-        registerGacha(on, tables)
+        this.gacha = registerGacha(on, tables, { policy: gachaPolicy })
         on('AnnounceRequest', (c) => announcementSnapshot(this.announcementBaseUrl, c.now))
         registerAIHeroes(on, tables)
         registerMonthly(on, tables)
@@ -348,6 +349,7 @@ export class Game {
         registerPlayableEnemies(on, tables, store)
         registerWorldEvents(on, tables)
         this.activities = registerActivities(on, tables)
+        this.activities.commonTimeSources.push(() => this.gacha.commonTimes())
         registerGrowup(on, this.activities)
         registerCultTrial(on, tables, this.activities)
         registerKiboDuel(on, tables, protocol)

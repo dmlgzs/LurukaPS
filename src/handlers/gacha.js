@@ -1,3 +1,4 @@
+import { gachaPoolDetail } from '../gacha-detail.js'
 import { GachaCatalog } from '../gacha.js'
 import { ErrorCode } from '../error-codes.js'
 import { ensure } from './common.js'
@@ -5,12 +6,33 @@ import { grantRewards, parseRewards } from '../rewards.js'
 import { rewardSource } from '../reward-source.js'
 import { gachaTables } from '../gacha-tables.js'
 import { gachaHistoryPage } from '../gacha-history.js'
+import { GachaDrawEngine } from '../gacha-draw.js'
+import { syncPlayer } from './common.js'
+import { syncBattle } from '../battle.js'
 
-export function registerGacha(on, tables) {
+export function registerGacha(on, tables, options = {}) {
     tables = gachaTables(tables)
-    // Loaded on first request: an unrelated login need not parse the entire gacha catalog.
+    // Common-time queries load only catalog metadata; candidate rules compile
+    // when an actual draw is requested.
     let catalog
     const data = () => (catalog ??= new GachaCatalog(tables))
+    let engine
+    on('GachaDraw', (c, r) => {
+        engine ??= new GachaDrawEngine(data(), tables, options.policy)
+        const result = engine.draw(c, r)
+        if (result.newHero || result.replay)
+            syncPlayer(
+                { ...c, push: c.pushBefore },
+                {
+                    heros_info: c.state.player.heros_info,
+                    ...(result.replay
+                        ? { sbag_infos: c.state.player.sbag_infos, soulessence_infos: c.state.player.soulessence_infos }
+                        : {}),
+                },
+            )
+        if (result.newHero) syncBattle({ ...c, push: c.pushBefore })
+        return result.reply
+    })
     on('GachaHistory', (c, r) => {
         c.pushBefore('CSProtoGachaHistoryNtf', gachaHistoryPage(data(), c.state, r))
         return {}
@@ -104,8 +126,19 @@ export function registerGacha(on, tables) {
             source: 'gachaUpReward',
         }),
     )
-    on('GachaData', (c) => ({
+    on('GachaData', (c) => {
         // This is progress data, not permission to draw in a closed banner.
-        gacha_pools: [...data().pools.keys()].map((id) => data().snapshot(c.state, id)),
-    }))
+        engine ??= new GachaDrawEngine(data(), tables, options.policy)
+        return { gacha_pools: engine.view(c.state) }
+    })
+    return {
+        detail: (poolId) => {
+            engine ??= new GachaDrawEngine(data(), tables, options.policy)
+            return gachaPoolDetail(data(), engine, tables, poolId)
+        },
+        commonTimes: () => {
+            engine ??= new GachaDrawEngine(data(), tables, options.policy)
+            return engine.commonTimes()
+        },
+    }
 }
