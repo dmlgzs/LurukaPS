@@ -14,6 +14,7 @@ import {
     clearRanchPetSlots,
     settleRanches,
 } from '../ranch.js'
+import { pickRanchDrops } from '../ranch-claims.js'
 
 export function ranchContext(c, block) {
     const map = ranchCatalog(c.tables).constants.get('HOME_ID')
@@ -22,6 +23,13 @@ export function ranchContext(c, block) {
     return ranchAt(c.tables, c.state, block)
 }
 export function registerRanch(on, tables) {
+    on('RanchPlayerGetReward', (c, request) => {
+        const ranch = ranchContext(c, request.block_id)
+        pickRanchDrops(tables, c.state, ranch, request)
+        // Current response is ProtoNullRsp; the shared dispatcher sends actual
+        // inventory/egg/ranch deltas before this pickup acknowledgement.
+        return {}
+    })
     on('RanchSetPetOption', (c, request) => {
         const ranch = ranchContext(c, request.block_id),
             data = ranchCatalog(tables)
