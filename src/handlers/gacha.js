@@ -9,6 +9,7 @@ import { gachaHistoryPage } from '../gacha-history.js'
 import { GachaDrawEngine } from '../gacha-draw.js'
 import { syncPlayer } from './common.js'
 import { syncBattle } from '../battle.js'
+import { grantGachaAcquisition } from '../gacha-acquisition.js'
 
 export function registerGacha(on, tables, options = {}) {
     tables = gachaTables(tables)
@@ -32,6 +33,60 @@ export function registerGacha(on, tables, options = {}) {
             )
         if (result.newHero) syncBattle({ ...c, push: c.pushBefore })
         return result.reply
+    })
+    on('GachaGetNewPlayerHero', (c, r) => {
+        const config = data().configuration(r.pool_id)
+        ensure(
+            Number.isSafeInteger(config.selfChoose) && config.selfChoose >= 0 && config.selfChoose <= 0xffffffff,
+            'Invalid gacha self-choice threshold',
+            ErrorCode.GameConfig,
+        )
+        ensure(config.selfChoose > 0, 'This pool has no new-player self-choice reward', ErrorCode.FunctionClosed)
+        // Current PageGachaChoose.SetData reads hero_SSR, independently of
+        // the soul aiming list selfChooseuplist.
+        const row = tables.get('gacha_pool').find((row) => row.gachaId === config.gachaId)
+        const allowed = parseRewards(row?.hero_SSR)
+        ensure(
+            allowed.length &&
+                allowed.every(
+                    (item) =>
+                        item.itemtype === 1 && item.itemnum === 1 && tables.find('hero', item.itemid)?.isUsable === 1,
+                ),
+            'Gacha self-choice candidate configuration unavailable',
+            ErrorCode.GameConfig,
+        )
+        const chosen = allowed.find((item) => item.itemid === r.item_id)
+        ensure(chosen, 'Hero is not offered by this gacha self-choice pool')
+        data().snapshot(c.state, config.gachaId)
+        const entry = data().state(c.state, config),
+            pool = entry.gacha_pool
+        ensure(
+            entry.self_choose_item_id === undefined ||
+                (Number.isInteger(entry.self_choose_item_id) &&
+                    entry.self_choose_item_id > 0 &&
+                    entry.self_choose_item_id <= 0xffffffff),
+            'Invalid saved gacha self-choice receipt',
+            ErrorCode.GameConfig,
+        )
+        if (pool.received_self_choose) {
+            ensure(
+                entry.self_choose_item_id === undefined || entry.self_choose_item_id === r.item_id,
+                'Self-choice reward already claimed with another hero',
+            )
+            return { rewards: { rewards: [] }, gachaPool: data().snapshot(c.state, config.gachaId).gacha_pool }
+        }
+        ensure(pool.pool_draw_count >= config.selfChoose, 'Gacha self-choice threshold not reached')
+        const acquisition = grantGachaAcquisition(tables, c.state, chosen, { extra: false })
+        pool.received_self_choose = true
+        entry.self_choose_item_id = r.item_id
+        if (acquisition.newHero) {
+            syncPlayer({ ...c, push: c.pushBefore }, { heros_info: c.state.player.heros_info })
+            syncBattle({ ...c, push: c.pushBefore })
+        }
+        return {
+            rewards: { rewards: acquisition.delivered, src: rewardSource(tables, 'gachaSelfChooseReward') },
+            gachaPool: data().snapshot(c.state, config.gachaId).gacha_pool,
+        }
     })
     on('GachaHistory', (c, r) => {
         c.pushBefore('CSProtoGachaHistoryNtf', gachaHistoryPage(data(), c.state, r))
