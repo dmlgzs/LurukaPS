@@ -9,6 +9,43 @@ function charInfo(id, records) {
     }
 }
 export function registerProfileQueries(on, tables, store) {
+    on('ChangeShowHero', (c, r) => {
+        // pageDisplayHero uses three one-based slots and sends the complete selection.
+        const selection = r.hero ?? []
+        ensure(selection.length <= 3, 'Too many displayed heroes')
+        const positions = new Set(),
+            guids = new Set()
+        const shown = selection
+            .map((entry) => {
+                const guid = String(entry.hero_id ?? '0')
+                ensure(
+                    Number.isInteger(entry.pos) &&
+                        entry.pos >= 1 &&
+                        entry.pos <= 3 &&
+                        !positions.has(entry.pos) &&
+                        !guids.has(guid),
+                    'Duplicate or invalid displayed hero slot',
+                )
+                const hero = c.state.player.heros_info.heros.find((row) => row.guid === guid)
+                ensure(hero && !hero.trail, 'Displayed hero is not owned', ErrorCode.HeroNotExist)
+                ensure(tables.find('hero', hero.conf_id), 'Displayed hero configuration missing', ErrorCode.GameConfig)
+                positions.add(entry.pos)
+                guids.add(guid)
+                return {
+                    id: guid,
+                    config: hero.conf_id,
+                    lv: hero.hero_lv,
+                    pos: entry.pos,
+                    star: hero.hero_star,
+                    skin: hero.hero_skin ?? hero.conf_id,
+                }
+            })
+            .sort((a, b) => a.pos - b.pos)
+        const basic = c.state.player.basic_info
+        basic.info = { ...basic.info, hero: shown }
+        syncPlayer({ ...c, push: c.pushBefore }, { basic_info: { info: basic.info } })
+        return {}
+    })
     on('ReadHandbookRead', (c, r) => {
         const ids = [...new Set(r.book_id ?? [])]
         ensure(ids.length <= 256, 'Too many readings')

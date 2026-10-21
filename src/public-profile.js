@@ -14,6 +14,7 @@ export const profileKeys = [
     'apparel_info',
     'clothes_info',
     'skin_id',
+    'info',
 ]
 export function publicProfile(basic) {
     return Object.fromEntries(profileKeys.filter((key) => basic[key] !== undefined).map((key) => [key, basic[key]]))
