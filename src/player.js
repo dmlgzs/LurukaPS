@@ -16,7 +16,7 @@ export const heroData = (configId, accountId, type = 0) => ({
     hero_exp: 0,
     hero_rank: 1,
     hero_star: 0,
-    hero_grade: 1,
+    hero_grade: 0,
     system_skill_levels: [1, 1, 1, 1, 1, 1],
     type,
     favorability_lv: 1,

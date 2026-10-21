@@ -3,6 +3,7 @@ import { temporaryHeroes, temporaryPets, activeFormationManager } from './trial-
 import { heroTrialSoulEssence } from './trial-equipment.js'
 import { soulEssenceGrade } from './equipment.js'
 import { soulSkillsAtGrade } from './skills.js'
+import { heroGradeEffects } from './hero-grade.js'
 // CBT3 client evidence: ui_configtpl_herotpl.lua:getHeroConfigAtt;
 // ui_store_hero_data_heroattrmoduleinfo.lua:addSub; const.lua:SpecialAttList.
 const specialAttributes = new Set([1, 3, 5, 201, 229, 230])
@@ -40,6 +41,7 @@ export function heroBattleConfig(tables, hero) {
 }
 function heroSkills(tables, config, hero) {
     const runeSkills = runeBonuses(tables, hero).skills
+    const gradeSources = new Map([...heroGradeEffects(hero).switches].map(([source, target]) => [target, source]))
     const battleInfo = heroBattleConfig(tables, hero)
     const selected = battleInfo || config
     const skills = new Map()
@@ -54,7 +56,7 @@ function heroSkills(tables, config, hero) {
             battleInfo && Math.floor(id / 100) === battleInfo.id
                 ? Math.floor(battleInfo.id / 100) * 100 + (id % 100)
                 : id
-        const index = system.indexOf(canonical)
+        const index = system.indexOf(gradeSources.get(canonical) ?? canonical)
         skills.set(`${slot}:${id}`, {
             skill_id: id,
             skill_lv: (index < 0 ? 1 : hero.system_skill_levels[index] || 1) + (runeSkills.get(index) ?? 0),
@@ -138,6 +140,27 @@ export function heroModules(tables, state, hero) {
                 sub_module_id: 0,
                 attrs: { attrs: wireAttributes(ornamentAttrs) },
                 skills: { skills: ornamentSkills(tables, state, hero) },
+            },
+        ],
+    })
+    const grade = heroGradeEffects(hero)
+    modules.push({
+        // CBT3 HeroAttrModuleType.HamtHeroGrade = 10 (dump.cs).
+        module_type: 10,
+        sub_modules: [
+            {
+                sub_module_id: 0,
+                attrs: {
+                    attrs: wireAttributes(
+                        new Map(
+                            [...grade.attrs].map(([id, value]) => [
+                                id,
+                                value * (specialAttributes.has(id) ? 10000 : 1),
+                            ]),
+                        ),
+                    ),
+                },
+                skills: { skills: grade.skills },
             },
         ],
     })

@@ -13,6 +13,7 @@ import { syncCurrencyMirrors } from './currency.js'
 import { heroData } from './player.js'
 import { mainHeroConfigId } from './main-hero.js'
 import { changeTaskItem } from './task-items.js'
+import { grantPlayerCardItem } from './player-card-items.js'
 export function parseRewards(value, allowZero = false) {
     if (!value) return []
     return String(value)
@@ -91,6 +92,9 @@ export function grantRewards(tables, state, rewards, depth = 0, context = {}) {
             }
             state.nextEssenceGuid = next
             continue
+        } else if (itemtype === 26) {
+            ensure(itemnum === 1, 'Player card decoration is unique', ErrorCode.GameConfig)
+            grantPlayerCardItem(tables, state, itemid)
         } else if (itemtype === 25) {
             ensure(tables.find('mount_saddle', itemid), 'Unknown mount saddle', ErrorCode.MountSaddleConfNotFound)
             state.mountSaddles ??= tables.get('mount_saddle').map((r) => r.id)

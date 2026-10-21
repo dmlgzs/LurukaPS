@@ -6,6 +6,7 @@ import { currentRunes, runeSkillPairs } from '../hero-equipment.js'
 import { parseRewards, grantRewards } from '../rewards.js'
 import { rewardSource } from '../reward-source.js'
 import { heroSkillUpgrade } from '../hero-skill-upgrades.js'
+import { nextHeroGrade } from '../hero-grade.js'
 
 function ownedHero(state, id) {
     const result = state.player.heros_info.heros.find((item) => item.guid === String(id))
@@ -91,6 +92,18 @@ function composedRuneCosts(c, itemIds, reserved = new Map()) {
 }
 
 export function registerHeroEquipment(on, publishEquipment) {
+    on('GradeUpHero', (c, r) => {
+        const hero = ownedHero(c.state, r.u64)
+        ensure(!hero.trail, 'Temporary hero cannot be permanently upgraded', ErrorCode.HeroNotExist)
+        const next = nextHeroGrade(c.tables, hero)
+        spend(c.state, next.costs, 0, c.now)
+        const rewards = grantRewards(c.tables, c.state, parseRewards(next.reward))
+        hero.hero_grade = next.grade
+        const before = { ...c, push: c.pushBefore }
+        syncPlayer(before, { heros_info: { heros: [hero] } })
+        syncBattle(before)
+        return { rewards, src: rewardSource(c.tables, 'heroGradeUpgrade') }
+    })
     on('LvUpSkill', (c, r) => {
         const hero = ownedHero(c.state, r.hero_id)
         ensure(!hero.trail, 'Temporary hero skills cannot be permanently upgraded', ErrorCode.HeroNotExist)
