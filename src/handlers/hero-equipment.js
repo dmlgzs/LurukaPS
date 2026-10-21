@@ -10,6 +10,7 @@ import { nextHeroGrade } from '../hero-grade.js'
 import { nextHeroRank } from '../hero-rank.js'
 import { nextSoulRank } from '../soul-rank.js'
 import { planSoulStar } from '../soul-star.js'
+import { soulDecomposePlan } from '../soul-decompose.js'
 
 function ownedHero(state, id) {
     const result = state.player.heros_info.heros.find((item) => item.guid === String(id))
@@ -95,6 +96,18 @@ function composedRuneCosts(c, itemIds, reserved = new Map()) {
 }
 
 export function registerHeroEquipment(on, publishEquipment) {
+    on('DecomposeSoulEssence', (c, r) => {
+        const plan = soulDecomposePlan(c.tables, c.state, r.guids ?? [])
+        c.state.player.soulessence_infos.soulessences = c.state.player.soulessence_infos.soulessences.filter(
+            (item) => !plan.selected.has(item.guid),
+        )
+        const rewards = grantRewards(c.tables, c.state, plan.rewards)
+        syncPlayer(
+            { ...c, push: c.pushBefore },
+            { soulessence_infos: { soulessences: [], del_pos: [...plan.selected] } },
+        )
+        return { rewards, src: rewardSource(c.tables, 'soulDecompose') }
+    })
     on('RisingStarSoulEssence', (c, r) => {
         const plan = planSoulStar(c.tables, c.state, r)
         spend(c.state, plan.costs, 0, c.now)
