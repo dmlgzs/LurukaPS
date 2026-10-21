@@ -89,6 +89,36 @@ function composedRuneCosts(c, itemIds, reserved = new Map()) {
 }
 
 export function registerHeroEquipment(on, publishEquipment) {
+    const publishOrnaments = (c) => {
+        c.state.ornamentRevision = (c.state.ornamentRevision ?? 0) + 1
+        c.pushBefore('CSProtoUpdateOrnament', { ornaments: c.state.ornaments ?? [], guid: [] })
+        publishEquipment({ ...c, push: c.pushBefore })
+    }
+    on('MoveOrnament', (c, r) => {
+        const hero = ownedHero(c.state, r.hero_id)
+        const item = c.state.ornaments?.find((entry) => entry.guid === r.ornament_guid)
+        ensure(item, 'Ornament not owned', ErrorCode.OrnamentNotExist)
+        const config = c.tables.find('accessory', item.id)
+        ensure(config, 'Ornament configuration unavailable', ErrorCode.OrnamentConfFail)
+        ensure(
+            Number.isInteger(config.type) && config.type >= 1 && config.type <= 5,
+            'Invalid ornament slot configuration',
+            ErrorCode.GameConfig,
+        )
+        const slot = config.type - 1
+        // Both directions must be changed: HeroInfo.oguid and Ornament.wear_hero.
+        for (const other of c.state.player.heros_info.heros) {
+            if (other.oguid) other.oguid = other.oguid.map((guid) => (guid === item.guid ? 0 : guid))
+        }
+        hero.oguid ??= Array(5).fill(0)
+        while (hero.oguid.length < 5) hero.oguid.push(0)
+        const previous = c.state.ornaments.find((entry) => entry.guid === hero.oguid[slot])
+        if (previous) previous.wear_hero = '0'
+        hero.oguid[slot] = item.guid
+        item.wear_hero = hero.guid
+        publishOrnaments(c)
+        return {}
+    })
     on('QuickWear', (c, r) => {
         const h = ownedHero(c.state, r.hero_guid),
             ids = r.ornament_guids ?? []
