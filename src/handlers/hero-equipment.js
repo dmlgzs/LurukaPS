@@ -8,6 +8,7 @@ import { rewardSource } from '../reward-source.js'
 import { heroSkillUpgrade } from '../hero-skill-upgrades.js'
 import { nextHeroGrade } from '../hero-grade.js'
 import { nextHeroRank } from '../hero-rank.js'
+import { nextSoulRank } from '../soul-rank.js'
 
 function ownedHero(state, id) {
     const result = state.player.heros_info.heros.find((item) => item.guid === String(id))
@@ -93,6 +94,17 @@ function composedRuneCosts(c, itemIds, reserved = new Map()) {
 }
 
 export function registerHeroEquipment(on, publishEquipment) {
+    on('RankUpSoulEssence', (c, r) => {
+        const item = c.state.player.soulessence_infos.soulessences.find((item) => item.guid === r.guid)
+        ensure(item, 'Soul essence is not owned', ErrorCode.SoulEssenceNotExist)
+        const next = nextSoulRank(c.tables, c.state, item)
+        spend(c.state, next.costs, next.gold, c.now)
+        item.rank = next.rank
+        const before = { ...c, push: c.pushBefore }
+        syncPlayer(before, { soulessence_infos: { soulessences: [item] } })
+        syncBattle(before)
+        return {}
+    })
     on('HeroRuneLevelUp', (c, r) => {
         const hero = ownedHero(c.state, r.hero_id)
         ensure(!hero.trail, 'Temporary hero cannot permanently advance rank', ErrorCode.HeroNotExist)
