@@ -14,7 +14,7 @@ import {
     clearRanchPetSlots,
     settleRanches,
 } from '../ranch.js'
-import { pickRanchDrops } from '../ranch-claims.js'
+import { pickRanchDrops, storeRanchDrop } from '../ranch-claims.js'
 
 export function ranchContext(c, block) {
     const map = ranchCatalog(c.tables).constants.get('HOME_ID')
@@ -23,6 +23,11 @@ export function ranchContext(c, block) {
     return ranchAt(c.tables, c.state, block)
 }
 export function registerRanch(on, tables) {
+    on('RanchPetAutoGetReward', (c, request) => {
+        const ranch = ranchContext(c, request.block_id)
+        storeRanchDrop(tables, c.state, ranch, request.reward_guid)
+        return {}
+    })
     on('RanchPlayerGetReward', (c, request) => {
         const ranch = ranchContext(c, request.block_id)
         pickRanchDrops(tables, c.state, ranch, request)

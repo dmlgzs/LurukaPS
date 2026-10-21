@@ -1,6 +1,71 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { grantRewards } from './rewards.js'
+import fs from 'node:fs'
+import { ranchCatalog } from './ranch.js'
+
+const stackRules = new Map(
+    JSON.parse(fs.readFileSync(new URL('../configs/inventory-tables/common_item.json', import.meta.url))).map((row) => [
+        row.id,
+        row.stackNum,
+    ]),
+)
+export function ranchStoredSlots(stores) {
+    return stores.reduce((count, item) => {
+        ensure(item.itemtype === 3, 'Unsupported ranch storage item type', ErrorCode.FunctionClosed)
+        const stack = stackRules.get(item.itemid)
+        ensure(
+            Number.isSafeInteger(stack) &&
+                stack >= 0 &&
+                Number.isSafeInteger(item.itemnum) &&
+                item.itemnum > 0 &&
+                item.itemnum <= 0xffffffff,
+            'Invalid ranch storage stack configuration',
+            ErrorCode.GameConfig,
+        )
+        return count + (stack > 0 ? Math.ceil(item.itemnum / stack) : 1)
+    }, 0)
+}
+export function storeRanchDrop(tables, state, ranch, guid) {
+    ensure(
+        Number.isSafeInteger(guid) && guid > 0 && guid <= 0xffffffff,
+        'Invalid ranch pickup identity',
+        ErrorCode.InvalidArgument,
+    )
+    const drop = ranch.drops.find((drop) => drop.guid === guid)
+    if (!drop && ranch.claimedRewardGuids?.includes(guid)) return false
+    ensure(drop, 'Ranch drop is no longer present', ErrorCode.HomeRanchDropNotExist)
+    const pet = state.pets.find((pet) => pet.guid === ranch.harvest_pet)
+    ensure(
+        pet?.work_status === 6 &&
+            pet.work_build === ranch.block_id &&
+            pet.capacity_id === ranchCatalog(tables).constants.get('HOME_PET_RANCH_HARVEST_ATTRIBUTE'),
+        'Ranch has no active harvesting worker',
+        ErrorCode.BuildPetAutoWorkInvalid,
+    )
+    const stores = ranch.stores.map((item) => ({ ...item })),
+        incoming = drop.item
+    ensure(
+        incoming.itemtype === 3 &&
+            Number.isSafeInteger(incoming.itemid) &&
+            tables.find('common_item', incoming.itemid) &&
+            Number.isSafeInteger(incoming.itemnum) &&
+            incoming.itemnum > 0,
+        'Invalid stored ranch drop',
+        ErrorCode.GameConfig,
+    )
+    const existing = stores.find((item) => item.itemtype === incoming.itemtype && item.itemid === incoming.itemid)
+    if (existing) existing.itemnum += incoming.itemnum
+    else stores.push({ itemtype: incoming.itemtype, itemid: incoming.itemid, itemnum: incoming.itemnum })
+    const limit = ranchCatalog(tables).levels.get(ranch.lv)?.storageLimit
+    ensure(Number.isSafeInteger(limit) && limit > 0, 'Invalid ranch storage capacity', ErrorCode.GameConfig)
+    ensure(ranchStoredSlots(stores) <= limit, 'Ranch storage is full', ErrorCode.BagItemFull)
+    ranch.stores = stores
+    ranch.drops = ranch.drops.filter((drop) => drop.guid !== guid)
+    rememberRanchClaim(ranch, 'reward', guid)
+    state.homeRevision = (state.homeRevision || 0) + 1
+    return true
+}
 
 export function rememberRanchClaim(ranch, kind, guid) {
     const key = kind === 'egg' ? 'claimedEggGuids' : 'claimedRewardGuids'
