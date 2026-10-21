@@ -1,0 +1,1642 @@
+[
+  {
+    "petId": 500001,
+    "petGroup": 1,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500002,
+    "petGroup": 2,
+    "nextPetId": 500003,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 20
+  },
+  {
+    "petId": 500003,
+    "petGroup": 2,
+    "nextPetId": 500004,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500004,
+    "petGroup": 2,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500005,
+    "petGroup": 3,
+    "nextPetId": 500006,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 20
+  },
+  {
+    "petId": 500006,
+    "petGroup": 3,
+    "nextPetId": 500007,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500007,
+    "petGroup": 3,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500020,
+    "petGroup": 4,
+    "nextPetId": 500021,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 30
+  },
+  {
+    "petId": 500021,
+    "petGroup": 4,
+    "nextPetId": 500022,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500022,
+    "petGroup": 4,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500023,
+    "petGroup": 5,
+    "nextPetId": 500024,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500024,
+    "petGroup": 5,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500025,
+    "petGroup": 6,
+    "nextPetId": 500231,
+    "rankBreakthroughItem": "3#499001#1",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500026,
+    "petGroup": 7,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500035,
+    "petGroup": 12,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500037,
+    "petGroup": 14,
+    "nextPetId": 500038,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 30
+  },
+  {
+    "petId": 500038,
+    "petGroup": 14,
+    "nextPetId": 500039,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500039,
+    "petGroup": 14,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500040,
+    "petGroup": 15,
+    "nextPetId": 500041,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500041,
+    "petGroup": 15,
+    "nextPetId": 500042,
+    "rankBreakthroughItem": "3#499003#1",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500042,
+    "petGroup": 15,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500043,
+    "petGroup": 16,
+    "nextPetId": 500044,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 30
+  },
+  {
+    "petId": 500044,
+    "petGroup": 16,
+    "nextPetId": 500045,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 45
+  },
+  {
+    "petId": 500045,
+    "petGroup": 16,
+    "nextPetId": 500185,
+    "rankBreakthroughItem": "3#499002#1",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500046,
+    "petGroup": 17,
+    "nextPetId": 500047,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 30
+  },
+  {
+    "petId": 500047,
+    "petGroup": 17,
+    "nextPetId": 500048,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500048,
+    "petGroup": 17,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500051,
+    "petGroup": 19,
+    "nextPetId": 500052,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500052,
+    "petGroup": 19,
+    "nextPetId": 500053,
+    "rankBreakthroughItem": "3#499007#1",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500053,
+    "petGroup": 19,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500054,
+    "petGroup": 20,
+    "nextPetId": 500055,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500055,
+    "petGroup": 20,
+    "nextPetId": 500056,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500056,
+    "petGroup": 20,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500057,
+    "petGroup": 6,
+    "nextPetId": 500025,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500058,
+    "petGroup": 21,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500064,
+    "petGroup": 24,
+    "nextPetId": 500353,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 30
+  },
+  {
+    "petId": 500065,
+    "petGroup": 24,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500066,
+    "petGroup": 25,
+    "nextPetId": 500067,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 30
+  },
+  {
+    "petId": 500067,
+    "petGroup": 25,
+    "nextPetId": 500068,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500068,
+    "petGroup": 25,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500069,
+    "petGroup": 95,
+    "nextPetId": 500070,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500070,
+    "petGroup": 95,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500072,
+    "petGroup": 27,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500078,
+    "petGroup": 51,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500079,
+    "petGroup": 30,
+    "nextPetId": 500080,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500080,
+    "petGroup": 30,
+    "nextPetId": 500081,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500081,
+    "petGroup": 30,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500082,
+    "petGroup": 31,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500083,
+    "petGroup": 32,
+    "nextPetId": 500084,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 30
+  },
+  {
+    "petId": 500084,
+    "petGroup": 32,
+    "nextPetId": 500085,
+    "rankBreakthroughItem": "3#499005#1",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500085,
+    "petGroup": 32,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500091,
+    "petGroup": 87,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500092,
+    "petGroup": 1,
+    "nextPetId": 500001,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 20
+  },
+  {
+    "petId": 500093,
+    "petGroup": 33,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500095,
+    "petGroup": 34,
+    "nextPetId": 500096,
+    "rankBreakthroughItem": "3#499004#1",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500096,
+    "petGroup": 34,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500097,
+    "petGroup": 59,
+    "nextPetId": 500098,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500098,
+    "petGroup": 59,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500110,
+    "petGroup": 7,
+    "nextPetId": 500111,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 50
+  },
+  {
+    "petId": 500111,
+    "petGroup": 7,
+    "nextPetId": 500026,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 70
+  },
+  {
+    "petId": 500114,
+    "petGroup": 36,
+    "nextPetId": 500115,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 20
+  },
+  {
+    "petId": 500115,
+    "petGroup": 36,
+    "nextPetId": 500116,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500116,
+    "petGroup": 36,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500117,
+    "petGroup": 91,
+    "nextPetId": 500118,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500118,
+    "petGroup": 91,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500120,
+    "petGroup": 37,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500123,
+    "petGroup": 38,
+    "nextPetId": 500124,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 30
+  },
+  {
+    "petId": 500124,
+    "petGroup": 38,
+    "nextPetId": 500125,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500125,
+    "petGroup": 38,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500126,
+    "petGroup": 39,
+    "nextPetId": 500127,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 20
+  },
+  {
+    "petId": 500127,
+    "petGroup": 39,
+    "nextPetId": 500128,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500128,
+    "petGroup": 39,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500129,
+    "petGroup": 71,
+    "nextPetId": 500130,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500130,
+    "petGroup": 71,
+    "nextPetId": 500131,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500131,
+    "petGroup": 71,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500132,
+    "petGroup": 40,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500133,
+    "petGroup": 41,
+    "nextPetId": 500134,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 20
+  },
+  {
+    "petId": 500134,
+    "petGroup": 41,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500135,
+    "petGroup": 103,
+    "nextPetId": 500137,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500137,
+    "petGroup": 103,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500138,
+    "petGroup": 42,
+    "nextPetId": 500139,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 25
+  },
+  {
+    "petId": 500139,
+    "petGroup": 42,
+    "nextPetId": 500140,
+    "rankBreakthroughItem": "3#499006#1",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500140,
+    "petGroup": 42,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500147,
+    "petGroup": 44,
+    "nextPetId": 500148,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 20
+  },
+  {
+    "petId": 500148,
+    "petGroup": 44,
+    "nextPetId": 500149,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500149,
+    "petGroup": 44,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500156,
+    "petGroup": 48,
+    "nextPetId": 500157,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 20
+  },
+  {
+    "petId": 500157,
+    "petGroup": 48,
+    "nextPetId": 500158,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500158,
+    "petGroup": 48,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500164,
+    "petGroup": 45,
+    "nextPetId": 500165,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 20
+  },
+  {
+    "petId": 500165,
+    "petGroup": 45,
+    "nextPetId": 500166,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500166,
+    "petGroup": 45,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500167,
+    "petGroup": 107,
+    "nextPetId": 500168,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500168,
+    "petGroup": 107,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500173,
+    "petGroup": 47,
+    "nextPetId": 500174,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 20
+  },
+  {
+    "petId": 500174,
+    "petGroup": 47,
+    "nextPetId": 500175,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500175,
+    "petGroup": 47,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500179,
+    "petGroup": 49,
+    "nextPetId": 500180,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500180,
+    "petGroup": 49,
+    "nextPetId": 500181,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500181,
+    "petGroup": 49,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500185,
+    "petGroup": 16,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500186,
+    "petGroup": 64,
+    "nextPetId": 500187,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500187,
+    "petGroup": 64,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500206,
+    "petGroup": 69,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500207,
+    "petGroup": 60,
+    "nextPetId": 500208,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500208,
+    "petGroup": 60,
+    "nextPetId": 500209,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500209,
+    "petGroup": 60,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500211,
+    "petGroup": 104,
+    "nextPetId": 500212,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500212,
+    "petGroup": 104,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500213,
+    "petGroup": 61,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500214,
+    "petGroup": 65,
+    "nextPetId": 500215,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500215,
+    "petGroup": 65,
+    "nextPetId": 500216,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500216,
+    "petGroup": 65,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500220,
+    "petGroup": 62,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500231,
+    "petGroup": 6,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500244,
+    "petGroup": 55,
+    "nextPetId": 500245,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500245,
+    "petGroup": 55,
+    "nextPetId": 500246,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500246,
+    "petGroup": 55,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500247,
+    "petGroup": 92,
+    "nextPetId": 500248,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500248,
+    "petGroup": 92,
+    "nextPetId": 500249,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500249,
+    "petGroup": 92,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500254,
+    "petGroup": 79,
+    "nextPetId": 500255,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500255,
+    "petGroup": 79,
+    "nextPetId": 500256,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500256,
+    "petGroup": 79,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500258,
+    "petGroup": 52,
+    "nextPetId": 500259,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500259,
+    "petGroup": 52,
+    "nextPetId": 500260,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500260,
+    "petGroup": 52,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500261,
+    "petGroup": 56,
+    "nextPetId": 500262,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500262,
+    "petGroup": 56,
+    "nextPetId": 500263,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500263,
+    "petGroup": 56,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500293,
+    "petGroup": 81,
+    "nextPetId": 500294,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500294,
+    "petGroup": 81,
+    "nextPetId": 500295,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500295,
+    "petGroup": 81,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500296,
+    "petGroup": 72,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500297,
+    "petGroup": 53,
+    "nextPetId": 500298,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 30
+  },
+  {
+    "petId": 500298,
+    "petGroup": 53,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500304,
+    "petGroup": 68,
+    "nextPetId": 500305,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500305,
+    "petGroup": 68,
+    "nextPetId": 500306,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500306,
+    "petGroup": 68,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500309,
+    "petGroup": 98,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500313,
+    "petGroup": 66,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500353,
+    "petGroup": 24,
+    "nextPetId": 500065,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500354,
+    "petGroup": 70,
+    "nextPetId": 500355,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 30
+  },
+  {
+    "petId": 500355,
+    "petGroup": 70,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500357,
+    "petGroup": 78,
+    "nextPetId": 500358,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500358,
+    "petGroup": 78,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500360,
+    "petGroup": 75,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500364,
+    "petGroup": 99,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500365,
+    "petGroup": 100,
+    "nextPetId": 500366,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 30
+  },
+  {
+    "petId": 500366,
+    "petGroup": 100,
+    "nextPetId": 500367,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500367,
+    "petGroup": 100,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500368,
+    "petGroup": 80,
+    "nextPetId": 500369,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500369,
+    "petGroup": 80,
+    "nextPetId": 500370,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500370,
+    "petGroup": 80,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500371,
+    "petGroup": 86,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500399,
+    "petGroup": 82,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500419,
+    "petGroup": 97,
+    "nextPetId": 500420,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500420,
+    "petGroup": 97,
+    "nextPetId": 500421,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500421,
+    "petGroup": 97,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500467,
+    "petGroup": 73,
+    "nextPetId": 500468,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500468,
+    "petGroup": 73,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500469,
+    "petGroup": 83,
+    "nextPetId": 500470,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500470,
+    "petGroup": 83,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500490,
+    "petGroup": 90,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500516,
+    "petGroup": 89,
+    "nextPetId": 500517,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500517,
+    "petGroup": 89,
+    "nextPetId": 500518,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500518,
+    "petGroup": 89,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500537,
+    "petGroup": 85,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500544,
+    "petGroup": 20,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500557,
+    "petGroup": 84,
+    "nextPetId": 500558,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500558,
+    "petGroup": 84,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500573,
+    "petGroup": 75,
+    "nextPetId": 500574,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 30
+  },
+  {
+    "petId": 500574,
+    "petGroup": 75,
+    "nextPetId": 500575,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 45
+  },
+  {
+    "petId": 500575,
+    "petGroup": 75,
+    "nextPetId": 500360,
+    "rankBreakthroughItem": "3#499010#1",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500576,
+    "petGroup": 31,
+    "nextPetId": 500082,
+    "rankBreakthroughItem": "3#499009#1",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 70
+  },
+  {
+    "petId": 500599,
+    "petGroup": 101,
+    "nextPetId": 500600,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500600,
+    "petGroup": 101,
+    "nextPetId": 500601,
+    "rankBreakthroughItem": "3#499011#1",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500601,
+    "petGroup": 101,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500602,
+    "petGroup": 102,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500605,
+    "petGroup": 88,
+    "nextPetId": 500606,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500606,
+    "petGroup": 88,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500609,
+    "petGroup": 105,
+    "nextPetId": 500610,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500610,
+    "petGroup": 105,
+    "nextPetId": 500611,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500611,
+    "petGroup": 105,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500713,
+    "petGroup": 110,
+    "nextPetId": 500714,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500714,
+    "petGroup": 110,
+    "nextPetId": 500715,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500715,
+    "petGroup": 110,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500748,
+    "petGroup": 113,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500750,
+    "petGroup": 84,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500751,
+    "petGroup": 60,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500752,
+    "petGroup": 82,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500753,
+    "petGroup": 91,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500755,
+    "petGroup": 66,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500764,
+    "petGroup": 108,
+    "nextPetId": 500765,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500765,
+    "petGroup": 108,
+    "nextPetId": 500766,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500766,
+    "petGroup": 108,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500812,
+    "petGroup": 109,
+    "nextPetId": 500813,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 40
+  },
+  {
+    "petId": 500813,
+    "petGroup": 109,
+    "nextPetId": 500814,
+    "rankBreakthroughItem": "3#499001#1",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500814,
+    "petGroup": 109,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500815,
+    "petGroup": 112,
+    "nextPetId": 500816,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500816,
+    "petGroup": 112,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500817,
+    "petGroup": 111,
+    "nextPetId": 500818,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500818,
+    "petGroup": 111,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  },
+  {
+    "petId": 500819,
+    "petGroup": 106,
+    "nextPetId": 500820,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 60
+  },
+  {
+    "petId": 500820,
+    "petGroup": 106,
+    "nextPetId": 0,
+    "rankBreakthroughItem": "",
+    "rankBreakthroughCoin": 0,
+    "levelNeed": 0
+  }
+]

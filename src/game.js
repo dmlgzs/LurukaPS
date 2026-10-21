@@ -10,6 +10,7 @@ import { selectedArenaGroup } from './npc-kibo-duel.js'
 import { arenaTrainer } from './npc-kibo-trainer.js'
 import { ensureFlightUnlocked, explorationSnapshot } from './flight-unlock.js'
 import { registerNoviceTasks } from './handlers/novice-tasks.js'
+import { registerPetEvolution } from './handlers/pet-evolution.js'
 import { playerCardSnapshot } from './player-card-items.js'
 import { registerActivities } from './handlers/activities.js'
 import { registerGrowup } from './handlers/growup.js'
@@ -334,6 +335,7 @@ export class Game {
         registerRoulette(on)
         registerPetSkill(on)
         registerPetCatch(on)
+        registerPetEvolution(on)
         registerPlayableLifecycle(on, tables)
         const runGM = registerGM(on, { enabled: gmEnabled })
         registerCore(on)
