@@ -119,6 +119,14 @@ export function registerHeroEquipment(on, publishEquipment) {
         publishOrnaments(c)
         return {}
     })
+    on('SetLockOrnament', (c, r) => {
+        const item = c.state.ornaments?.find((entry) => entry.guid === r.guid)
+        ensure(item, 'Ornament not owned', ErrorCode.OrnamentNotExist)
+        item.lock = r.lock ?? false
+        c.state.ornamentRevision = (c.state.ornamentRevision ?? 0) + 1
+        c.pushBefore('CSProtoUpdateOrnament', { ornaments: [item], guid: [] })
+        return {}
+    })
     on('QuickWear', (c, r) => {
         const h = ownedHero(c.state, r.hero_guid),
             ids = r.ornament_guids ?? []
