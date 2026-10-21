@@ -4,12 +4,17 @@ import { ensure } from './common.js'
 import { grantRewards, parseRewards } from '../rewards.js'
 import { rewardSource } from '../reward-source.js'
 import { gachaTables } from '../gacha-tables.js'
+import { gachaHistoryPage } from '../gacha-history.js'
 
 export function registerGacha(on, tables) {
     tables = gachaTables(tables)
     // Loaded on first request: an unrelated login need not parse the entire gacha catalog.
     let catalog
     const data = () => (catalog ??= new GachaCatalog(tables))
+    on('GachaHistory', (c, r) => {
+        c.pushBefore('CSProtoGachaHistoryNtf', gachaHistoryPage(data(), c.state, r))
+        return {}
+    })
     on('GachaAimTarget', (c, r) => {
         const config = data().configuration(r.pool_id)
         const allowed = parseRewards(config.selfChooseuplist)

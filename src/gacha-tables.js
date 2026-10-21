@@ -8,6 +8,14 @@ const names = new Set(provenance.tables.map((row) => row.name))
 const current = new Tables(directory),
     adapters = new WeakMap(),
     wrapped = new WeakSet()
+const indices = new Map()
+function findCurrent(name, id) {
+    if (!indices.has(name)) {
+        const key = name === 'gacha' ? 'gachaId' : name === 'gacha_guarantee' ? 'guaranteeId' : 'id'
+        indices.set(name, new Map(current.get(name).map((row) => [row[key], row])))
+    }
+    return indices.get(name).get(Number(id))
+}
 
 // Verified 2451868 data adds novice guarantee 802 and changes 801's base chance.
 // Other tables remain external; never localize numeric IDs or copy the whole table tree.
@@ -16,7 +24,7 @@ export function gachaTables(external) {
     if (!adapters.has(external)) {
         const adapter = Object.create(external)
         adapter.get = (name) => (names.has(name) ? current.get(name) : external.get(name))
-        adapter.find = (name, id) => (names.has(name) ? current.find(name, id) : external.find(name, id))
+        adapter.find = (name, id) => (names.has(name) ? findCurrent(name, id) : external.find(name, id))
         adapters.set(external, adapter)
         wrapped.add(adapter)
     }
