@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { configuration } from '../src/config.js'
 import { Tables } from '../src/player.js'
 import { Protocol } from '../src/protocol.js'
@@ -9,7 +10,7 @@ import { productionTables } from '../src/production-tables.js'
 import { grantRewards, parseRewards } from '../src/rewards.js'
 import { ErrorCode } from '../src/error-codes.js'
 
-test('11013 queues actual quick ornament recipes and syncs generated GUID instances before rewards, including offline settlement', () => {
+test('current 11010 and retained 11013 queue actual quick ornaments and sync GUID instances before rewards', () => {
     const cfg = configuration(),
         tables = new Tables(cfg.tables),
         current = productionTables(tables),
@@ -59,8 +60,14 @@ test('11013 queues actual quick ornament recipes and syncs generated GUID instan
             )
             assert.deepEqual(state(), before)
         }
-        assert.throws(() => call('SimpleProductStart', request))
-        call('SimpleProductOrnamentStart', request)
+        const actual = { product_id: 200001, count: 1 }
+        assert.equal(
+            createHash('sha256')
+                .update(protocol.encode(protocol.byName.get('CSProtoSimpleProductStart').req, actual))
+                .digest('hex'),
+            'fe00b9edd9c5b9f71333ebc07159984376179aa97b4841cda876fa9555310728',
+        )
+        call('SimpleProductStart', actual)
         assert.equal(count(300000), 20)
         assert.equal(count(317001), 20)
         const job = state().simpleProducts[0]

@@ -29,6 +29,9 @@ export function registerSimpleProduction(on, tables) {
         )
         const costs = productionMaterials(tables, recipe, r.select_material ?? []),
             rewards = parseRewards(recipe.rewardId)
+        // The current accessory page sends ordinary 11010 when build_guid=0.
+        // Select the output validation from the recipe, not the request ID.
+        ornament ||= rewards.some((reward) => reward.itemtype === 33)
         ensure(
             costs.length && costs.every((x) => [3, 10].includes(x.itemtype)),
             'Unsupported quick-production material',
@@ -36,7 +39,7 @@ export function registerSimpleProduction(on, tables) {
         )
         ensure(
             rewards.length && rewards.every((x) => (ornament ? x.itemtype === 33 : [3, 10].includes(x.itemtype))),
-            'Recipe requires a different quick-production endpoint',
+            'Unsupported quick-production output configuration',
             ErrorCode.InvalidArgument,
         )
         if (ornament) {
