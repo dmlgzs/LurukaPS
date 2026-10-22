@@ -1,3 +1,4 @@
+import appearancePolicy from '../configs/hatch-appearance-policy.json' with { type: 'json' }
 import { createHash, randomInt } from 'node:crypto'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
@@ -41,16 +42,70 @@ export function hatchEffects(tables, egg) {
     }
     return result
 }
-function variantCount(tables, id) {
+function variantPool(tables, id, allowAbsent = false) {
     const pet = tables.find('pet', id),
         unit = pet && tables.find('unit', pet.unitId)
     ensure(unit, 'Missing hatch pet unit', ErrorCode.GameConfig)
     const raw = unit.specialParm_id ?? unit.specialParm
-    return !raw ? 0 : Array.isArray(raw) ? raw.length : String(raw).split('|').filter(Boolean).length
+    const count = !raw ? 0 : Array.isArray(raw) ? raw.length : String(raw).split('|').filter(Boolean).length
+    if (!count && allowAbsent) return []
+    ensure(count > 0, 'Forced variant has no configured unit model', ErrorCode.FunctionClosed)
+    const listed = String(pet.petSpecial_id ?? pet.petSpecial ?? '')
+        .split('|')
+        .filter(Boolean)
+        .map(Number)
+    const rows = String(pet.petSpecialWeight_id ?? pet.petSpecialWeight ?? '')
+        .split('|')
+        .filter(Boolean)
+        .map((token) => {
+            const [id, weight, ...rest] = token.split('#').map(Number)
+            ensure(
+                !rest.length && uint(id) && id > 0 && id <= count && Number.isSafeInteger(weight) && weight >= 0,
+                'Invalid hatch variant weight',
+                ErrorCode.GameConfig,
+            )
+            return { id, weight }
+        })
+    ensure(
+        listed.length > 0 &&
+            listed.every((id) => uint(id) && id > 0 && id <= count) &&
+            new Set(listed).size === listed.length &&
+            rows.length === listed.length &&
+            new Set(rows.map((r) => r.id)).size === rows.length &&
+            rows.every((r) => listed.includes(r.id)),
+        'Hatch variant list/weight/model mismatch',
+        ErrorCode.GameConfig,
+    )
+    ensure(
+        rows.some((row) => row.weight > 0),
+        'Empty hatch variant weight pool',
+        ErrorCode.GameConfig,
+    )
+    return rows
 }
-function palettes(tables, id) {
+function chooseHatchWeight(rows, rng, label) {
+    const total = rows.reduce((n, r) => n + r.weight, 0)
+    ensure(
+        Number.isSafeInteger(total) && total > 0 && total < 2 ** 48,
+        'Invalid hatch ' + label + ' weight total',
+        ErrorCode.GameConfig,
+    )
+    let value = rng(total)
+    ensure(
+        Number.isSafeInteger(value) && value >= 0 && value < total,
+        'Invalid hatch ' + label + ' random source',
+        ErrorCode.GameConfig,
+    )
+    for (const row of rows) {
+        if (value < row.weight) return row.id
+        value -= row.weight
+    }
+    ensure(false, 'Invalid hatch ' + label + ' draw', ErrorCode.GameConfig)
+}
+function palettes(tables, id, allowAbsent = false) {
     const raw = tables.find('pet', id)?.petColorParam,
         available = new Set(tables.get('pet_color').map((r) => r.starcolorId))
+    if (!raw && allowAbsent) return []
     const list = String(raw ?? '')
         .split('|')
         .filter(Boolean)
@@ -70,59 +125,137 @@ function palettes(tables, id) {
     )
     return list
 }
-export function validateHatchEffects(tables, egg, constraints) {
-    const plan = hatchEffects(tables, egg)
-    if (!plan.variant && !plan.star) return plan
+export function validateHatchEffects(tables, egg, constraints, { baseEnabled = true } = {}) {
+    const plan = { ...hatchEffects(tables, egg), eggId: egg.configid, baseEnabled }
     // Do not filter or reweight species to hide missing appearance resources.
     const { groups } = constrainedEggPools(tables, egg.configid, constraints)
     for (const candidate of groups.flatMap((g) => g.candidates)) {
-        if (plan.variant)
-            ensure(
-                variantCount(tables, candidate.id) === 1,
-                'Forced variant requires one unambiguous configured model',
-                ErrorCode.FunctionClosed,
-            )
+        if (plan.variant) {
+            if (!baseEnabled) legacyVariant(tables, candidate.id)
+            else variantPool(tables, candidate.id)
+        }
         if (plan.star) palettes(tables, candidate.id)
+        if (baseEnabled) hatchAppearanceProfile(tables, egg.configid, candidate.id)
     }
     return plan
 }
-export function applyHatchEffects(tables, pet, plan, rng) {
-    if (plan.variant) {
+export function hatchAppearanceProfile(tables, eggId, petId) {
+    ensure(
+        ['table-special-enum', 'disabled'].includes(appearancePolicy.baseMode) &&
+            ['fallback-normal', 'reject'].includes(appearancePolicy.missingAppearance),
+        'Invalid hatch appearance policy',
+        ErrorCode.GameConfig,
+    )
+    if (appearancePolicy.baseMode === 'disabled') return null
+    const config = tables.find('pet_egg', eggId)
+    ensure(config, 'Missing egg appearance probability', ErrorCode.EggConfNotExist)
+    const parsed = String(config.petProb ?? '')
+        .split('|')
+        .filter(Boolean)
+        .map((token) => {
+            const [type, weight, ...rest] = token.split('#').map(Number)
+            ensure(
+                !rest.length &&
+                    Number.isInteger(type) &&
+                    type >= 0 &&
+                    type <= 5 &&
+                    Number.isSafeInteger(weight) &&
+                    weight >= 0,
+                'Invalid egg appearance probability row',
+                ErrorCode.GameConfig,
+            )
+            return { type, weight }
+        })
+    ensure(
+        parsed.length > 0 &&
+            new Set(parsed.map((row) => row.type)).size === parsed.length &&
+            parsed.reduce((sum, row) => sum + row.weight, 0) === 10000,
+        'Invalid egg appearance probability total',
+        ErrorCode.GameConfig,
+    )
+    const original = Array.from({ length: 6 }, (_, type) => ({
+            type,
+            weight: parsed.find((row) => row.type === type)?.weight ?? 0,
+        })),
+        effective = original.map((row) => ({ ...row })),
+        transfers = []
+    const variant = original.some((r) => [1, 3].includes(r.type) && r.weight > 0)
+        ? variantPool(tables, petId, true).length > 0
+        : true
+    const star = original.some((r) => [4, 5].includes(r.type) && r.weight > 0)
+        ? palettes(tables, petId, true).length > 0
+        : true
+    for (const row of original) {
+        const reason =
+            [1, 3].includes(row.type) && !variant
+                ? 'missing-variant-model'
+                : [4, 5].includes(row.type) && !star
+                  ? 'missing-star-palette'
+                  : null
+        if (!reason || !row.weight) continue
         ensure(
-            variantCount(tables, pet.config_id) === 1,
-            'Forced variant requires one unambiguous configured model',
+            appearancePolicy.missingAppearance === 'fallback-normal',
+            'Hatch appearance outcome has no configured resource',
             ErrorCode.FunctionClosed,
         )
-        pet.color = 1
+        effective[row.type].weight = 0
+        effective[0].weight += row.weight
+        transfers.push({ from: row.type, to: 0, weight: row.weight, reason })
     }
-    if (plan.star) {
-        const rows = palettes(tables, pet.config_id),
-            total = rows.reduce((n, r) => n + r.weight, 0)
-        ensure(
-            Number.isSafeInteger(total) && total > 0 && total < 2 ** 48,
-            'Invalid hatch palette weight total',
-            ErrorCode.GameConfig,
-        )
-        let value = rng(total)
-        ensure(
-            Number.isSafeInteger(value) && value >= 0 && value < total,
-            'Invalid hatch palette random source',
-            ErrorCode.GameConfig,
-        )
-        for (const row of rows) {
-            if (value < row.weight) {
-                pet.colorful = row.id
-                break
-            }
-            value -= row.weight
-        }
-        ensure(availablePalette(tables, pet.colorful), 'Hatch palette draw failed', ErrorCode.GameConfig)
+    return {
+        egg_id: eggId,
+        pet_id: petId,
+        policy: appearancePolicy.missingAppearance,
+        original_weights: original,
+        effective_weights: effective,
+        transfers,
     }
-    // Actual PetSpecialType enum: normal0/color1/flash2/flashColor3/star4/flashStar5.
-    pet.special = plan.star ? (plan.flash ? 5 : 4) : plan.variant ? (plan.flash ? 3 : 1) : plan.flash ? 2 : 0
 }
-function availablePalette(tables, id) {
-    return tables.get('pet_color').some((r) => r.starcolorId === id)
+function legacyVariant(tables, id) {
+    const pet = tables.find('pet', id),
+        unit = pet && tables.find('unit', pet.unitId)
+    ensure(unit, 'Missing hatch pet unit', ErrorCode.GameConfig)
+    const raw = unit.specialParm_id ?? unit.specialParm
+    const count = !raw ? 0 : Array.isArray(raw) ? raw.length : String(raw).split('|').filter(Boolean).length
+    ensure(count === 1, 'Legacy forced variant requires one unambiguous configured model', ErrorCode.FunctionClosed)
+}
+export function applyHatchEffects(tables, pet, plan, rng) {
+    // v1 accepted seeds must retain the original number/order of appearance draws.
+    if (plan.baseEnabled === false) {
+        if (plan.variant) {
+            legacyVariant(tables, pet.config_id)
+            pet.color = 1
+        }
+        if (plan.star) pet.colorful = chooseHatchWeight(palettes(tables, pet.config_id), rng, 'palette')
+        pet.special = plan.star ? (plan.flash ? 5 : 4) : plan.variant ? (plan.flash ? 3 : 1) : plan.flash ? 2 : 0
+        return null
+    }
+    const profile =
+        plan.eggId && plan.baseEnabled !== false ? hatchAppearanceProfile(tables, plan.eggId, pet.config_id) : null
+    const rolled = profile
+        ? chooseHatchWeight(
+              profile.original_weights.map((row) => ({ id: row.type, weight: row.weight })),
+              rng,
+              'base appearance',
+          )
+        : 0
+    const routed = profile?.transfers.some((row) => row.from === rolled) ? 0 : rolled
+    const flash = plan.flash || [2, 3, 5].includes(routed)
+    const star = plan.star || (!plan.variant && [4, 5].includes(routed))
+    const variant = plan.variant || (!star && [1, 3].includes(routed))
+    pet.color = variant ? chooseHatchWeight(variantPool(tables, pet.config_id), rng, 'variant') : 0
+    pet.colorful = star ? chooseHatchWeight(palettes(tables, pet.config_id), rng, 'palette') : 0
+    pet.special = star ? (flash ? 5 : 4) : variant ? (flash ? 3 : 1) : flash ? 2 : 0
+    return profile
+        ? {
+              ...profile,
+              rolled_special: rolled,
+              routed_special: routed,
+              final_special: pet.special,
+              color: pet.color,
+              colorful: pet.colorful,
+          }
+        : null
 }
 export function hatchSeed(c, eggGuid, job) {
     const saved = privateMap(c.state, 'eggGenerationSeeds')[eggGuid]
@@ -196,8 +329,25 @@ export function hatchProductReceipt(state, buildGuid, productGuid) {
     return null
 }
 
+export function hatchGenerationVersion(state, eggGuid, starting = false) {
+    const version = privateMap(state, 'eggGenerationVersions')[eggGuid]
+    if (version !== undefined) {
+        ensure(version === 1 || version === 2, 'Invalid hatch generation version', ErrorCode.GameConfig)
+        ensure(
+            version !== 2 ||
+                Object.prototype.hasOwnProperty.call(privateMap(state, 'eggGenerationSeeds'), String(eggGuid)),
+            'Missing v2 hatch generation seed',
+            ErrorCode.GameConfig,
+        )
+        return version
+    }
+    const existing = Object.prototype.hasOwnProperty.call(privateMap(state, 'eggGenerationSeeds'), String(eggGuid))
+    return starting && !existing ? 2 : 1
+}
 export function retainHatchSeed(c, eggGuid, job) {
-    const seed = hatchSeed(c, eggGuid, job)
+    const version = hatchGenerationVersion(c.state, eggGuid, job === undefined),
+        seed = hatchSeed(c, eggGuid, job)
     c.state.eggGenerationSeeds = { ...privateMap(c.state, 'eggGenerationSeeds'), [eggGuid]: seed }
+    c.state.eggGenerationVersions = { ...privateMap(c.state, 'eggGenerationVersions'), [eggGuid]: version }
     return seed
 }

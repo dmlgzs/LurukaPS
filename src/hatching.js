@@ -5,6 +5,7 @@ import {
     applyHatchEffects,
     recordHatchReceipt,
     retainHatchSeed,
+    hatchGenerationVersion,
 } from './hatch-effects.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
@@ -23,7 +24,8 @@ export function startHatch(c, buildGuid, eggGuid) {
     ensure(egg, 'Pet egg not owned')
     ensure(!egg.lock_state, 'Pet egg is locked')
     ensure(!egg.hatch_state && !egg.hatch_build_guid, 'Pet egg is already assigned')
-    validateHatchEffects(c.tables, egg, c.state.eggHatchConstraints?.[eggGuid])
+    const generation = hatchGenerationVersion(c.state, eggGuid, true)
+    validateHatchEffects(c.tables, egg, c.state.eggHatchConstraints?.[eggGuid], { baseEnabled: generation === 2 })
     const config = c.tables.find('pet_egg', egg.configid),
         station = c.tables.find('home_building_production', b.build_id)
     ensure(config, 'Missing egg configuration', ErrorCode.EggConfNotExist)
@@ -75,10 +77,13 @@ export function claimHatch(c, job) {
     ensure(egg && egg.hatch_build_guid, 'Hatch egg missing')
     const builderRuleId = c.tables.find('pet_egg', egg.configid)?.petBuilderRuleId
     ensure(c.tables.find('pet_builder_rule', builderRuleId), 'Missing egg pet builder', ErrorCode.GameConfig)
-    const plan = validateHatchEffects(c.tables, egg, c.state.eggHatchConstraints?.[job.eggGuid]),
+    const generation = hatchGenerationVersion(c.state, job.eggGuid),
+        plan = validateHatchEffects(c.tables, egg, c.state.eggHatchConstraints?.[job.eggGuid], {
+            baseEnabled: generation === 2,
+        }),
         rng = hatchRandom(hatchSeed(c, job.eggGuid, job))
     const [pet] = createPets(c.tables, c.state, job.petId, 1, builderRuleId, rng)
-    applyHatchEffects(c.tables, pet, plan, rng)
+    const appearance = applyHatchEffects(c.tables, pet, plan, rng)
     recordHatchReceipt(c.state, {
         buildGuid: egg.hatch_build_guid,
         eggGuid: job.eggGuid,
@@ -86,10 +91,13 @@ export function claimHatch(c, job) {
         petGuid: pet.guid,
         petId: job.petId,
         triggered: [...plan.triggered],
+        generation_version: generation,
+        ...(appearance ? { appearance } : {}),
     })
     c.state.petEggs = c.state.petEggs.filter((e) => e.guid !== job.eggGuid)
     delete c.state.eggOutcomes[job.eggGuid]
     if (c.state.eggGenerationSeeds) delete c.state.eggGenerationSeeds[job.eggGuid]
+    if (c.state.eggGenerationVersions) delete c.state.eggGenerationVersions[job.eggGuid]
     if (c.state.eggHatchConstraints) delete c.state.eggHatchConstraints[job.eggGuid]
     c.state.eggRevision = (c.state.eggRevision || 0) + 1
     job.claimed = 1

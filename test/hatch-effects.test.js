@@ -70,7 +70,11 @@ test('6507 real egg factory forced flash/variant/star affixes become actual owne
             const out = finish(f, id),
                 r = out.find((p) => p.id === 6507).data,
                 pet = newest(f)
-            assert.equal(pet.special, special)
+            const routed = f.state().hatchReceipts['18:' + id].appearance.routed_special
+            const flash = affix === 6 || [2, 3, 5].includes(routed)
+            const star = affix === 8 || (affix !== 4 && [4, 5].includes(routed))
+            const variant = affix === 4 || (!star && [1, 3].includes(routed))
+            assert.equal(pet.special, star ? (flash ? 5 : 4) : variant ? (flash ? 3 : 1) : flash ? 2 : 0)
             assert.deepEqual(r.triggered_affix_ids, [affix])
             assert.equal(r.pet_guid, pet.guid)
             assert.equal(f.state().pets.length, before + 1)
@@ -186,7 +190,10 @@ test('6507 cancellation retains the generation seed; legacy seedless queue migra
         f.call('CancelHatchPetEgg', { build_guid: 18, egg_guid: id })
         start(f, id)
         assert.equal(f.state().eggGenerationSeeds[id], seed)
-        f.store.transact(f.session.id, 0, (s) => delete s.eggGenerationSeeds)
+        f.store.transact(f.session.id, 0, (s) => {
+            delete s.eggGenerationSeeds
+            delete s.eggGenerationVersions
+        })
         f.advance(18000)
         let captured
         protocol.encode = function (name, value, ...rest) {
