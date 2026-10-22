@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { assertSyncBefore } from './exchange-sync-assertions.js'
 import { configuration } from '../src/config.js'
 import { Tables } from '../src/player.js'
 import { Protocol } from '../src/protocol.js'
@@ -17,12 +18,16 @@ function fixture() {
         session = {}
     let seq = 1,
         now = 1792584000
-    const game = new Game(p, store, tables, { clock: () => now, rng: (min) => min }),
+    const game = new Game(p, store, tables, {
+            clock: () => now,
+            rng: (min) => min,
+        }),
         call = (n, r = {}, who = session) => {
             const e = p.byName.get('CSProto' + n)
-            return game
-                .dispatch(who, { id: e.id, seq: seq++, payload: p.encode(e.req, r) })
-                .map((x) => ({ id: x.id, data: p.decode(p.byId.get(x.id).rsp, x.payload) }))
+            return game.dispatch(who, { id: e.id, seq: seq++, payload: p.encode(e.req, r) }).map((x) => ({
+                id: x.id,
+                data: p.decode(p.byId.get(x.id).rsp, x.payload),
+            }))
         },
         state = () => store.load(session.id).state
     call('EnterGame', { open_id: 'exchange-order-submit' })
@@ -73,8 +78,23 @@ test('6227 pays the actual configured currency and reputation before ACK, consum
                 (r) => r.itemtype === 29 && r.itemid === tables.find('groups', rep.itemid).reputation,
             ),
         )
-        assert(result.findIndex((p) => p.id === 11250) < result.findIndex((p) => p.id === 6227))
-        assert(result.findIndex((p) => p.id === 6023) < result.findIndex((p) => p.id === 6227))
+        const reputationSynchronization = assertSyncBefore(f.p, result, 'CSProtoReputationInfo', 6227)
+        assert(
+            reputationSynchronization
+                .flatMap((packet) => packet.data.infos ?? [])
+                .some((info) => info.rep_id === rep.itemid && info.value === rep.itemnum),
+        )
+        const synchronization = assertSyncBefore(f.p, result, 'CSProtoSyncPlayerData', 6227)
+        assert(
+            synchronization
+                .flatMap((packet) => packet.data.attr_infos?.attrs ?? [])
+                .some(
+                    (item) =>
+                        item.attr_id === reward.itemid &&
+                        String(item.attr_val) === String(amount(f.state(), reward.itemid)),
+                ),
+            'the actual reward currency must already be synchronized',
+        )
         const after = f.state()
         assert.deepEqual(f.call('CSFinishOrder', { order_guid: slot.guid }).find((p) => p.id === 6227).data.rewards, [])
         assert.deepEqual(f.state().player, after.player)
@@ -105,7 +125,12 @@ test('all672 current orders have payable material and reputation plans, and mont
         f.store.transact(f.session.id, 0, (s) => {
             const slot = s.homeExchange.board.slots.find((s) => s.level === row.orderLevel)
             slot.order_id = row.orderID
-            s.monthlyCard = { config_id: 1, purchase_sdk_id: 5001, end_time: f.now() + 86400, claim_until: 0 }
+            s.monthlyCard = {
+                config_id: 1,
+                purchase_sdk_id: 5001,
+                end_time: f.now() + 86400,
+                claim_until: 0,
+            }
         })
         f.fund(row)
         const slot = f.state().homeExchange.board.slots.find((s) => s.order_id === row.orderID),
@@ -172,7 +197,10 @@ test('reputation progresses through the actual level curve, unlocks61001 recipes
 
 test('current monthly order benefit reads mall_game rather than the retained game duplicate', () => {
     const row = tables.get('home_exchange_order')[0],
-        state = { player: { basic_info: { lv: 45 } }, monthlyCard: { end_time: 1800000100, purchase_sdk_id: 5001 } }
+        state = {
+            player: { basic_info: { lv: 45 } },
+            monthlyCard: { end_time: 1800000100, purchase_sdk_id: 5001 },
+        }
     const fake = Object.create(tables)
     fake.get = (name) =>
         name === 'game'

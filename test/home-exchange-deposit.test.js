@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { assertSyncBefore } from './exchange-sync-assertions.js'
 import { createHash } from 'node:crypto'
 import { configuration } from '../src/config.js'
 import { Tables } from '../src/player.js'
@@ -16,12 +17,16 @@ function fixture() {
         session = {}
     let now = 1792584000,
         seq = 1
-    const game = new Game(p, store, tables, { clock: () => now, rng: (min) => min })
+    const game = new Game(p, store, tables, {
+        clock: () => now,
+        rng: (min) => min,
+    })
     const call = (n, r = {}) => {
         const e = p.byName.get('CSProto' + n)
-        return game
-            .dispatch(session, { id: e.id, seq: seq++, payload: p.encode(e.req, r) })
-            .map((x) => ({ id: x.id, data: p.decode(p.byId.get(x.id).rsp, x.payload) }))
+        return game.dispatch(session, { id: e.id, seq: seq++, payload: p.encode(e.req, r) }).map((x) => ({
+            id: x.id,
+            data: p.decode(p.byId.get(x.id).rsp, x.payload),
+        }))
     }
     const state = () => store.load(session.id).state
     call('EnterGame', { open_id: 'exchange-deposit' })
@@ -66,7 +71,14 @@ test('6222 decodes each observed exchange row ID, reserves actual goods and publ
             assert.equal(count(f.state(), config.itemId), before - num)
             const box = result.find((p) => p.id === 6229).data
             assert.equal(box.obj_info.find((e) => e.id === id).num, num)
-            assert(result.findIndex((p) => p.id === 6023) < result.findIndex((p) => p.id === 6222))
+            const synchronization = assertSyncBefore(f.p, result, 'CSProtoSyncPlayerData', 6222)
+            const changedGuid = f.state().player.sbag_infos.items.find((item) => item.itemid === config.itemId).guid
+            assert(
+                synchronization
+                    .flatMap((packet) => packet.data.sbag_infos?.items ?? [])
+                    .some((item) => String(item.guid) === String(changedGuid) && item.itemnum === before - num),
+                'the acknowledged bag change must already be in a5008 packet',
+            )
             assert(result.findIndex((p) => p.id === 6229) < result.findIndex((p) => p.id === 6222))
         }
         const old = f.state().homeExchange.box.find((e) => e.id === 10360011)
@@ -100,7 +112,14 @@ test('shipment reservation rejects invalid, unavailable and over-limit requests 
         }
         f.store.transact(f.session.id, 0, (s) => {
             s.homeExchange = {
-                history: [{ history_time: 1792512000, profit: 5000000, settle_num: 1, extra_num: 0 }],
+                history: [
+                    {
+                        history_time: 1792512000,
+                        profit: 5000000,
+                        settle_num: 1,
+                        extra_num: 0,
+                    },
+                ],
                 box: [],
             }
         })

@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { assertSyncBefore } from './exchange-sync-assertions.js'
 import { configuration } from '../src/config.js'
 import { Tables } from '../src/player.js'
 import { Protocol } from '../src/protocol.js'
@@ -15,8 +16,15 @@ function fixture() {
         session = {}
     let now = 1792584000,
         seq = 1
-    const game = new Game(p, store, tables, { clock: () => now, rng: (min) => min })
-    const decode = (packets) => packets.map((x) => ({ id: x.id, data: p.decode(p.byId.get(x.id).rsp, x.payload) }))
+    const game = new Game(p, store, tables, {
+        clock: () => now,
+        rng: (min) => min,
+    })
+    const decode = (packets) =>
+        packets.map((x) => ({
+            id: x.id,
+            data: p.decode(p.byId.get(x.id).rsp, x.payload),
+        }))
     const call = (n, r = {}, who = session) => {
         const e = p.byName.get('CSProto' + n)
         return decode(game.dispatch(who, { id: e.id, seq: seq++, payload: p.encode(e.req, r) }))
@@ -67,7 +75,7 @@ test('6224 settles the quoted principal into actual home currency, gives no dela
         assert.equal(f.state().homeExchange.history[0].profit, 142)
         assert.equal(f.state().homeExchange.history[0].settle_num, 71)
         assert.equal(f.state().homeExchange.history[0].extra_num, 0)
-        assert(result.findIndex((p) => p.id === 6023) < result.findIndex((p) => p.id === 6224))
+        assertSyncBefore(f.p, result, 'CSProtoSyncPlayerData', 6224)
         assert.deepEqual(f.call('CSSettleImmediately').find((p) => p.id === 6224).data.award.rewards, [])
         assert.equal(wallet(f.state()), 142)
         assert.equal(exchangeWeeklyIncome(tables, f.state(), f.now()), 142)
@@ -100,7 +108,7 @@ test('scheduled merchant return pays the configured tier once at 04:00, keeps go
             notice = result.find((p) => p.id === 6228).data.history.extra_info.award
         assert.equal(wallet(f.state()), 149)
         assert.equal(items(f.state(), 1520101), 1)
-        assert(result.findIndex((p) => p.id === 6023) < result.findIndex((p) => p.id === 6228))
+        assertSyncBefore(f.p, result, 'CSProtoSyncPlayerData', 6228)
         assert.equal(notice.rewards.find((r) => r.itemid === 103).itemnum, 149)
         assert.equal(f.state().homeExchange.history[0].extra_num, 7)
         assert.deepEqual(f.tick(), [])
