@@ -44,3 +44,24 @@ export function setup(file = ':memory:', unlocked = true) {
 }
 export const letters = (f) => f.snapshot().mail_tab.flatMap((t) => t.contents)
 export const read = (f, id = 10681) => f.call('PamiMailRead', { u32: id })
+
+// Explicit valid delivered-save fixture; this is NOT an automatic path through
+// the current first gift, whose configured305021 item is absent in CBT3.
+export function deliveredGift(f, id = 30102) {
+    const row = tables.find('pami_letter_list', id),
+        at = f.now() - row.time
+    f.store.transact(f.session.id, 0, (s) => {
+        ;(s.taskRecords ??= []).push({ task_id: 206033, count: 1 })
+        s.pamiMail.letters[id] = {
+            mail_id: id,
+            hero_id: '0',
+            timestamp: at,
+            latest_read: false,
+            reply: [{ text_id: row.firstId, record: 0, timestamp: at }],
+            reward: [],
+            args: [],
+        }
+        s.pamiMail.revision++
+    })
+    read(f, id)
+}

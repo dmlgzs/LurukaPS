@@ -2,6 +2,7 @@ import { ErrorCode } from "./error-codes.js";
 import { ensure } from "./handlers/common.js";
 import { homeCondition } from "./home-grid.js";
 import { parseRewards } from "./rewards.js";
+import policy from "../configs/pami-mail-policy.json" with { type: "json" };
 const catalogs = new WeakMap();
 const warned = new Set();
 function warnRejected(row, reasons) {
@@ -148,7 +149,7 @@ function unlocked(data, state, row) {
   );
   return homeCondition(system.unlockCondi, state);
 }
-function eligible(data, state, row) {
+function eligible(data, state, row, now, completionPolicy) {
   if (!unlocked(data, state, row)) return false;
   return row.rules.every(([kind, ...p]) => {
     if (kind === 13000) {
@@ -170,9 +171,14 @@ function eligible(data, state, row) {
         (r) => r.task_id === p[0] && r.count > 0,
       );
     }
-    // TODO(pami-letter-finish-12082): backend-only completion condition has
-    // no recovered local evaluator. Do not treat reading as conversation completion.
-    return false;
+    ensure(
+      p.length === 1 && p[0] > 0,
+      "Invalid Pami predecessor condition",
+      ErrorCode.PamiLetterTextConfFail,
+    );
+    if (completionPolicy === "closed") return false;
+    const previous = stateData(state).letters[p[0]];
+    return previous?.completed_at !== undefined && previous.completed_at <= now;
   });
 }
 function signature(data, state) {
@@ -208,16 +214,63 @@ function signature(data, state) {
       .join(",")
   );
 }
-export function preparePamiMail(tables, state, now) {
+// TODO(pami-12082-official-completion): conservative local compatibility policy.
+// The local condition evaluator was not recovered. Reading alone never finishes
+// a letter: the displayed dialogue must end and every reachable gift must be claimed.
+function completionMode(options = {}) {
+  const mode = options.completionPolicy ?? policy.completionPolicy;
+  ensure(
+    ["closed", "conversation-and-rewards"].includes(mode),
+    "Invalid Pami completion policy",
+    ErrorCode.GameConfig,
+  );
+  return mode;
+}
+function finishInfo(data, entry, now) {
+  if (!entry.latest_read || !visible(data, entry, now)) return undefined;
+  const row = data.letters.get(entry.mail_id),
+    text = data.texts.get(row.firstId);
+  const record = entry.reply.find((r) => r.text_id === text.id);
+  if (!record) return undefined;
+  if (text.reward && !entry.reward.includes(text.id)) return undefined;
+  let terminal = false;
+  if (record.record) {
+    const choice = data.replies.get(record.record);
+    ensure(
+      choice?.teamId === text.teamId,
+      "Invalid saved Pami selected reply",
+      ErrorCode.GameConfig,
+    );
+    terminal = choice.textId === 0;
+  } else terminal = !text.teamId && text.isEnd === 1;
+  if (!terminal) return undefined;
+  return Math.max(
+    entry.timestamp + row.time,
+    record.timestamp,
+    entry.read_at ?? now,
+    entry.reward_at ?? 0,
+  );
+}
+export function preparePamiMail(tables, state, now, options = {}) {
   ensure(uint(now), "Invalid Pami server time", ErrorCode.GameConfig);
   const data = catalog(tables),
     ledger = stateData(state),
-    sig = signature(data, state);
+    mode = completionMode(options),
+    sig = signature(data, state) + "/" + ledger.revision + "/" + mode;
   if (ledger.observed === sig) return false;
-  ledger.observed = sig;
   let changed = false;
+  if (mode !== "closed")
+    for (const entry of Object.values(ledger.letters)) {
+      if (!data.letters.has(entry.mail_id)) continue;
+      const completeAt = finishInfo(data, entry, now);
+      if (completeAt !== undefined && entry.completed_at === undefined) {
+        entry.completed_at = completeAt;
+        changed = true;
+      }
+    }
   for (const row of data.letters.values()) {
-    if (ledger.letters[row.id] || !eligible(data, state, row)) continue;
+    if (ledger.letters[row.id] || !eligible(data, state, row, now, mode))
+      continue;
     ensure(
       now + row.time <= 0xffffffff,
       "Pami delivery time exhausted",
@@ -236,6 +289,7 @@ export function preparePamiMail(tables, state, now) {
     changed = true;
   }
   if (changed) ledger.revision++;
+  ledger.observed = signature(data, state) + "/" + ledger.revision + "/" + mode;
   return changed;
 }
 function visible(data, entry, now) {
@@ -251,6 +305,28 @@ function visible(data, entry, now) {
       Array.isArray(entry.reply) &&
       Array.isArray(entry.reward),
     "Invalid saved Pami letter",
+    ErrorCode.GameConfig,
+  );
+  ensure(
+    entry.reply.length > 0 &&
+      entry.reply.every((r) => {
+        const text = data.texts.get(r.text_id),
+          choice = r.record ? data.replies.get(r.record) : undefined;
+        return (
+          text?.letterId === entry.mail_id &&
+          uint(r.timestamp) &&
+          uint(r.record) &&
+          (!r.record || choice?.teamId === text.teamId)
+        );
+      }) &&
+      new Set(entry.reply.map((r) => r.text_id)).size === entry.reply.length &&
+      entry.reward.every(
+        (id) =>
+          data.texts.get(id)?.letterId === entry.mail_id &&
+          data.texts.get(id).reward,
+      ) &&
+      new Set(entry.reward).size === entry.reward.length,
+    "Invalid saved Pami text, choice or attachment record",
     ErrorCode.GameConfig,
   );
   return (
@@ -270,7 +346,8 @@ export function pamiMailSnapshot(tables, state, now) {
           .filter(
             (e) =>
               data.letters.has(e.mail_id) &&
-              visible(data, e, now) &&
+              (visible(data, e, now) ||
+                now < e.timestamp + data.letters.get(e.mail_id).time) &&
               data.letters.get(e.mail_id).category.id === mail_type,
           )
           .sort((a, b) => a.mail_id - b.mail_id)
@@ -305,18 +382,64 @@ export function notifyPamiMail(c, name) {
       pamiMailSnapshot(c.tables, c.state, c.now),
     );
 }
-export function registerPamiMailRead(on) {
+export function registerPamiMail(on) {
   on("PamiMailRead", (c, r) => {
     preparePamiMail(c.tables, c.state, c.now);
     const { entry } = pamiLetter(c.tables, c.state, r.u32, c.now);
     if (!entry.latest_read) {
       entry.latest_read = true;
+      entry.read_at = c.now;
       stateData(c.state).revision++;
     }
+    preparePamiMail(c.tables, c.state, c.now);
     c.pushBefore(
       "CSProtoPamiMailSync",
       pamiMailSnapshot(c.tables, c.state, c.now),
     );
+    return {};
+  });
+  on("PamiMailChoose", (c, r) => {
+    preparePamiMail(c.tables, c.state, c.now);
+    const data = catalog(c.tables),
+      text = data.texts.get(r.text_id),
+      choice = data.replies.get(r.reply_id);
+    ensure(
+      text,
+      "Pami source text configuration not found",
+      ErrorCode.PamiLetterTextConfFail,
+    );
+    const { row, entry } = pamiLetter(c.tables, c.state, text.letterId, c.now);
+    ensure(
+      text.id === row.firstId,
+      "Pami source text is not reached",
+      ErrorCode.PamiLetterNotFound,
+    );
+    ensure(
+      choice && choice.teamId === text.teamId && text.teamId > 0,
+      "Pami reply does not belong to this text",
+      ErrorCode.PamiLetterReplyConfFail,
+    );
+    ensure(
+      choice.textId === 0,
+      "Pami continuation text requires support",
+      ErrorCode.FunctionClosed,
+    );
+    const record = entry.reply.find((t) => t.text_id === text.id);
+    ensure(record, "Pami text is not delivered", ErrorCode.PamiLetterNotFound);
+    ensure(
+      !record.record || record.record === choice.id,
+      "Pami reply choice is already committed",
+      ErrorCode.InvalidArgument,
+    );
+    if (!record.record) {
+      record.record = choice.id;
+      record.timestamp = c.now;
+      stateData(c.state).revision++;
+    }
+    preparePamiMail(c.tables, c.state, c.now);
+    // The old Lua success callback appends locally; publish authority after
+    // ACK so that append is replaced, rather than duplicating its record.
+    c.push("CSProtoPamiMailSync", pamiMailSnapshot(c.tables, c.state, c.now));
     return {};
   });
 }

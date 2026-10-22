@@ -151,7 +151,7 @@ import { retireCapturedEnemy } from './handlers/world-combat.js'
 import { registerEcology } from './handlers/ecology.js'
 import { registerMall } from './handlers/mall.js'
 import { registerNovicePack, prepareNovicePack, notifyNovicePack } from './novice-pack.js'
-import { registerPamiMailRead, preparePamiMail, pamiMailSnapshot, notifyPamiMail } from './pami-mail.js'
+import { registerPamiMail, preparePamiMail, pamiMailSnapshot, notifyPamiMail } from './pami-mail.js'
 import { registerCombat } from './handlers/combat.js'
 import { registerClientState } from './handlers/client-state.js'
 import { registerRelease } from './handlers/release.js'
@@ -468,7 +468,7 @@ export class Game {
         registerEcology(on, tables)
         registerMall(on, tables)
         registerNovicePack(on)
-        registerPamiMailRead(on)
+        registerPamiMail(on)
         registerCombat(on)
         registerClientState(on, store)
         registerCollection(on)
