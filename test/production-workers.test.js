@@ -227,16 +227,18 @@ test('unsupported dispatch, incompatible worker and stale source fail atomically
     }
 })
 
-test('retiming leaves completed batches and incubation untouched', () => {
+test('retiming leaves completed batches and an unchanged ordinary hatch untouched', () => {
     const state = {
         pets: [],
+        petEggs: [{ guid: 1, configid: 40003007, hatch_build_guid: 2 }],
         home: {
-            builds: [{ guid: 1, build_id: 10000, build_type: 2 }],
+            builds: [
+                { guid: 1, build_id: 10000, build_type: 2 },
+                { guid: 2, build_id: 30231, build_type: 12 },
+            ],
             productionJobs: {
-                1: [
-                    { productId: 302001, start: 100, seconds: 3, count: 1, claimed: 0 },
-                    { kind: 'hatch', productId: 9999, start: 104, seconds: 100, count: 1, claimed: 0 },
-                ],
+                1: [{ productId: 302001, start: 100, seconds: 3, count: 1, claimed: 0 }],
+                2: [{ kind: 'hatch', eggGuid: 1, productId: 710021, start: 104, seconds: 18000, count: 1, claimed: 0 }],
             },
         },
     }

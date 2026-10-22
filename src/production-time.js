@@ -1,6 +1,7 @@
 import { ErrorCode } from './error-codes.js'
 import { productionTables } from './production-tables.js'
 import { ensure } from './handlers/common.js'
+import { hatchSeconds } from './hatching-time.js'
 
 const catalogs = new WeakMap()
 const list = (value) =>
@@ -115,7 +116,12 @@ export function retimeProduction(tables, state, now) {
     for (const build of state.home?.builds ?? []) {
         const jobs = state.home.productionJobs?.[build.guid] ?? []
         const updates = jobs.map((job) => {
-            if (job.kind === 'hatch' || now >= job.start + job.count * job.seconds) return job.seconds
+            if (now >= job.start + job.count * job.seconds) return job.seconds
+            if (job.kind === 'hatch') {
+                const egg = state.petEggs?.find((e) => e.guid === job.eggGuid)
+                ensure(egg, 'Hatch egg missing', ErrorCode.EggNotExist)
+                return hatchSeconds(tables, state, build, tables.find('pet_egg', egg.configid))
+            }
             const recipe = tables.find(job.kind === 'accessory' ? 'accessory_product' : 'products', job.productId)
             return recipe
                 ? productionSeconds(

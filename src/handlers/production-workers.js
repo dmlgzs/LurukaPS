@@ -32,7 +32,7 @@ export function registerProductionWorkers(on, tables) {
         const collection = collectionStation(tables, build)
         const station = collection ?? (build && tables.find('home_building_production', build.build_id))
         ensure(
-            build?.locate && [1, 4].includes(build.status) && station && [2, 8, 10, 24].includes(build.build_type),
+            build?.locate && [1, 4].includes(build.status) && station && [2, 8, 10, 12, 24].includes(build.build_type),
             'Production building is not owned or ready',
             collection ? ErrorCode.CollectBuildNotExist : ErrorCode.BuildProductConfNotFound,
         )
@@ -52,7 +52,14 @@ export function registerProductionWorkers(on, tables) {
                 ErrorCode.PetLaborNotMatch,
             )
             ensure(
-                String(station.petSize).split('|').map(Number).includes(tables.find('pet', chosen.config_id)?.bodyType),
+                String(station.petSize)
+                    .split('|')
+                    .map(Number)
+                    .includes(
+                        build.build_type === 12
+                            ? tables.find('pet_home_talent', chosen.config_id)?.sizeType
+                            : tables.find('pet', chosen.config_id)?.bodyType,
+                    ),
                 'Pet size is not supported by this station',
             )
             ensure(!chosen.work_status || [1, 2, 5, 6, 7].includes(chosen.work_status), 'Pet is working elsewhere')
