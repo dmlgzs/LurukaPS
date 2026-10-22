@@ -151,6 +151,7 @@ import { retireCapturedEnemy } from './handlers/world-combat.js'
 import { registerEcology } from './handlers/ecology.js'
 import { registerMall } from './handlers/mall.js'
 import { registerNovicePack, prepareNovicePack, notifyNovicePack } from './novice-pack.js'
+import { registerPamiMailRead, preparePamiMail, pamiMailSnapshot, notifyPamiMail } from './pami-mail.js'
 import { registerCombat } from './handlers/combat.js'
 import { registerClientState } from './handlers/client-state.js'
 import { registerRelease } from './handlers/release.js'
@@ -467,6 +468,7 @@ export class Game {
         registerEcology(on, tables)
         registerMall(on, tables)
         registerNovicePack(on)
+        registerPamiMailRead(on)
         registerCombat(on)
         registerClientState(on, store)
         registerCollection(on)
@@ -1139,6 +1141,7 @@ export class Game {
                 if (!battleReport) observeActiveSession(this.tables, state, now)
                 const activeCountersBefore = activeCounterSample(state)
                 const response = recoveredChoice ? {} : handler(context, r)
+                if (!battleReport) notifyPamiMail(context, e.name)
                 if (!battleReport) notifyNovicePack(context, e.name)
                 if (!battleReport) notifyJourney(context, e.name)
                 if (!battleReport) {
@@ -1595,6 +1598,7 @@ export class Game {
         pruneItemShortcuts(state, now)
         observeJourney(this.tables, state)
         const novice = prepareNovicePack(this.tables, state, now).payload
+        preparePamiMail(this.tables, state, now)
         return [
             this.packet('CSProtoEnterGameCallbackStart', {
                 reconnect: !!r.reconnect,
@@ -1711,6 +1715,7 @@ export class Game {
             this.packet('CSProtoSimpleProductFinish', simpleProductSnapshot(state)),
             this.packet('SCProtoMonthlyCardInfoSync', monthlyPayload(state)),
             this.packet('SCProtoMallNovicePackSync', novice),
+            this.packet('CSProtoPamiMailSync', pamiMailSnapshot(this.tables, state, now)),
             this.packet('CSProtoReadHandbookInfoSync', {
                 infos: Object.values(state.readingBooks ?? {}),
                 send_type: 0,
