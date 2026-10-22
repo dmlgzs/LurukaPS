@@ -1,6 +1,7 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { homeCondition } from './home-grid.js'
+import { allocateHomeGuid } from './home-identities.js'
 
 const lists = (value) =>
     String(value || '')
@@ -31,17 +32,7 @@ export function ensureRanches(tables, state) {
         data = ranchCatalog(tables)
     for (const block of data.blocks) {
         if (!homeCondition(block.unlockCondi, state) || home.ranches?.[block.id]) continue
-        const max = [...home.builds, ...(home.storedBuilds || []), ...Object.values(home.ranches || {})].reduce(
-            (n, b) => Math.max(n, b.guid),
-            0,
-        )
-        const guid = Math.max(home.nextBuildGuid || 1, max + 1)
-        ensure(
-            Number.isSafeInteger(guid) && guid <= 0xffffffff,
-            'Ranch identity space exhausted',
-            ErrorCode.InvalidLogic,
-        )
-        home.nextBuildGuid = guid + 1
+        const guid = allocateHomeGuid(home)
         ;(home.ranches ??= {})[block.id] = {
             guid,
             block_id: block.id,

@@ -118,6 +118,7 @@ import { registerBuildingPlacement } from './handlers/buildings.js'
 import { registerFarming } from './handlers/farming.js'
 import { registerFarmWorkers } from './handlers/farm-workers.js'
 import { registerProductionWorkers } from './handlers/production-workers.js'
+import { registerWorldCollection } from './handlers/world-collection.js'
 import { registerCanteen } from './handlers/canteen.js'
 import { registerCooking } from './handlers/cooking.js'
 import { registerHome } from './handlers/home.js'
@@ -394,6 +395,7 @@ export class Game {
         registerItems(on)
         registerShops(on, tables)
         registerHome(on, tables)
+        registerWorldCollection(on)
         registerHomeDorm(on, tables)
         registerBuildingPlacement(on, tables)
         registerFarming(on, tables)

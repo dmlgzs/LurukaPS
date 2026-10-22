@@ -4,6 +4,7 @@ import { reconcileHomeStage } from './home-stage.js'
 import { technologyPayload } from './technology.js'
 import { homeTreePayload } from './home-tree.js'
 import { ranchPayloads } from './ranch.js'
+import { worldCollectionPayloads } from './world-collection.js'
 import { ensure } from './handlers/common.js'
 import { ensureHomeDormitories, dormPayload } from './home-dorm.js'
 export function ensureHome(tables, state) {
@@ -116,7 +117,7 @@ export function homePayload(tables, state) {
         home_lv: h.stage,
         home_name: h.name,
         builds: h.inventory,
-        home_builds: [...h.builds, ...ranchPayloads(tables, state)],
+        home_builds: [...h.builds, ...ranchPayloads(tables, state), ...worldCollectionPayloads(state)],
         dorm: dormPayload(tables, state),
         shortcut_bars: h.shortcuts.map((bar) => ({
             ...bar,
