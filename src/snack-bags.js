@@ -20,6 +20,8 @@ function readBag(tables, state, type, now) {
     const raw = state.snackBags?.[type]
     const num =
         raw?.num ?? snackConstant(tables, type === 1 ? 'SATIETY_AUTOMATIC_USE_MOUNT' : 'SATIETY_AUTOMATIC_USE_ROLE')
+    const cap = snackConstant(tables, type === 1 ? 'PET_SATIETY_MAX_VALUE' : 'MAX_CHARGE_SATIETY_VALUE')
+    ensure(Number.isSafeInteger(num) && num >= 0 && num <= cap, 'Invalid saved snack threshold', ErrorCode.GameConfig)
     ensure(!raw || raw.items?.length === 4, 'Invalid saved snack bag', ErrorCode.GameConfig)
     return {
         type,
@@ -164,6 +166,30 @@ export function operateSnackBag(c, r) {
     }
     c.state.snackBags = bags
     c.pushBefore('CSProtoSyncPlayerData', { sbag_infos: c.state.player.sbag_infos })
+    c.pushBefore('CSProtoAllSnackBagInfoSync', snackBagsSnapshot(c.tables, c.state, c.now))
+    return {}
+}
+export function setSnackBagNum(c, r) {
+    ensure(
+        Array.isArray(r.info) && r.info.length > 0 && r.info.length <= 2,
+        'Invalid snack threshold selection',
+        ErrorCode.SnackBagInvalidArg,
+    )
+    const bags = Object.fromEntries([1, 2].map((type) => [type, readBag(c.tables, c.state, type, c.now)])),
+        selected = new Set()
+    for (const entry of r.info) {
+        const type = bagType(entry.bag_type),
+            cap = snackConstant(c.tables, type === 1 ? 'PET_SATIETY_MAX_VALUE' : 'MAX_CHARGE_SATIETY_VALUE')
+        ensure(!selected.has(type), 'Duplicate snack threshold bag', ErrorCode.SnackBagInvalidArg)
+        selected.add(type)
+        ensure(
+            Number.isSafeInteger(entry.num) && entry.num >= 0 && entry.num <= cap,
+            'Snack threshold exceeds satiety maximum',
+            ErrorCode.MountSnackNumMaxLimit,
+        )
+        bags[type].num = entry.num
+    }
+    c.state.snackBags = bags
     c.pushBefore('CSProtoAllSnackBagInfoSync', snackBagsSnapshot(c.tables, c.state, c.now))
     return {}
 }
