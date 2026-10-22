@@ -781,7 +781,7 @@ test('table-matched cultivation examination 101 enters a real type27 scene with 
             [305, 6556],
         ])
             assert.equal(cultTrialRoute(tables, f.game.activities, 60001, trialId).route.scene_id, sceneId)
-        assert.throws(() => cultTrialRoute(tables, f.game.activities, 60001, 306), /mapping unavailable/)
+        assert.equal(cultTrialRoute(tables, f.game.activities, 60001, 306).route.scene_id, 6557)
     } finally {
         f.store.close()
     }

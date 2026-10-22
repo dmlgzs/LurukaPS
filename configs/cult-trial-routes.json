@@ -163,9 +163,58 @@
       "match": "exact-roster",
       "overlap": 1,
       "roster_differences": []
+    },
+    {
+      "trial_id": 306,
+      "dungeon_id": 32280,
+      "group_id": 436,
+      "scene_id": 6557,
+      "point_id": 655701,
+      "object_ids": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44
+      ],
+      "match": "unique-victory-and-all-wave-objects",
+      "basis": "Current wave tables define the executable roster. Dungeon summary roster differs; local compatibility uses the unique matching victory scene and all 40 configured wave objects."
     }
   ],
-  "missing": [
-    306
-  ]
+  "missing": []
 }

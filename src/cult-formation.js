@@ -5,6 +5,8 @@ import { mainHeroConfigId } from './main-hero.js'
 import { pairs, syncBattle } from './battle.js'
 import { trialPayload } from './handlers/trial-groups.js'
 import { retireTrialActors } from './trial-actors.js'
+import { cultArchiveLoadout } from './cult-archive-trial.js'
+import { trialSoulEssence, trialOrnaments, trialRuneIds } from './trial-equipment.js'
 const list = (value) =>
     String(value || '')
         .split('|')
@@ -26,7 +28,11 @@ export function ensureCultFormation(tables, catalog, state, accountId) {
         )
     )
         return false
-    const config = catalog.growup.config(catalog.rows.find((x) => x.id === run.activity_id).systemId)
+    const config = cultArchiveLoadout(
+        catalog,
+        run,
+        catalog.growup.config(catalog.rows.find((x) => x.id === run.activity_id).systemId),
+    )
     const heroIds = list(config.herointerimid),
         petIds = list(config.petinterimid)
     ensure(
@@ -37,16 +43,23 @@ export function ensureCultFormation(tables, catalog, state, accountId) {
     const heroes = heroIds.map((id) => {
         const cfg = catalog.tables.find('hero_interim', id)
         ensure(
-            cfg && tables.find('hero', cfg.heroId) && !cfg.talentrune && !cfg.accessorySet && !cfg.soulessence,
+            cfg && tables.find('hero', cfg.heroId),
             'Cultivation interim equipment is unavailable',
             ErrorCode.GameConfig,
         )
+        trialSoulEssence(tables, cfg)
+        trialOrnaments(tables, cfg)
         return {
             guid: ((5n << 56n) | (BigInt(id) << 32n) | BigInt(accountId)).toString(),
             conf_id: cfg.heroType === 1 ? mainHeroConfigId(tables, state.player.basic_info.sex) : cfg.heroId,
             hero_lv: cfg.level,
             hero_exp: 0,
             hero_rank: cfg.rank,
+            rune_ids: trialRuneIds(
+                tables,
+                cfg,
+                cfg.heroType === 1 ? mainHeroConfigId(tables, state.player.basic_info.sex) : cfg.heroId,
+            ),
             hero_star: cfg.starLevel,
             hero_grade: cfg.gradeLevel,
             system_skill_levels: list(cfg.skilllevel),

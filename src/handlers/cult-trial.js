@@ -6,6 +6,8 @@ import { cultTrialRoute, cultTrialSnapshot, ensureCultTrialScene, publishCultTri
 import { ensureCultFormation, publishCultFormation, clearCultFormation } from '../cult-formation.js'
 import { trialPayload } from './trial-groups.js'
 import { takePresentationReturn } from '../presentation-return.js'
+import { selectCultArchive } from '../cult-archive-trial.js'
+import { growupArchiveSnapshot } from '../growup-archive.js'
 export function enterCultTrialScene(c, r = {}) {
     const run = c.state.cultTrial
     ensure(
@@ -15,7 +17,7 @@ export function enterCultTrialScene(c, r = {}) {
     ensureCultTrialScene(c.tables, c.state, c.now)
     ensureCultFormation(c.tables, c.activityCatalog, c.state, c.id)
     publishCultFormation(c)
-    c.pushBefore('CSProtoCampaignInfoSync', cultTrialSnapshot(c.state, { entering: true }))
+    c.pushBefore('CSProtoCampaignInfoSync', cultTrialSnapshot(c.state, { entering: !run.archive_id }))
     worldSync({ ...c, push: c.pushBefore })
     syncBattle({ ...c, push: c.pushBefore })
     return {}
@@ -25,7 +27,7 @@ export function exitCultTrial(c) {
     ensure(run, 'No active cultivation trial')
     c.pushBefore('CSProtoCampaignInfoSync', { ...cultTrialSnapshot(c.state), status: 1 })
     const g = c.state.activities?.[run.activity_id]?.growup
-    const completed = g?.cur_stage === 4 && g.cur_growup_trail_stage === 4
+    const completed = !run.archive_id && g?.cur_stage === 4 && g.cur_growup_trail_stage === 4
     const destination =
         completed && c.tables.find('world_city', run.return_world.map_id)?.type === 29
             ? takePresentationReturn(c.tables, c.state)
@@ -46,6 +48,7 @@ export function endCultTrialScene(c, r) {
     ensure(r.result !== 3 || c.state.cultTrial.battle_complete, 'Cultivation trial enemies are still alive')
     ensureCultTrialScene(c.tables, c.state, c.now)
     if (r.result !== 3) c.state.cultTrial.status = r.result
+    if (c.state.cultTrial.archive_id && r.result === 4) c.state.cultTrial.battle_complete = true
     publishCultTrialResult(c)
     c.pushBefore('CSProtoCampaignInfoSync', cultTrialSnapshot(c.state))
     return {}
@@ -55,23 +58,31 @@ export function registerCultTrial(on, tables, catalog) {
         if (restart && !r.activity_id && !r.trial_id) {
             const run = c.state.cultTrial
             ensure(run && run.map_id === c.state.world.map_id, 'No active cultivation trial to restart')
-            r = { ...r, activity_id: run.activity_id, trial_id: run.trial_id }
+            r = { ...r, activity_id: run.activity_id, trial_id: run.trial_id, archive_id: run.archive_id }
         }
         const { row, entry } = catalog.require(c.state, c.now, r.activity_id, [60])
         ensure(!row.guideTaskId || catalog.taskDone(c.state, row.guideTaskId), 'Complete cultivation guide first')
-        const g = catalog.growup.ensure(entry, row.systemId),
-            { trial, route, dungeon, point } = cultTrialRoute(tables, catalog, r.activity_id, r.trial_id)
-        ensure(!r.archive_id, 'Archived cultivation trials are not implemented', ErrorCode.FunctionClosed)
+        const { trial, route, dungeon, point } = cultTrialRoute(tables, catalog, r.activity_id, r.trial_id),
+            archive = r.archive_id ? selectCultArchive(c, row, entry, r, trial) : null,
+            g = archive ? null : catalog.growup.ensure(entry, row.systemId)
         ensure(
-            g.cur_starting_id > 0 && g.cur_stage === trial.phase && g.cur_growup_trail_stage === trial.phase,
+            archive || trial.phase !== 4,
+            'Endless cultivation requires a saved archive',
+            ErrorCode.ActivityArchiveParamError,
+        )
+        ensure(
+            archive ||
+                (g.cur_starting_id > 0 && g.cur_stage === trial.phase && g.cur_growup_trail_stage === trial.phase),
             'Cultivation examination is not ready',
         )
-        ensure(catalog.growup.condition(trial.condition, g), 'Cultivation trial condition is locked')
+        ensure(archive || catalog.growup.condition(trial.condition, g), 'Cultivation trial condition is locked')
         ensure(!c.state.entrust?.run && !c.state.storyCampaign && !c.state.multiCampaign, 'Another dungeon is active')
         const old = c.state.cultTrial
         if (old && !restart) {
             ensure(
-                old.activity_id === r.activity_id && old.trial_id === r.trial_id,
+                old.activity_id === r.activity_id &&
+                    old.trial_id === r.trial_id &&
+                    (old.archive_id || 0) === (r.archive_id || 0),
                 'Another cultivation trial is active',
             )
             return enterCultTrialScene(c)
@@ -90,6 +101,7 @@ export function registerCultTrial(on, tables, catalog) {
             group_id: dungeon.groupId,
             map_id: route.scene_id,
             object_ids: route.object_ids,
+            ...(archive ? { archive_id: r.archive_id, archive: structuredClone(archive) } : {}),
             status: 2,
             start_time: c.now,
             instance_id: c.state.nextCultTrialInstanceId ?? 1,
@@ -102,12 +114,13 @@ export function registerCultTrial(on, tables, catalog) {
             },
         }
         c.state.nextCultTrialInstanceId = c.state.cultTrial.instance_id + 1
-        g.select_trail_id = trial.trialId
+        if (g) g.select_trail_id = trial.trialId
         Object.assign(w, tables.position(point))
         ensureCultFormation(tables, catalog, c.state, c.id)
         publishCultFormation(c)
         ensureCultTrialScene(tables, c.state, c.now)
-        catalog.notify(c, true)
+        if (archive) c.pushBefore('CSProtoSyncArchiveGrowupData', growupArchiveSnapshot(catalog, c.state, [row.id]))
+        else catalog.notify(c, true)
         c.pushBefore('CSProtoCampaignInfoSync', cultTrialSnapshot(c.state))
         worldSync(
             { ...c, push: c.pushBefore },
@@ -117,11 +130,23 @@ export function registerCultTrial(on, tables, catalog) {
         return {}
     }
     on('EnterCultTrial', (c, r) => start(c, r))
-    on('ReEnterCultTrial', (c, r) => start(c, r, true))
+    on('ReEnterCultTrial', (c, r) => {
+        ensure(
+            !r.archive_id && !c.state.cultTrial?.archive_id,
+            'Archived cultivation restart is not implemented',
+            ErrorCode.FunctionClosed,
+        )
+        return start(c, r, true)
+    })
     on('CultTrialSwitchStep', (c, r) => {
         const { row, entry } = catalog.require(c.state, c.now, r.activity_id, [60]),
             g = catalog.growup.ensure(entry, row.systemId),
             run = c.state.cultTrial
+        ensure(
+            !run?.archive_id,
+            'Endless cultivation does not advance normal cultivation',
+            ErrorCode.ActivityGrowUpInvalidStage,
+        )
         const receipt = g.guid + ':' + r.trial_id
         if (
             c.state.acceptedCultTrials?.[receipt] &&

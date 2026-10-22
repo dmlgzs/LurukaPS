@@ -7,6 +7,8 @@ import { enemyDefinition } from './enemy-state.js'
 import { WorldObjectCatalog } from './world-objects.js'
 import { completedEnemyGroup } from './enemy-group-completion.js'
 import { activityTables } from './activity-tables.js'
+import { recordCultArchiveResult, cultArchiveEnemyDefinition } from './cult-archive-trial.js'
+import { growupArchiveSnapshot } from './growup-archive.js'
 const routes = new Map(
     JSON.parse(fs.readFileSync(new URL('../configs/cult-trial-routes.json', import.meta.url))).routes.map((x) => [
         x.trial_id,
@@ -34,7 +36,7 @@ export function refreshCultTrialResult(tables, state) {
     if (!run || run.map_id !== state.world.map_id || !run.current_wave) return false
     const current = currentTables(tables),
         trial = current.get('game_events_cul_trial').find((x) => x.trialId === run.trial_id),
-        growup = state.activities[run.activity_id].growup
+        growup = run.archive ?? state.activities[run.activity_id].growup
     if (!run.score_rate) {
         const total = growup.growup_train_attr.reduce((n, x) => n + x.attr_value, 0)
         let rank = current.get('game_events_cul_rank')[0]
@@ -60,6 +62,13 @@ export function refreshCultTrialResult(tables, state) {
         old = run.score
     run.score = score
     if (run.battle_complete) {
+        if (run.archive_id) {
+            run.star_mask = 0
+            run.star = 0
+            run.attr_changes = []
+            if (run.status === 2) run.status = 3
+            return old !== score
+        }
         run.star_mask = cultTrialStarMask(trial.goal, score)
         run.star = String(trial.goal)
             .split('|')
@@ -127,6 +136,17 @@ export function cultTrialSnapshot(state, { entering = false } = {}) {
 export function ensureCultTrialScene(tables, state, now) {
     const run = state.cultTrial
     if (!run || state.world.map_id !== run.map_id) return false
+    if (run.archive_id && run.status === 2 && run.real_start_time && !run.battle_complete) {
+        const timed = String(tables.find('dungeon', run.dungeon_id)?.failCondition ?? '')
+                .split('||')
+                .find((text) => text.startsWith('2901#')),
+            limit = timed ? Number(timed.split('#')[1]) : 0
+        if (limit > 0 && now - run.real_start_time >= limit) {
+            run.status = 4
+            run.battle_complete = true
+            run.end_time = now
+        }
+    }
     const world = new WorldObjectCatalog(tables),
         rows = world.get('worldmap_' + run.map_id),
         records = (state.worldObjects ??= {})
@@ -162,7 +182,8 @@ export function ensureCultTrialScene(tables, state, now) {
         if (!run.object_ids.includes(row.id)) continue
         const wave = waves.find((x) => x.object_ids.includes(row.id))
         record.complete = !!wave && wave.wave_id <= (run.completed_waves ?? 0)
-        record.active = !!wave && wave.wave_id === run.current_wave && !record.complete
+        record.active =
+            !!wave && wave.wave_id === run.current_wave && !record.complete && (!run.archive_id || !run.battle_complete)
         record.state_data = { ...record.state_data, complete: record.complete }
         const group = tables.find('world_enemy_group', row.expandId),
             packs = String(group?.enemyList ?? '')
@@ -171,7 +192,7 @@ export function ensureCultTrialScene(tables, state, now) {
         ensure(packs.length, 'Missing cultivation trial enemy group', ErrorCode.NoEnemyConf)
         const monsters = packs.map((_, slot) => {
             const uid = ((3n << 56n) | (BigInt(slot) << 32n) | BigInt(row.id)).toString(),
-                definition = enemyDefinition(tables, state, uid)
+                definition = cultArchiveEnemyDefinition(tables, run, enemyDefinition(tables, state, uid))
             ensure(definition, 'Missing cultivation trial enemy attributes', ErrorCode.NoEnemyConf)
             const entity = (battle.entities[uid] ??= {
                 uuid: uid,
@@ -236,6 +257,7 @@ function cultTrialWaves(tables, run) {
 export function syncCultTrialWave(c) {
     const run = c.state.cultTrial
     ensureCultTrialScene(c.tables, c.state, c.now)
+    if (run.archive_id && run.battle_complete) publishCultTrialResult(c)
     pushCultTrialLiveScore(c)
     if (run.attr_changes?.length)
         c.push('CSProtoActivityGrowUpAttrChangeSync', {
@@ -277,7 +299,10 @@ export function startCultTrialBattle(c) {
         run.real_start_time = c.now
     }
     run.loading_complete_at ??= c.now
-    if (run.battle_complete) c.activityCatalog.notify({ ...c, pushBefore: c.push }, true)
+    if (run.battle_complete) {
+        if (run.archive_id) publishCultTrialResult(c)
+        else c.activityCatalog.notify({ ...c, pushBefore: c.push }, true)
+    }
     syncCultTrialWave(c)
 }
 
@@ -320,6 +345,7 @@ export function advanceCultTrialCombat(c) {
 export function recordCultTrialResult(tables, state) {
     const run = state.cultTrial
     if (!run?.battle_complete || run.result_published) return false
+    if (run.archive_id) return recordCultArchiveResult(state)
     const trial = currentTables(tables)
         .get('game_events_cul_trial')
         .find((x) => x.trialId === run.trial_id)
@@ -337,5 +363,12 @@ export function recordCultTrialResult(tables, state) {
     return true
 }
 export function publishCultTrialResult(c) {
-    if (recordCultTrialResult(c.tables, c.state)) c.activityCatalog.notify({ ...c, pushBefore: c.push }, true)
+    if (recordCultTrialResult(c.tables, c.state)) {
+        if (c.state.cultTrial.archive_id)
+            c.push(
+                'CSProtoSyncArchiveGrowupData',
+                growupArchiveSnapshot(c.activityCatalog, c.state, [c.state.cultTrial.activity_id]),
+            )
+        else c.activityCatalog.notify({ ...c, pushBefore: c.push }, true)
+    }
 }
