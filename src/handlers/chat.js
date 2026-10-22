@@ -3,18 +3,21 @@ import { publicProfile } from '../public-profile.js'
 import { ErrorCode } from '../error-codes.js'
 import { isChatMuted, legacyChatBans, chatRoutingInfo } from '../chat-shields.js'
 import { selectedChatBubble } from '../chat-cosmetics.js'
+import { privateHistory, visibleConversation, reopenConversation, deleteConversation } from '../chat-conversations.js'
 function peerId(value) {
     const id = Number(value)
     ensure(Number.isInteger(id) && id > 0 && id <= 0xffffffff, 'Invalid chat recipient')
     return id
 }
 export function chatSnapshots(store, state, id) {
-    const peers = store.chatPeers(id)
+    const peers = store
+        .chatPeers(id)
+        .filter((peer) => visibleConversation(state, peer, store.chatHistory(id, peer, 1).at(-1)?.order ?? 0))
     return {
         list: {
             info: peers.map((peer) => ({
                 id: peer,
-                chats: isChatMuted(state, peer) ? [] : store.chatHistory(id, peer, 1),
+                chats: isChatMuted(state, peer) ? [] : privateHistory(store, state, id, peer, 1),
                 read_order: state.chatReads?.[peer] ?? 0,
             })),
         },
@@ -47,7 +50,7 @@ export function registerChat(on, store, { runGM } = {}) {
         exists(peer)
         return {
             id: peer,
-            chats: isChatMuted(c.state, peer) ? [] : store.chatHistory(c.id, peer),
+            chats: isChatMuted(c.state, peer) ? [] : privateHistory(store, c.state, c.id, peer),
             read_order: c.state.chatReads?.[peer] ?? 0,
         }
     }
@@ -127,6 +130,7 @@ export function registerChat(on, store, { runGM } = {}) {
         return { ban_time: 0 }
     })
     on('ChatInfoSync', (c, r) => history(c, r.id))
+    on('DelFriendChat', (c, r) => deleteConversation(c, r, store))
     on('ChatSyncNew', (c, r) => {
         ensure((r.pids ?? []).length <= 50, 'Too many chat histories')
         return { chat_infos: [...new Set(r.pids ?? [])].map((id) => history(c, id)) }
@@ -148,6 +152,7 @@ export function registerChat(on, store, { runGM } = {}) {
         exists(peer)
         c.state.chatReads ??= {}
         c.state.chatReads[peer] ??= 0
+        reopenConversation(c.state, peer)
         c.push('CSProtoChatListSync', { info: [history(c, peer)] })
         return { upgrade: 0 }
     })
