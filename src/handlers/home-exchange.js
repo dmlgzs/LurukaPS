@@ -7,7 +7,7 @@ import {
     returnExchangeReservation,
     settleExchangeImmediately,
 } from '../home-exchange.js'
-import { ensureExchangeOrderBoard, exchangeOrderSnapshot } from '../home-exchange-orders.js'
+import { ensureExchangeOrderBoard, exchangeOrderSnapshot, refreshExchangeOrder } from '../home-exchange-orders.js'
 export function registerHomeExchange(on, tables) {
     on('CSHistoryReport', (c) => exchangeHistorySnapshot(c.state, true))
     on('CSExchangeObjInfo', (c) => {
@@ -45,4 +45,5 @@ export function registerHomeExchange(on, tables) {
         ensureExchangeOrderBoard(c)
         return exchangeOrderSnapshot(c.state)
     })
+    on('CSRefrshOneOrder', refreshExchangeOrder)
 }

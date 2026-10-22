@@ -119,3 +119,22 @@ export function exchangeOrderSnapshot(state, rewards = []) {
         rewards,
     }
 }
+export function refreshExchangeOrder(c, r) {
+    ensure(Number.isInteger(r.order_guid) && r.order_guid > 0 && r.order_guid <= 0xffffffff, 'Invalid order identity')
+    const board = ensureExchangeOrderBoard(c),
+        slot = board.slots.find((s) => s.guid === r.order_guid && !s.done)
+    ensure(slot, 'Exchange order was not found', ErrorCode.HomeOrderNotExists)
+    ensure(board.refreshes > 0, 'Exchange order refresh allowance exhausted', ErrorCode.ExchangeOrderNotRefershTime)
+    const current = exchangeOrderCatalogue(c.tables).byId.get(slot.order_id)
+    ensure(
+        current?.orderLevel === slot.level,
+        'Exchange order tier configuration changed',
+        ErrorCode.HomeOrderConfInvalid,
+    )
+    const excluded = new Set(board.slots.map((s) => s.order_id).filter(Boolean)),
+        pool = orderCandidates(c.tables, c.state, slot.level, excluded)
+    ensure(pool.length, 'No alternative unlocked order of this tier', ErrorCode.HomeOrderRefreshNoChange)
+    slot.order_id = pool[(c.randomInt ?? randomInt)(0, pool.length)].orderID
+    board.refreshes--
+    return exchangeOrderSnapshot(c.state)
+}
