@@ -1,5 +1,5 @@
 import { ErrorCode } from '../error-codes.js'
-import { trialSoulEssence } from '../trial-equipment.js'
+import { trialSoulEssence, trialOrnaments, trialRuneIds } from '../trial-equipment.js'
 import { TaskGraphs, asList, nodeConditions } from '../tasks.js'
 import { ensure, manager, group } from './common.js'
 import { syncBattle, pairs } from '../battle.js'
@@ -457,12 +457,8 @@ export function registerTrialGroups(on, tables) {
         const heroes = requested.map((item) => {
             const cfg = configs.get(item.id)
             ensure(cfg && tables.find('hero', cfg.heroId), 'Unknown trial hero', ErrorCode.HeroNotExist)
-            ensure(
-                !cfg.accessorySet && !cfg.talentrune,
-                'Trial accessory or talent configuration not implemented',
-                ErrorCode.FunctionClosed,
-            )
             trialSoulEssence(tables, cfg)
+            trialOrnaments(tables, cfg)
             const guid = trialHeroGuid(c.id, cfg.id)
             return {
                 guid,
@@ -470,6 +466,7 @@ export function registerTrialGroups(on, tables) {
                 hero_lv: cfg.level,
                 hero_exp: 0,
                 hero_rank: cfg.rank,
+                rune_ids: trialRuneIds(tables, cfg, trialHeroConfigId(tables, cfg, c.state)),
                 hero_star: cfg.starLevel,
                 hero_grade: cfg.gradeLevel,
                 system_skill_levels: String(cfg.skilllevel).split('|').map(Number),

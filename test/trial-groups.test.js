@@ -426,7 +426,11 @@ test('logged reconnect request can restore trial hero and duplicated trial pet t
             state = store.load(session.id).state,
             hero = state.trialGroup.heroes[0],
             pet = state.trialGroup.pets[0]
-        assert.equal(packets[0].id, 5987)
+        // Journey synchronization may precede this handler's ACK. Require the
+        // ACK itself to exist and still precede the task actor publication.
+        const ackIndex = packets.findIndex((p) => p.id === 5987),
+            trialIndex = packets.findIndex((p) => p.id === 5988)
+        assert(ackIndex >= 0 && trialIndex > ackIndex)
         assert.equal(state.trialGroup.pets.length, 1)
         assert.equal(packets.find((x) => x.id === 5988).data.trial_heros[0].trial_pet, pet.guid)
         assert.equal((BigInt(hero.guid) >> 32n) & 0xffffffn, 107001n)

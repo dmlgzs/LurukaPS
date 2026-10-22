@@ -1,3 +1,4 @@
+import { heroTrialOrnaments } from './trial-equipment.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { pairs } from './battle.js'
@@ -85,16 +86,21 @@ export function runeBonuses(tables, hero) {
     }
     return { attrs, skills }
 }
+function wornOrnaments(tables, state, hero) {
+    const trial = heroTrialOrnaments(tables, hero)
+    if (trial) return trial
+    return (hero.oguid ?? []).filter(Boolean).map((guid) => {
+        const item = state.ornaments?.find((x) => x.guid === guid && x.wear_hero === hero.guid)
+        ensure(item, 'Equipped ornament missing', ErrorCode.OrnamentNotExist)
+        return item
+    })
+}
 export function ornamentAttributes(tables, state, hero) {
     const external = tables
     tables = ornamentValueTables(tables)
     const attrs = new Map()
-    const worn = []
-    for (const guid of hero.oguid ?? []) {
-        if (!guid) continue
-        const item = state.ornaments?.find((x) => x.guid === guid && x.wear_hero === hero.guid)
-        ensure(item, 'Equipped ornament missing', ErrorCode.OrnamentNotExist)
-        worn.push(item)
+    const worn = wornOrnaments(external, state, hero)
+    for (const item of worn) {
         const cfg = tables.find('accessory', item.id)
         ensure(cfg, 'Ornament configuration unavailable', ErrorCode.OrnamentConfFail)
         const mains = mainsFor(tables, cfg.mainAttr, item.lv)
@@ -120,11 +126,9 @@ export function ornamentAttributes(tables, state, hero) {
 export function ornamentSkills(tables, state, hero) {
     const counts = new Map(),
         skills = new Set()
-    const worn = []
-    for (const guid of hero.oguid ?? []) {
-        const item = state.ornaments?.find((x) => x.guid === guid && x.wear_hero === hero.guid)
-        const setId = item && tables.find('accessory', item.id)?.setId
-        if (item) worn.push(item)
+    const worn = wornOrnaments(tables, state, hero)
+    for (const item of worn) {
+        const setId = tables.find('accessory', item.id)?.setId
         if (setId) counts.set(setId, (counts.get(setId) ?? 0) + 1)
     }
     for (const skill of ornamentEntryEffects(tables, worn).skills) skills.add(skill.skill_id)
