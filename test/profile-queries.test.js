@@ -71,8 +71,14 @@ test('friend recommendations show actual local profiles without private account 
 })
 test('abyss overview uses configured gates, season window and stored stars only', () => {
     const f = fixture()
+    const responseId = protocol.byName.get('CSProtoAbyssGlobalView').id
+    const overview = (packets) => {
+        const reply = packets.find((packet) => packet.id === responseId)
+        assert(reply, 'AbyssGlobalView response must be present')
+        return reply.data
+    }
     try {
-        const first = f.call('AbyssGlobalView')[0].data
+        const first = overview(f.call('AbyssGlobalView'))
         assert.equal(first.mode, 1)
         assert.equal(first.cur_level, 10001)
         assert.equal(first.total_star, 0)
@@ -87,13 +93,18 @@ test('abyss overview uses configured gates, season window and stored stars only'
                 rotations: { 1: { levels: { 30001: { completed: true, stars: 2 } } } },
             }
         })
-        const rotation = f.call('AbyssGlobalView', { clear_inherit_flag: true })[0].data
+        const rotation = overview(f.call('AbyssGlobalView', { clear_inherit_flag: true }))
         assert.equal(rotation.mode, 3)
         assert.equal(rotation.cur_level, 30002)
         assert.equal(rotation.total_star, 2)
         assert.equal(rotation.inherit_notify_flag, false)
         f.setTime(configTime(tables.get('abbys_time')[0].endTime))
-        const ended = f.call('AbyssGlobalView')[0].data
+        const endedPackets = f.call('AbyssGlobalView')
+        assert(
+            endedPackets.some((packet) => packet.id !== responseId),
+            'Cross-day sync precedes the query reply',
+        )
+        const ended = overview(endedPackets)
         assert.equal(ended.rotation_id, 0)
         assert.equal(ended.mode, 2)
     } finally {
