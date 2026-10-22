@@ -334,6 +334,7 @@ export function journeySnapshot(tables, state) {
         point_val: journeyPoints(model, state),
         reward_index: ledger.pointMask,
         window_show: ledger.windowShow,
+        ...(ledger.specialItem ? { special_item: ledger.specialItem } : {}),
     }
     ledger.sourceSignature = syncKey(ledger, resolver.facts)
     return snapshot
