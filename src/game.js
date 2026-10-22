@@ -2,6 +2,7 @@ import { growupArchiveSnapshot } from './growup-archive.js'
 import { notifyBattlePassTasks } from './battle-pass-tasks.js'
 import { registerBattlePass } from './handlers/battle-pass.js'
 import { battlePassSnapshot } from './battle-pass.js'
+import { registerGeneFruit } from './handlers/pet-gene-fruit.js'
 import { registerPetStarSoul } from './handlers/pet-star-soul.js'
 import { registerPetBoxOrder } from './pet-box-order.js'
 import { registerEscBackground, prepareEscBackground, notifyEscBackground, escBackgroundUnlockSnapshot, escBackgroundSnapshots } from './esc-background.js'
@@ -432,6 +433,7 @@ export class Game {
         registerAbyssData(on, tables)
         registerPlayableSaves(on)
         registerRoulette(on)
+        registerGeneFruit(on)
         registerPetStarSoul(on)
         registerPetSkill(on)
         registerPetHandbook(on)

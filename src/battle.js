@@ -1,3 +1,4 @@
+import { numericGeneAttributes } from './pet-gene-numeric.js'
 import { petSoulAttributes } from './pet-star-soul.js'
 import { runeBonuses, ornamentAttributes, ornamentSkills } from './hero-equipment.js'
 import { temporaryHeroes, temporaryPets, activeFormationManager } from './trial-actors.js'
@@ -316,7 +317,27 @@ export function petModules(tables, state, pet, heroes) {
                     },
                 ],
             },
-            { module_type: 5, sub_modules: [{ sub_module_id: 0, attrs: { attrs: [] }, skills: { skills: [] } }] },
+            {
+                module_type: 5,
+                sub_modules: [
+                    {
+                        sub_module_id: 0,
+                        attrs: {
+                            attrs: wireAttributes(
+                                new Map(
+                                    [...numericGeneAttributes(tables, pet)].map(([id, value]) => [
+                                        id,
+                                        value * (specialAttributes.has(id) ? 10000 : 1),
+                                    ]),
+                                ),
+                            ),
+                        },
+                        // Numerical DNA has no skillsub_logic and must not be
+                        // injected into the client's noneSlotSkills startup path.
+                        skills: { skills: [] },
+                    },
+                ],
+            },
             ...(petHandbookAttributes(tables, state, pet).size
                 ? [
                       {
