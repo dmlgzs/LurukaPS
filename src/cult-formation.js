@@ -7,6 +7,7 @@ import { trialPayload } from './handlers/trial-groups.js'
 import { retireTrialActors } from './trial-actors.js'
 import { cultArchiveLoadout } from './cult-archive-trial.js'
 import { trialSoulEssence, trialOrnaments, trialRuneIds } from './trial-equipment.js'
+import { rememberCultActivityAttrReset } from './cult-activity-attributes.js'
 const list = (value) =>
     String(value || '')
         .split('|')
@@ -123,6 +124,7 @@ export function ensureCultFormation(tables, catalog, state, accountId) {
 export function clearCultFormation(state) {
     const run = state.cultTrial
     if (!run) return null
+    rememberCultActivityAttrReset(state)
     retireTrialActors(state, [...(run.heroes ?? []), ...(run.pets ?? [])])
     const ids = new Set((run.heroes ?? []).map((x) => x.guid))
     state.player.heros_info.battle_infos = state.player.heros_info.battle_infos.filter((x) => !ids.has(x.hero_id))

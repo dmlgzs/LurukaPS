@@ -10,6 +10,7 @@ import { activityTables } from './activity-tables.js'
 import { recordCultArchiveResult, cultArchiveEnemyDefinition } from './cult-archive-trial.js'
 import { growupArchiveSnapshot } from './growup-archive.js'
 import { recordCultTrialHistory } from './cult-trial-history.js'
+import { cultActivityAttrExtra } from './cult-activity-attributes.js'
 const routes = new Map(
     JSON.parse(fs.readFileSync(new URL('../configs/cult-trial-routes.json', import.meta.url))).routes.map((x) => [
         x.trial_id,
@@ -271,6 +272,7 @@ export function syncCultTrialWave(c) {
         cmd: 47,
         creator_id: c.id,
         map_id: run.map_id,
+        extra_data: cultActivityAttrExtra(c.state),
         map_info: { creator_id: c.id, map_id: run.map_id, objs: run.scene_objects },
     })
     const infos = []

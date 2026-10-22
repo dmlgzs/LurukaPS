@@ -28,6 +28,7 @@ import { playableSnapshot } from './playable-lifecycle.js'
 import { cultTrialSnapshot } from '../cult-trial.js'
 import { exitCultTrial } from './cult-trial.js'
 import { clearCultFormation } from '../cult-formation.js'
+import { cultActivityAttrExtra } from '../cult-activity-attributes.js'
 import { takePresentationReturn } from '../presentation-return.js'
 import {
     addWorldMark,
@@ -196,6 +197,7 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
         c.push('CSProtoTrialDatas', trialPayload(s))
         if (clearedManager) c.push('CSProtoSyncPlayerData', { group_mgrs: [clearedManager] })
     }
+    const cultivationExtra = cultActivityAttrExtra(s)
     c.push('CSProtoWorldMapPointSync', { u32s: w.points })
     if (includeMarks) c.push('CSProtoWorldMapMarkListSync', worldMarkPayload(s))
     c.push('CSProtoWorldMapSync', {
@@ -205,6 +207,7 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
         player_id: c.id,
         notify_id: c.id,
         zone_id: 0,
+        ...(cultivationExtra ? { extra_data: cultivationExtra } : {}),
         client_trans_data: r.client_trans_data || 0,
         map_info: {
             creator_id: c.id,
