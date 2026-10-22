@@ -185,6 +185,8 @@ import { repairMainHeroType } from './main-hero.js'
 import { upgradeEggState } from './eggs.js'
 import { registerShops } from './handlers/shops.js'
 import { registerItems } from './handlers/items.js'
+import { registerSnackBags } from './handlers/snack-bags.js'
+import { snackBagsSnapshot } from './snack-bags.js'
 import { registerStory } from './handlers/story.js'
 import { registerTasks } from './handlers/tasks.js'
 import { registerProgression } from './handlers/progression.js'
@@ -477,6 +479,7 @@ export class Game {
         this.recoverCompletedCampaignTasks = taskHandlers.recoverCompletedCampaignTasks
         registerStory(on, tables)
         registerItems(on)
+        registerSnackBags(on)
         registerShops(on, tables)
         registerHome(on, tables)
         registerWorldCollection(on)
@@ -1704,6 +1707,7 @@ export class Game {
             }),
             this.packet('CSProtoPlayableSync', playableSnapshot(state)),
             this.packet('CSProtoAllRouletteInfoSync', roulettePayload(state)),
+            this.packet('CSProtoAllSnackBagInfoSync', snackBagsSnapshot(this.tables, state, now)),
             this.packet('CSProtoShortcutDataSync', shortcutSnapshot(state, now)),
             this.packet('CSProtoPhotoGraphTempletSync', photoTemplateSnapshot(state)),
             this.packet('CSProtoWorldMapMarkListSync', worldMarkPayload(state)),
