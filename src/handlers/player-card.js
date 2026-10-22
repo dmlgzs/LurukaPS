@@ -22,6 +22,43 @@ export function cardDecoration(tables, state, field, id) {
     return { row, owned }
 }
 export function registerPlayerCard(on, tables) {
+    on('SetStandPlatesRole', (c, r) => {
+        const row = tables.find('playercard_dress', r.config)
+        ensure(row && row.type === 203, 'Custom role decoration configuration missing', ErrorCode.CardDressConfNone)
+        ensure(row.customize === 1, 'Decoration is not a custom image slot', ErrorCode.NCardDressConfCustomZero)
+        // pageStandeePreview sends the CDN object key, not an HTTP URL.
+        // The namespace and owner/slot prefix come from photoStore.path and
+        // uploadCapture; never download or execute the submitted object.
+        ensure(
+            typeof r.url === 'string' && Buffer.byteLength(r.url) <= 512,
+            'Invalid custom role image key',
+            ErrorCode.InvalidArgument,
+        )
+        const key = /^project-3\/playerdata\/standee\/hero\/(\d+)_(\d+)_(\d+)_(\d+)_(\d+)$/.exec(r.url)
+        ensure(
+            key && Number(key[1]) === c.id && Number(key[2]) === r.config,
+            'Custom role image key belongs to another owner or slot',
+            ErrorCode.InvalidArgument,
+        )
+        const heroId = Number(key[3])
+        ensure(
+            c.state.player.heros_info.heros.some((h) => h.conf_id === heroId && !h.trail),
+            'Custom role image hero is not owned',
+            ErrorCode.HeroNotExist,
+        )
+        const bags = playerCardSnapshot(tables, c.state).bags
+        const item = bags.find((item) => item.config === r.config)
+        if (item?.url === r.url) return {}
+        if (item) item.url = r.url
+        else bags.push({ config: r.config, url: r.url })
+        c.state.playerCardRevision = (c.state.playerCardRevision ?? 0) + 1
+        const basic = c.state.player.basic_info
+        if (basic.stand_plates?.role?.config === r.config) {
+            basic.stand_plates = { ...basic.stand_plates, role: { config: r.config, url: r.url } }
+            syncPlayer({ ...c, push: c.pushBefore }, { basic_info: { stand_plates: basic.stand_plates } })
+        }
+        return {}
+    })
     on('ChangeStandPlates', (c, r) => {
         const basic = c.state.player.basic_info
         const stand = { ...basic.stand_plates }
