@@ -1,4 +1,5 @@
 import { WorldObjectCatalog } from './world-objects.js'
+import { selectedWorldDifficulty } from './world-difficulty-catalogue.js'
 import { TaskGraphs, asList, nodeConditions } from './tasks.js'
 import { pairs } from './battle.js'
 import { taskEnemyGroups } from './task-enemy-groups.js'
@@ -124,7 +125,7 @@ export function enemyDefinition(tables, state, uuid) {
                     .find(
                         (r) =>
                             r.groupid === parameter &&
-                            r.difficultLv === (state.world.difficulty ?? 1) &&
+                            r.difficultLv === selectedWorldDifficulty(tables, state) &&
                             r.mapid === state.world.map_id,
                     )?.monsterLevel
               : pack?.levelPolicy === 2

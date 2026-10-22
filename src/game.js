@@ -1,4 +1,6 @@
 import { ErrorCode } from './error-codes.js'
+import { registerWorldDifficulty } from './handlers/world-difficulty.js'
+import { worldDifficultySnapshot } from './world-difficulty.js'
 import { registerAchievements } from './handlers/achievements.js'
 import { achievementSnapshot, notifyAchievements } from './achievements.js'
 import { registerAbyssData } from './handlers/abyss-data.js'
@@ -428,6 +430,7 @@ export class Game {
         registerClientState(on)
         registerCollection(on)
         registerWorld(on)
+        registerWorldDifficulty(on)
         registerMail(on)
         registerProgression(on)
         this.noviceTasks = registerNoviceTasks(on, tables)
@@ -1501,6 +1504,7 @@ export class Game {
                 },
                 { seq: frame.seq, pushSeq: frame.pushSeq },
             ),
+            this.packet('SCProtoWorldDifficultyInfo', worldDifficultySnapshot(this.tables, state)),
             ...(state.trialGroup || state.cultTrial?.heroes?.length || state.npcArenaTrialTrainer
                 ? [this.packet('CSProtoTrialDatas', trialPayload(state))]
                 : []),
