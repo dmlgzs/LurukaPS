@@ -19,5 +19,6 @@
   "ornamentSmelt": 95,
   "accessoryProductionFinish": 37,
   "accessoryProductionCancel": 38,
-  "ranchStoreHarvest": 77
+  "ranchStoreHarvest": 77,
+  "exchangeSale": 144
 }

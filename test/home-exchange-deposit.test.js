@@ -109,10 +109,11 @@ test('shipment reservation rejects invalid, unavailable and over-limit requests 
             (e) => e.code === ErrorCode.ExchangeSettleLimit,
         )
         f.setNow(1792598400)
-        assert.throws(
-            () => f.call('CSAddExchangeObj', { id: 10360011, num: 1, type: 3 }),
-            (e) => e.code === ErrorCode.InvalidLogic,
-        )
+        f.store.transact(f.session.id, 0, (s) => {
+            s.homeExchange.history = []
+        })
+        f.call('CSAddExchangeObj', { id: 10360011, num: 1, type: 3 })
+        assert.equal(f.state().homeExchange.box[0].num, 1, 'an overnight booking remains valid')
     } finally {
         f.store.close()
     }

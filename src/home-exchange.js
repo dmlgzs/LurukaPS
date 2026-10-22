@@ -4,22 +4,173 @@ import { homeCondition } from './home-grid.js'
 import { randomInt } from 'node:crypto'
 import { spend } from './inventory.js'
 import { refreshAutoCropShortcut } from './home.js'
+import { grantRewards, parseRewards } from './rewards.js'
+import { rewardSource } from './reward-source.js'
+
+function settleShipment(tables, state, now, kind, shipment) {
+    const exchange = state.homeExchange,
+        box = shipment ?? exchange?.box ?? []
+    if (!box.length) return null
+    const first = box[0],
+        config = exchangeCatalogue(tables)
+    let principal = 0,
+        quantity = 0
+    for (const entry of box) {
+        const row = exchangeItemConfig(tables, entry.id)
+        ensure(
+            Number.isInteger(entry.num) && entry.num > 0 && Number.isInteger(entry.unitPrice) && entry.unitPrice > 0,
+            'Invalid saved exchange quantity or quote',
+            ErrorCode.GameConfig,
+        )
+        ensure(
+            entry.day === first.day &&
+                entry.settleAt === first.settleAt &&
+                Number.isInteger(entry.day) &&
+                Number.isInteger(entry.settleAt),
+            'Mixed exchange departure windows',
+            ErrorCode.GameConfig,
+        )
+        ensure(
+            entry.items?.length &&
+                entry.items.every(
+                    (item) => item.itemid === row.itemId && Number.isInteger(item.itemnum) && item.itemnum > 0,
+                ) &&
+                entry.items.reduce((n, item) => n + item.itemnum, 0) === entry.num,
+            'Invalid shipment inventory proof',
+            ErrorCode.GameConfig,
+        )
+        principal += entry.num * entry.unitPrice
+        quantity += entry.num
+    }
+    ensure(
+        [principal, quantity].every((n) => Number.isSafeInteger(n) && n > 0 && n <= 0xffffffff),
+        'Exchange settlement overflow',
+        ErrorCode.GameConfig,
+    )
+    let extra = 0,
+        extras = []
+    if (kind === 'scheduled') {
+        const tiers = tables
+            .get('home_exchange_sell_extrareward')
+            .filter((row) => row.SellNum <= quantity)
+            .sort((a, b) => b.SellNum - a.SellNum)
+        ensure(tiers.length, 'Exchange extra reward configuration unavailable', ErrorCode.GameConfig)
+        const tier = tiers[0]
+        ensure(
+            Number.isInteger(tier.YieldIncreases) && tier.YieldIncreases >= 0 && tier.YieldIncreases <= 10000,
+            'Invalid exchange extra income rate',
+            ErrorCode.GameConfig,
+        )
+        extra = Math.floor((principal * tier.YieldIncreases) / 10000)
+        extras = parseRewards(tier.ItemReward)
+    }
+    const rewards = grantRewards(tables, state, [
+        { itemtype: 10, itemid: config.currency, itemnum: principal + extra },
+        ...extras,
+    ])
+    const dayTime = first.day * 86400 - 8 * 3600 + config.resetHour * 3600
+    const history = (exchange.history ??= []),
+        old = history.find((row) => row.history_time === dayTime)
+    const record = old ?? { history_time: dayTime, profit: 0, settle_num: 0, extra_num: 0 }
+    record.profit += principal
+    record.settle_num += quantity
+    record.extra_num += extra
+    ensure(
+        Object.values(record).every((n) => Number.isInteger(n) && n >= 0 && n <= 0xffffffff),
+        'Exchange financial report overflow',
+        ErrorCode.GameConfig,
+    )
+    if (!old) history.push(record)
+    // UI requests a recent-date chart; 90 days is a local retention policy.
+    exchange.history = history.sort((a, b) => a.history_time - b.history_time).slice(-90)
+    if (kind === 'manual') exchange.box = []
+    exchange.settlementReceipt = { kind, time: now, day: first.day, principal, extra }
+    const award = { rewards, src: rewardSource(tables, 'exchangeSale') }
+    if (kind === 'scheduled')
+        exchange.pendingNotice = { rewards: [...(exchange.pendingNotice?.rewards ?? []), ...rewards], src: award.src }
+    return award
+}
+export function settleExchangeImmediately(c) {
+    if (!c.state.homeExchange?.box?.length) {
+        ensure(c.state.homeExchange?.settlementReceipt, 'No goods in the shipment box', ErrorCode.ExchangeNoItem)
+        return { rewards: [] }
+    }
+    return settleShipment(c.tables, c.state, c.now, 'manual')
+}
+export function homeExchangeDue(tables, state, now) {
+    const exchange = state.homeExchange
+    if (!exchange) return false
+    return (
+        exchange.market?.day !== exchangeClock(tables, now).businessDay ||
+        (exchange.box ?? []).some((row) => row.shippingAt <= now) ||
+        (exchange.shipments ?? []).some((row) => row.settleAt <= now)
+    )
+}
+export function prepareHomeExchange(c, { publish = true, historyNotice = true } = {}) {
+    const exchange = c.state.homeExchange
+    if (!exchange) return false
+    const previousDay = exchange.market?.day
+    // The page counts down to midnight, then says the merchant is away until
+    // 04:00. Its add/cancel callbacks remain available. Move departed goods
+    // out of the editable box and let new bookings target the next departure.
+    const departing = (exchange.box ?? []).filter((row) => row.shippingAt <= c.now)
+    if (departing.length) {
+        exchange.shipments ??= []
+        for (const entry of departing) {
+            let batch = exchange.shipments.find((b) => b.settleAt === entry.settleAt && b.day === entry.day)
+            if (!batch) exchange.shipments.push((batch = { day: entry.day, settleAt: entry.settleAt, items: [] }))
+            batch.items.push(entry)
+        }
+        exchange.box = exchange.box.filter((row) => !departing.includes(row))
+    }
+    const due = (exchange.shipments ?? []).filter((row) => row.settleAt <= c.now)
+    for (const batch of due) settleShipment(c.tables, c.state, c.now, 'scheduled', batch.items)
+    if (due.length) exchange.shipments = exchange.shipments.filter((row) => !due.includes(row))
+    ensureHomeExchange(c.tables, c.state, c.now, c.randomInt)
+    const marketChanged = previousDay !== exchange.market.day
+    if (publish) {
+        if (due.length) {
+            c.pushBefore('CSProtoSyncPlayerData', {
+                basic_info: c.state.player.basic_info,
+                attr_infos: c.state.player.attr_infos,
+                sbag_infos: c.state.player.sbag_infos,
+            })
+            if (historyNotice)
+                c.pushBefore('CSProtoSCHomeExchangeInfo', { history: exchangeHistorySnapshot(c.state, true) })
+        }
+        if (marketChanged) c.pushBefore('CSProtoHomeExchangeNewInfo', exchangeNewsSnapshot(c.state))
+        if (due.length || departing.length || marketChanged)
+            c.pushBefore('CSProtoSCHomeexchanceObj', exchangeBoxSnapshot(c.tables, c.state, c.now))
+    }
+    return !!due.length || !!departing.length || marketChanged
+}
+export function homeExchangeLoginData(tables, state, now) {
+    if (!state.homeExchange) return []
+    return [
+        ['CSProtoHomeExchangeNewInfo', exchangeNewsSnapshot(state)],
+        ['CSProtoSCHomeexchanceObj', exchangeBoxSnapshot(tables, state, now)],
+        ['CSProtoSCHomeExchangeInfo', { history: exchangeHistorySnapshot(state, true) }],
+    ]
+}
 
 export function returnExchangeReservation(c, r) {
     const config = exchangeItemConfig(c.tables, r.id),
         clock = exchangeClock(c.tables, c.now)
     ensure(!r.guid, 'Exchange material must not specify an instance')
-    ensure(!clock.away, 'Merchant is away until daily reset', ErrorCode.InvalidLogic)
     const exchange = c.state.homeExchange,
-        entry = exchange?.box?.find((e) => e.id === r.id)
-    if (!entry && exchange?.cancelReceipts?.[r.id] === clock.businessDay) return false
-    ensure(entry, 'Exchange reservation was not found', ErrorCode.ExchangeCancelNotFind)
-    ensure(entry.day === clock.businessDay, 'Shipment is already in transit', ErrorCode.InvalidLogic)
+        entries = exchange?.box?.filter((e) => e.id === r.id) ?? []
+    if (!entries.length && exchange?.cancelReceipts?.[r.id] === clock.day) return false
+    ensure(entries.length, 'Exchange reservation was not found', ErrorCode.ExchangeCancelNotFind)
+    ensure(
+        entries.every((e) => e.shippingAt > c.now),
+        'Shipment is already in transit',
+        ErrorCode.InvalidLogic,
+    )
     const bag = c.state.player.sbag_infos.items,
         byGuid = new Map(bag.map((i) => [i.guid, i])),
         restored = new Map()
     let total = 0
-    for (const item of entry.items ?? []) {
+    for (const item of entries.flatMap((entry) => entry.items ?? [])) {
         ensure(
             item.itemid === config.itemId &&
                 (item.itemtype ?? 3) === 3 &&
@@ -49,7 +200,11 @@ export function returnExchangeReservation(c, r) {
         )
         restored.set(item.guid, result)
     }
-    ensure(total === entry.num, 'Exchange reservation quantity does not match', ErrorCode.GameConfig)
+    ensure(
+        total === entries.reduce((n, e) => n + e.num, 0),
+        'Exchange reservation quantity does not match',
+        ErrorCode.GameConfig,
+    )
     for (const [guid, item] of restored) {
         const old = byGuid.get(guid)
         if (old) Object.assign(old, item)
@@ -57,10 +212,10 @@ export function returnExchangeReservation(c, r) {
         const next = BigInt(c.state.nextItemGuid ?? '1')
         if (BigInt(guid) >= next) c.state.nextItemGuid = String(BigInt(guid) + 1n)
     }
-    exchange.box = exchange.box.filter((e) => e !== entry)
+    exchange.box = exchange.box.filter((e) => !entries.includes(e))
     const receipts = (exchange.cancelReceipts ??= {})
-    receipts[r.id] = clock.businessDay
-    for (const [id, day] of Object.entries(receipts)) if (day !== clock.businessDay) delete receipts[id]
+    receipts[r.id] = clock.day
+    for (const [id, day] of Object.entries(receipts)) if (day !== clock.day) delete receipts[id]
     refreshAutoCropShortcut(c.tables, c.state, config.itemId)
     return true
 }
@@ -100,18 +255,21 @@ export function exchangeUnitPrice(tables, state, id) {
 }
 export function reserveExchangeItem(c, r) {
     const clock = exchangeClock(c.tables, c.now)
-    ensure(!clock.away, 'Merchant is away until daily reset', ErrorCode.InvalidLogic)
     const row = exchangeItemConfig(c.tables, r.id)
     ensure(r.type === row.type && !r.guid, 'Exchange item type or instance does not match')
     ensure(Number.isInteger(r.num) && r.num > 0 && r.num <= 0xffffffff, 'Invalid exchange quantity')
     const exchange = ensureHomeExchange(c.tables, c.state, c.now, c.randomInt)
     ensure(
-        exchange.box.every((e) => e.day === clock.businessDay),
+        exchange.box.every((e) => e.shippingAt > c.now),
         'A previous shipment is awaiting settlement',
         ErrorCode.InvalidLogic,
     )
     const price = exchangeUnitPrice(c.tables, c.state, r.id)
-    const reserved = exchange.box.reduce((n, e) => n + e.num * e.unitPrice, 0),
+    const weekStart = clock.day - ((clock.day + 3) % 7)
+    const allReservations = [...exchange.box, ...(exchange.shipments ?? []).flatMap((batch) => batch.items)]
+    const reserved = allReservations
+            .filter((e) => e.day >= weekStart && e.day < weekStart + 7)
+            .reduce((n, e) => n + e.num * e.unitPrice, 0),
         cost = r.num * price
     ensure(
         Number.isSafeInteger(reserved) && Number.isSafeInteger(cost),
@@ -119,12 +277,11 @@ export function reserveExchangeItem(c, r) {
         ErrorCode.GameConfig,
     )
     ensure(
-        exchangeWeeklyIncome(c.tables, c.state, c.now) + reserved + cost <= exchangeCatalogue(c.tables).limit,
+        exchangeIncomeForWeek(c.state, weekStart) + reserved + cost <= exchangeCatalogue(c.tables).limit,
         'Exchange weekly income limit exceeded',
         ErrorCode.ExchangeSettleLimit,
     )
-    const old = exchange.box.find((e) => e.id === r.id)
-    ensure(!old || old.unitPrice === price, 'Shipment quote changed before settlement', ErrorCode.GameConfig)
+    const old = exchange.box.find((e) => e.id === r.id && e.day === clock.day && e.unitPrice === price)
     const before = new Map(
         c.state.player.sbag_infos.items.filter((i) => i.itemid === row.itemId).map((i) => [i.guid, { ...i }]),
     )
@@ -138,9 +295,9 @@ export function reserveExchangeItem(c, r) {
         num: 0,
         items: [],
         unitPrice: price,
-        day: clock.businessDay,
-        shippingAt: clock.shippingAt,
-        settleAt: clock.settleAt,
+        day: clock.day,
+        shippingAt: (clock.day + 1) * 86400 - 8 * 3600,
+        settleAt: (clock.day + 1) * 86400 - 8 * 3600 + exchangeCatalogue(c.tables).resetHour * 3600,
     }
     entry.num += r.num
     entry.items.push(...items)
@@ -251,6 +408,9 @@ export function ensureHomeExchange(tables, state, now, rng = randomInt) {
 }
 export function exchangeWeeklyIncome(tables, state, now) {
     const { weekStart } = exchangeClock(tables, now)
+    return exchangeIncomeForWeek(state, weekStart)
+}
+function exchangeIncomeForWeek(state, weekStart) {
     let value = 0
     for (const record of state.homeExchange?.history ?? []) {
         const day = Math.floor((record.history_time + 8 * 3600) / 86400)
@@ -277,8 +437,10 @@ export function exchangeNewsSnapshot(state) {
     }
 }
 export function exchangeBoxSnapshot(tables, state, now) {
+    const quantities = new Map()
+    for (const row of state.homeExchange?.box ?? []) quantities.set(row.id, (quantities.get(row.id) ?? 0) + row.num)
     return {
-        obj_info: (state.homeExchange?.box ?? []).map((row) => ({ id: row.id, num: row.num })),
+        obj_info: [...quantities].map(([id, num]) => ({ id, num })),
         settle_num: exchangeWeeklyIncome(tables, state, now),
     }
 }

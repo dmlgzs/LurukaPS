@@ -1,5 +1,6 @@
 import { ErrorCode } from './error-codes.js'
 import { registerAbyssData } from './handlers/abyss-data.js'
+import { homeExchangeDue, prepareHomeExchange, homeExchangeLoginData } from './home-exchange.js'
 import { materialDungeonSnapshot } from './material-dungeons.js'
 import { prepareCropOutcomes } from './crop-rewards.js'
 import { reconcileHomeStage } from './home-stage.js'
@@ -630,6 +631,7 @@ export class Game {
                 recoverInterruptedFlyTravel(this.tables, state)
                 settleSimpleProducts(this.tables, state, now)
                 settleRanches(this.tables, state, now, this.rng)
+                prepareHomeExchange({ state, tables: this.tables, now, randomInt: this.rng }, { publish: false })
                 recoverStoryCampaignClear({ state, tables: this.tables, now, pushBefore: () => {} })
                 recoverFailedSpecialNpcEvents(
                     { state, tables: this.tables, id: session.id, now },
@@ -954,6 +956,7 @@ export class Game {
                 }
                 if (!battleReport) {
                     settleRanches(this.tables, state, now, this.rng)
+                    prepareHomeExchange(context, { historyNotice: e.name !== 'CSProtoCSHistoryReport' })
                     retimeProduction(this.tables, state, now)
                     refreshProduction(state, now)
                 }
@@ -1232,12 +1235,20 @@ export class Game {
             current = this.store.load(id).state,
             homeDue = productionDue(current, now),
             ranchReady = ranchDue(current, now),
+            exchangeReady = homeExchangeDue(this.tables, current, now),
             simpleDue = simpleProductionDue(current, now),
             dormDue = dormDayDue(this.tables, current, now),
             activityDue = this.activities.due(current, now),
             arenaDue = npcArenaTickDue(current, exact),
-            durable = homeDue || ranchReady || simpleDue || dormDue || activityDue || !!npcArenaOutcome(current, exact)
-        if (!homeDue && !ranchReady && !simpleDue && !dormDue && !activityDue && !arenaDue) return []
+            durable =
+                homeDue ||
+                ranchReady ||
+                exchangeReady ||
+                simpleDue ||
+                dormDue ||
+                activityDue ||
+                !!npcArenaOutcome(current, exact)
+        if (!homeDue && !ranchReady && !exchangeReady && !simpleDue && !dormDue && !activityDue && !arenaDue) return []
         return this.store.transact(
             id,
             0,
@@ -1273,6 +1284,14 @@ export class Game {
                     )
                 }
                 const productionChanged = homeDue && refreshProduction(state, now)
+                if (exchangeReady)
+                    prepareHomeExchange({
+                        state,
+                        tables: this.tables,
+                        now,
+                        randomInt: this.rng,
+                        pushBefore: (name, value) => packets.push(this.packet(name, value)),
+                    })
                 const ranchChanged = ranchReady && settleRanches(this.tables, state, now, this.rng)
                 if (productionChanged || ranchChanged) {
                     if ((state.eggRevision || 0) !== eggRevision)
@@ -1443,6 +1462,7 @@ export class Game {
             this.packet('CSProtoMailSync', { mails: state.mail }),
             this.packet('CSProtoStorySync', { infos: { infos: state.storyIds || [] } }),
             this.packet('CSProtoHomeSync', homePayload(this.tables, state)),
+            ...homeExchangeLoginData(this.tables, state, now).map(([name, value]) => this.packet(name, value)),
             this.packet('SCProtoHomeHeroStoryInfoNtf', dormTopics(this.tables, state, now)),
             ...(activeDormVisit(this.tables, state)
                 ? [this.packet('SCProtoHomeDormReEnterNtf', { hero_id: state.home.dormVisit.hero_id })]
