@@ -2,6 +2,7 @@ import { ErrorCode } from '../error-codes.js'
 import { ensure, syncPlayer } from './common.js'
 import { aggregateCosts, spend, spendCurrency } from '../inventory.js'
 import { grantRewards, parseRewards } from '../rewards.js'
+import { detectorTarget, consumeDetector } from '../world-detectors.js'
 function safeProduct(a, b) {
     const n = a * b
     ensure(Number.isSafeInteger(n) && n > 0 && n <= 0xffffffff, 'Item count overflow')
@@ -33,7 +34,16 @@ export function registerItems(on) {
         syncPlayer(c)
         return { rewards }
     }
-    on('UseItem', (c, r) => stamina(c, [r]))
+    on('UseItem', (c, r) => {
+        if (c.tables.find('common_item', r.itemid)?.useType !== 18) return stamina(c, [r])
+        ensure(r.num === 1 && !r.args?.length, 'Detector use requires one item and no arguments', ErrorCode.ParamError)
+        const target = detectorTarget(c.tables, c.state, r.itemid, c.now)
+        ensure(target > 0, 'No incomplete detector target is available', ErrorCode.ParamError)
+        consumeDetector(c, r.itemid)
+        // Local MapObjectDetect already knows its target. Its UseItem callback
+        // expects Rewards and reuses that cached ID, not an 11075 response.
+        return { rewards: [] }
+    })
     on('BatchUseItem', (c, r) => {
         ensure(r.items.length > 0 && r.items.length <= 100, 'Invalid use batch')
         return stamina(c, r.items)
