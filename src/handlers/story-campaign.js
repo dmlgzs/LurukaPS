@@ -4,6 +4,7 @@ import { visibleEnemySlots } from '../enemy-group-visibility.js'
 import { storyCampaignStagePlan } from '../table-wave-campaign.js'
 import { ensure } from './common.js'
 import { campaignStageSatisfied } from '../campaign-stage-plan.js'
+import { teachingSceneKillReady } from '../teaching-kill-conditions.js'
 import { syncBattle } from '../battle.js'
 import { finishEnemyGroupRelations, pruneInactiveCampaignRelations } from './world-combat.js'
 import { inactiveCampaignEnemyGroup } from '../inactive-campaign-enemies.js'
@@ -295,6 +296,13 @@ export function endStoryCampaignScene(c, r) {
     )
     ensure([1, 3, 4].includes(r.result), 'Invalid dungeon result')
     if (r.result === 3) {
+        if (run.teaching_id && !storySceneDefeated(c.tables, c.state) && teachingSceneKillReady(c.tables, c.state)) {
+            // The teaching challenge can report success before its FSM's
+            // delayed StoryKillReq. ACK this verified intent, but do not grant
+            // a clear or allow the next scene until the configured kill arrives.
+            run.pending_end_scene = run.map_id
+            return {}
+        }
         ensure(
             run.task_ids?.length ? storySceneDefeated(c.tables, c.state) : run.completed_scenes.includes(run.map_id),
             'Story dungeon enemies are not defeated',

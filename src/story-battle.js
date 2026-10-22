@@ -9,6 +9,8 @@ import { u64, combatState } from './combat-state.js'
 import { createHash } from 'node:crypto'
 import { guidedKillRule } from './guided-conditions.js'
 import { recordGuidedKill } from './task-kills.js'
+import { teachingKillReady } from './teaching-kill-conditions.js'
+import { settleStoryCampaignScene, endStoryCampaignScene } from './handlers/story-campaign.js'
 function activeStoryGroup(tables, state, def, world, graphs) {
     for (const task of state.tasks)
         for (const node of task.nodes) {
@@ -82,25 +84,43 @@ export function registerStoryBattle(on, tables) {
             if (c.state.storyKillReceipts?.[key] && existing?.hp === 0) continue
             const def = enemyDefinition(tables, c.state, uuid)
             ensure(def, 'Unknown story-kill target')
-            const target = activeStoryGroup(tables, c.state, def, world, graphs),
+            // The client sends every entity still present in the battle group,
+            // including already dead members. Do not re-authorize a no-op kill.
+            if (
+                existing?.hp === 0 &&
+                existing.alive_state === 1 &&
+                !existing.captured &&
+                existing.pack_id === def.pack_id
+            )
+                continue
+            const teaching = teachingKillReady(tables, c.state, def.object_id)
+            const target =
+                    activeStoryGroup(tables, c.state, def, world, graphs) ??
+                    (teaching ? { group: teaching.group } : null),
                 group = target?.group
             const profile = profiles.find((p) => p.battleFsmType === group?.battleFsmType)
             ensure(group?.canForceKill === 1 && profile, 'Enemy group has no configured story kill')
             const rules = profile.rules.filter((rule) => !rule.validation || rule.validation === 'story')
             ensure(
-                rules.length > 0,
+                teaching || rules.length > 0,
                 'Story-kill client-condition validation is not implemented',
                 ErrorCode.FunctionClosed,
             )
             const matchedRule = rules.find(
                 (rule) => rule.stories.length && rule.stories.every((id) => c.state.storyIds?.includes(id)),
             )
-            ensure(matchedRule, 'Required battle story has not played')
+            ensure(teaching || matchedRule, 'Required battle story has not played')
             ensure(target, 'Story-kill objective is not active')
             battle.entities[uuid] = { ...existing, ...def, uuid, hp: 0, alive_state: 1, updated_at: c.now }
             if ((existing?.hp ?? def.max_hp) > 0) recordGuidedKill(tables, c.state, battle.entities[uuid])
             c.state.storyKillReceipts ??= {}
-            c.state.storyKillReceipts[key] = { story_ids: matchedRule.stories, time: c.now }
+            c.state.storyKillReceipts[key] = {
+                story_ids: matchedRule?.stories ?? [],
+                time: c.now,
+                ...(teaching
+                    ? { teaching_id: c.state.storyCampaign.teaching_id, source: teaching.rule.sourceSha256 }
+                    : {}),
+            }
             infos.push({ uuid, hp: 0, sp: 0, alive_state: 1, reason: 0 })
         }
         if (infos.length) c.push('CSProtoObjBattleInfoSync', { infos })
@@ -108,6 +128,14 @@ export function registerStoryBattle(on, tables) {
         // Only a fully defeated configured group emits the reset; retries can
         // also repair a prior death whose relation cleanup was omitted.
         for (const uuid of ids) finishEnemyGroupRelations(c, uuid)
+        if (c.state.storyCampaign?.teaching_id) {
+            settleStoryCampaignScene(c)
+            const run = c.state.storyCampaign
+            if (run.pending_end_scene === run.map_id && run.completed_scenes.includes(run.map_id)) {
+                delete run.pending_end_scene
+                endStoryCampaignScene(c, { result: 3 })
+            }
+        }
         return {}
     })
 }

@@ -1,0 +1,126 @@
+{
+  "rules": [
+    {
+      "battleFsmType": 1010101,
+      "sourceGraph": "ast_fsm_battle_teach_1010101",
+      "sourceSha256": "5d4084ce972120a3151df6dbf67c9c85c1f79541c803555149ff7a7fc430725d",
+      "fsmNode": "7",
+      "steps": [
+        {
+          "kind": "element",
+          "id": 101010129
+        },
+        {
+          "kind": "skill",
+          "id": 10101005,
+          "index": 1
+        },
+        {
+          "kind": "skill",
+          "id": 10101005,
+          "index": 1
+        },
+        {
+          "kind": "skill",
+          "id": 10101042,
+          "index": 0
+        },
+        {
+          "kind": "skill",
+          "id": 10101042,
+          "index": 1
+        },
+        {
+          "kind": "skill",
+          "id": 10101042,
+          "index": 0
+        },
+        {
+          "kind": "skill",
+          "id": 10101042,
+          "index": 1
+        },
+        {
+          "kind": "skill",
+          "id": 10101042,
+          "index": 0
+        },
+        {
+          "kind": "skill",
+          "id": 10101042,
+          "index": 1
+        }
+      ],
+      "sourceLoopCount": 3
+    },
+    {
+      "battleFsmType": 1020011,
+      "sourceGraph": "ast_fsm_battle_teach_1020011",
+      "sourceSha256": "0fc82b1586e10188efb0e6077f6e87431e1d4f951e69640122edc6910e626a13",
+      "fsmNode": "6",
+      "steps": [
+        {
+          "kind": "skill",
+          "id": 10200112,
+          "index": 0
+        },
+        {
+          "kind": "skill",
+          "id": 10200149,
+          "index": 1
+        },
+        {
+          "kind": "skill",
+          "id": 10200149,
+          "index": 2
+        },
+        {
+          "kind": "skill",
+          "id": 10200149,
+          "index": 1
+        },
+        {
+          "kind": "skill",
+          "id": 10200149,
+          "index": 2
+        }
+      ],
+      "sourceLoopCount": 2
+    }
+  ],
+  "unsupported": [
+    1001,
+    1002,
+    1003,
+    2001,
+    2002,
+    3001,
+    3002,
+    4001,
+    5001,
+    1010031,
+    1010041,
+    1010061,
+    1010071,
+    1010081,
+    1010141,
+    1030021,
+    1070011,
+    1070021,
+    1070031,
+    1080011,
+    1080021,
+    1080031,
+    1080051,
+    1090011,
+    1090021,
+    1110011,
+    1120011,
+    1120021,
+    1990011,
+    1990021,
+    1990031,
+    1990081
+  ],
+  "todo": "Compile other teaching FSM control-flow forms before accepting their client-condition kills. This schema validates network-observable triggers; UI guide completion is client-local."
+}

@@ -20,6 +20,7 @@ import { finishEnemyGroupRelations, pruneInactiveCampaignRelations } from './wor
 import { isPlayerDamageSource } from '../damage-owner.js'
 import { advanceEntrustCombat } from './entrust.js'
 import { settleStoryCampaignScene } from './story-campaign.js'
+import { observeTeachingSkill, observeTeachingElement } from '../teaching-kill-conditions.js'
 import { advanceCultTrialCombat } from '../cult-trial.js'
 import { isRetiredTrialActor, temporaryHeroes, temporaryPets, activeFormationManager } from '../trial-actors.js'
 import { ensure } from './common.js'
@@ -195,6 +196,7 @@ export function registerCombat(on) {
         recordArenaTrainerSkill(c, id, r)
         if (recordArenaSkillStart(c, id, r) === false) return
         recordArenaSkillOrigin(c, r)
+        observeTeachingSkill(c, id, r)
         boundedSet(
             battle.skills,
             id,
@@ -515,6 +517,7 @@ export function registerCombat(on) {
                 recordArenaControlEvent(c, e)
                 recordArenaElementOrigin(c, e)
                 recordArenaDamageElement(c, e)
+                observeTeachingElement(c, e)
             }
         }
         battle.report_count++
