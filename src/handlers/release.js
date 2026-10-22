@@ -74,6 +74,7 @@ export function registerRelease(on, tables) {
         c.state.petEggs = c.state.petEggs.filter((e) => !ids.has(e.guid))
         for (const id of ids) {
             if (c.state.eggOutcomes) delete c.state.eggOutcomes[id]
+            if (c.state.eggGenerationSeeds) delete c.state.eggGenerationSeeds[id]
             if (c.state.eggHatchConstraints) delete c.state.eggHatchConstraints[id]
         }
         c.state.eggRevision = (c.state.eggRevision || 0) + 1

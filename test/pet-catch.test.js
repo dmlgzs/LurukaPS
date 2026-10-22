@@ -1,3 +1,6 @@
+import { battlePassTaskSnapshot } from '../src/battle-pass-tasks.js'
+import { prepareBattlePass } from '../src/battle-pass.js'
+import { battlePassLevelInfo } from '../src/battle-pass-buy-level.js'
 import { WorldObjectCatalog } from '../src/world-objects.js'
 import { enemyDefinition } from '../src/enemy-state.js'
 import test from 'node:test'
@@ -13,7 +16,7 @@ const cfg = configuration(),
     p = new Protocol(cfg.base)
 function fixture() {
     const store = new Store(':memory:'),
-        game = new Game(p, store, tables),
+        game = new Game(p, store, tables, { clock: () => 1800000000 }),
         session = {}
     let seq = 1
     const call = (name, r = {}) => {
@@ -41,6 +44,22 @@ function fixture() {
     })
     return { store, game, session, call, state: () => store.load(session.id).state, g }
 }
+function assertCatchBattlePass(packets, f) {
+    // The fixture explicitly replaces task progress after login. The next query
+    // re-observes battle-pass task visibility/completion and emits18006 once.
+    const notices = packets.filter((packet) => packet.id === 18006)
+    assert.equal(notices.length, 1)
+    const state = f.state(),
+        prepared = prepareBattlePass(tables, state, 1800000000),
+        snapshot = battlePassTaskSnapshot(tables, state, 1800000000, prepared)
+    assert(prepared)
+    assert.deepEqual(notices[0].data, {
+        one_task: [...snapshot.day_task, ...snapshot.week_task, ...snapshot.forever_task],
+        info: battlePassLevelInfo(prepared.season, prepared.ledger),
+    })
+    assert.equal(packets.at(-1).id, 11030)
+}
+
 test('real prologue target102056 queries catch info, consumes one card, creates owned pet and advances objective', () => {
     const f = fixture(),
         target = ((4n << 56n) | 102056n).toString()
@@ -49,8 +68,9 @@ test('real prologue target102056 queries catch info, consumes one card, creates 
             query = f.call('GetCatchPetInfo', { tar_id: [target], day_weather: 2, reason: 1, pet_len_id: 0 })
         assert.deepEqual(
             query.map((x) => x.id),
-            [11031, 11030],
+            [11031, 18006, 11030],
         )
+        assertCatchBattlePass(query, f)
         assert.equal(query[0].data.pets[0].uuid, target)
         assert.equal(query[0].data.pets[0].rank, 1)
         const preview = query[0].data.pets[0].comprehension
@@ -206,8 +226,9 @@ test('logged mixed scan query resolves task monster and ordinary world enemy pac
         const packets = f.call('GetCatchPetInfo', { tar_id: [wild, task], day_weather: 2, reason: 1 })
         assert.deepEqual(
             packets.map((x) => x.id),
-            [11031, 11030],
+            [11031, 18006, 11030],
         )
+        assertCatchBattlePass(packets, f)
         assert.deepEqual(
             packets[0].data.pets.map((x) => x.uuid),
             [wild, task],

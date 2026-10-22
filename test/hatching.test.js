@@ -109,7 +109,9 @@ test('legacy hatch start and modern ProductFinish produce a unique pet after the
         assert.equal(state.pets.length, initialCount + 1)
         assert.equal(state.petEggs.length, 1)
         assert(state.pets.some((p) => p.guid === reward.guid))
-        assert.throws(() => call('ProductFinish', { guid: hatchGuid, product_guids: [job.guid] }))
+        const repeated = call('ProductFinish', { guid: hatchGuid, product_guids: [job.guid] })
+        assert.deepEqual(p.decode('SCProductFinish', repeated.find((x) => x.id === 6111).payload).reward.rewards, [])
+        assert.equal(store.load(session.id).state.pets.length, initialCount + 1)
     } finally {
         store.close()
     }

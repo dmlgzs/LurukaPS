@@ -187,7 +187,7 @@ export function ensurePetName(tables, pet, config = tables.find('pet', pet.confi
     pet.pet_name = Buffer.from(config.name, 'utf8').toString('base64')
     return true
 }
-export function petData(tables, configId, guid, box, builderRuleId = 1001) {
+export function petData(tables, configId, guid, box, builderRuleId = 1001, rng = randomInt) {
     const config = tables.find('pet', configId)
     ensure(config && tables.find('template_value', configId), 'Missing pet configuration', ErrorCode.PetConfNotExist)
     const pet = {
@@ -196,7 +196,7 @@ export function petData(tables, configId, guid, box, builderRuleId = 1001) {
         config_id: configId,
         feature: 1,
         color: 0,
-        comprehension: initialPetComprehension(tables, builderRuleId),
+        comprehension: initialPetComprehension(tables, builderRuleId, rng),
         inherent_skills: initialPetSkills(config),
         lv: 1,
         rank: 1,
@@ -211,7 +211,7 @@ export function petData(tables, configId, guid, box, builderRuleId = 1001) {
         hero_id: '0',
         roulette_pos: 0,
     }
-    if (tables.find('mount', configId)) pet.speed = randomMountSpeed(tables)
+    if (tables.find('mount', configId)) pet.speed = randomMountSpeed(tables, rng)
     pet.gene_infos = initialPetGenes(tables, config)
     pet.gene_state = Math.ceil(pet.gene_infos.length / 2)
     pet.grade = petGrade(tables, pet)
@@ -219,7 +219,7 @@ export function petData(tables, configId, guid, box, builderRuleId = 1001) {
     pet.talent_id = initialPetTalents(tables, configId)
     return pet
 }
-export function createPets(tables, state, configId, count, builderRuleId = 1001) {
+export function createPets(tables, state, configId, count, builderRuleId = 1001, rng = undefined) {
     const boxCount = Number(tables.get('game').find((r) => r.title === 'PET_BOX_NUM')?.value),
         boxSize = Number(tables.get('game').find((r) => r.title === 'PET_BOX_LIMIT')?.value)
     ensure(
@@ -249,7 +249,7 @@ export function createPets(tables, state, configId, count, builderRuleId = 1001)
     const created = []
     for (let i = 0; i < count; i++) {
         const guid = ((2n << 56n) | (BigInt(configId) << 32n) | BigInt(sequence++)).toString()
-        const pet = petData(tables, configId, guid, slots[i], builderRuleId)
+        const pet = petData(tables, configId, guid, slots[i], builderRuleId, rng)
         created.push(pet)
         const box = Math.floor(slots[i] / 100)
         if (!state.petBoxes.some((b) => b.id === box))

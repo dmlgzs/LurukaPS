@@ -17,7 +17,7 @@ test('shop egg awards have unique GUIDs, precede the reply, and persist across r
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lurukaps-eggs-')),
         db = path.join(dir, 'state.sqlite')
     let store = new Store(db),
-        game = new Game(p, store, t),
+        game = new Game(p, store, t, { clock: () => 1800000000, rng: () => 0 }),
         session = {}
     let seq = 1
     const call = (name, r) => {
@@ -29,7 +29,9 @@ test('shop egg awards have unique GUIDs, precede the reply, and persist across r
         const id = session.id
         store.transact(id, 0, (s) => {
             s.player.basic_info.lv = 25
-            s.player.attr_infos.attrs = [{ attr_id: 413, attr_val: '1000' }]
+            const currency = s.player.attr_infos.attrs.find((row) => row.attr_id === 413)
+            if (currency) currency.attr_val = '1000'
+            else s.player.attr_infos.attrs.push({ attr_id: 413, attr_val: '1000' })
         })
         const result = call('ShopBuyItems', { shop_id: 502, items: [{ slot_id: 502002, goods_id: 502002, times: 2 }] })
         assert(result.findIndex((x) => x.id === 6518) < result.findIndex((x) => x.id === 6071))
@@ -45,7 +47,7 @@ test('shop egg awards have unique GUIDs, precede the reply, and persist across r
         call('PetEggLock', { guid: String(eggs[0].guid), lock_operate: true })
         store.close()
         store = new Store(db)
-        game = new Game(p, store, t)
+        game = new Game(p, store, t, { clock: () => 1800000000, rng: () => 0 })
         session = {}
         const login = call('EnterGame', { open_id: 'eggs' })
         const restored = p.decode('SCPetEggInfoSync', login.find((x) => x.id === 6518).payload).egg_infos.eggs
@@ -67,7 +69,7 @@ test('shop egg awards have unique GUIDs, precede the reply, and persist across r
 test('egg allocation obeys capacity, identity overflow and rollback on later invalid reward', () => {
     const store = new Store(':memory:')
     try {
-        const game = new Game(p, store, t),
+        const game = new Game(p, store, t, { clock: () => 1800000000, rng: () => 0 }),
             session = {},
             entry = p.byName.get('CSProtoEnterGame')
         game.dispatch(session, {
@@ -111,7 +113,7 @@ test('configured weighted affixes respect mutex groups and old GUIDs are not reu
 })
 test('mail uses typed rewards and egg entities are synchronized before fetch completion', () => {
     const store = new Store(':memory:'),
-        game = new Game(p, store, t),
+        game = new Game(p, store, t, { clock: () => 1800000000, rng: () => 0 }),
         session = {}
     let seq = 1
     const call = (name, r) => {

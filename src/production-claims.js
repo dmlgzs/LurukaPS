@@ -1,3 +1,4 @@
+import { hatchProductReceipt } from './hatch-effects.js'
 import { ErrorCode } from './error-codes.js'
 import { recordActiveProgress } from './daily-active.js'
 import { ensure } from './handlers/common.js'
@@ -43,6 +44,13 @@ export function claimProductionStock(c, request, { cancel = false, allowEmpty = 
     )
     const selected = ids.map((id) => {
         const job = jobs.find((job) => job.guid === id)
+        if (!job && !cancel) {
+            const receipt = hatchProductReceipt(c.state, b.guid, id)
+            if (receipt) {
+                ensure(includeHatch, 'Aggregate claim excludes incubation', ErrorCode.FunctionClosed)
+                return { kind: 'hatch-receipt', receipt }
+            }
+        }
         ensure(job, 'Product is not in this building', ErrorCode.InvalidArgument)
         ensure(includeHatch || job.kind !== 'hatch', 'Aggregate claim excludes incubation', ErrorCode.FunctionClosed)
         return job
@@ -50,6 +58,7 @@ export function claimProductionStock(c, request, { cancel = false, allowEmpty = 
     const rewards = []
     let claimed = 0
     for (const job of selected) {
+        if (job.kind === 'hatch-receipt') continue
         if (job.kind === 'hatch') {
             if (cancel) cancelHatch(c, job)
             else if (completed(job, c.now)) {
@@ -74,7 +83,11 @@ export function claimProductionStock(c, request, { cancel = false, allowEmpty = 
                 rewards.push(...grantRewards(tables, c.state, multiplyProductionRows(job.costs, unfinished)))
         }
     }
-    ensure(cancel || claimed > 0 || allowEmpty, 'No finished production available', ErrorCode.InvalidArgument)
+    ensure(
+        cancel || claimed > 0 || allowEmpty || selected.every((job) => job.kind === 'hatch-receipt'),
+        'No finished production available',
+        ErrorCode.InvalidArgument,
+    )
     if (claimed || cancel) {
         h.productionJobs[b.guid] = jobs.filter((job) => !(cancel && ids.includes(job.guid)) && job.claimed < job.count)
         if (cancel) rescheduleJobs(h.productionJobs[b.guid], c.now)

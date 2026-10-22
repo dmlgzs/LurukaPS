@@ -1,3 +1,11 @@
+import {
+    validateHatchEffects,
+    hatchSeed,
+    hatchRandom,
+    applyHatchEffects,
+    recordHatchReceipt,
+    retainHatchSeed,
+} from './hatch-effects.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { selectBaseHatchSpecies } from './egg-pools.js'
@@ -15,11 +23,7 @@ export function startHatch(c, buildGuid, eggGuid) {
     ensure(egg, 'Pet egg not owned')
     ensure(!egg.lock_state, 'Pet egg is locked')
     ensure(!egg.hatch_state && !egg.hatch_build_guid, 'Pet egg is already assigned')
-    ensure(
-        !egg.egg_affix?.length && !egg.main_parents && !egg.secondary_parents,
-        'Affix and inherited hatch generation is not yet implemented',
-        ErrorCode.InvalidProtoID,
-    )
+    validateHatchEffects(c.tables, egg, c.state.eggHatchConstraints?.[eggGuid])
     const config = c.tables.find('pet_egg', egg.configid),
         station = c.tables.find('home_building_production', b.build_id)
     ensure(config, 'Missing egg configuration', ErrorCode.EggConfNotExist)
@@ -42,6 +46,7 @@ export function startHatch(c, buildGuid, eggGuid) {
             c.randomInt,
             c.state.eggHatchConstraints?.[eggGuid],
         )
+    retainHatchSeed(c, eggGuid)
     const start = Math.max(c.now, ...jobs.map((j) => j.start + j.seconds)),
         guid = home.nextProductGuid || 1
     ensure(start + seconds <= 0xffffffff && guid <= 0xffffffff, 'Hatch identity/timestamp exhausted')
@@ -70,9 +75,21 @@ export function claimHatch(c, job) {
     ensure(egg && egg.hatch_build_guid, 'Hatch egg missing')
     const builderRuleId = c.tables.find('pet_egg', egg.configid)?.petBuilderRuleId
     ensure(c.tables.find('pet_builder_rule', builderRuleId), 'Missing egg pet builder', ErrorCode.GameConfig)
-    const [pet] = createPets(c.tables, c.state, job.petId, 1, builderRuleId)
+    const plan = validateHatchEffects(c.tables, egg, c.state.eggHatchConstraints?.[job.eggGuid]),
+        rng = hatchRandom(hatchSeed(c, job.eggGuid, job))
+    const [pet] = createPets(c.tables, c.state, job.petId, 1, builderRuleId, rng)
+    applyHatchEffects(c.tables, pet, plan, rng)
+    recordHatchReceipt(c.state, {
+        buildGuid: egg.hatch_build_guid,
+        eggGuid: job.eggGuid,
+        productGuid: job.guid,
+        petGuid: pet.guid,
+        petId: job.petId,
+        triggered: [...plan.triggered],
+    })
     c.state.petEggs = c.state.petEggs.filter((e) => e.guid !== job.eggGuid)
     delete c.state.eggOutcomes[job.eggGuid]
+    if (c.state.eggGenerationSeeds) delete c.state.eggGenerationSeeds[job.eggGuid]
     if (c.state.eggHatchConstraints) delete c.state.eggHatchConstraints[job.eggGuid]
     c.state.eggRevision = (c.state.eggRevision || 0) + 1
     job.claimed = 1
@@ -81,6 +98,7 @@ export function claimHatch(c, job) {
 export function cancelHatch(c, job) {
     const egg = (c.state.petEggs || []).find((e) => e.guid === job.eggGuid)
     ensure(egg, 'Hatch egg missing')
+    retainHatchSeed(c, job.eggGuid, job)
     egg.hatch_state = 0
     egg.hatch_build_guid = 0
     c.state.eggRevision = (c.state.eggRevision || 0) + 1
