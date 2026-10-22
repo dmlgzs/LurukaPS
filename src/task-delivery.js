@@ -3,8 +3,26 @@ import { ensure } from './handlers/common.js'
 import { spend } from './inventory.js'
 import { syncCurrencyMirrors } from './currency.js'
 import { taskItemCount, changeTaskItem } from './task-items.js'
+import { instanceTaskTypes, taskInstanceGuid, taskResourcePlan } from './task-resource-consumption.js'
 export function deliveryKey(state, taskId, nodeId, index) {
     return `${taskId}:${state.taskEpochs?.[taskId] || 0}:${nodeId}:${index}`
+}
+function instanceReceipt(items) {
+    if (!items?.length || items.some((item) => !instanceTaskTypes.has(item.item_type))) return null
+    return JSON.stringify(
+        items
+            .map((item) => [item.item_type, item.item_id, item.item_count, taskInstanceGuid(item.item_guid)])
+            .sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[3].localeCompare(b[3])),
+    )
+}
+export function instanceDeliveryReplay(state, context, items) {
+    const receipt = instanceReceipt(items)
+    return (
+        !!receipt &&
+        !!state.taskInstanceDeliveries?.[deliveryKey(state, context.taskId, context.nodeId, context.index)]?.includes(
+            receipt,
+        )
+    )
 }
 export function deliveryRequirements(condition) {
     const base = condition.__type_TaskConditionBaseData ?? {}
@@ -59,9 +77,9 @@ export function submitTaskItems(c, condition, context, items) {
     const spec = deliveryRequirements(condition),
         { data, requirements } = spec
     ensure(
-        [3, 10, 20].includes(data.itemBigType),
+        [3, 5, 10, 13, 14, 15, 20].includes(data.itemBigType),
         'This task item category is not implemented',
-        ErrorCode.InvalidProtoID,
+        ErrorCode.FunctionClosed,
     )
     const mapId = data.mapId || condition.__type_TaskConditionBaseData?.mapData?.sceneId
     ensure(!mapId || c.state.world.map_id === mapId, 'Task submission is in a different map')
@@ -79,12 +97,18 @@ export function submitTaskItems(c, condition, context, items) {
             return [{ item_type, item_id, item_count: remaining }]
         })
         if (!items.length) return
+        ensure(
+            !instanceTaskTypes.has(data.itemBigType),
+            'Task instances require explicit selection',
+            ErrorCode.TaskSubmitItemChoseError,
+        )
     }
     ensure(items.length > 0 && items.length <= 100, 'Invalid submission list')
     const amounts = new Map()
     for (const item of items) {
         ensure(
-            item.item_type === data.itemBigType && (!item.item_guid || item.item_guid === '0'),
+            item.item_type === data.itemBigType &&
+                (instanceTaskTypes.has(data.itemBigType) || !item.item_guid || item.item_guid === '0'),
             'Wrong task item category or instance',
         )
         ensure(Number.isInteger(item.item_count) && item.item_count > 0, 'Invalid task item count')
@@ -117,6 +141,7 @@ export function submitTaskItems(c, condition, context, items) {
                 spec.total,
             'Task item requirement already fulfilled',
         )
+    const consumeResources = taskResourcePlan(c, items)
     const costs = new Map(),
         wallet = [],
         taskCosts = []
@@ -124,7 +149,7 @@ export function submitTaskItems(c, condition, context, items) {
         const [type, id] = key.split(':').map(Number)
         if (type === 3) costs.set(id, n)
         else if (type === 20) taskCosts.push([id, n])
-        else wallet.push([id, n])
+        else if (type === 10) wallet.push([id, n])
     }
     for (const [id, n] of taskCosts) ensure(taskItemCount(c.state, id) >= n, 'Insufficient task items')
     for (const [id, n] of wallet) {
@@ -147,8 +172,14 @@ export function submitTaskItems(c, condition, context, items) {
         }
     }
     syncCurrencyMirrors(c.state.player)
+    consumeResources()
     for (const [id, n] of amounts) record[id] = (record[id] || 0) + n
     c.state.taskDeliveries[key] = record
+    const receipt = instanceReceipt(items)
+    if (receipt) {
+        c.state.taskInstanceDeliveries ??= {}
+        ;(c.state.taskInstanceDeliveries[key] ??= []).push(receipt)
+    }
     c.push('CSProtoSyncPlayerData', {
         basic_info: c.state.player.basic_info,
         attr_infos: c.state.player.attr_infos,
