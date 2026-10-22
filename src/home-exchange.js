@@ -2,6 +2,97 @@ import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { homeCondition } from './home-grid.js'
 import { randomInt } from 'node:crypto'
+import { spend } from './inventory.js'
+
+export function exchangeItemConfig(tables, id) {
+    ensure(Number.isInteger(id) && id > 0 && id <= 0xffffffff, 'Invalid exchange item ID')
+    const row = exchangeCatalogue(tables).items.get(id)
+    ensure(row, 'Exchange item configuration unavailable', ErrorCode.ExchangeItemNoExist)
+    ensure(
+        Number.isSafeInteger(row.price) && row.price > 0 && Number.isSafeInteger(row.itemId) && row.itemId > 0,
+        'Invalid exchange price or item reference',
+        ErrorCode.GameConfig,
+    )
+    ensure(row.type === 3, 'Exchange instance type is not implemented', ErrorCode.FunctionClosed)
+    ensure(
+        tables.find('common_item', row.itemId),
+        'Exchange inventory item configuration unavailable',
+        ErrorCode.GameConfig,
+    )
+    return row
+}
+export function exchangeUnitPrice(tables, state, id) {
+    const row = exchangeItemConfig(tables, id),
+        change = state.homeExchange.market.changes[id] ?? 0
+    ensure(
+        Number.isInteger(change) && Number.isInteger(row.bonusRate),
+        'Invalid exchange price modifier',
+        ErrorCode.GameConfig,
+    )
+    const value = Math.trunc((row.price * (100 + change + row.bonusRate)) / 100)
+    ensure(
+        Number.isSafeInteger(value) && value > 0 && value <= 0xffffffff,
+        'Invalid exchange unit price',
+        ErrorCode.GameConfig,
+    )
+    return value
+}
+export function reserveExchangeItem(c, r) {
+    const clock = exchangeClock(c.tables, c.now)
+    ensure(!clock.away, 'Merchant is away until daily reset', ErrorCode.InvalidLogic)
+    const row = exchangeItemConfig(c.tables, r.id)
+    ensure(r.type === row.type && !r.guid, 'Exchange item type or instance does not match')
+    ensure(Number.isInteger(r.num) && r.num > 0 && r.num <= 0xffffffff, 'Invalid exchange quantity')
+    const exchange = ensureHomeExchange(c.tables, c.state, c.now, c.randomInt)
+    ensure(
+        exchange.box.every((e) => e.day === clock.businessDay),
+        'A previous shipment is awaiting settlement',
+        ErrorCode.InvalidLogic,
+    )
+    const price = exchangeUnitPrice(c.tables, c.state, r.id)
+    const reserved = exchange.box.reduce((n, e) => n + e.num * e.unitPrice, 0),
+        cost = r.num * price
+    ensure(
+        Number.isSafeInteger(reserved) && Number.isSafeInteger(cost),
+        'Exchange value overflow',
+        ErrorCode.GameConfig,
+    )
+    ensure(
+        exchangeWeeklyIncome(c.tables, c.state, c.now) + reserved + cost <= exchangeCatalogue(c.tables).limit,
+        'Exchange weekly income limit exceeded',
+        ErrorCode.ExchangeSettleLimit,
+    )
+    const old = exchange.box.find((e) => e.id === r.id)
+    ensure(!old || old.unitPrice === price, 'Shipment quote changed before settlement', ErrorCode.GameConfig)
+    const before = new Map(
+        c.state.player.sbag_infos.items.filter((i) => i.itemid === row.itemId).map((i) => [i.guid, { ...i }]),
+    )
+    const changed = spend(c.state, new Map([[row.itemId, r.num]]), 0, c.now)
+    const items = changed.map((stack) => ({
+        ...before.get(stack.guid),
+        itemnum: before.get(stack.guid).itemnum - stack.itemnum,
+    }))
+    const entry = old ?? {
+        id: r.id,
+        num: 0,
+        items: [],
+        unitPrice: price,
+        day: clock.businessDay,
+        shippingAt: clock.shippingAt,
+        settleAt: clock.settleAt,
+    }
+    entry.num += r.num
+    entry.items.push(...items)
+    ensure(
+        Number.isSafeInteger(entry.num) && entry.num <= 0xffffffff,
+        'Exchange shipment quantity overflow',
+        ErrorCode.GameConfig,
+    )
+    if (!old) exchange.box.push(entry)
+    delete exchange.cancelReceipts?.[r.id]
+    delete exchange.manualReceipt
+    return entry
+}
 
 const catalogues = new WeakMap()
 const list = (value) =>
