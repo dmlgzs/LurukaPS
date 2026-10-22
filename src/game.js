@@ -22,6 +22,8 @@ import {
 import { registerWorldDifficulty } from './handlers/world-difficulty.js'
 import { worldDifficultySnapshot } from './world-difficulty.js'
 import { registerAchievements } from './handlers/achievements.js'
+import { registerJourney } from './handlers/journey.js'
+import { journeySnapshot, observeJourney, notifyJourney } from './journey.js'
 import { achievementSnapshot, notifyAchievements } from './achievements.js'
 import { registerAbyssData } from './handlers/abyss-data.js'
 import { homeExchangeDue, prepareHomeExchange, homeExchangeLoginData } from './home-exchange.js'
@@ -466,6 +468,7 @@ export class Game {
         registerProgression(on)
         this.noviceTasks = registerNoviceTasks(on, tables)
         registerAchievements(on)
+        registerJourney(on)
         const taskHandlers = registerTasks(on, tables)
         this.finishPendingCharacterTask = taskHandlers.finishPendingCharacterTask
         this.recoverCompletedCampaignTasks = taskHandlers.recoverCompletedCampaignTasks
@@ -1124,6 +1127,7 @@ export class Game {
                 if (!battleReport) observeActiveSession(this.tables, state, now)
                 const activeCountersBefore = activeCounterSample(state)
                 const response = recoveredChoice ? {} : handler(context, r)
+                if (!battleReport) notifyJourney(context, e.name)
                 if (!battleReport) {
                     observeActiveCounters(context, activeCountersBefore)
                     notifyActive(context)
@@ -1575,6 +1579,7 @@ export class Game {
         const now = this.clock()
         prepareStamina(this.tables, state, now)
         pruneItemShortcuts(state, now)
+        observeJourney(this.tables, state)
         return [
             this.packet('CSProtoEnterGameCallbackStart', {
                 reconnect: !!r.reconnect,
@@ -1624,6 +1629,7 @@ export class Game {
             this.packet('CSProtoWorldBossChestInfoSync', bossFirstChestInfo(this.tables, state)),
             this.packet('CSProtoNoviceTaskInfoSync', this.noviceTasks.initial(state)),
             this.packet('CSProtoAchievementSync', achievementSnapshot(this.tables, state, now)),
+            this.packet('SCProtoJourneySync', journeySnapshot(this.tables, state)),
             this.packet('CSProtoDailyActiveInfoSync', initialActiveSnapshot(this.tables, state, now)),
             this.packet('CSProtoStandPlatesBagInfo', playerCardSnapshot(this.tables, state)),
             this.packet('SCProtoClothesInfoSync', clothesSnapshot(this.tables, state)),

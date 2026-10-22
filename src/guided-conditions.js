@@ -67,8 +67,8 @@ export function guidedRequirement(id) {
     return Number.isInteger(param) && param > 0 ? param : 1
 }
 
-export function guidedConditionValue(id, state, context) {
-    const row = conditions.get(id)
+export function guidedConditionValue(id, state, context, providedRow) {
+    const row = providedRow ?? conditions.get(id)
     if (!row) return 0
     const collect = guidedCollectRule(id)
     if (collect) return Math.min(collect.count, acquiredResourceCount(state, collect.type, collect.id))
