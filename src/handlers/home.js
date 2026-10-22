@@ -15,6 +15,7 @@ import { rememberMap, worldSync, WORLD_MAP_CMD_ENTER } from './world.js'
 import { dormTopics } from '../home-dorm.js'
 import { registerRanch } from './ranch.js'
 import { clearRanchPetSlots } from '../ranch.js'
+import { registerHomeExchange } from './home-exchange.js'
 
 function homeScenePosition(tables) {
     const homeMapId = Number(tables.get('game').find((row) => row.title === 'HOME_ID')?.value)
@@ -30,6 +31,7 @@ function homeScenePosition(tables) {
 export function registerHome(on, tables) {
     tables = productionTables(tables)
     registerRanch(on, tables)
+    registerHomeExchange(on, tables)
     const change = (c) => {
         c.state.homeRevision = (c.state.homeRevision || 0) + 1
     }
