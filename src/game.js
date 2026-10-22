@@ -1,4 +1,5 @@
 import { ErrorCode } from './error-codes.js'
+import { registerAbyssData } from './handlers/abyss-data.js'
 import { materialDungeonSnapshot } from './material-dungeons.js'
 import { prepareCropOutcomes } from './crop-rewards.js'
 import { reconcileHomeStage } from './home-stage.js'
@@ -350,6 +351,7 @@ export class Game {
             this.handlers.set(e.id, handler)
         }
         registerTrialGroups(on, tables)
+        registerAbyssData(on, tables)
         registerPlayableSaves(on)
         registerRoulette(on)
         registerPetSkill(on)
