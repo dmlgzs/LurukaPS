@@ -10,6 +10,14 @@ const bubble = {
     protocol: 'SCProtoChatBubbleSync',
     code: ErrorCode.ChatBubbleNotOpen,
 }
+const background = {
+    table: 'chat_bg',
+    key: 'chatBackground',
+    use: 'use_background',
+    unlock: 'unlock_background',
+    protocol: 'SCProtoChatBackgroundSync',
+    code: ErrorCode.ChatBackgroundNotOpen,
+}
 
 function cosmetic(tables, state, spec) {
     const rows = tables.get(spec.table)
@@ -55,6 +63,8 @@ function changeCosmetic(c, r, spec) {
 
 export const chatBubbleSnapshot = (tables, state) => cosmetic(tables, state, bubble)
 export const changeChatBubble = (c, r) => changeCosmetic(c, r, bubble)
+export const chatBackgroundSnapshot = (tables, state) => cosmetic(tables, state, background)
+export const changeChatBackground = (c, r) => changeCosmetic(c, r, background)
 
 export function selectedChatBubble(tables, state, requested = 0) {
     const data = chatBubbleSnapshot(tables, state)

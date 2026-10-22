@@ -5,7 +5,7 @@ import { chatEmojiSnapshot } from './chat-emoji.js'
 import { registerPetCosmetics } from './handlers/pet-cosmetics.js'
 import { lockedPetBoxes } from './pet-box-locks.js'
 import { petSkinsSnapshot } from './pet-skins.js'
-import { chatBubbleSnapshot } from './chat-cosmetics.js'
+import { chatBubbleSnapshot, chatBackgroundSnapshot } from './chat-cosmetics.js'
 import { registerStamina } from './handlers/stamina.js'
 import {
     prepareStamina,
@@ -1673,6 +1673,7 @@ export class Game {
             this.packet('CSProtoAnnouncementNotify', announcementSnapshot(this.announcementBaseUrl, now)),
             this.packet('CSProtoChatEmojiSync', chatEmojiSnapshot(this.tables, state)),
             this.packet('SCProtoChatBubbleSync', chatBubbleSnapshot(this.tables, state)),
+            this.packet('SCProtoChatBackgroundSync', chatBackgroundSnapshot(this.tables, state)),
             this.packet('CSProtoChatRoomSync', { chat_type: 2, sysId: String(state.chatWorldRoom ?? 1) }),
             this.packet('CSProtoChatListSync', chatSnapshots(this.store, state, session.id).list),
             this.packet('CSProtoChatMsgCntSync', chatSnapshots(this.store, state, session.id).counts),
