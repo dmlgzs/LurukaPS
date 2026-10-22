@@ -8,6 +8,7 @@ export const LOCAL_CALLBACK_NOTICE = LocalErrorCode.OfflinePaymentCallback
 import { ensure, syncPlayer } from './common.js'
 import { grantRewards, parseRewards } from '../rewards.js'
 import { MallCatalog } from '../mall.js'
+import { payGoodsPlan } from '../mall-pay-goods.js'
 import { createHash } from 'node:crypto'
 export function registerLocalPayments(on, tables, store, { enabled = true } = {}) {
     const catalog = new MallCatalog(tables)
@@ -16,21 +17,24 @@ export function registerLocalPayments(on, tables, store, { enabled = true } = {}
         if (isMall) {
             const goods = catalog.pay.get(input.pay_goods_id),
                 shop = catalog.shops.get(input.pay_shop_id)
+            ensure(shop, 'Mall shop does not exist', ErrorCode.MallShopNotExist)
             ensure(
-                goods && shop && String(shop.goodsListPurchase).split('|').map(Number).includes(goods.goodsId),
+                goods && String(shop.goodsListPurchase).split('|').map(Number).includes(goods.goodsId),
                 'Mall goods do not belong to shop',
+                ErrorCode.MallGoodsNotExist,
             )
             r = { ...input, purchase_sdk_id: goods.purchaseSdkID }
         }
-        ensure(enabled, 'Offline payments are disabled')
+        ensure(enabled, 'Offline payments are disabled', ErrorCode.FunctionClosed)
         const match = /^(?:lurukaps|azurjs)-offline:([a-z0-9-]{8,64}):(.*)$/i.exec(r.product_id ?? '')
         const product = match?.[2] ?? r.product_id ?? ''
         ensure(product.length <= 512, 'Product metadata too long')
         ensure(match || c.requestKey, 'Order request has no stable sequence')
         const sdk = tables.find('purchase_sdk', r.purchase_sdk_id)
-        ensure(sdk, 'Unknown purchase product')
+        ensure(sdk, 'Unknown purchase product', isMall ? ErrorCode.MallConfigError : ErrorCode.InvalidArgument)
         const count = r.buy_count ?? 1
-        ensure(Number.isInteger(count) && count >= 1 && count <= 100, 'Invalid purchase count')
+        ensure(Number.isInteger(count) && count >= 1, 'Invalid purchase count', ErrorCode.InvalidArgument)
+        ensure(count <= 100, 'Invalid purchase count', isMall ? ErrorCode.MallBuyCountError : ErrorCode.InvalidArgument)
         ensure((r.amount ?? '').length <= 64, 'Invalid amount metadata')
         const mall = (c.state.mall ??= {}),
             orders = (mall.localOrders ??= {}),
@@ -85,6 +89,10 @@ export function registerLocalPayments(on, tables, store, { enabled = true } = {}
             notify(previous)
             return {}
         }
+        // A fulfilled receipt is replayed above without recharging or applying
+        // newly changed ownership/quota conditions. Only a NEW mall order runs
+        // the shared purchase plan, before reserving any order/popup identity.
+        const mallPlan = isMall ? payGoodsPlan(c, { ...input, buy_count: count }, catalog) : null
         const id = String(store.nextSequence('offline-order')),
             popupId = store.nextSequence('offline-popup'),
             rechargeConfig = tables.get('mall_recharge_diamond').find((x) => x.purchaseSdkID === sdk.id)
@@ -143,31 +151,38 @@ export function registerLocalPayments(on, tables, store, { enabled = true } = {}
             }
             popup = { popup_id: popupId, pay_source: 0, purchase_sdk_id: sdk.id, recharge_diamond: order.recharge }
         } else {
-            const matches = tables
-                .get('mall_pay_goods')
-                .filter((x) => x.purchaseSdkID === sdk.id && (!isMall || x.goodsId === r.pay_goods_id))
+            const matches = mallPlan
+                ? [mallPlan.goods]
+                : tables.get('mall_pay_goods').filter((x) => x.purchaseSdkID === sdk.id)
             ensure(matches.length === 1, 'Offline entitlement product is not implemented', ErrorCode.FunctionClosed)
             const goods = matches[0],
-                wire = catalog.goods(true, goods.goodsId, c.state, c.now),
-                shop = tables
-                    .get('mall_shop')
-                    .find(
-                        (s) =>
-                            (!isMall || s.shopId === r.pay_shop_id) &&
-                            String(s.goodsListPurchase).split('|').map(Number).includes(goods.goodsId),
-                    )
-            ensure(
-                shop &&
-                    wire.is_all_cond_done &&
-                    (!Number(wire.begin_time) || c.now >= Number(wire.begin_time)) &&
-                    (!Number(wire.end_time) || c.now < Number(wire.end_time)),
-                'Offline gift is unavailable',
-            )
-            ensure(!goods.goodsNum || wire.curr_purchase_num + count <= goods.goodsNum, 'Offline gift purchase limit')
+                wire = mallPlan?.wire ?? catalog.goods(true, goods.goodsId, c.state, c.now),
+                shop =
+                    mallPlan?.shop ??
+                    tables
+                        .get('mall_shop')
+                        .find(
+                            (s) =>
+                                (!isMall || s.shopId === r.pay_shop_id) &&
+                                String(s.goodsListPurchase).split('|').map(Number).includes(goods.goodsId),
+                        )
+            if (!mallPlan) {
+                ensure(
+                    shop &&
+                        wire.is_all_cond_done &&
+                        (!Number(wire.begin_time) || c.now >= Number(wire.begin_time)) &&
+                        (!Number(wire.end_time) || c.now < Number(wire.end_time)),
+                    'Offline gift is unavailable',
+                )
+                ensure(
+                    !goods.goodsNum || wire.curr_purchase_num + count <= goods.goodsNum,
+                    'Offline gift purchase limit',
+                )
+            }
             const rewards = grantRewards(
                 c.tables,
                 c.state,
-                parseRewards(goods.item).map((x) => ({ ...x, itemnum: x.itemnum * count })),
+                mallPlan?.output ?? parseRewards(goods.item).map((x) => ({ ...x, itemnum: x.itemnum * count })),
             )
             mall.purchases ??= {}
             mall.purchases[`pay:${goods.goodsId}`] = {
