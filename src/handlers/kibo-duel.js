@@ -252,7 +252,22 @@ export function registerKiboDuel(on, tables, protocol) {
             arenaGroup = { ...arenaGroup, hero_skills: duelSkills(row) }
         arenaGroup = { ...arenaGroup, pet_guids: normalizeArenaPets(c.state, arenaGroup.pet_guids) }
         groups[arenaLockedSlot] = arenaGroup
-        c.state.kiboDuelSlot = 1
+        const presetCount = Number(
+            tables.get('game').find((row) => row.title === 'KIBO_DUEL_FORMATION_NUM_LIMIT')?.value,
+        )
+        ensure(
+            Number.isInteger(presetCount) && presetCount > 0,
+            'Kibo preset count is unavailable',
+            ErrorCode.GameConfig,
+        )
+        if (
+            !Number.isInteger(c.state.kiboDuelSlot) ||
+            !(
+                (c.state.kiboDuelSlot >= 1 && c.state.kiboDuelSlot <= presetCount) ||
+                c.state.kiboDuelSlot === lockedDuelSlot
+            )
+        )
+            c.state.kiboDuelSlot = 1
         saveArenaGroup(arena, protocol, arenaGroup)
         saveArenaGroup(arena, protocol, group)
         // Arena (type 6) lives in PlayerData; 10740 only populates KiBoDuelStore.

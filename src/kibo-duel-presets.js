@@ -199,4 +199,29 @@ export function editDuelPreset(c, r, publish) {
 export function registerDuelPresetEditing(on, tables, snapshot) {
     const publish = (c) => c.pushBefore('CSProtoKiboDuelGroupInfoSync', snapshot(c.state, tables))
     on('KiboDuelGroupInfoChange', (c, r) => editDuelPreset(c, r, publish))
+    on('KiboDuelSetCurGroup', (c, r) => selectDuelPreset(c, r, publish))
+}
+
+export function selectDuelPreset(c, r, publish) {
+    const max = constant(c.tables, 'KIBO_DUEL_FORMATION_NUM_LIMIT'),
+        slot = r.u32
+    ensure(Number.isInteger(slot) && slot > 0, 'Invalid duel preset selection', ErrorCode.InvalidArgument)
+    ensure(
+        slot <= max || slot === KIBO_LOCKED_SLOT,
+        'Duel preset exceeds configured count',
+        ErrorCode.KiboDuelGroupExceedMaxNum,
+    )
+    if (slot === KIBO_LOCKED_SLOT) {
+        const group = c.state.kiboDuelGroups?.[slot]
+        ensure(
+            group && c.tables.find('kibo_duel', group.duel_id),
+            'Locked duel preset is not prepared',
+            ErrorCode.KiboDuelCurGroupNotSet,
+        )
+    }
+    // Selection in the editor must work for an empty preset. Battle entry
+    // retains its independent minimum roster/skill and mode validation.
+    c.state.kiboDuelSlot = slot
+    publish(c)
+    return {}
 }
