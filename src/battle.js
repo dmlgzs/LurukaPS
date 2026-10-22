@@ -1,3 +1,4 @@
+import { petSoulAttributes } from './pet-star-soul.js'
 import { runeBonuses, ornamentAttributes, ornamentSkills } from './hero-equipment.js'
 import { temporaryHeroes, temporaryPets, activeFormationManager } from './trial-actors.js'
 import { heroTrialSoulEssence } from './trial-equipment.js'
@@ -274,6 +275,8 @@ export function petModules(tables, state, pet, heroes) {
                 : (((n * (hobby.get(id) ?? 100)) / 100) * aptitude) / 100
         attrs.set(id, value)
     }
+    for (const [id, amount] of petSoulAttributes(tables, pet))
+        attrs.set(id, (attrs.get(id) ?? 0) + amount * (specialAttributes.has(id) ? 10000 : 1))
     const hero = heroes.find((h) => h.hero_guid === pet.hero_id)
     if (hero) {
         const favor = tables.get('pet_favorability').find((r) => r.level === (pet.favor_lv || 1))

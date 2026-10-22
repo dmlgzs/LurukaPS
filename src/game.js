@@ -1,6 +1,7 @@
 import { notifyBattlePassTasks } from './battle-pass-tasks.js'
 import { registerBattlePass } from './handlers/battle-pass.js'
 import { battlePassSnapshot } from './battle-pass.js'
+import { registerPetStarSoul } from './handlers/pet-star-soul.js'
 import { ErrorCode } from './error-codes.js'
 import { registerChatShields } from './handlers/chat-shields.js'
 import { registerShortcuts } from './handlers/shortcuts.js'
@@ -427,6 +428,7 @@ export class Game {
         registerAbyssData(on, tables)
         registerPlayableSaves(on)
         registerRoulette(on)
+        registerPetStarSoul(on)
         registerPetSkill(on)
         registerPetHandbook(on)
         registerCharKibo(on)
