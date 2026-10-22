@@ -137,3 +137,28 @@ export function switchWorldDifficulty(c, request) {
     if (infos.length) c.pushBefore('CSProtoObjBattleInfoSync', { infos })
     return {}
 }
+
+export function acknowledgeWorldDifficulty(c, request) {
+    const values = request.u32s ?? []
+    ensure(
+        Array.isArray(values) && values.length === 3 && values.every(Number.isSafeInteger),
+        'Invalid map difficulty redpoint selection',
+    )
+    const [mapId, difficulty, action] = values
+    ensure(action === 0 || action === 1, 'Invalid map difficulty redpoint action')
+    ensure(action === 1, 'Reverse map difficulty redpoint operation is not implemented', ErrorCode.FunctionClosed)
+    const row = worldDifficultyCatalogue(c.tables).maps.get(mapId)?.get(difficulty)
+    ensure(row, 'Map difficulty level does not exist', ErrorCode.WorldDifficultyLevelNotExist)
+    const ledger = ensureWorldDifficulties(c.tables, c.state),
+        saved = ledger[mapId]
+    // ModuleMapLv.refreshSelected reports the initial selected minimum even
+    // before its feature condition is satisfied. This is metadata, not unlock.
+    ensure(
+        saved.difficulty === difficulty || worldDifficultyUnlocked(c.state, row),
+        'Map difficulty prerequisites are not complete',
+        ErrorCode.WorldDifficultyNotEnough,
+    )
+    if (!saved.redpoints.includes(difficulty)) saved.redpoints.push(difficulty)
+    c.pushBefore('SCProtoWorldDifficultyInfo', worldDifficultySnapshot(c.tables, c.state, [mapId]))
+    return {}
+}

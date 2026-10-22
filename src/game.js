@@ -189,6 +189,7 @@ const deferredTaskProgress = new Set([
 ])
 const deferredMessages = new Set([
     ...deferredTaskProgress,
+    'CSProtoWorldDifficultyRedPointSet',
     'CSProtoRescueObj',
     'CSProtoRescueCancel',
     'CSProtoReviveHero',
