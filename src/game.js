@@ -150,6 +150,7 @@ import { registerAIControl, clientAIReports } from './handlers/ai-control.js'
 import { retireCapturedEnemy } from './handlers/world-combat.js'
 import { registerEcology } from './handlers/ecology.js'
 import { registerMall } from './handlers/mall.js'
+import { registerNovicePack, prepareNovicePack, notifyNovicePack } from './novice-pack.js'
 import { registerCombat } from './handlers/combat.js'
 import { registerClientState } from './handlers/client-state.js'
 import { registerRelease } from './handlers/release.js'
@@ -465,6 +466,7 @@ export class Game {
         registerAIControl(on)
         registerEcology(on, tables)
         registerMall(on, tables)
+        registerNovicePack(on)
         registerCombat(on)
         registerClientState(on, store)
         registerCollection(on)
@@ -1137,6 +1139,7 @@ export class Game {
                 if (!battleReport) observeActiveSession(this.tables, state, now)
                 const activeCountersBefore = activeCounterSample(state)
                 const response = recoveredChoice ? {} : handler(context, r)
+                if (!battleReport) notifyNovicePack(context, e.name)
                 if (!battleReport) notifyJourney(context, e.name)
                 if (!battleReport) {
                     observeActiveCounters(context, activeCountersBefore)
@@ -1591,6 +1594,7 @@ export class Game {
         prepareStamina(this.tables, state, now)
         pruneItemShortcuts(state, now)
         observeJourney(this.tables, state)
+        const novice = prepareNovicePack(this.tables, state, now).payload
         return [
             this.packet('CSProtoEnterGameCallbackStart', {
                 reconnect: !!r.reconnect,
@@ -1706,6 +1710,7 @@ export class Game {
                 : []),
             this.packet('CSProtoSimpleProductFinish', simpleProductSnapshot(state)),
             this.packet('SCProtoMonthlyCardInfoSync', monthlyPayload(state)),
+            this.packet('SCProtoMallNovicePackSync', novice),
             this.packet('CSProtoReadHandbookInfoSync', {
                 infos: Object.values(state.readingBooks ?? {}),
                 send_type: 0,
