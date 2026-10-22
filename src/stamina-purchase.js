@@ -1,4 +1,5 @@
 import { ErrorCode } from './error-codes.js'
+import { hasPaidCurrencyDebt } from './paid-currency.js'
 import { ensure } from './handlers/common.js'
 import { prepareStamina, finishStamina } from './stamina.js'
 import { spendCurrency } from './inventory.js'
@@ -41,30 +42,6 @@ function catalogue(tables) {
     const result = { purchases, enabled, limit }
     catalogues.set(tables, result)
     return result
-}
-
-function hasPaidCurrencyDebt(state) {
-    // Private persistence envelope for an imported/authoritative DebtPackInfo.
-    // This guard does not fabricate a refund or a debt repayment producer.
-    if (state.mallDebtPack === undefined) return false
-    const rows = state.mallDebtPack?.debt_list
-    ensure(Array.isArray(rows), 'Malformed currency debt pack', ErrorCode.GameConfig)
-    let owed = false
-    for (const row of rows) {
-        ensure(
-            Number.isSafeInteger(row.item_type) &&
-                row.item_type > 0 &&
-                Number.isSafeInteger(row.item_id) &&
-                row.item_id > 0 &&
-                /^\d+$/.test(String(row.item_debt ?? '0')) &&
-                (typeof row.item_debt !== 'number' || Number.isSafeInteger(row.item_debt)) &&
-                BigInt(row.item_debt ?? 0) <= 0xffffffffffffffffn,
-            'Malformed currency debt entry',
-            ErrorCode.GameConfig,
-        )
-        if ([1, 901, 902].includes(row.item_id) && BigInt(row.item_debt ?? 0) > 0n) owed = true
-    }
-    return owed
 }
 
 export function buyStamina(c) {

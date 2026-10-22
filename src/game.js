@@ -1136,6 +1136,7 @@ export class Game {
                 const ornamentIdsBefore = (state.ornaments || []).map((entry) => entry.guid)
                 const petRevision = state.petRevision || 0
                 const petSkinRevision = state.petSkinRevision ?? 0
+                const appearanceRevision = state.appearanceRevision ?? 0
                 const handbookBonusesBefore = state.petHandbookBonuses
                 const petViewBefore = battleReport ? null : hiddenTaskPetGuids(this.tables, state).join(',')
                 const playerLevelBefore = state.player.basic_info.lv
@@ -1371,6 +1372,12 @@ export class Game {
                           ]
                         : []
                 return [
+                    ...((state.appearanceRevision ?? 0) !== appearanceRevision
+                        ? [
+                              this.packet('SCProtoClothesInfoSync', clothesSnapshot(this.tables, state)),
+                              this.packet('SCProtoHeroSkinMessageSync', heroSkinsSnapshot(this.tables, state)),
+                          ]
+                        : []),
                     ...((state.petSkinRevision ?? 0) !== petSkinRevision
                         ? [this.packet('CSProtoPetSkinInfoSync', petSkinsSnapshot(this.tables, state))]
                         : []),

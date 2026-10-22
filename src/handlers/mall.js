@@ -4,9 +4,11 @@ import { MallCatalog } from '../mall.js'
 import { spend, spendCurrency } from '../inventory.js'
 import { grantRewards, parseRewards } from '../rewards.js'
 import { WorldObjectCatalog } from '../world-objects.js'
+import { registerPayGoods } from '../mall-pay-goods.js'
 export function registerMall(on, tables) {
     const catalog = new MallCatalog(tables),
         drops = new WorldObjectCatalog(tables)
+    registerPayGoods(on, catalog)
     on('PlayerMallBuyDiamondGoods', (c, r) => {
         const shop = catalog.shops.get(r.diamond_shop_id),
             goods = catalog.diamond.get(r.diamond_goods_id),

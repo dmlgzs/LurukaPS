@@ -1,0 +1,7 @@
+{
+    "version": 1,
+    "missingCurrentSchedules": {
+        "998002": "open-ended-local"
+    },
+    "reason": "CBT3 2451868 pay goods reference998002, absent from the current exported common_timelimit. The offline sandbox explicitly uses no date limit for this known backend-only schedule; this is not an official date claim. Unknown missing schedules remain errors."
+}

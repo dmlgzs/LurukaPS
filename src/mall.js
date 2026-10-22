@@ -1,44 +1,23 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
-import { configTime, refreshWindow } from './shops.js'
+import { refreshWindow } from './shops.js'
+import { mallConditions } from './mall-conditions.js'
+import { mallTableRow, mallSchedule } from './mall-schedule.js'
 export class MallCatalog {
     constructor(tables) {
         this.tables = tables
         this.shops = new Map(tables.get('mall_shop').map((x) => [x.shopId, x]))
-        this.pay = new Map(tables.get('mall_pay_goods').map((x) => [x.goodsId, x]))
+        this.pay = new Map(tables.get('mall_pay_goods').map((x) => [x.goodsId, mallTableRow('mall_pay_goods', x)]))
         this.diamond = new Map(tables.get('mall_goods').map((x) => [x.goodsId, x]))
     }
     goods(isPay, id, state, now) {
         const row = (isPay ? this.pay : this.diamond).get(id)
         ensure(row, 'Unknown mall goods')
-        let start = 0,
-            end = 0
-        if (row.timelimit) {
-            const time = this.tables.find('common_timelimit', row.timelimit)
-            ensure(time, 'Missing mall schedule', ErrorCode.GameConfig)
-            start = configTime(time.startTime)
-            end = configTime(time.endTime)
-        }
+        const { start, end } = mallSchedule(this.tables, row.timelimit)
         const period = this.window(row, now)
         const record = state.mall?.purchases?.[`${isPay ? 'pay' : 'diamond'}:${id}`],
             count = record?.period === period.start ? record.count : 0
-        const ids = [],
-            progress = [],
-            checks = []
-        for (const condition of String(row.commonCondition || '')
-            .split('|')
-            .filter(Boolean)) {
-            const [kind, target] = condition.split('#').map(Number)
-            ids.push(kind)
-            let value = 0,
-                known = true
-            if (kind === 2004) value = state.player.basic_info.lv
-            else if (kind === 2007)
-                value = (state.taskRecords ?? []).some((r) => r.task_id === target && r.count > 0) ? target : 0
-            else known = false
-            progress.push(value)
-            checks.push(known && value >= target)
-        }
+        const condition = mallConditions(this.tables, state, row.commonCondition)
         return {
             is_pay_goods: isPay,
             goods_id: id,
@@ -46,9 +25,9 @@ export class MallCatalog {
             end_time: String(end),
             curr_purchase_num: count,
             reset_time: String(period.end),
-            unlock_cond_id: ids,
-            unlock_progress: progress,
-            is_all_cond_done: checks.every(Boolean),
+            unlock_cond_id: condition.ids,
+            unlock_progress: condition.progress,
+            is_all_cond_done: condition.passed,
         }
     }
     window(row, now) {
