@@ -2,6 +2,8 @@ import { ErrorCode } from './error-codes.js'
 import { registerChatShields } from './handlers/chat-shields.js'
 import { registerShortcuts } from './handlers/shortcuts.js'
 import { pruneItemShortcuts, shortcutSnapshot } from './shortcuts.js'
+import { registerPhotoTemplates } from './handlers/photo-templates.js'
+import { photoTemplateSnapshot } from './photo-templates.js'
 import { registerChatCustomization } from './handlers/chat-customization.js'
 import { chatEmojiSnapshot } from './chat-emoji.js'
 import { registerPetCosmetics } from './handlers/pet-cosmetics.js'
@@ -433,6 +435,7 @@ export class Game {
         registerChat(on, store, { runGM })
         registerChatShields(on, store)
         registerShortcuts(on)
+        registerPhotoTemplates(on)
         registerChatCustomization(on)
         registerPlayableEnemies(on, tables, store)
         registerWorldEvents(on, tables)
@@ -1692,6 +1695,7 @@ export class Game {
             this.packet('CSProtoPlayableSync', playableSnapshot(state)),
             this.packet('CSProtoAllRouletteInfoSync', roulettePayload(state)),
             this.packet('CSProtoShortcutDataSync', shortcutSnapshot(state, now)),
+            this.packet('CSProtoPhotoGraphTempletSync', photoTemplateSnapshot(state)),
             this.packet('CSProtoWorldMapMarkListSync', worldMarkPayload(state)),
             this.packet('CSProtoAnnouncementNotify', announcementSnapshot(this.announcementBaseUrl, now)),
             this.packet('CSProtoChatEmojiSync', chatEmojiSnapshot(this.tables, state)),
