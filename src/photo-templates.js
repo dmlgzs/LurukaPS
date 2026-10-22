@@ -129,3 +129,16 @@ export function renamePhotoTemplate(c, r) {
     c.pushBefore('CSProtoPhotoGraphTempletSync', { infos: [row], dels: [] })
     return {}
 }
+
+export function deletePhotoTemplate(c, r) {
+    const id = templateId(c.tables, r.u32),
+        rows = records(c.state)
+    ensure(rows[id], 'Custom photo template does not exist', ErrorCode.PhotoTempletNotExist)
+    const next = { ...rows }
+    delete next[id]
+    c.state.photoTemplates = next
+    // Current UI optimistically removes this record before sending 9807.
+    // The wire defines dels, while the inspected Lua receiver only merges infos.
+    c.pushBefore('CSProtoPhotoGraphTempletSync', { infos: [], dels: [id] })
+    return {}
+}
