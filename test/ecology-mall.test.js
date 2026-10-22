@@ -103,7 +103,8 @@ test('mall list queries join the actual goods catalog and expose level locks', (
         })
         assert.equal(
             f
-                .call('PlayerMallGetDiamondGoodsList', { diamond_shop_id: 201 })[0]
+                .call('PlayerMallGetDiamondGoodsList', { diamond_shop_id: 201 })
+                .find((p) => p.id === protocol.byName.get('CSProtoPlayerMallGetDiamondGoodsList').id)
                 .data.diamond_goods_list.find((x) => x.goods_id === 20501).is_all_cond_done,
             true,
         )

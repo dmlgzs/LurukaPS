@@ -1,9 +1,12 @@
 import { ErrorCode } from '../error-codes.js'
 import { ensure } from './common.js'
+import { advanceEcology, sweepExpiredEcology } from '../ecology-progress.js'
 export function registerEcology(on, tables) {
+    on('WorldEcologyStep', advanceEcology)
     const configs = tables.get('world_eep'),
         templates = new Map(tables.get('world_eep_template').map((x) => [x.id, x]))
     on('WorldEcologyReset', (c) => {
+        sweepExpiredEcology(c)
         const ecology = (c.state.ecology ??= { events: {}, visible: [] })
         const current = configs.filter((row) => row.worldMapID === c.state.world.map_id),
             ids = current.map((row) => row.id)

@@ -203,6 +203,7 @@ const deferredMessages = new Set([
     'CSProtoStateUpdate',
     'CSProtoPlayableStart',
     'CSProtoWorldEventTrigger',
+    'CSProtoWorldEcologyStep',
 ])
 // These client deltas have replies, but must not reset the relation graph or
 // use ordinary request persistence while combat is running.
