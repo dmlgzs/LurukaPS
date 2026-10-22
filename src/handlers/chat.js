@@ -1,5 +1,7 @@
 import { ensure } from './common.js'
 import { publicProfile } from '../public-profile.js'
+import { ErrorCode } from '../error-codes.js'
+import { isChatMuted, legacyChatBans, chatRoutingInfo } from '../chat-shields.js'
 function peerId(value) {
     const id = Number(value)
     ensure(Number.isInteger(id) && id > 0 && id <= 0xffffffff, 'Invalid chat recipient')
@@ -11,14 +13,14 @@ export function chatSnapshots(store, state, id) {
         list: {
             info: peers.map((peer) => ({
                 id: peer,
-                chats: store.chatHistory(id, peer, 1),
+                chats: isChatMuted(state, peer) ? [] : store.chatHistory(id, peer, 1),
                 read_order: state.chatReads?.[peer] ?? 0,
             })),
         },
         counts: {
             msg_list: peers.map((peer) => ({
                 id: peer,
-                cnt: store.chatUnread(id, peer, state.chatReads?.[peer] ?? 0),
+                cnt: isChatMuted(state, peer) ? 0 : store.chatUnread(id, peer, state.chatReads?.[peer] ?? 0),
             })),
         },
     }
@@ -36,13 +38,17 @@ export function registerChat(on, store, { runGM } = {}) {
         return {}
     })
     const exists = (id) => {
-        ensure(store.playerById.get(id), 'Chat recipient not found')
-        return store.load(id).state
+        ensure(store.hasPlayer(id), 'Chat recipient not found', ErrorCode.InvalidTarget)
+        return chatRoutingInfo(store, id)
     }
     const history = (c, id) => {
         const peer = peerId(id)
         exists(peer)
-        return { id: peer, chats: store.chatHistory(c.id, peer), read_order: c.state.chatReads?.[peer] ?? 0 }
+        return {
+            id: peer,
+            chats: isChatMuted(c.state, peer) ? [] : store.chatHistory(c.id, peer),
+            read_order: c.state.chatReads?.[peer] ?? 0,
+        }
     }
     on('AddChat', (c, r) => {
         const type = r.target?.chat_type ?? 0
@@ -71,10 +77,9 @@ export function registerChat(on, store, { runGM } = {}) {
         if (type === 0) {
             const peer = peerId(target),
                 state = exists(peer)
-            ensure(
-                !(state.blockedPlayers ?? []).includes(c.id) && !(c.state.blockedPlayers ?? []).includes(peer),
-                'Chat recipient is blocked',
-            )
+            ensure(!state.banInvalid, 'Recipient blacklist state is unavailable', ErrorCode.GameConfig)
+            ensure(!state.bans.has(c.id), 'Chat recipient has blacklisted you', ErrorCode.TargetBanYou)
+            ensure(!legacyChatBans(c.state).has(peer), 'Chat recipient is blacklisted', ErrorCode.YouBanTarget)
             recipients = [peer]
             target = String(peer)
         } else if (type === 1) {
@@ -106,15 +111,15 @@ export function registerChat(on, store, { runGM } = {}) {
         c.push('CSProtoChatInfoChange', value)
         for (const recipient of recipients)
             if (recipient !== c.id) {
-                const state = store.load(recipient).state
-                if ((state.blockedPlayers ?? []).includes(c.id)) continue
+                const route = chatRoutingInfo(store, recipient)
+                if (route.blocked === null || route.blocked.has(c.id)) continue
                 c.pushTo(recipient, 'CSProtoChatInfoChange', {
                     ...value,
                     target: { tid: type === 0 ? String(c.id) : target, chat_type: type },
                 })
                 if (type === 0)
                     c.pushTo(recipient, 'CSProtoChatMsgCntSync', {
-                        msg_list: [{ id: c.id, cnt: store.chatUnread(recipient, c.id, state.chatReads?.[c.id] ?? 0) }],
+                        msg_list: [{ id: c.id, cnt: store.chatUnread(recipient, c.id, route.reads[c.id] ?? 0) }],
                     })
             }
         if (broadcast) c.broadcast(broadcast, 'CSProtoChatInfoChange', value)

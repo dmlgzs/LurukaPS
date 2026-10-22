@@ -193,6 +193,23 @@ test('TCP routes private/encrypted and scoped public pushes, exact retry does no
         assert.equal(server.protocol.decode('SCChatInfoChange', (await b.response(9932)).payload).target.chat_type, 3)
         await new Promise((resolve) => setTimeout(resolve, 100))
         assert.equal(c.queue.filter((f) => f.id === 9932).length, 0)
+        b.send('ChatShieldOp', { tar_id: a.pid, op: 1 })
+        await b.response(9947)
+        a.send('AddChat', { target: { chat_type: 0, tid: String(b.pid) }, msg: bytes('muted-private') })
+        await a.response(9933)
+        await a.response(9932)
+        a.send('AddChat', { target: { chat_type: 2, tid: '1' }, msg: bytes('muted-world') })
+        await a.response(9933)
+        await a.response(9932)
+        b.send('Ping', { client_ts: '900' })
+        await b.response(503)
+        assert.equal(
+            b.queue.filter(
+                (f) => f.id === 9932 && server.protocol.decode('SCChatInfoChange', f.payload).chat.player_id === a.pid,
+            ).length,
+            0,
+        )
+        // Chat mutes must not suppress unrelated encrypted gameplay broadcasts.
         const pet = server.store.load(a.pid).state.pets[0].guid,
             action = a.send('SwitchPetAction', { uuid: pet, type: 1 })
         const remote = await b.response(11062)
@@ -204,6 +221,15 @@ test('TCP routes private/encrypted and scoped public pushes, exact retry does no
         assert.equal(a.queue.filter((f) => f.id === 11062 || f.id === 11061).length, 0)
         assert.equal(b.queue.filter((f) => f.id === 11062).length, 0)
         assert.equal(c.queue.filter((f) => f.id === 11062).length, 0)
+        b.send('ChatShieldOp', { tar_id: a.pid, op: 2 })
+        await b.response(9947)
+        a.send('AddChat', { target: { chat_type: 2, tid: '1' }, msg: bytes('unmuted-world') })
+        await a.response(9933)
+        await a.response(9932)
+        assert.equal(
+            server.protocol.decode('SCChatInfoChange', (await b.response(9932)).payload).chat.msg,
+            bytes('unmuted-world'),
+        )
     } finally {
         for (const c of clients) c.socket.destroy()
         await server.close()

@@ -1,4 +1,5 @@
 import { ErrorCode } from './error-codes.js'
+import { chatRoutingInfo, audienceAllows } from './chat-shields.js'
 import { announcementHttpData, announcementBody } from './announcements.js'
 import { ProtocolDiagnostics } from './diagnostics.js'
 import { sourceRevision } from './build-info.js'
@@ -238,12 +239,12 @@ export async function startServer(config, logger = console) {
                         if (packet.audience) {
                             for (const [id, target] of owners) {
                                 if (id === session.id || !sessions.get(target)?.session.entered) continue
-                                const state = store.load(id).state
-                                if ((state.blockedPlayers ?? []).includes(packet.audience.sender)) continue
-                                const matches =
-                                    packet.audience.kind === 'world'
-                                        ? (state.chatWorldRoom ?? 1) === packet.audience.room
-                                        : state.world.map_id === packet.audience.map
+                                const route = chatRoutingInfo(store, id)
+                                const matches = audienceAllows(
+                                    route,
+                                    packet.audience,
+                                    packet.id === protocol.byName.get('CSProtoChatInfoChange').id,
+                                )
                                 if (matches) deliverTo(id, packet)
                             }
                             continue

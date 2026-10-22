@@ -28,6 +28,7 @@ export class Store {
         })()
         this.accountByOpen = this.db.prepare('SELECT * FROM accounts WHERE open_id=?')
         this.playerById = this.db.prepare('SELECT state,revision FROM players WHERE account_id=?')
+        this.playerExistence = this.db.prepare('SELECT 1 AS found FROM players WHERE account_id=?')
         this.savePlayer = this.db.prepare(
             'UPDATE players SET state=?,revision=revision+1,updated_at=? WHERE account_id=?',
         )
@@ -75,6 +76,9 @@ export class Store {
         const key = pending ?? id
         if (!tokens.has(key)) tokens.set(key, Symbol('player-read-version'))
         return tokens.get(key)
+    }
+    hasPlayer(id) {
+        return !!this.playerExistence.get(id)
     }
     load(id) {
         const pending = this.pending.get(id)

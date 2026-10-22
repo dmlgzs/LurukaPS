@@ -1,4 +1,5 @@
 import { ErrorCode } from './error-codes.js'
+import { registerChatShields } from './handlers/chat-shields.js'
 import { registerStamina } from './handlers/stamina.js'
 import {
     prepareStamina,
@@ -419,6 +420,7 @@ export class Game {
         registerMonthly(on, tables)
         registerLocalPayments(on, tables, store, { enabled: offlinePayments })
         registerChat(on, store, { runGM })
+        registerChatShields(on, store)
         registerPlayableEnemies(on, tables, store)
         registerWorldEvents(on, tables)
         this.activities = registerActivities(on, tables)
