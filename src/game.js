@@ -29,6 +29,7 @@ import { preparePetHandbook, takePetHandbookSync, petHandbookSnapshot } from './
 import { syncHandbookAttributes } from './pet-handbook-sync.js'
 import { registerPetHandbook } from './handlers/pet-handbook.js'
 import { registerCharKibo } from './handlers/char-kibo.js'
+import { claimBossFirstChest, bossFirstChestInfo, recoverBossFirstClears } from './boss-first-chests.js'
 import { registerDailyActive } from './handlers/daily-active.js'
 import {
     observeActiveSession,
@@ -373,6 +374,7 @@ export class Game {
         registerPetSkill(on)
         registerPetHandbook(on)
         registerCharKibo(on)
+        on('WorldBossChestGetReq', claimBossFirstChest)
         registerDailyActive(on)
         registerPetCatch(on)
         registerPetEvolution(on)
@@ -614,6 +616,9 @@ export class Game {
             }
             const packets = this.store.transact(session.id, e.id, (state) => {
                 const previousMapId = state.world.map_id
+                // Preserve genuine retained deaths before scene repair can
+                // replace an old combat map; the final snapshot is sent later.
+                recoverBossFirstClears(this.tables, state, now)
                 // The login sends the canonical active node. Do not replay a
                 // completed node or retain a barrier from the previous client.
                 delete state.pendingTaskStorySync
@@ -721,6 +726,7 @@ export class Game {
                     if (capture.map_id === state.world.map_id && state.combat?.entities?.[id]?.captured !== true)
                         retireCapturedEnemy({ state, now, pushBefore: () => {} }, id)
                 const battle = []
+                recoverBossFirstClears(this.tables, state, now)
                 syncBattle({ state, tables: this.tables, push: (name, value) => battle.push(this.packet(name, value)) })
                 return [...this.loginPackets(state, session, r, frame, e.id), ...battle]
             })
@@ -1488,6 +1494,7 @@ export class Game {
             this.packet('CSProtoPetBoxInfoSync', { box_infos: state.petBoxes }),
             this.packet('CSProtoKiboDuelGroupInfoSync', kiboDuelSnapshot(state, this.tables)),
             this.packet('CSProtoWorldExplorationSync', explorationSnapshot(state)),
+            this.packet('CSProtoWorldBossChestInfoSync', bossFirstChestInfo(this.tables, state)),
             this.packet('CSProtoNoviceTaskInfoSync', this.noviceTasks.initial(state)),
             this.packet('CSProtoDailyActiveInfoSync', initialActiveSnapshot(this.tables, state, now)),
             this.packet('CSProtoStandPlatesBagInfo', playerCardSnapshot(this.tables, state)),

@@ -3,6 +3,7 @@ import { actor } from './combat.js'
 import { u64, combatState, boundedSet } from '../combat-state.js'
 import { isRetiredTrialActor, temporaryPets } from '../trial-actors.js'
 import { completedEnemyGroup } from '../enemy-group-completion.js'
+import { recordBossFirstClear } from '../boss-first-chests.js'
 import { inactiveCampaignEnemyGroup } from '../inactive-campaign-enemies.js'
 import { arenaNativeSummonOwner } from '../npc-kibo-unit-grade.js'
 function runtime(c) {
@@ -99,7 +100,10 @@ export function finishEnemyGroupRelations(c, id) {
     const group = completedEnemyGroup(c.tables, c.state, id)
     if (!group) return false
     const battle = runtime(c)
-    if (battle.completedRelationGroups?.[group.root]) return false
+    if (battle.completedRelationGroups?.[group.root]) {
+        recordBossFirstClear(c, id)
+        return false
+    }
     battle.completedRelationGroups = { ...battle.completedRelationGroups, [group.root]: true }
     battle.hatred = Object.fromEntries(
         Object.entries(battle.hatred).map(([name, entries]) => [
@@ -109,6 +113,7 @@ export function finishEnemyGroupRelations(c, id) {
     )
     for (const member of group.members) clearHatred(battle, member)
     c.push('CSProtoHatredResetSync', { is_player: false, obj_id: group.root })
+    recordBossFirstClear(c, id)
     return true
 }
 export function registerWorldCombat(on) {
