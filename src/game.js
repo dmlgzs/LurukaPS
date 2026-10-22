@@ -3,6 +3,7 @@ import { notifyBattlePassTasks } from './battle-pass-tasks.js'
 import { registerBattlePass } from './handlers/battle-pass.js'
 import { battlePassSnapshot } from './battle-pass.js'
 import { registerPetStarSoul } from './handlers/pet-star-soul.js'
+import { registerPetBoxOrder } from './pet-box-order.js'
 import { registerEscBackground, prepareEscBackground, notifyEscBackground, escBackgroundUnlockSnapshot, escBackgroundSnapshots } from './esc-background.js'
 import { registerSocialWheel, prepareSocialWheel, notifySocialWheel, socialWheelSnapshot } from './social-wheel.js'
 import { ErrorCode } from './error-codes.js'
@@ -476,6 +477,7 @@ export class Game {
         registerPamiMail(on)
         registerSocialWheel(on)
         registerEscBackground(on)
+        registerPetBoxOrder(on)
         registerCombat(on)
         registerClientState(on, store)
         registerCollection(on)
