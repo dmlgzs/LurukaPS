@@ -185,6 +185,7 @@ const deferredTaskProgress = new Set([
 ])
 const deferredMessages = new Set([
     ...deferredTaskProgress,
+    'CSProtoRescueObj',
     'CSProtoReviveHero',
     'CSProtoBattleInfoReduce',
     'CSProtoSkillStart',
@@ -217,6 +218,7 @@ const fastCombatReplies = new Set([
     'CSProtoControlMapAI',
 ])
 const fastCombatTelemetry = new Set([
+    'CSProtoRescueObj',
     'CSProtoReviveHero',
     'CSProtoKiboDuelArenaAutoFightSync',
     'CSProtoKiboCastUltraSkill',
@@ -282,6 +284,19 @@ function forkBattleReport(base) {
 function forkFastCombat(base, name, request) {
     const battle = base.combat ? { ...base.combat } : undefined,
         state = { ...base, ...(battle ? { combat: battle } : {}) }
+    if (name === 'CSProtoRescueObj') {
+        const targets = new Set((request.rescue_infos ?? []).map((row) => String(row.tar_uuid ?? '0')))
+        state.player = {
+            ...base.player,
+            heros_info: {
+                ...base.player.heros_info,
+                battle_infos: base.player.heros_info.battle_infos.map((info) =>
+                    targets.has(info.hero_id) ? { ...info } : info,
+                ),
+            },
+        }
+        if (battle) battle.entities = { ...battle.entities }
+    }
     if (name === 'CSProtoReviveHero') {
         const id = String(request.hero_uuid ?? '0')
         state.player = {
@@ -915,6 +930,7 @@ export class Game {
                         tables: this.tables,
                         pushBefore: (name, value) => before.push(this.packet(name, value)),
                         push: (name, value) => after.push(this.packet(name, value, { pushSeq: frame.pushSeq })),
+                        broadcast: (audience, name, value) => after.push(this.packet(name, value, { audience })),
                     }
                     const response = handler(context, r)
                     return [...before, ...(fastCombatReplies.has(e.name) ? [reply(response)] : []), ...after]

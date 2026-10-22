@@ -204,7 +204,14 @@ export function refreshBattleState(tables, state) {
             old && !state.battleHpUnitsVersion && old.hp > maxhp ? Math.max(1, Math.floor(old.hp / 10000)) : old?.hp
         const hp = old ? Math.min(oldHp, maxhp) : maxhp,
             sp = old ? Math.min(old.sp, maxsp) : maxsp
-        return { ...old, hero_id: h.hero_guid, hp, sp, alive_state: hp > 0 ? 0 : 1 }
+        return {
+            ...old,
+            hero_id: h.hero_guid,
+            hp,
+            sp,
+            alive_state: hp > 0 ? 0 : old?.alive_state === 2 ? 2 : 1,
+            ...(old && Object.hasOwn(old, 'rescue_val') ? { rescue_val: hp > 0 ? 0 : old.rescue_val } : {}),
+        }
     })
     state.battleHpUnitsVersion = 1
     return heros
@@ -231,6 +238,7 @@ export function syncBattle(c) {
                 hp: h.hp,
                 sp: h.sp,
                 alive_state: h.alive_state,
+                ...(Object.hasOwn(h, 'rescue_val') ? { rescue_val: h.rescue_val } : {}),
                 reason: 1,
             })),
             ...[...c.state.pets, ...temporaryPets(c.state)]

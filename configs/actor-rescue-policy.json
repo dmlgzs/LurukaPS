@@ -1,0 +1,4 @@
+{
+  "completionHpGameKey": "WORLD_HERO_REBORN_HP",
+  "note": "Local provisional rescue HP policy. The client proves progress and alive-state transitions, but the official server's post-rescue HP rule is not recovered. TODO: verify rescue completion HP; do not describe this mapping as official."
+}
