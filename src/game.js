@@ -902,6 +902,7 @@ export class Game {
         if (e.name === 'CSProtoRecycle') return [reply({})]
         const handler = this.handlers.get(e.id)
         if (!handler) throw new GameError(`Unsupported ${e.name}`, ErrorCode.InvalidProtoID)
+        if (e.name === 'CSProtoChatGetShieldList') return [reply(handler({ id: session.id }, r))]
         if (e.name === 'CSProtoWorldObjSearch')
             return this.store.read(session.id, (state) => [reply(handler({ state, tables: this.tables }, r))])
         if (e.name === 'CSProtoWorldMapExtraStatus') {

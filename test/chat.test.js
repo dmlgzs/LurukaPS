@@ -195,6 +195,11 @@ test('TCP routes private/encrypted and scoped public pushes, exact retry does no
         assert.equal(c.queue.filter((f) => f.id === 9932).length, 0)
         b.send('ChatShieldOp', { tar_id: a.pid, op: 1 })
         await b.response(9947)
+        b.send('ChatGetShieldList')
+        assert.deepEqual(
+            server.protocol.decode('SCChatGetShieldList', (await b.response(9948)).payload).items.map((r) => r.pid),
+            [a.pid],
+        )
         a.send('AddChat', { target: { chat_type: 0, tid: String(b.pid) }, msg: bytes('muted-private') })
         await a.response(9933)
         await a.response(9932)
@@ -223,6 +228,8 @@ test('TCP routes private/encrypted and scoped public pushes, exact retry does no
         assert.equal(c.queue.filter((f) => f.id === 11062).length, 0)
         b.send('ChatShieldOp', { tar_id: a.pid, op: 2 })
         await b.response(9947)
+        b.send('ChatGetShieldList')
+        assert.deepEqual(server.protocol.decode('SCChatGetShieldList', (await b.response(9948)).payload).items, [])
         a.send('AddChat', { target: { chat_type: 2, tid: '1' }, msg: bytes('unmuted-world') })
         await a.response(9933)
         await a.response(9932)

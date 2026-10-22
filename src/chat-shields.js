@@ -111,6 +111,12 @@ export function shieldReply(state) {
     return { err: ErrorCode.Succ, items: chatShieldItems(state) }
 }
 
+export function getChatShieldList(store, id) {
+    const route = chatRoutingInfo(store, id)
+    ensure(!route.muteInvalid, 'Malformed chat shield ledger', ErrorCode.GameConfig)
+    return { err: ErrorCode.Succ, items: route.items.map((row) => ({ ...row })) }
+}
+
 export function changeChatShield(c, request, store) {
     const peer = shieldPeerId(request.tar_id)
     ensure(peer !== c.id, 'Cannot mute your own chat', ErrorCode.InvalidTarget)
