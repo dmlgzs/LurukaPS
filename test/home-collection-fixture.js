@@ -7,12 +7,15 @@ import { Game } from '../src/game.js'
 const cfg = configuration()
 export const tables = new Tables(cfg.tables)
 export const protocol = new Protocol(cfg.base)
-export function fixture() {
+export function fixture(file = ':memory:') {
     let now = 1800000000,
         seq = 1
-    const store = new Store(':memory:'),
+    const store = new Store(file),
         session = {}
-    const game = new Game(protocol, store, tables, { clock: () => now, rng: (min) => min })
+    const game = new Game(protocol, store, tables, {
+        clock: () => now,
+        rng: (min, max) => (max === undefined ? 0 : min),
+    })
     const decode = (packets) =>
         packets.map((p) => ({ id: p.id, data: protocol.decode(protocol.byId.get(p.id).rsp, p.payload) }))
     const call = (name, data = {}, who = session) => {

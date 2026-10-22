@@ -121,7 +121,7 @@ export function grantRewards(tables, state, rewards, depth = 0, context = {}) {
             recordResourceAcquisition(state, itemtype, itemid, itemnum)
             addHomeBuildings(tables, state, itemid, itemnum)
         } else if (itemtype === 14) {
-            const eggs = createEggs(tables, state, itemid, itemnum)
+            const eggs = createEggs(tables, state, itemid, itemnum, context.randomInt, context.eggConstraints)
             granted.push(...eggs.map((e) => ({ itemtype: 14, itemid, itemnum: 1, guid: String(e.guid) })))
             continue
         } else if (itemtype === 33) {

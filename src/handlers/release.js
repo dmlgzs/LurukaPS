@@ -69,7 +69,10 @@ export function registerRelease(on, tables) {
             granted = grantRewards(tables, c.state, releaseBonus(tables, 'egg', ledger, eggs.length))
         const ids = new Set(r.egg_list)
         c.state.petEggs = c.state.petEggs.filter((e) => !ids.has(e.guid))
-        for (const id of ids) if (c.state.eggOutcomes) delete c.state.eggOutcomes[id]
+        for (const id of ids) {
+            if (c.state.eggOutcomes) delete c.state.eggOutcomes[id]
+            if (c.state.eggHatchConstraints) delete c.state.eggHatchConstraints[id]
+        }
         c.state.eggRevision = (c.state.eggRevision || 0) + 1
         ledger.lastTime = c.now
         c.state.releaseLedgers ??= {}

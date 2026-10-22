@@ -39,7 +39,12 @@ export function startHatch(c, buildGuid, eggGuid) {
     )
     c.state.eggOutcomes ??= {}
     if (!c.state.eggOutcomes[eggGuid])
-        c.state.eggOutcomes[eggGuid] = selectBaseHatchSpecies(c.tables, egg.configid, c.randomInt)
+        c.state.eggOutcomes[eggGuid] = selectBaseHatchSpecies(
+            c.tables,
+            egg.configid,
+            c.randomInt,
+            c.state.eggHatchConstraints?.[eggGuid],
+        )
     const start = Math.max(c.now, ...jobs.map((j) => j.start + j.seconds)),
         guid = home.nextProductGuid || 1
     ensure(start + config.eggTime <= 0xffffffff && guid <= 0xffffffff, 'Hatch identity/timestamp exhausted')
@@ -71,6 +76,7 @@ export function claimHatch(c, job) {
     const [pet] = createPets(c.tables, c.state, job.petId, 1, builderRuleId)
     c.state.petEggs = c.state.petEggs.filter((e) => e.guid !== job.eggGuid)
     delete c.state.eggOutcomes[job.eggGuid]
+    if (c.state.eggHatchConstraints) delete c.state.eggHatchConstraints[job.eggGuid]
     c.state.eggRevision = (c.state.eggRevision || 0) + 1
     job.claimed = 1
     return { itemtype: 5, itemid: job.petId, itemnum: 1, guid: pet.guid }

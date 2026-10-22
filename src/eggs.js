@@ -1,6 +1,7 @@
 import { ErrorCode } from './error-codes.js'
 import { randomInt } from 'node:crypto'
 import { ensure } from './handlers/common.js'
+import { constrainedEggPools } from './egg-pools.js'
 function weights(text) {
     return String(text || '')
         .split('|')
@@ -26,9 +27,10 @@ function choose(list, rng) {
     }
     throw Error('Random source out of range')
 }
-export function createEggs(tables, state, id, count, rng = randomInt) {
+export function createEggs(tables, state, id, count, rng = randomInt, constraints = undefined) {
     const config = tables.find('pet_egg', id)
     ensure(config, 'Unknown pet egg', ErrorCode.EggConfNotExist)
+    if (constraints) constrainedEggPools(tables, id, constraints)
     const limit = Number(tables.get('game').find((r) => r.title === 'PET_EGG_LIMITS')?.value)
     ensure(Number.isInteger(limit) && limit > 0, 'Invalid egg capacity', ErrorCode.GameConfig)
     state.petEggs ??= []
@@ -58,6 +60,7 @@ export function createEggs(tables, state, id, count, rng = randomInt) {
             if (group) groups.add(group)
         }
         eggs.push({ guid: next++, configid: id, hatch_state: 0, lock_state: false, egg_affix: selected })
+        if (constraints) (state.eggHatchConstraints ??= {})[eggs.at(-1).guid] = { ...constraints }
     }
     state.petEggs.push(...eggs)
     state.nextEggGuid = next

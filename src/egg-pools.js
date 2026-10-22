@@ -70,8 +70,37 @@ export function eggSpeciesPools(tables, eggId) {
         })
     return { groups, pools, probability }
 }
-export function selectBaseHatchSpecies(tables, eggId, rng = randomInt) {
-    const { groups, pools, probability } = eggSpeciesPools(tables, eggId)
+export function constrainedEggPools(tables, eggId, constraints) {
+    const data = eggSpeciesPools(tables, eggId)
+    if (!constraints) return data
+    ensure(
+        [constraints.element_type ?? 0, constraints.race ?? 0].every((id) => Number.isSafeInteger(id) && id >= 0),
+        'Invalid egg species constraint',
+        ErrorCode.GameConfig,
+    )
+    const contains = (pet, field, value) =>
+        !value ||
+        String(pet[field + '_id'] ?? pet[field])
+            .split('|')
+            .map(Number)
+            .includes(value)
+    const groups = data.groups
+        .map((group) => ({
+            ...group,
+            candidates: group.candidates.filter((candidate) => {
+                const pet = tables.find('pet', candidate.id)
+                return contains(pet, 'element', constraints.element_type) && contains(pet, 'race', constraints.race)
+            }),
+        }))
+        .filter((group) => group.candidates.length)
+    ensure(groups.length, 'Egg species constraint has no configured candidates', ErrorCode.GameConfig)
+    // Local rule: retain relative configured rarity and species weights after
+    // filtering. The current constrained collection egg uses only one rarity
+    // group; official multi-group constraint order still needs verification.
+    return { ...data, groups }
+}
+export function selectBaseHatchSpecies(tables, eggId, rng = randomInt, constraints = undefined) {
+    const { groups, pools, probability } = constrainedEggPools(tables, eggId, constraints)
     ensure(!pools.guaranteegrouprule, 'Guaranteed hatch rules are not yet implemented', ErrorCode.InvalidProtoID)
     ensure(
         !probability.ratio_nonUP_SSR && !probability.ratio_nonUP_SR,

@@ -40,7 +40,12 @@ function setup(file = ':memory:') {
         ])
     })
     call('BuildLocate', { build_id: 30231, locate: { block_id: 101, anchor: gridAnchor(-50, -25), direction: 0 } })
+    const hatchGuid = store
+        .load(session.id)
+        .state.home.builds.find((b) => b.build_type === 12 && b.build_id === 30231)?.guid
+    assert(hatchGuid, 'Placed hatch building must exist')
     return {
+        hatchGuid,
         store,
         game,
         session,
@@ -80,20 +85,20 @@ test('native egg buckets map combined normal rarities to the correct pools', () 
     assert.throws(() => eggSpeciesPools(bad, 40003007), /Missing hatch pet/)
 })
 test('legacy hatch start and modern ProductFinish produce a unique pet after the configured duration', () => {
-    const { store, game, session, call, advance } = setup()
+    const { store, game, session, call, advance, hatchGuid } = setup()
     try {
         const initialCount = store.load(session.id).state.pets.length
-        call('HatchPetEgg', { build_guid: 2, egg_guid: 1 })
+        call('HatchPetEgg', { build_guid: hatchGuid, egg_guid: 1 })
         let state = store.load(session.id).state
-        const job = state.home.productionJobs[2][0]
+        const job = state.home.productionJobs[hatchGuid][0]
         assert.equal(state.petEggs[0].hatch_state, 2)
-        assert.equal(state.home.builds[1].specials[0].extra_guid, 1)
+        assert.equal(state.home.builds.find((b) => b.guid === hatchGuid).specials[0].extra_guid, 1)
         const before = store.load(session.id)
-        assert.throws(() => call('HatOutPetEgg', { build_guid: 2, egg_guid: 1 }), /not finished/)
+        assert.throws(() => call('HatOutPetEgg', { build_guid: hatchGuid, egg_guid: 1 }), /not finished/)
         assert.deepEqual(store.load(session.id), before)
         advance(18000)
         assert(game.tick(session.id).some((packet) => packet.id === 6518))
-        const packets = call('ProductFinish', { guid: 2, product_guids: [job.guid] })
+        const packets = call('ProductFinish', { guid: hatchGuid, product_guids: [job.guid] })
         const reward = p.decode('SCProductFinish', packets.find((x) => x.id === 6111).payload).reward.rewards[0]
         assert.equal(reward.itemid, 500609)
         assert.equal(reward.itemtype, 5)
@@ -104,26 +109,26 @@ test('legacy hatch start and modern ProductFinish produce a unique pet after the
         assert.equal(state.pets.length, initialCount + 1)
         assert.equal(state.petEggs.length, 1)
         assert(state.pets.some((p) => p.guid === reward.guid))
-        assert.throws(() => call('ProductFinish', { guid: 2, product_guids: [job.guid] }))
+        assert.throws(() => call('ProductFinish', { guid: hatchGuid, product_guids: [job.guid] }))
     } finally {
         store.close()
     }
 })
 test('queued eggs use zero start time and cancellation retains its preselected outcome', () => {
-    const { store, session, call, draws } = setup()
+    const { store, session, call, draws, hatchGuid } = setup()
     try {
-        call('HatchPetEgg', { build_guid: 2, egg_guid: 1 })
-        call('HatchPetEgg', { build_guid: 2, egg_guid: 2 })
+        call('HatchPetEgg', { build_guid: hatchGuid, egg_guid: 1 })
+        call('HatchPetEgg', { build_guid: hatchGuid, egg_guid: 2 })
         let s = store.load(session.id).state
-        assert.equal(s.home.builds[1].hatch.hatch_infos[1].start_time, 0)
+        assert.equal(s.home.builds.find((b) => b.guid === hatchGuid).hatch.hatch_infos[1].start_time, 0)
         assert.equal(s.petEggs[1].hatch_state, 1)
         const rolls = draws(),
             outcome = s.eggOutcomes[1]
-        call('CancelHatchPetEgg', { build_guid: 2, egg_guid: 1 })
+        call('CancelHatchPetEgg', { build_guid: hatchGuid, egg_guid: 1 })
         s = store.load(session.id).state
         assert.equal(s.petEggs[0].hatch_state, 0)
         assert.equal(s.petEggs[1].hatch_state, 2)
-        call('HatchPetEgg', { build_guid: 2, egg_guid: 1 })
+        call('HatchPetEgg', { build_guid: hatchGuid, egg_guid: 1 })
         assert.equal(draws(), rolls)
         assert.equal(store.load(session.id).state.eggOutcomes[1], outcome)
     } finally {
@@ -131,29 +136,29 @@ test('queued eggs use zero start time and cancellation retains its preselected o
     }
 })
 test('locked/affixed eggs and full pet storage cannot lose eggs or produce duplicate rewards', () => {
-    const { store, session, call, advance } = setup()
+    const { store, session, call, advance, hatchGuid } = setup()
     try {
         call('PetEggLock', { guid: '1', lock_operate: true })
         let before = store.load(session.id)
-        assert.throws(() => call('HatchPetEgg', { build_guid: 2, egg_guid: 1 }), /locked/)
+        assert.throws(() => call('HatchPetEgg', { build_guid: hatchGuid, egg_guid: 1 }), /locked/)
         assert.deepEqual(store.load(session.id), before)
         call('PetEggLock', { guid: '1', lock_operate: false })
         store.transact(session.id, 0, (s) => {
             s.petEggs[0].egg_affix = [1]
         })
         before = store.load(session.id)
-        assert.throws(() => call('HatchPetEgg', { build_guid: 2, egg_guid: 1 }), /Affix/)
+        assert.throws(() => call('HatchPetEgg', { build_guid: hatchGuid, egg_guid: 1 }), /Affix/)
         assert.deepEqual(store.load(session.id), before)
         store.transact(session.id, 0, (s) => {
             s.petEggs[0].egg_affix = []
         })
-        call('HatchPetEgg', { build_guid: 2, egg_guid: 1 })
+        call('HatchPetEgg', { build_guid: hatchGuid, egg_guid: 1 })
         advance(18000)
         store.transact(session.id, 0, (s) => {
             while (s.pets.length < 600) s.pets.push({ ...s.pets[0], guid: String(900000 + s.pets.length), box_id: 0 })
         })
         before = store.load(session.id)
-        assert.throws(() => call('HatOutPetEgg', { build_guid: 2, egg_guid: 1 }), /full/)
+        assert.throws(() => call('HatOutPetEgg', { build_guid: hatchGuid, egg_guid: 1 }), /full/)
         assert.deepEqual(store.load(session.id), before)
     } finally {
         store.close()
@@ -191,7 +196,8 @@ test('hatch queues retain their result and progress across a database restart', 
     let f = setup(file),
         store = f.store
     try {
-        f.call('HatchPetEgg', { build_guid: 2, egg_guid: 1 })
+        const hatchGuid = f.hatchGuid
+        f.call('HatchPetEgg', { build_guid: hatchGuid, egg_guid: 1 })
         const id = f.session.id
         store.close()
         store = new Store(file)
@@ -217,7 +223,7 @@ test('hatch queues retain their result and progress across a database restart', 
             id: claim.id,
             seq: 2,
             pushSeq: 0,
-            payload: p.encode(claim.req, { build_guid: 2, egg_guid: 1 }),
+            payload: p.encode(claim.req, { build_guid: hatchGuid, egg_guid: 1 }),
         })
         const guid = p.decode('SCHatchFinish', packets.find((x) => x.id === 6507).payload).pet_guid
         assert.equal(store.load(id).state.pets.find((x) => x.guid === guid).config_id, 500609)
