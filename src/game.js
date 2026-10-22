@@ -186,6 +186,7 @@ const deferredTaskProgress = new Set([
 const deferredMessages = new Set([
     ...deferredTaskProgress,
     'CSProtoRescueObj',
+    'CSProtoRescueCancel',
     'CSProtoReviveHero',
     'CSProtoBattleInfoReduce',
     'CSProtoSkillStart',
@@ -219,6 +220,7 @@ const fastCombatReplies = new Set([
 ])
 const fastCombatTelemetry = new Set([
     'CSProtoRescueObj',
+    'CSProtoRescueCancel',
     'CSProtoReviveHero',
     'CSProtoKiboDuelArenaAutoFightSync',
     'CSProtoKiboCastUltraSkill',

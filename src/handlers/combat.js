@@ -1,7 +1,7 @@
 import { ornamentSkills } from '../hero-equipment.js'
 import { recordAndSyncHandbookSkill } from '../pet-handbook-sync.js'
 import { reviveFriendlyActor } from '../actor-revival.js'
-import { rescueActors } from '../actor-rescue.js'
+import { rescueActors, cancelRescue } from '../actor-rescue.js'
 import { recordNpcArenaDeaths } from '../npc-kibo-battle.js'
 import { recordArenaHpStatistics, publishArenaStatistics } from '../npc-kibo-statistics.js'
 import { recordArenaTrainerSkill, recordArenaTrainerStop } from '../npc-kibo-trainer-skills.js'
@@ -190,6 +190,7 @@ function advanceEnergy(c, battle, changed) {
 }
 export function registerCombat(on) {
     on('RescueObj', rescueActors)
+    on('RescueCancel', cancelRescue)
     on('ReviveHero', reviveFriendlyActor)
     on('SkillStart', (c, r) => {
         if (isRetiredTrialActor(c.state, r.unit_id)) return

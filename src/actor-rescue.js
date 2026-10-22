@@ -140,3 +140,16 @@ export function rescueActors(c, request) {
         c.broadcast({ kind: 'map', map: c.state.world.map_id, sender: c.id }, 'CSProtoObjBattleInfoSync', info)
     }
 }
+
+export function cancelRescue(c) {
+    const battle = c.state.combat
+    // The packet has no actor/target field. Only this account's current map
+    // rescue associations are local to this transaction; earned target progress
+    // belongs to the target and must survive a rescuer releasing the button.
+    if (battle?.map_id === c.state.world.map_id && battle.rescueSources) battle.rescueSources = {}
+    // Current CBT3 OnRescueCanceBC ignores the uint32 payload. Account ID is an
+    // explicit local sender convention, not a recovered official field meaning.
+    const notice = { u32: c.id }
+    c.push('CSProtoRescueCancelBC', notice)
+    c.broadcast({ kind: 'map', map: c.state.world.map_id, sender: c.id }, 'CSProtoRescueCancelBC', notice)
+}
