@@ -53,9 +53,13 @@ test('CBT3 duel501 initializes the native arena manager and locked formation bef
         assert.deepEqual(arenaLogin.groups, [])
         const first = call('KiboDuelGetGroup', { u32: 501 })
         assert.deepEqual(
-            first.map((x) => x.id),
+            // Task visibility may publish one battle-pass delta before ACK.
+            // Keep all other packets and the arena preparation ordering exact.
+            first.filter((x) => x.id !== 18006).map((x) => x.id),
             [5008, 10740, 10751],
         )
+        assert.ok(first.filter((x) => x.id === 18006).length <= 1)
+        assert.equal(first.at(-1).id, 10751)
         const group = first[1].data.groups.find((g) => g.slot === lockedDuelSlot),
             luaGroup = first[1].data.groups.find((g) => g.slot === 0)
         assert.equal(group.duel_id, 501)

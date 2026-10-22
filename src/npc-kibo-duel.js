@@ -50,6 +50,15 @@ export function validateNpcDuelFormation(tables, state, duel, formation) {
 }
 
 export function selectedArenaGroup(state) {
+    const run = state.combat?.npcDuel,
+        campaign = state.multiCampaign
+    if (
+        run?.formation_snapshot &&
+        campaign?.duel_id === run.duel_id &&
+        campaign.start_time === run.start_time &&
+        state.world.map_id === run.map_id
+    )
+        return run.formation_snapshot
     const slot = state.multiCampaign?.formation_slot ?? state.player.group_mgrs?.find((m) => m.type === 6)?.cur_group
     return state.kiboDuelGroups?.[slot]
 }
@@ -91,4 +100,24 @@ export function npcDuelEntry(tables, duelId) {
         ErrorCode.GameConfig,
     )
     return { duel, dungeon, map, coordinates, enemyPets }
+}
+
+// Editable presets are not the live roster. Protect inventory sources until
+// the matching arena run is left, including benched or defeated actors.
+export function petInActiveNpcDuel(state, guid) {
+    const run = state.combat?.npcDuel,
+        campaign = state.multiCampaign
+    if (
+        !run ||
+        !campaign?.duel_id ||
+        campaign.duel_id !== run.duel_id ||
+        campaign.start_time !== run.start_time ||
+        state.world.map_id !== run.map_id
+    )
+        return false
+    const id = String(guid)
+    return (
+        Object.values(run.actors ?? {}).some((actor) => actor.camp === 1 && String(actor.source_guid) === id) ||
+        (run.formation_snapshot?.pet_guids ?? []).some((pet) => !pet.is_trial && String(pet.guid || pet.id) === id)
+    )
 }

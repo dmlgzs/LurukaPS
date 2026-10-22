@@ -1,6 +1,7 @@
 import { ErrorCode } from '../error-codes.js'
 import { registerNpcArenaResults } from '../npc-kibo-result.js'
 import { duelProgressSnapshot } from '../kibo-duel-progress.js'
+import { KIBO_LOCKED_SLOT, duelPresetSnapshotGroups, registerDuelPresetEditing } from '../kibo-duel-presets.js'
 import { clearArenaStageBuffs } from '../npc-kibo-stage-buffs.js'
 import {
     initializeNpcDuelBattle,
@@ -36,7 +37,7 @@ const ids = (text) =>
         .map(Number)
 const duelSkills = (row) =>
     ids(row.skillList).map((skill_id, i) => ({ skill_id, skill_lv: 1, skill_slot: 701 + i, type: 1 }))
-export const lockedDuelSlot = 98
+export const lockedDuelSlot = KIBO_LOCKED_SLOT
 const arenaLockedSlot = 0
 // CBT3 ClientReadyTask.OnStart reports9596 after the arena scene loads.
 // 9509 is used by other dungeon flows and is not sent by this NPC route.
@@ -122,7 +123,7 @@ export function ensureArenaFormationManager(state) {
 export function kiboDuelSnapshot(state, tables) {
     return {
         use_slot: state.kiboDuelSlot ?? 1,
-        groups: Object.values(state.kiboDuelGroups ?? {}),
+        groups: tables ? duelPresetSnapshotGroups(tables, state) : Object.values(state.kiboDuelGroups ?? {}),
         records: Object.values(state.kiboDuelRecords ?? {}),
         ...(tables ? duelProgressSnapshot(tables, state) : { area_infos: Object.values(state.kiboDuelAreas ?? {}) }),
     }
@@ -217,6 +218,7 @@ function saveArenaGroup(arena, protocol, group) {
     else arena.groups.push({ id: group.slot, heros: [], control: '0', pet_duel_group_info: serialized })
 }
 export function registerKiboDuel(on, tables, protocol) {
+    registerDuelPresetEditing(on, tables, kiboDuelSnapshot)
     registerNpcArenaSummons(on)
     registerNpcArenaResults(on, tables)
     const prepare = (c, r) => {

@@ -3,7 +3,7 @@ import { recordActiveProgress, notifyActive } from './daily-active.js'
 import { arenaContext, arenaMillis, arenaActionMillis } from './npc-kibo-time.js'
 import { ensure } from './handlers/common.js'
 import { combatState } from './combat-state.js'
-import { npcDuelEntry } from './npc-kibo-duel.js'
+import { npcDuelEntry, selectedArenaGroup } from './npc-kibo-duel.js'
 import { arenaPetAttributes, arenaSkillLevels } from './kibo-arena-attributes.js'
 import { beginNpcArenaPresentation, publishNpcArenaPresentation } from './npc-kibo-presentation.js'
 import { stopArenaPetAI } from './npc-kibo-pet-ai.js'
@@ -164,6 +164,7 @@ export function initializeNpcDuelBattle(tables, state, selfAttributes, now) {
         trainer_guid: selfAttributes.hero_info.hero_guid,
         trainer_grade: selfAttributes.hero_info.hero_grade,
         trainer_skill_infos: structuredClone(selfAttributes.hero_info.skills ?? []),
+        formation_snapshot: structuredClone(selectedArenaGroup(state)),
         actors,
         enemy_attributes: { infos: enemyInfos, hero_info: { hero_guid: String(npcId), hero_lv: duel.recommendLevel } },
         positions,
