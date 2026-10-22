@@ -3,6 +3,7 @@ import { notifyBattlePassTasks } from './battle-pass-tasks.js'
 import { registerBattlePass } from './handlers/battle-pass.js'
 import { battlePassSnapshot } from './battle-pass.js'
 import { registerPetStarSoul } from './handlers/pet-star-soul.js'
+import { registerSocialWheel, prepareSocialWheel, notifySocialWheel, socialWheelSnapshot } from './social-wheel.js'
 import { ErrorCode } from './error-codes.js'
 import { registerChatShields } from './handlers/chat-shields.js'
 import { registerShortcuts } from './handlers/shortcuts.js'
@@ -472,6 +473,7 @@ export class Game {
         registerMall(on, tables)
         registerNovicePack(on)
         registerPamiMail(on)
+        registerSocialWheel(on)
         registerCombat(on)
         registerClientState(on, store)
         registerCollection(on)
@@ -1144,6 +1146,7 @@ export class Game {
                 if (!battleReport) observeActiveSession(this.tables, state, now)
                 const activeCountersBefore = activeCounterSample(state)
                 const response = recoveredChoice ? {} : handler(context, r)
+                if (!battleReport) notifySocialWheel(context)
                 if (!battleReport) notifyPamiMail(context, e.name)
                 if (!battleReport) notifyNovicePack(context, e.name)
                 if (!battleReport) notifyJourney(context, e.name)
@@ -1602,6 +1605,7 @@ export class Game {
         observeJourney(this.tables, state)
         const novice = prepareNovicePack(this.tables, state, now).payload
         preparePamiMail(this.tables, state, now)
+        prepareSocialWheel(this.tables, state)
         return [
             this.packet('CSProtoEnterGameCallbackStart', {
                 reconnect: !!r.reconnect,
@@ -1720,6 +1724,7 @@ export class Game {
             this.packet('SCProtoMonthlyCardInfoSync', monthlyPayload(state)),
             this.packet('SCProtoMallNovicePackSync', novice),
             this.packet('CSProtoPamiMailSync', pamiMailSnapshot(this.tables, state, now)),
+            this.packet('SCProtoSocialEmoticonsSyncInfo', socialWheelSnapshot(this.tables, state)),
             this.packet('CSProtoReadHandbookInfoSync', {
                 infos: Object.values(state.readingBooks ?? {}),
                 send_type: 0,
