@@ -3060,6 +3060,7 @@
   {
     "id": 9902,
     "name": "CSProtoAchievementReward",
+    "req": "cs.CSUint32",
     "rsp": "cs.Rewards",
     "desc": "成就奖励 推送 成就id"
   },

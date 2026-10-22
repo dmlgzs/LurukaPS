@@ -1,4 +1,6 @@
 import { ErrorCode } from './error-codes.js'
+import { registerAchievements } from './handlers/achievements.js'
+import { achievementSnapshot, notifyAchievements } from './achievements.js'
 import { registerAbyssData } from './handlers/abyss-data.js'
 import { homeExchangeDue, prepareHomeExchange, homeExchangeLoginData } from './home-exchange.js'
 import { ensureReputations, reputationSnapshot } from './reputation.js'
@@ -429,6 +431,7 @@ export class Game {
         registerMail(on)
         registerProgression(on)
         this.noviceTasks = registerNoviceTasks(on, tables)
+        registerAchievements(on)
         const taskHandlers = registerTasks(on, tables)
         this.finishPendingCharacterTask = taskHandlers.finishPendingCharacterTask
         this.recoverCompletedCampaignTasks = taskHandlers.recoverCompletedCampaignTasks
@@ -1154,6 +1157,7 @@ export class Game {
                           ]
                         : []
                 reconcileHomeStage(this.tables, state)
+                if (!battleReport) notifyAchievements(context)
                 const homeSync =
                     (state.homeRevision || 0) !== homeRevision
                         ? [
@@ -1515,6 +1519,7 @@ export class Game {
             this.packet('CSProtoWorldExplorationSync', explorationSnapshot(state)),
             this.packet('CSProtoWorldBossChestInfoSync', bossFirstChestInfo(this.tables, state)),
             this.packet('CSProtoNoviceTaskInfoSync', this.noviceTasks.initial(state)),
+            this.packet('CSProtoAchievementSync', achievementSnapshot(this.tables, state, now)),
             this.packet('CSProtoDailyActiveInfoSync', initialActiveSnapshot(this.tables, state, now)),
             this.packet('CSProtoStandPlatesBagInfo', playerCardSnapshot(this.tables, state)),
             this.packet('SCProtoClothesInfoSync', clothesSnapshot(this.tables, state)),
