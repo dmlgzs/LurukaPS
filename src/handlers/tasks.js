@@ -1,6 +1,7 @@
 import { ErrorCode } from '../error-codes.js'
 import { rewardSource } from '../reward-source.js'
 import { submitTaskItems, deliveryKey, deliveryComplete, instanceDeliveryReplay } from '../task-delivery.js'
+import { taskBranchExit } from '../task-branch-flow.js'
 import { applyTaskItemActions } from '../task-items.js'
 import { grantRewards, parseRewards } from '../rewards.js'
 import { ensure } from './common.js'
@@ -15,6 +16,7 @@ import {
     conditionValue,
     asList,
     conditionSatisfied,
+    conditionTargetValue,
     taskUnlocked,
     acceptTask,
     taskSnapshot,
@@ -261,9 +263,9 @@ export function registerTasks(register, tables) {
         const { graph, task, node, config } = current(c, r)
         ensure(node.client_before, 'Node pre-action is not acknowledged')
         ensure(
-            [10, 20, 30, 50].includes(config.nodeType),
+            [10, 20, 30, 34, 50].includes(config.nodeType),
             'Task node type is not implemented',
-            ErrorCode.InvalidProtoID,
+            ErrorCode.FunctionClosed,
         )
         const conditions = nodeConditions(config)
         node.node_values = conditions.map((q, index) =>
@@ -280,10 +282,15 @@ export function registerTasks(register, tables) {
             sync(c)
             return taskRewards(tables, [])
         }
-        ensure(
-            node.node_values.every((n, i) => conditionSatisfied(conditions[i], n)),
-            'Server task conditions not complete',
-        )
+        const branch =
+            config.nodeType === 34
+                ? taskBranchExit(graph, config, node, node.node_values, conditions.map(conditionTargetValue))
+                : null
+        if (!branch)
+            ensure(
+                node.node_values.every((n, i) => conditionSatisfied(conditions[i], n)),
+                'Server task conditions not complete',
+            )
         if (c.state.pendingCharacterTask?.task_id === r.task_id && c.state.pendingCharacterTask.node_id === r.node_id)
             delete c.state.pendingCharacterTask
         const rewards = rewardNode(c, task, r.node_id)
@@ -297,7 +304,7 @@ export function registerTasks(register, tables) {
             if (first) c.push('CSProtoNotifyTaskEndNode', { task_id: r.task_id })
             return taskRewards(tables, rewards)
         }
-        const next = asList(config.nextNodeIdList)
+        const next = branch?.next ?? asList(config.nextNodeIdList)
         ensure(next.length > 0, 'Task node has no successor', ErrorCode.GameConfig)
         ensure(new Set(next).size === next.length, 'Duplicate task edges', ErrorCode.GameConfig)
         ensure(
@@ -307,6 +314,7 @@ export function registerTasks(register, tables) {
         )
         task.nodes = task.nodes.filter((n) => n.node_id !== r.node_id)
         if (!task.finish_nodes.includes(r.node_id)) task.finish_nodes.push(r.node_id)
+        if (branch) (c.state.taskBranchChoices ??= {})[deliveryKey(c.state, r.task_id, r.node_id, 'branch')] = branch
         for (const id of next)
             if (!task.nodes.some((n) => n.node_id === id)) task.nodes.push(makeNode(graph, id, c.state))
         advancePetChoiceBranch(graph, task, c.state)
