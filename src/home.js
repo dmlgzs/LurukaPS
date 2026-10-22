@@ -5,6 +5,7 @@ import { technologyPayload } from './technology.js'
 import { homeTreePayload } from './home-tree.js'
 import { ranchPayloads } from './ranch.js'
 import { worldCollectionPayloads } from './world-collection.js'
+import { ensureCollectionData } from './home-collection.js'
 import { ensure } from './handlers/common.js'
 import { ensureHomeDormitories, dormPayload } from './home-dorm.js'
 export function ensureHome(tables, state) {
@@ -100,6 +101,7 @@ export function ensureHomeFarmHouses(tables, state) {
 }
 export function homePayload(tables, state) {
     const h = ensureHome(tables, state)
+    ensureCollectionData(state)
     ensureHomeFarmHouses(tables, state)
     ensureHomeDormitories(tables, state)
     // The CBT3 client's getBeltItems starts zero-filling at #list, overwriting

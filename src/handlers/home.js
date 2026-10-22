@@ -106,7 +106,7 @@ export function registerHome(on, tables) {
             if (index < 0 && p.work_status !== 7) return {}
             if (p.work_status === 5) clearFarmPetSlots(c.state, p.guid)
             if (p.work_status === 6) clearRanchPetSlots(c.state, p.guid)
-            if ([1, 2].includes(p.work_status)) clearProductionPetSlots(c.state, p.guid)
+            if ([1, 2].includes(p.work_status)) clearProductionPetSlots(c.state, p.guid, c.now)
             if (index >= 0) station.splice(index, 1)
             if ([1, 2, 5, 6, 7].includes(p.work_status)) {
                 p.work_status = 0

@@ -123,7 +123,7 @@ export function registerRanch(on, tables) {
         }
         if (chosen) {
             clearFarmPetSlots(c.state, chosen.guid)
-            clearProductionPetSlots(c.state, chosen.guid)
+            clearProductionPetSlots(c.state, chosen.guid, c.now)
             clearRanchPetSlots(c.state, chosen.guid)
             const stationed = (c.state.home.stationPets ??= [])
             if (!stationed.includes(chosen.guid)) stationed.push(chosen.guid)
