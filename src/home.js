@@ -1,4 +1,5 @@
 import { ErrorCode } from './error-codes.js'
+import { homeHubPayload } from './home-hub.js'
 import { reconcileHomeExperience } from './home-experience.js'
 import { reconcileHomeStage } from './home-stage.js'
 import { technologyPayload } from './technology.js'
@@ -113,13 +114,16 @@ export function homePayload(tables, state) {
             .map((row) => Number(row.value)),
     )
     ensure(Number.isInteger(shortcutSlots) && shortcutSlots > 0, 'Invalid home shortcut capacity', ErrorCode.GameConfig)
+    const technology = technologyPayload(tables, state),
+        tree = homeTreePayload(tables, state),
+        homeBuilds = [...h.builds, ...ranchPayloads(tables, state), ...worldCollectionPayloads(state)]
     return {
-        technology: technologyPayload(tables, state),
-        tree: homeTreePayload(tables, state),
+        technology,
+        tree,
         home_lv: h.stage,
         home_name: h.name,
         builds: h.inventory,
-        home_builds: [...h.builds, ...ranchPayloads(tables, state), ...worldCollectionPayloads(state)],
+        home_builds: homeBuilds,
         dorm: dormPayload(tables, state),
         shortcut_bars: h.shortcuts.map((bar) => ({
             ...bar,
@@ -133,7 +137,7 @@ export function homePayload(tables, state) {
             product_id: Number(id),
             craft_count: count,
         })),
-        home_hub: { pos_infos: [], station_pets: h.stationPets ?? [] },
+        home_hub: homeHubPayload(tables, state, homeBuilds),
         home_level_new_base: { level: h.level, exp: h.exp, option_setting: h.cropOptions || 0 },
     }
 }

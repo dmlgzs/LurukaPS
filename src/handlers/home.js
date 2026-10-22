@@ -3,7 +3,8 @@ import { productionTables } from '../production-tables.js'
 import { ensure, textValue, pet } from './common.js'
 import { ensurePetName } from '../pets.js'
 import { caressPet } from '../pet-caress.js'
-import { ensureHome } from '../home.js'
+import { ensureHome, homePayload } from '../home.js'
+import { changeHomeHubPosition } from '../home-hub.js'
 import { homeTreePayload, homeTreeState, upgradeHomeTree } from '../home-tree.js'
 import { homeCondition } from '../home-grid.js'
 import { reconcileFormationPets } from '../formation-pets.js'
@@ -32,6 +33,11 @@ export function registerHome(on, tables) {
     tables = productionTables(tables)
     registerRanch(on, tables)
     registerHomeExchange(on, tables)
+    on('ChangeHomeHubPos', (c, request) => {
+        const hub = homePayload(tables, c.state).home_hub
+        changeHomeHubPosition(c.state, request, hub)
+        return {}
+    })
     const change = (c) => {
         c.state.homeRevision = (c.state.homeRevision || 0) + 1
     }

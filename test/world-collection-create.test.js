@@ -15,7 +15,7 @@ function fixture(name, level = 6) {
         tables = new Tables(cfg.tables),
         protocol = new Protocol(cfg.base),
         store = new Store(':memory:'),
-        game = new Game(protocol, store, tables),
+        game = new Game(protocol, store, tables, { clock: () => 1800000000 }),
         session = {}
     let seq = 1
     const call = (name, data = {}, target = session) => {
@@ -102,7 +102,16 @@ test('6526 repairs the configured world collection ID once with real costs and t
         assert.deepEqual(after.pets, before.pets)
         const settled = f.state()
         unlock(f, 1)
-        assert.deepEqual(f.state(), settled)
+        const retry = f.state()
+        // The first request's final home sync can update the existing home
+        // revision after journey observation. A retry may consume that watermark;
+        // it must not create, charge, grant, or increment any business state.
+        assert.equal(retry.homeRevision, settled.homeRevision)
+        assert.equal(retry.journey.observedSources.home, settled.homeRevision)
+        assert.equal(retry.journey.observedSources.pet, settled.journey.observedSources.pet)
+        const observed = structuredClone(settled)
+        observed.journey.observedSources.home = settled.homeRevision
+        assert.deepEqual(retry, observed)
         const login = f.call('EnterGame', { open_id: 'world-collect-create' }, {})
         const saved = f.protocol
             .decode('SCHomeSync', login.find((p) => p.id === 6102).payload)
