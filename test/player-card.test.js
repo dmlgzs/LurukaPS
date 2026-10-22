@@ -22,8 +22,17 @@ test('6141 accepts table defaults, publishes sync before null ACK, and preserves
             pet_accessory: 20401,
             role: { config: 20305, url: '' },
         })
-        assert(packets.findIndex((p) => p.id === 5101) < packets.findIndex((p) => p.id === 6141))
-        assert.deepEqual(f.protocol.decode('ProtoNullRsp', packets.find((p) => p.id === 6141).payload), {})
+        const syncId = f.protocol.byName.get('CSProtoSyncPlayerData').id
+        const replyId = f.protocol.byName.get('CSProtoChangeStandPlates').id
+        const syncIndex = packets.findIndex((p) => p.id === syncId)
+        const replyIndex = packets.findIndex((p) => p.id === replyId)
+        assert(syncIndex >= 0, 'Actual player-data synchronization must exist')
+        assert(replyIndex >= 0, 'Actual ChangeStandPlates acknowledgement must exist')
+        assert(syncIndex < replyIndex, 'Player-data synchronization must precede acknowledgement')
+        const changed = f.protocol.decode(f.protocol.byId.get(syncId).rsp, packets[syncIndex].payload)
+        assert.equal(changed.basic_info.stand_plates.baseboard, 20101)
+        assert.equal(changed.basic_info.stand_plates.role.config, 20305)
+        assert.deepEqual(f.protocol.decode('ProtoNullRsp', packets[replyIndex].payload), {})
         f.call(f.a, 'ChangeStandPlates', {
             profile: 10101,
             profile_frame: 10201,
@@ -97,13 +106,15 @@ test('6141 cannot replace role image URL or change another account, codec failur
                 f.call(f.a, 'ChangeStandPlates', { role: { config: 20305, url: 'https://example.invalid/fake.png' } }),
             (e) => e.code === ErrorCode.InvalidArgument,
         )
-        f.protocol.encode = function (name, ...args) {
-            if (name === 'cs.ProtoNullRsp') throw Error('card reply failed')
-            return encode.call(this, name, ...args)
+        for (const failure of [f.protocol.byName.get('CSProtoSyncPlayerData').rsp, 'cs.ProtoNullRsp']) {
+            f.protocol.encode = function (name, ...args) {
+                if (name === failure) throw Error('card wire failed: ' + failure)
+                return encode.call(this, name, ...args)
+            }
+            assert.throws(() => f.call(f.a, 'ChangeStandPlates', { profile: 10101 }), /card wire failed/)
+            assert.deepEqual(f.state(f.a), before)
+            assert.deepEqual(f.state(f.b), other)
         }
-        assert.throws(() => f.call(f.a, 'ChangeStandPlates', { profile: 10101 }), /card reply failed/)
-        assert.deepEqual(f.state(f.a), before)
-        assert.deepEqual(f.state(f.b), other)
     } finally {
         f.protocol.encode = encode
         f.store.close()
