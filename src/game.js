@@ -948,6 +948,22 @@ export class Game {
         if (e.name === 'CSProtoTitleGetList') return [reply(handler({ id: session.id, tables: this.tables }, r))]
         if (e.name === 'CSProtoWorldObjSearch')
             return this.store.read(session.id, (state) => [reply(handler({ state, tables: this.tables }, r))])
+        if (e.name === 'CSProtoSelectEmoticons')
+            return this.store.read(session.id, (state) => {
+                const before = [],
+                    after = []
+                const response = handler(
+                    {
+                        id: session.id,
+                        state,
+                        tables: this.tables,
+                        pushBefore: (name, value) => before.push(this.packet(name, value)),
+                        broadcast: (audience, name, value) => after.push(this.packet(name, value, { audience })),
+                    },
+                    r,
+                )
+                return [...before, reply(response), ...after]
+            })
         if (e.name === 'CSProtoWorldMapExtraStatus') {
             const response = handler(
                 {

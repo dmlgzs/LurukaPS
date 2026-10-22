@@ -103,6 +103,29 @@ export function updateSocialWheel(c, r) {
     c.pushBefore('SCProtoSocialEmoticonsSyncInfo', socialWheelSnapshot(c.tables, c.state))
     return {}
 }
+export function selectSocialEmoticon(c, r) {
+    ensure(opened(c.tables, c.state), 'Social wheel system is locked', ErrorCode.FunctionClosed)
+    const id = r.u32 ?? 0
+    ensure(
+        uint(id) && id > 0 && c.tables.find('social_wheel', id),
+        'Unknown social wheel emote',
+        ErrorCode.SocialEmotionsConfError,
+    )
+    ensure(
+        available(c.tables, c.state).some((row) => row.id === id),
+        'Social wheel emote is unavailable',
+        ErrorCode.InvalidSocialWheelData,
+    )
+    // This is a transient client state/animation event. Do not save a selection
+    // or change combat, formation, actor, or mount state on the server.
+    c.pushBefore('SCProtoSocialEmoticonsSyncInfo', { ...socialWheelSnapshot(c.tables, c.state), cur_emoticons_id: id })
+    c.broadcast({ kind: 'map', map: c.state.world.map_id, sender: c.id }, 'SCProtoNotifyEmoticon', {
+        player_id: c.id,
+        emoticons_id: id,
+    })
+    return {}
+}
 export function registerSocialWheel(on) {
     on('UpdateEmoticonsWheel', updateSocialWheel)
+    on('SelectEmoticons', selectSocialEmoticon)
 }
