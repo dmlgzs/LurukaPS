@@ -138,7 +138,7 @@ export function claimBattlePassLevel(c, r) {
     if (paid) {
         ensure(!ledger.is_refund, 'Battle pass premium is refunded', ErrorCode.BattlePassRefund)
         ensure(ledger.pay_state > 0, 'Battle pass premium is not purchased', ErrorCode.BattlePassNotPaid)
-        ensure(!row.soulessenceMark, 'Battle pass soul essence requires explicit selection', ErrorCode.FunctionClosed)
+        ensure(!row.soulessenceMark, 'Battle pass soul essence requires explicit selection', ErrorCode.InvalidArgument)
     }
     const received = paid ? ledger.paid : ledger.free
     if (received.includes(r.level)) {

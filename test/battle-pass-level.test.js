@@ -62,7 +62,7 @@ test('trusted paid entitlement fixture may claim paid layer, while the marked so
         assert.equal(count(f.state(), 400002), before + 2)
         assert.throws(
             () => f.call('BattlePassGetLevelReward', { level: 30, is_paid: true }),
-            (e) => e.code === ErrorCode.FunctionClosed,
+            (e) => e.code === ErrorCode.InvalidArgument,
         )
         f.store.transact(f.session.id, 0, (s) => {
             prepareBattlePass(f.tables, s, 1800000000).ledger.is_refund = true
