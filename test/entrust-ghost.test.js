@@ -47,7 +47,7 @@ for (const entrustId of [1, 6])
             call('EnterGame', { open_id: `ghost-entrust-${entrustId}` })
             store.transact(session.id, 0, (state) => {
                 state.world.map_id = 100
-                state.player.basic_info.lv = 99
+                state.player.basic_info.lv = Math.max(...tables.get('player_level').map((row) => row.id))
                 state.taskRecords = tables
                     .get('task')
                     .filter((row) => row.type === 1)

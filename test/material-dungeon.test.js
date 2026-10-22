@@ -194,7 +194,11 @@ test('the boss marker with capital AutoBattleIndex starts its configured enemy a
     const f = fixture('material-boss-marker')
     try {
         const m = f.tables.find('dungeon_material', 20701)
-        f.store.transact(f.session.id, 0, (s) => (s.player.basic_info.lv = 99))
+        f.store.transact(
+            f.session.id,
+            0,
+            (s) => (s.player.basic_info.lv = Math.max(...f.tables.get('player_level').map((r) => r.id))),
+        )
         f.call('MultiCampaignCreate', { dungeon_id: m.dungeonId, scene_type: 12 })
         const stages = getEntrustCatalog(f.tables).stages(m.id)
         f.call('MultiCampaignPlayerLoadFinish')
@@ -218,7 +222,21 @@ test('entry rejects locked and malformed configurations, foreign modes and activ
             (e) => e.code === ErrorCode.EntrustUnlock,
         )
         assert.deepEqual(f.state(), before)
-        f.store.transact(f.session.id, 0, (s) => (s.player.basic_info.lv = 99))
+        const maxLevel = Math.max(...f.tables.get('player_level').map((row) => row.id))
+        // A level absent from the actual table is corrupt state, not an
+        // unrestricted high-level fixture. Keep production validation intact.
+        f.store.transact(f.session.id, 0, (s) => (s.player.basic_info.lv = maxLevel + 1))
+        before = structuredClone(f.state())
+        assert.throws(
+            () => f.call('MultiCampaignCreate', { dungeon_id: 31960, scene_type: 12 }),
+            (e) => e.code === ErrorCode.GameConfig,
+        )
+        assert.deepEqual(f.state(), before)
+        f.store.transact(
+            f.session.id,
+            0,
+            (s) => (s.player.basic_info.lv = Math.max(...f.tables.get('player_level').map((r) => r.id))),
+        )
         before = structuredClone(f.state())
         for (const r of [
             { dungeon_id: 0xffffffff, scene_type: 12 },
