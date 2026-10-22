@@ -7,6 +7,7 @@ import {
     returnExchangeReservation,
     settleExchangeImmediately,
 } from '../home-exchange.js'
+import { ensureExchangeOrderBoard, exchangeOrderSnapshot } from '../home-exchange-orders.js'
 export function registerHomeExchange(on, tables) {
     on('CSHistoryReport', (c) => exchangeHistorySnapshot(c.state, true))
     on('CSExchangeObjInfo', (c) => {
@@ -39,5 +40,9 @@ export function registerHomeExchange(on, tables) {
         })
         c.pushBefore('CSProtoSCHomeExchangeInfo', { history: exchangeHistorySnapshot(c.state) })
         return { award, obj_info: exchangeBoxSnapshot(tables, c.state, c.now) }
+    })
+    on('CSExchangeOrderBoard', (c) => {
+        ensureExchangeOrderBoard(c)
+        return exchangeOrderSnapshot(c.state)
     })
 }
