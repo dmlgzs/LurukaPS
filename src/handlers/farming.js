@@ -6,6 +6,7 @@ import { grantRewards } from '../rewards.js'
 import { ensure } from './common.js'
 import { cropGrowth, ensureCropOutcome, applyWateringUpgrade } from '../crop-rewards.js'
 import { farmWorker, consumeFarmSeed, storeFarmHarvest } from '../farm-storage.js'
+import { cropFootprint, linkedCropFields } from '../crop-footprint.js'
 
 function homeInScene(tables, state) {
     const mapId = Number(tables.get('game').find((row) => row.title === 'HOME_ID')?.value)
@@ -18,20 +19,24 @@ function field(tables, home, guid) {
     ensure(
         build && tables.get('home_fieldtype').some((row) => row.homeBuildingId === build.build_id),
         'Farmland is not owned',
+        ErrorCode.HomeFieldNotOpen,
     )
     return build
 }
 
 function seed(tables, itemId, fieldType) {
     const item = tables.find('common_item', itemId)
-    ensure(item?.type === 310, 'Item is not a seed')
+    ensure(item, 'Missing seed item configuration', ErrorCode.HomeSeedIdNotInItemConf)
+    ensure(item.type === 310, 'Item is not a seed', ErrorCode.HomeSeedTypeError)
     const config = tables.find('home_seeds', item.subId)
+    ensure(config, 'Missing seed configuration', ErrorCode.HomeSeedIdNotInSeedConf)
     ensure(
         config && String(config.fieldType).split('|').map(Number).includes(fieldType),
         'Seed is not compatible with this field',
+        ErrorCode.HomeFieldTypeDismatch,
     )
     ensure(
-        config.harvestType === 1,
+        [1, 3].includes(config.harvestType),
         'Perennial crops require their dedicated planting lifecycle',
         ErrorCode.FunctionClosed,
     )
@@ -90,6 +95,11 @@ export function registerFarming(on, tables) {
             ErrorCode.FunctionClosed,
         )
         const build = field(tables, home, r.main_build.guid)
+        ensure(
+            !build.crop_info?.main_build_guid && !build.crop_info?.follower_build_guids?.length,
+            'Linked crop transplant requires all associated fields',
+            ErrorCode.FunctionClosed,
+        )
         ensure(!build.crop_info?.is_fixed, 'Fixed field cannot be moved', ErrorCode.FixedFieldCanNotMove)
         validatePlacement(tables, c.state, build.build_id, r.main_build.locate, build.guid)
         build.locate = { ...r.main_build.locate, direction: r.main_build.locate.direction || 0 }
@@ -136,7 +146,11 @@ export function registerFarming(on, tables) {
     on('FieldClose', (c, r) => {
         const home = homeInScene(tables, c.state),
             build = field(tables, home, r.field_id)
-        ensure(!build.crop_info?.seed_id, 'Planted farmland cannot be closed')
+        ensure(
+            !build.crop_info?.seed_id && !build.crop_info?.main_build_guid,
+            'Planted farmland cannot be closed',
+            ErrorCode.FieldCloseLimit,
+        )
         home.builds = home.builds.filter((item) => item.guid !== build.guid)
         if (home.cropOutcomes) delete home.cropOutcomes[build.guid]
         c.state.homeRevision = (c.state.homeRevision || 0) + 1
@@ -150,28 +164,23 @@ export function registerFarming(on, tables) {
             costs = new Map(),
             plantings = []
         for (const row of r.plant_info) {
-            ensure(
-                Number.isInteger(row.build_guid) && row.build_guid > 0 && !seen.has(row.build_guid),
-                'Duplicate or invalid planting field',
-            )
-            seen.add(row.build_guid)
-            ensure(
-                !row.follower_build_guids?.length,
-                'Multi-field planting is not yet supported',
-                ErrorCode.InvalidProtoID,
-            )
             const build = field(tables, home, row.build_guid)
-            ensure(!build.crop_info?.seed_id, 'Farmland already has a crop')
             const config = seed(tables, row.seed_id, build.crop_info.field_type)
+            const fields = cropFootprint(home, build, config, row.follower_build_guids, seen)
+            ensure(
+                !r.is_pet || fields.length === 1,
+                'Large crops cannot be planted by a farm worker',
+                ErrorCode.HomeSeedCanNotPlantByKibo,
+            )
             growthSeconds(config)
             costs.set(row.seed_id, (costs.get(row.seed_id) || 0) + 1)
             const house = r.is_pet ? farmWorker(tables, c.state, build, 'plant_pet') : null
-            plantings.push({ build, config, house, itemId: row.seed_id })
+            plantings.push({ build, fields, config, house, itemId: row.seed_id })
         }
         if (r.is_pet) {
             for (const { house, itemId } of plantings) consumeFarmSeed(tables, c.state, house, itemId, 1)
         } else spend(c.state, costs, 0, c.now)
-        for (const { build, config } of plantings) {
+        for (const { build, fields, config } of plantings) {
             Object.assign(build.crop_info, {
                 seed_id: config.id,
                 state: 1,
@@ -181,6 +190,11 @@ export function registerFarming(on, tables) {
                 pre_cost_time: 0,
                 is_player_water: false,
             })
+            if (fields.length > 1) {
+                build.crop_info.main_build_guid = build.guid
+                build.crop_info.follower_build_guids = fields.slice(1).map((b) => b.guid)
+                for (const follower of fields.slice(1)) follower.crop_info.main_build_guid = build.guid
+            }
             if (home.cropOutcomes) delete home.cropOutcomes[build.guid]
         }
         c.state.homeRevision = (c.state.homeRevision || 0) + 1
@@ -196,6 +210,13 @@ export function registerFarming(on, tables) {
         if (house) applyWateringUpgrade(tables, c.state, build, c.randomInt)
         const config = tables.find('home_seeds', crop.seed_id)
         ensure(config, 'Missing planted crop configuration', ErrorCode.HomeSeedIdNotInSeedConf)
+        // TODO: DNA/perennial trees use cyclic watering and persistent harvest
+        // state, not the annual crop outcome path below.
+        ensure(
+            config.harvestType === 1,
+            'Perennial watering requires its dedicated lifecycle',
+            ErrorCode.FunctionClosed,
+        )
         const { grow, pre } = growthSeconds(config, tables, c.state, build)
         Object.assign(crop, {
             state: 2,
@@ -239,10 +260,26 @@ export function registerFarming(on, tables) {
         const home = homeInScene(tables, c.state),
             build = field(tables, home, r.u32)
         ensure(build.crop_info?.seed_id, 'Farmland is empty')
-        clearCrop(build)
+        const config = tables.find('home_seeds', build.crop_info.seed_id)
+        ensure(config, 'Missing planted crop configuration', ErrorCode.HomeSeedIdNotInSeedConf)
+        const rewards = String(config.cancelWithdraw ?? '')
+            .split('|')
+            .filter(Boolean)
+            .map((text) => {
+                const [itemtype, itemid, itemnum] = text.split('#').map(Number)
+                ensure(
+                    [itemtype, itemid, itemnum].every((n) => Number.isSafeInteger(n) && n > 0),
+                    'Invalid crop removal refund configuration',
+                    ErrorCode.GameConfig,
+                )
+                return { itemtype, itemid, itemnum }
+            })
+        const fields = linkedCropFields(home, build)
+        const granted = rewards.length ? grantRewards(tables, c.state, rewards) : []
+        for (const target of fields) clearCrop(target)
         if (home.cropOutcomes) delete home.cropOutcomes[build.guid]
         c.state.homeRevision = (c.state.homeRevision || 0) + 1
-        return { rewards: [] }
+        return { rewards: granted }
     })
 
     on('FieldHarvest', (c, r) => {
