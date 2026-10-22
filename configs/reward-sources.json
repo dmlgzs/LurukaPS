@@ -28,5 +28,6 @@
   "dailyActiveTask": 22,
   "dailyActiveValueReward": 22,
   "worldBossFirstChest": 151,
-  "achievementReward": 20
+  "achievementReward": 20,
+  "achievementPointReward": 20
 }

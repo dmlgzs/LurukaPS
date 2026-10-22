@@ -3,8 +3,10 @@ import { ensure } from './common.js'
 import { achievementCatalogue, achievementLedger, observeAchievements, notifyAchievements } from '../achievements.js'
 import { grantRewards, parseRewards } from '../rewards.js'
 import { rewardSource } from '../reward-source.js'
+import { claimAchievementPointReward } from '../achievement-point-rewards.js'
 
 export function registerAchievements(on) {
+    on('GetAchievementPointReward', claimAchievementPointReward)
     on('AchievementReward', (c, r) => {
         const model = achievementCatalogue(c.tables),
             row = model.byId.get(r.u32)
