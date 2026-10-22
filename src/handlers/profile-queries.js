@@ -1,6 +1,7 @@
 import { ErrorCode } from '../error-codes.js'
 import { ensure, syncPlayer } from './common.js'
 import { configTime } from '../shops.js'
+import { grantRewards } from '../rewards.js'
 const fields = { 1: 'characterStory', 2: 'characterVoice', 3: 'characterPlot' }
 function charInfo(id, records) {
     return {
@@ -78,6 +79,26 @@ export function registerProfileQueries(on, tables, store) {
         const basic = c.state.player.basic_info
         basic.info = { ...basic.info, hero: shown }
         syncPlayer({ ...c, push: c.pushBefore }, { basic_info: { info: basic.info } })
+        return {}
+    })
+    on('ReadHandbookGet', (c, r) => {
+        // PlayableOpenLibraryBookTestNode requests source1 before opening the
+        // page. Other legacy source meanings have not been established.
+        ensure(r.get_type === 1, 'Unsupported reading acquisition source', ErrorCode.HandbookTypeLimit)
+        ensure(
+            Number.isSafeInteger(r.book_id) && r.book_id > 0 && tables.find('library_readings', r.book_id),
+            'Reading configuration is missing',
+            ErrorCode.HandbookConfNone,
+        )
+        const known = c.state.readingBooks?.[r.book_id]
+        ensure(
+            !known || (known.book_id === r.book_id && [0, 1].includes(known.book_state)),
+            'Invalid saved reading record',
+            ErrorCode.GameConfig,
+        )
+        // The normal type28 ledger preserves owned/read state on retries.
+        // Game publishes ReadHandbookInfoSync before this null reply.
+        grantRewards(tables, c.state, [{ itemtype: 28, itemid: r.book_id, itemnum: 1 }])
         return {}
     })
     on('ReadHandbookRead', (c, r) => {
