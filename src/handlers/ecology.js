@@ -1,8 +1,10 @@
 import { ErrorCode } from '../error-codes.js'
 import { ensure } from './common.js'
 import { advanceEcology, sweepExpiredEcology } from '../ecology-progress.js'
+import { claimEcologyReward } from '../ecology-rewards.js'
 export function registerEcology(on, tables) {
     on('WorldEcologyStep', advanceEcology)
+    on('WorldEcologyGetReward', claimEcologyReward)
     const configs = tables.get('world_eep'),
         templates = new Map(tables.get('world_eep_template').map((x) => [x.id, x]))
     on('WorldEcologyReset', (c) => {
