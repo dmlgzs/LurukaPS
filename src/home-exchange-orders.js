@@ -3,6 +3,9 @@ import { ensure } from './handlers/common.js'
 import { ErrorCode } from './error-codes.js'
 import { homeCondition } from './home-grid.js'
 import { ensureHomeExchange, exchangeClock } from './home-exchange.js'
+import { parseRewards, grantRewards } from './rewards.js'
+import { spend } from './inventory.js'
+import { rewardSource } from './reward-source.js'
 const catalogues = new WeakMap()
 export function exchangeOrderCatalogue(tables) {
     if (catalogues.has(tables)) return catalogues.get(tables)
@@ -73,7 +76,11 @@ export function orderCandidates(tables, state, level, exclude = new Set()) {
 function allocate(exchange, slots) {
     let next = exchange.nextOrderGuid ?? 1
     ensure(Number.isSafeInteger(next) && next > 0, 'Invalid exchange order identity counter', ErrorCode.GameConfig)
-    next = Math.max(next, ...slots.map((s) => (s.guid ?? 0) + 1))
+    next = Math.max(
+        next,
+        ...slots.map((s) => (s.guid ?? 0) + 1),
+        ...Object.keys(exchange.orderReceipts ?? {}).map((id) => Number(id) + 1),
+    )
     ensure(next <= 0xffffffff, 'Exchange order identity exhausted', ErrorCode.GameConfig)
     exchange.nextOrderGuid = next + 1
     return next
@@ -137,4 +144,70 @@ export function refreshExchangeOrder(c, r) {
     slot.order_id = pool[(c.randomInt ?? randomInt)(0, pool.length)].orderID
     board.refreshes--
     return exchangeOrderSnapshot(c.state)
+}
+export function exchangeOrderPlan(tables, state, row, now) {
+    ensure(row, 'Exchange order configuration unavailable', ErrorCode.HomeOrderConfigNotExists)
+    ensure(homeCondition(row.orderUnlock, state), 'Exchange order is locked', ErrorCode.HomeOrderNotOpen)
+    const costs = parseRewards(row.orderNeedMaterials),
+        rewards = parseRewards(row.orderReward),
+        reputation = parseRewards(row.orderReputation)
+    ensure(
+        costs.length && costs.every((r) => r.itemtype === 3),
+        'Exchange order material type is not implemented',
+        ErrorCode.FunctionClosed,
+    )
+    ensure(
+        reputation.every((r) => r.itemtype === 29 && tables.find('groups', r.itemid)),
+        'Invalid exchange order reputation configuration',
+        ErrorCode.GameConfig,
+    )
+    const mallSetting = (title) => tables.get('mall_game').find((r) => r.title === title)?.value
+    const card = state.monthlyCard,
+        monthly = card?.end_time > now && card.purchase_sdk_id === Number(mallSetting('MONTHLY_CADR_PURCHASE_SDK_ID'))
+    if (monthly) {
+        const items = String(mallSetting('MONTHLY_CADR_HOME_BUFF_ITEM'))
+                .split('|')
+                .map((value) => value.split('#').map(Number)),
+            rates = String(mallSetting('MONTHLY_CADR_HOME_BUFF_VALUE')).split('|').map(Number)
+        ensure(
+            items.length === rates.length &&
+                items.every((pair) => pair.length === 2 && pair.every((n) => Number.isInteger(n) && n > 0)) &&
+                rates.every((rate) => Number.isInteger(rate) && rate >= 0),
+            'Monthly order benefit configuration unavailable',
+            ErrorCode.GameConfig,
+        )
+        for (const reward of rewards) {
+            const index = items.findIndex(([type, id]) => reward.itemtype === type && reward.itemid === id)
+            if (index >= 0) reward.itemnum += Math.floor((reward.itemnum * rates[index]) / 10000)
+        }
+    }
+    return { costs, rewards: [...rewards, ...reputation] }
+}
+export function submitExchangeOrder(c, r) {
+    ensure(
+        Number.isInteger(r.order_guid) && r.order_guid > 0 && r.order_guid <= 0xffffffff,
+        'Invalid exchange order identity',
+    )
+    const board = ensureExchangeOrderBoard(c),
+        exchange = c.state.homeExchange
+    if (exchange.orderReceipts?.[r.order_guid]) return exchangeOrderSnapshot(c.state)
+    const slot = board.slots.find((s) => s.guid === r.order_guid && !s.done)
+    ensure(slot, 'Exchange order was not found', ErrorCode.HomeOrderNotExists)
+    const plan = exchangeOrderPlan(c.tables, c.state, exchangeOrderCatalogue(c.tables).byId.get(slot.order_id), c.now)
+    const costs = new Map()
+    for (const cost of plan.costs) costs.set(cost.itemid, (costs.get(cost.itemid) ?? 0) + cost.itemnum)
+    spend(c.state, costs, 0, c.now)
+    const rewards = grantRewards(c.tables, c.state, plan.rewards)
+    slot.done = true
+    const receipts = (exchange.orderReceipts ??= {})
+    receipts[r.order_guid] = { id: slot.order_id, time: c.now }
+    const keys = Object.keys(receipts).sort((a, b) => Number(a) - Number(b))
+    for (const key of keys.slice(0, Math.max(0, keys.length - 256))) delete receipts[key]
+    exchange.completedOrders = (exchange.completedOrders ?? 0) + 1
+    c.pushBefore('CSProtoSyncPlayerData', {
+        basic_info: c.state.player.basic_info,
+        attr_infos: c.state.player.attr_infos,
+        sbag_infos: c.state.player.sbag_infos,
+    })
+    return exchangeOrderSnapshot(c.state, [{ rewards, src: rewardSource(c.tables, 'exchangeOrderSubmit') }])
 }

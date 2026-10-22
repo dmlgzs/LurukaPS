@@ -20,5 +20,6 @@
   "accessoryProductionFinish": 37,
   "accessoryProductionCancel": 38,
   "ranchStoreHarvest": 77,
-  "exchangeSale": 144
+  "exchangeSale": 144,
+  "exchangeOrderSubmit": 146
 }

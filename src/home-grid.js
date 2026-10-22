@@ -29,6 +29,7 @@ export function homeCondition(text, state) {
             )
         if (id === 11009) return (state.home?.stage || 1) >= n
         if (id === 11012) return (state.home?.technology?.levels[n]?.level || 0) >= (level || 1)
+        if (id === 61001) return (state.reputations?.[n]?.level ?? 0) >= level
         return false
     })
 }

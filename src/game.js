@@ -1,6 +1,7 @@
 import { ErrorCode } from './error-codes.js'
 import { registerAbyssData } from './handlers/abyss-data.js'
 import { homeExchangeDue, prepareHomeExchange, homeExchangeLoginData } from './home-exchange.js'
+import { ensureReputations, reputationSnapshot } from './reputation.js'
 import { materialDungeonSnapshot } from './material-dungeons.js'
 import { prepareCropOutcomes } from './crop-rewards.js'
 import { reconcileHomeStage } from './home-stage.js'
@@ -602,6 +603,7 @@ export class Game {
                 if (state.storyCampaign) delete state.storyCampaign.task_context_loaded_map
                 repairPendingDuelEntry(state, now, this.tables)
                 ensureHome(this.tables, state)
+                ensureReputations(this.tables, state)
                 this.activities.ensureGuideTasks(state, now)
                 if (!state.storyCampaign && !state.entrust?.run && !state.multiCampaign && !state.cultTrial) {
                     const point = this.activities.guideReturnPoint(state, now)
@@ -936,6 +938,7 @@ export class Game {
                 const eggRevision = state.eggRevision || 0
                 const ornamentRevision = state.ornamentRevision || 0
                 const cardRevision = state.playerCardRevision || 0
+                const reputationRevision = state.reputationRevision ?? 0
                 const before = []
                 const pushes = []
                 const context = {
@@ -973,6 +976,8 @@ export class Game {
                 }
                 if (!battleReport) this.noviceTasks.observe(state)
                 const response = recoveredChoice ? {} : handler(context, r)
+                if ((state.reputationRevision ?? 0) !== reputationRevision)
+                    context.pushBefore('CSProtoReputationInfo', reputationSnapshot(this.tables, state))
                 if (!battleReport) this.noviceTasks.notify(context)
                 if ((state.playerCardRevision || 0) !== cardRevision)
                     context.pushBefore('CSProtoStandPlatesBagInfo', playerCardSnapshot(this.tables, state))
@@ -1462,6 +1467,7 @@ export class Game {
             this.packet('CSProtoMailSync', { mails: state.mail }),
             this.packet('CSProtoStorySync', { infos: { infos: state.storyIds || [] } }),
             this.packet('CSProtoHomeSync', homePayload(this.tables, state)),
+            this.packet('CSProtoReputationInfo', reputationSnapshot(this.tables, state)),
             ...homeExchangeLoginData(this.tables, state, now).map(([name, value]) => this.packet(name, value)),
             this.packet('SCProtoHomeHeroStoryInfoNtf', dormTopics(this.tables, state, now)),
             ...(activeDormVisit(this.tables, state)

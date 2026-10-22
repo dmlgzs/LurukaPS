@@ -1,4 +1,5 @@
 import { ErrorCode } from './error-codes.js'
+import { grantReputation } from './reputation.js'
 import { grantHomeExperience } from './home-experience.js'
 import { grantDuelAreaExperience, grantDuelPetExperience } from './kibo-duel-progress.js'
 import { recordResourceAcquisition } from './item-acquisition.js'
@@ -43,6 +44,10 @@ export function grantRewards(tables, state, rewards, depth = 0, context = {}) {
             [itemtype, itemid, itemnum].every((x) => Number.isSafeInteger(x) && x > 0) && itemnum <= 0xffffffff,
             'Invalid reward quantity',
         )
+        if (itemtype === 29) {
+            granted.push(grantReputation(tables, state, itemid, itemnum))
+            continue
+        }
         if (itemtype === 1) {
             ensure(
                 itemnum === 1 && tables.find('hero', itemid)?.isUsable === 1,
