@@ -9,6 +9,7 @@ import { completedEnemyGroup } from './enemy-group-completion.js'
 import { activityTables } from './activity-tables.js'
 import { recordCultArchiveResult, cultArchiveEnemyDefinition } from './cult-archive-trial.js'
 import { growupArchiveSnapshot } from './growup-archive.js'
+import { recordCultTrialHistory } from './cult-trial-history.js'
 const routes = new Map(
     JSON.parse(fs.readFileSync(new URL('../configs/cult-trial-routes.json', import.meta.url))).routes.map((x) => [
         x.trial_id,
@@ -359,6 +360,7 @@ export function recordCultTrialResult(tables, state) {
         rate: run.score_rate,
         guid: g.guid,
     }
+    recordCultTrialHistory(entry, trial, g.trails[trial.phase - 1])
     run.result_published = true
     return true
 }
@@ -369,6 +371,12 @@ export function publishCultTrialResult(c) {
                 'CSProtoSyncArchiveGrowupData',
                 growupArchiveSnapshot(c.activityCatalog, c.state, [c.state.cultTrial.activity_id]),
             )
-        else c.activityCatalog.notify({ ...c, pushBefore: c.push }, true)
+        else {
+            c.activityCatalog.notify({ ...c, pushBefore: c.push }, true)
+            c.push(
+                'CSProtoSyncArchiveGrowupData',
+                growupArchiveSnapshot(c.activityCatalog, c.state, [c.state.cultTrial.activity_id]),
+            )
+        }
     }
 }

@@ -14,6 +14,7 @@ import { trialPayload } from './trial-groups.js'
 import { takePresentationReturn } from '../presentation-return.js'
 import { selectCultArchive } from '../cult-archive-trial.js'
 import { growupArchiveSnapshot } from '../growup-archive.js'
+import { sweepCultTrial } from '../cult-trial-sweep.js'
 export function enterCultTrialScene(c, r = {}) {
     const run = c.state.cultTrial
     ensure(
@@ -60,6 +61,7 @@ export function endCultTrialScene(c, r) {
     return {}
 }
 export function registerCultTrial(on, tables, catalog) {
+    on('SweepCultTrial', (c, r) => sweepCultTrial(c, r, catalog))
     const start = (c, r, restart = false) => {
         if (restart && !r.activity_id && !r.trial_id) {
             const run = c.state.cultTrial
