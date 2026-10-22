@@ -63,7 +63,8 @@ export function registerCultTrial(on, tables, catalog) {
         const { row, entry } = catalog.require(c.state, c.now, r.activity_id, [60])
         ensure(!row.guideTaskId || catalog.taskDone(c.state, row.guideTaskId), 'Complete cultivation guide first')
         const { trial, route, dungeon, point } = cultTrialRoute(tables, catalog, r.activity_id, r.trial_id),
-            archive = r.archive_id ? selectCultArchive(c, row, entry, r, trial) : null,
+            selected = r.archive_id ? selectCultArchive(c, row, entry, r, trial) : null,
+            archive = restart && c.state.cultTrial?.archive_id ? c.state.cultTrial.archive : selected,
             g = archive ? null : catalog.growup.ensure(entry, row.systemId)
         ensure(
             archive || trial.phase !== 4,
@@ -131,11 +132,22 @@ export function registerCultTrial(on, tables, catalog) {
     }
     on('EnterCultTrial', (c, r) => start(c, r))
     on('ReEnterCultTrial', (c, r) => {
-        ensure(
-            !r.archive_id && !c.state.cultTrial?.archive_id,
-            'Archived cultivation restart is not implemented',
-            ErrorCode.FunctionClosed,
-        )
+        const run = c.state.cultTrial
+        if (r.archive_id || run?.archive_id) {
+            ensure(
+                run?.archive_id && run.map_id === c.state.world.map_id,
+                'No active archived cultivation trial to restart',
+                ErrorCode.NotInCultTrial,
+            )
+            ensure(
+                (!r.activity_id && !r.trial_id && !r.archive_id) ||
+                    (r.activity_id === run.activity_id &&
+                        r.trial_id === run.trial_id &&
+                        r.archive_id === run.archive_id),
+                'Cultivation restart selection differs from the active archive',
+                ErrorCode.ActivityGrowUpInvalidParam,
+            )
+        }
         return start(c, r, true)
     })
     on('CultTrialSwitchStep', (c, r) => {
