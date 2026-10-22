@@ -188,6 +188,8 @@ import { registerShops } from './handlers/shops.js'
 import { registerItems } from './handlers/items.js'
 import { registerSnackBags } from './handlers/snack-bags.js'
 import { snackBagsSnapshot } from './snack-bags.js'
+import { registerSoulStoryRecords } from './handlers/soul-story-records.js'
+import { playerWithSoulStoryRecords } from './soul-story-records.js'
 import { registerStory } from './handlers/story.js'
 import { registerTasks } from './handlers/tasks.js'
 import { registerProgression } from './handlers/progression.js'
@@ -481,6 +483,7 @@ export class Game {
         registerStory(on, tables)
         registerItems(on)
         registerSnackBags(on)
+        registerSoulStoryRecords(on)
         registerShops(on, tables)
         registerHome(on, tables)
         registerWorldCollection(on)
@@ -1599,7 +1602,7 @@ export class Game {
             this.packet(
                 id,
                 {
-                    data: state.player,
+                    data: playerWithSoulStoryRecords(state),
                     reconnect: !!r.reconnect,
                     time_zone: 8,
                     time: now,
