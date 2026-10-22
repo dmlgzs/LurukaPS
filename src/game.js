@@ -128,6 +128,7 @@ import {
     kiboDuelSnapshot,
 } from './handlers/kibo-duel.js'
 import { registerProfileQueries } from './handlers/profile-queries.js'
+import { registerPlayerCard } from './handlers/player-card.js'
 import { registerWorldObjects, reconcileWorldCollectionFinalDrops } from './handlers/world-objects.js'
 import { registerTransform } from './handlers/transform.js'
 import { registerWorldCombat } from './handlers/world-combat.js'
@@ -437,6 +438,7 @@ export class Game {
         registerEntrust(on, tables)
         registerStoryCampaign(on, tables)
         registerProfileQueries(on, tables, store)
+        registerPlayerCard(on, tables)
         registerWorldObjects(on, tables)
         registerWorldCombat(on)
         registerTransform(on, tables, store)
