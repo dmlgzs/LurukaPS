@@ -1,23 +1,11 @@
 import { ErrorCode } from '../error-codes.js'
 import { ensure } from './common.js'
-import { worldCondition } from './world-objects.js'
+import { worldSearchVisible as visible } from '../world-search-visible.js'
+import { findUncompletedWorldObject } from '../world-detectors.js'
 import { WorldObjectCatalog } from '../world-objects.js'
 
 const positionValid = (pos) => pos && ['x', 'y', 'z'].every((axis) => Number.isFinite(pos[axis]))
 const distanceSquared = (a, b) => ['x', 'y', 'z'].reduce((n, axis) => n + (a[axis] - b[axis]) ** 2, 0)
-function visible(row, record, state) {
-    if (record?.active === false || (record?.active === undefined && row.initStatus === 1)) return false
-    if (record?.complete ?? !!row.initialCompleteState) return false
-    try {
-        return (
-            worldCondition(row.appearCond, state) && (!row.disappearCond || !worldCondition(row.disappearCond, state))
-        )
-    } catch (error) {
-        // Do not reveal a conditional target whose appearance rule is unsupported.
-        if (![ErrorCode.GameConfig, ErrorCode.FunctionClosed].includes(error.code)) throw error
-        return false
-    }
-}
 function specialPet(tables, state, record, row, spawner) {
     const group =
         spawner.objectType === 50
@@ -50,6 +38,7 @@ function specialPet(tables, state, record, row, spawner) {
     }
 }
 export function registerWorldSearch(on, tables) {
+    on('FindUnCompletedWorldObj', findUncompletedWorldObject)
     const catalog = new WorldObjectCatalog(tables),
         eggs = new Map()
     const maxRange = Number(tables.get('game').find((row) => row.title === 'SKILL_SEARCHSKILL_MAX_RANGE')?.value)
