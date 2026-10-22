@@ -23,7 +23,7 @@ function setup() {
             { itemid: 100000, itemnum: 3 },
             { itemid: 100010, itemnum: 2 },
             { itemid: 309000, itemnum: 3 },
-            { itemid: 9001, itemnum: 1 },
+            { itemid: 9000, itemnum: 1 },
         ]
         s.player.attr_infos.attrs = [{ attr_id: 3, attr_val: '900' }]
     })
@@ -51,7 +51,7 @@ test('stamina consumables and batch use debit stock and allow final-item overfil
         store.close()
     }
 })
-test('oversized, mixed-unsupported and zero-quantity uses are atomic failures', () => {
+test('oversized, mixed-invalid-gift and zero-quantity uses are atomic failures', () => {
     const { store, session, call } = setup()
     try {
         const before = store.load(session.id)
@@ -60,7 +60,7 @@ test('oversized, mixed-unsupported and zero-quantity uses are atomic failures', 
             {
                 items: [
                     { itemid: 100000, num: 1 },
-                    { itemid: 9001, num: 1 },
+                    { itemid: 9000, num: 1 },
                 ],
             },
             { items: [{ itemid: 100000, num: 0 }] },
