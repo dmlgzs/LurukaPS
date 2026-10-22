@@ -2,6 +2,7 @@ import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { selectBaseHatchSpecies } from './egg-pools.js'
 import { createPets } from './pets.js'
+import { hatchSeconds } from './hatching-time.js'
 export function hatchBuilding(state, guid) {
     const b = state.home?.builds.find((b) => b.guid === guid)
     ensure(b?.build_type === 12, 'An owned, placed hatch building is required')
@@ -10,11 +11,6 @@ export function hatchBuilding(state, guid) {
 }
 export function startHatch(c, buildGuid, eggGuid) {
     const b = hatchBuilding(c.state, buildGuid)
-    ensure(
-        !b.station_pet_guid || b.station_pet_guid === '0',
-        'Pet-assisted incubation is not yet implemented',
-        ErrorCode.InvalidProtoID,
-    )
     const egg = (c.state.petEggs || []).find((e) => e.guid === eggGuid)
     ensure(egg, 'Pet egg not owned')
     ensure(!egg.lock_state, 'Pet egg is locked')
@@ -29,6 +25,7 @@ export function startHatch(c, buildGuid, eggGuid) {
     ensure(config, 'Missing egg configuration', ErrorCode.EggConfNotExist)
     ensure(station, 'Missing hatch station configuration', ErrorCode.BuildProductConfNotFound)
     ensure(Number.isInteger(config.eggTime) && config.eggTime > 0, 'Invalid incubation duration', ErrorCode.GameConfig)
+    const seconds = hatchSeconds(c.tables, c.state, b, config)
     const home = c.state.home
     home.productionJobs ??= {}
     const jobs = home.productionJobs[b.guid] || []
@@ -47,7 +44,7 @@ export function startHatch(c, buildGuid, eggGuid) {
         )
     const start = Math.max(c.now, ...jobs.map((j) => j.start + j.seconds)),
         guid = home.nextProductGuid || 1
-    ensure(start + config.eggTime <= 0xffffffff && guid <= 0xffffffff, 'Hatch identity/timestamp exhausted')
+    ensure(start + seconds <= 0xffffffff && guid <= 0xffffffff, 'Hatch identity/timestamp exhausted')
     home.nextProductGuid = guid + 1
     jobs.push({
         kind: 'hatch',
@@ -58,7 +55,7 @@ export function startHatch(c, buildGuid, eggGuid) {
         count: 1,
         claimed: 0,
         start,
-        seconds: config.eggTime,
+        seconds,
         costs: [],
         rewards: [],
         reportedDone: 0,
