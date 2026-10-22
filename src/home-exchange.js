@@ -1,5 +1,135 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
+import { homeCondition } from './home-grid.js'
+import { randomInt } from 'node:crypto'
+
+const catalogues = new WeakMap()
+const list = (value) =>
+    String(value ?? '')
+        .split('|')
+        .filter(Boolean)
+        .map(Number)
+export function exchangeCatalogue(tables) {
+    if (catalogues.has(tables)) return catalogues.get(tables)
+    const game = (title) => tables.get('game').find((row) => row.title === title)?.value
+    const resetHour = Number(game('DAILY_REFRESH_TIME')),
+        limit = Number(game('HOME_EXCHANGE_SELL_LIMIT'))
+    const increase = list(game('HOME_EXCHANGE_EVENT_INCREASE')),
+        drops = Number(game('HOME_EXCHANGE_EVENT_DROP_NUM'))
+    ensure(
+        Number.isInteger(resetHour) && resetHour >= 0 && resetHour < 24 && Number.isSafeInteger(limit) && limit > 0,
+        'Invalid exchange clock or income limit',
+        ErrorCode.GameConfig,
+    )
+    ensure(
+        increase.length === 2 && increase.every(Number.isSafeInteger) && increase[0] >= 0 && increase[1] >= increase[0],
+        'Invalid exchange price range',
+        ErrorCode.GameConfig,
+    )
+    ensure(drops === 0, 'Exchange price decreases are not implemented', ErrorCode.FunctionClosed)
+    const bar = tables.get('ui_top_bar').find((row) => row.viewName === 'PageHomeExchangeSell')
+    const resources = list(bar?.resourceBar)
+    ensure(resources.length === 1, 'Exchange currency UI binding unavailable', ErrorCode.GameConfig)
+    const currency = tables.find('resource_bar_item', resources[0])
+    ensure(
+        currency?.resourceType === 10 && tables.find('currency', currency.resourceID),
+        'Exchange currency configuration unavailable',
+        ErrorCode.GameConfig,
+    )
+    const items = new Map(tables.get('home_exchange_item').map((row) => [row.id, row]))
+    ensure(
+        items.size === tables.get('home_exchange_item').length,
+        'Duplicate exchange item configuration',
+        ErrorCode.GameConfig,
+    )
+    const events = tables.get('home_exchange_event')
+    ensure(
+        events.length && new Set(events.map((row) => row.EventId)).size === events.length,
+        'Exchange news configuration unavailable',
+        ErrorCode.GameConfig,
+    )
+    const result = { resetHour, limit, increase, currency: currency.resourceID, items, events }
+    catalogues.set(tables, result)
+    return result
+}
+export function exchangeClock(tables, now) {
+    const { resetHour } = exchangeCatalogue(tables),
+        zone = 8 * 3600
+    ensure(Number.isInteger(now) && now > 0 && now <= 0xffffffff, 'Invalid exchange time', ErrorCode.GameConfig)
+    const day = Math.floor((now + zone) / 86400),
+        businessDay = Math.floor((now + zone - resetHour * 3600) / 86400)
+    return {
+        day,
+        businessDay,
+        start: day * 86400 - zone,
+        shippingAt: (businessDay + 1) * 86400 - zone,
+        settleAt: (businessDay + 1) * 86400 - zone + resetHour * 3600,
+        weekStart: businessDay - ((businessDay + 3) % 7),
+        away: (now + zone) % 86400 < resetHour * 3600,
+    }
+}
+export function ensureHomeExchange(tables, state, now, rng = randomInt) {
+    const config = exchangeCatalogue(tables),
+        clock = exchangeClock(tables, now)
+    const exchange = (state.homeExchange ??= { history: [], box: [], pendingNotice: { rewards: [] } })
+    exchange.history ??= []
+    exchange.box ??= []
+    ensure(
+        Array.isArray(exchange.history) && Array.isArray(exchange.box),
+        'Invalid exchange storage',
+        ErrorCode.GameConfig,
+    )
+    if (exchange.market?.day !== clock.businessDay) {
+        const eligible = config.events.filter((row) => homeCondition(row.EventUnlock, state))
+        ensure(eligible.length, 'No unlocked exchange market event', ErrorCode.FunctionClosed)
+        const pick = (rows) => rows[rng(0, rows.length)]
+        const old = exchange.market
+        const event =
+            (old?.day === clock.businessDay - 1 && eligible.find((row) => row.EventId === old.nextEventId)) ||
+            pick(eligible)
+        const next = pick(eligible.length > 1 ? eligible.filter((row) => row !== event) : eligible)
+        const tags = list(event.PriceIncreaseTag),
+            changes = {}
+        for (const row of config.items.values())
+            if (list(row.Tag).some((tag) => tags.includes(tag)))
+                changes[row.id] = rng(config.increase[0], config.increase[1] + 1)
+        exchange.market = { day: clock.businessDay, eventId: event.EventId, nextEventId: next.EventId, tags, changes }
+    }
+    return exchange
+}
+export function exchangeWeeklyIncome(tables, state, now) {
+    const { weekStart } = exchangeClock(tables, now)
+    let value = 0
+    for (const record of state.homeExchange?.history ?? []) {
+        const day = Math.floor((record.history_time + 8 * 3600) / 86400)
+        if (day >= weekStart && day < weekStart + 7) value += record.profit
+    }
+    ensure(
+        Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff,
+        'Invalid exchange weekly income',
+        ErrorCode.GameConfig,
+    )
+    return value
+}
+export function exchangeNewsSnapshot(state) {
+    const market = state.homeExchange.market
+    return {
+        nowEventId: market.eventId,
+        NextEventId: market.nextEventId,
+        tag: market.tags,
+        cinfo: Object.entries(market.changes).map(([id, value]) => ({
+            objid: Number(id),
+            isupper: value >= 0,
+            percent: Math.abs(value),
+        })),
+    }
+}
+export function exchangeBoxSnapshot(tables, state, now) {
+    return {
+        obj_info: (state.homeExchange?.box ?? []).map((row) => ({ id: row.id, num: row.num })),
+        settle_num: exchangeWeeklyIncome(tables, state, now),
+    }
+}
 
 export function exchangeHistorySnapshot(state, consumeNotice = false) {
     const exchange = state.homeExchange
