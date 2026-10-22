@@ -4,6 +4,7 @@ import { taskNodeCompleted } from './tasks.js'
 import { guidedConditionValue } from './guided-conditions.js'
 import { grantRewards, parseRewards } from './rewards.js'
 import overrides from '../configs/journey-overrides.json' with { type: 'json' }
+import { rewardSource } from './reward-source.js'
 
 const models = new WeakMap()
 const integers = (text, separator = '|') =>
@@ -380,7 +381,7 @@ export function claimJourney(c, request) {
     }
     if (claims.length) bump(ledger, 'claimRevision')
     publishJourney(c)
-    return { rewards }
+    return { rewards, ...(rewards.length ? { src: rewardSource(c.tables, 'journeyTaskReward') } : {}) }
 }
 const dirtyKinds = [
     [/Task|Story/, [2007, 12045]],
