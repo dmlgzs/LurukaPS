@@ -1,3 +1,4 @@
+import { petSoulRefunds } from './pet-star-soul.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { parseRewards } from './rewards.js'
@@ -9,11 +10,7 @@ function value(t, key) {
 export function petReleaseRewards(tables, pet) {
     const rewards = []
     let expItemCount = 0
-    ensure(
-        !pet.soul_link_level || pet.soul_link_level === '0',
-        'Star-soul release refunds are not yet implemented',
-        ErrorCode.InvalidProtoID,
-    )
+    rewards.push(...petSoulRefunds(tables, pet))
     if (Number(value(tables, 'PET_EXPERIENCE_RETURN'))) {
         const levels = new Map(tables.get('pet_level').map((r) => [r.lv, r]))
         ensure(
