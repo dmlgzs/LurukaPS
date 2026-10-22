@@ -82,13 +82,26 @@ export function consumeFarmSeed(tables, state, house, id, count) {
 export function storeFarmHarvest(house, rewards) {
     merge((house.auto_info.crops ??= []), rewards)
 }
+function atHome(c) {
+    ensure(
+        c.state.world.map_id === Number(c.tables.get('game').find((r) => r.title === 'HOME_ID').value),
+        'Farm storage requires the home scene',
+        ErrorCode.InvalidArgument,
+    )
+}
+export function claimFarmStorage(c, guid) {
+    atHome(c)
+    const house = farmHouse(c.tables, c.state, guid),
+        items = house.auto_info.crops || []
+    const exp = items
+        .filter((item) => item.itemtype === 10 && item.itemid === 1003)
+        .reduce((n, item) => n + item.itemnum, 0)
+    const granted = items.length ? grantRewards(c.tables, c.state, items) : []
+    house.auto_info.crops = []
+    if (items.length) c.state.homeRevision = (c.state.homeRevision || 0) + 1
+    return { reward: { rewards: granted }, home_exp: exp }
+}
 export function registerFarmStorage(on, tables) {
-    const atHome = (c) =>
-        ensure(
-            c.state.world.map_id === Number(tables.get('game').find((r) => r.title === 'HOME_ID').value),
-            'Farm storage requires the home scene',
-            ErrorCode.InvalidArgument,
-        )
     const deposit = (c, buildGuid, items) => {
         atHome(c)
         const house = farmHouse(tables, c.state, buildGuid),
@@ -157,15 +170,6 @@ export function registerFarmStorage(on, tables) {
         return {}
     })
     on('GetAutoWorkCropReward', (c, r) => {
-        atHome(c)
-        const house = farmHouse(tables, c.state, r.u32),
-            items = house.auto_info.crops || []
-        const exp = items
-            .filter((item) => item.itemtype === 10 && item.itemid === 1003)
-            .reduce((n, item) => n + item.itemnum, 0)
-        const granted = items.length ? grantRewards(tables, c.state, items) : []
-        house.auto_info.crops = []
-        if (items.length) c.state.homeRevision = (c.state.homeRevision || 0) + 1
-        return { reward: { rewards: granted }, home_exp: exp }
+        return claimFarmStorage(c, r.u32)
     })
 }
