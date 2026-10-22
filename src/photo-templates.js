@@ -112,3 +112,20 @@ export function savePhotoTemplate(c, r) {
     c.pushBefore('CSProtoPhotoGraphTempletSync', { infos: [row], dels: [] })
     return {}
 }
+
+export function renamePhotoTemplate(c, r) {
+    const id = templateId(c.tables, r.id),
+        rows = records(c.state)
+    ensure(rows[id], 'Custom photo template does not exist', ErrorCode.PhotoTempletNotExist)
+    ensure(typeof r.name === 'string', 'Missing photo template name bytes')
+    let name
+    try {
+        name = new TextDecoder('utf-8', { fatal: true }).decode(Buffer.from(r.name, 'base64'))
+    } catch {
+        ensure(false, 'Photo template name is not valid UTF-8')
+    }
+    const row = { ...rows[id], name: photoTemplateName(c.tables, name) }
+    c.state.photoTemplates = { ...rows, [id]: row }
+    c.pushBefore('CSProtoPhotoGraphTempletSync', { infos: [row], dels: [] })
+    return {}
+}
