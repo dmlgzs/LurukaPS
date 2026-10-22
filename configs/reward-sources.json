@@ -30,5 +30,7 @@
     "worldBossFirstChest": 151,
     "achievementReward": 20,
     "achievementPointReward": 20,
-    "commonItemUse": 1
+    "commonItemUse": 1,
+    "battlePassFreeLevel": 132,
+    "battlePassPaidLevel": 133
 }

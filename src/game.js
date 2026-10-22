@@ -1,3 +1,5 @@
+import { registerBattlePass } from './handlers/battle-pass.js'
+import { battlePassSnapshot } from './battle-pass.js'
 import { ErrorCode } from './error-codes.js'
 import { registerChatShields } from './handlers/chat-shields.js'
 import { registerShortcuts } from './handlers/shortcuts.js'
@@ -468,6 +470,7 @@ export class Game {
         registerProgression(on)
         this.noviceTasks = registerNoviceTasks(on, tables)
         registerAchievements(on)
+        registerBattlePass(on)
         registerJourney(on)
         const taskHandlers = registerTasks(on, tables)
         this.finishPendingCharacterTask = taskHandlers.finishPendingCharacterTask
@@ -1630,6 +1633,7 @@ export class Game {
             this.packet('CSProtoNoviceTaskInfoSync', this.noviceTasks.initial(state)),
             this.packet('CSProtoAchievementSync', achievementSnapshot(this.tables, state, now)),
             this.packet('SCProtoJourneySync', journeySnapshot(this.tables, state)),
+            this.packet('SCProtoBattlePassSync', battlePassSnapshot(this.tables, state, now)),
             this.packet('CSProtoDailyActiveInfoSync', initialActiveSnapshot(this.tables, state, now)),
             this.packet('CSProtoStandPlatesBagInfo', playerCardSnapshot(this.tables, state)),
             this.packet('SCProtoClothesInfoSync', clothesSnapshot(this.tables, state)),
