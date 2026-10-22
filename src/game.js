@@ -1,3 +1,4 @@
+import { notifyBattlePassTasks } from './battle-pass-tasks.js'
 import { registerBattlePass } from './handlers/battle-pass.js'
 import { battlePassSnapshot } from './battle-pass.js'
 import { ErrorCode } from './error-codes.js'
@@ -1137,6 +1138,7 @@ export class Game {
                 if (!battleReport) {
                     observeActiveCounters(context, activeCountersBefore)
                     notifyActive(context)
+                    notifyBattlePassTasks(context)
                 }
                 if ((state.reputationRevision ?? 0) !== reputationRevision)
                     context.pushBefore('CSProtoReputationInfo', reputationSnapshot(this.tables, state))

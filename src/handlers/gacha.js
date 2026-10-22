@@ -1,3 +1,4 @@
+import { recordBattlePassProgress } from '../battle-pass-tasks.js'
 import { gachaPoolDetail } from '../gacha-detail.js'
 import { GachaCatalog } from '../gacha.js'
 import { ErrorCode } from '../error-codes.js'
@@ -21,6 +22,7 @@ export function registerGacha(on, tables, options = {}) {
     on('GachaDraw', (c, r) => {
         engine ??= new GachaDrawEngine(data(), tables, options.policy)
         const result = engine.draw(c, r)
+        if (!result.replay) recordBattlePassProgress(c.tables, c.state, 15006, r.draw_count, c.now)
         if (result.newHero || result.replay)
             syncPlayer(
                 { ...c, push: c.pushBefore },

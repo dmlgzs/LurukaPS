@@ -1,3 +1,4 @@
+import { recordBattlePassProgress } from './battle-pass-tasks.js'
 import { ensure } from './handlers/common.js'
 import { ErrorCode } from './error-codes.js'
 
@@ -123,6 +124,7 @@ export function recordActiveProgress(tables, state, kind, amount, now) {
     ensure(Number.isSafeInteger(amount) && amount > 0, 'Invalid active progress increment', ErrorCode.GameConfig)
     const data = activeCatalogue(tables),
         ledger = ensureActivePeriods(tables, state, now)
+    recordBattlePassProgress(tables, state, kind, amount, now)
     let next = ledger
     for (const [name, type] of [
         ['day', 1],

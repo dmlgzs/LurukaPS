@@ -1,3 +1,4 @@
+import { recordBattlePassAcquisition } from './battle-pass-tasks.js'
 import { ErrorCode } from './error-codes.js'
 import { grantReputation } from './reputation.js'
 import { grantHomeExperience } from './home-experience.js'
@@ -147,6 +148,10 @@ export function grantRewards(tables, state, rewards, depth = 0, context = {}) {
                 ensure(basic[key] + itemnum <= 0x7fffffff, 'Currency overflow')
                 basic[key] += itemnum
                 syncCurrencyMirrors(state.player)
+            } else if (itemid === 50 && context.battlePassExp) {
+                const amount = context.battlePassExp(itemnum)
+                if (amount > 0) granted.push({ ...reward, itemnum: amount })
+                continue
             } else if (itemid === 1003) {
                 ensureHome(tables, state)
                 for (const text of grantHomeExperience(tables, state, itemnum))
@@ -189,6 +194,7 @@ export function grantRewards(tables, state, rewards, depth = 0, context = {}) {
                 a.attr_val = String(n)
             }
         } else ensure(false, `Unsupported reward type ${itemtype}`, ErrorCode.InvalidProtoID)
+        recordBattlePassAcquisition(tables, state, itemtype, itemid, itemnum)
         granted.push(reward)
     }
     return granted

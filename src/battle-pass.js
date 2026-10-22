@@ -1,3 +1,4 @@
+import { battlePassTaskSnapshot, prepareBattlePassTaskPeriods } from './battle-pass-tasks.js'
 import overrides from '../configs/battle-pass-overrides.json' with { type: 'json' }
 import activityPolicy from '../configs/activity-policy.json' with { type: 'json' }
 import { ErrorCode } from './error-codes.js'
@@ -83,6 +84,7 @@ export function prepareBattlePass(tables, state, now) {
         Number.isSafeInteger(ledger.level) &&
             ledger.level >= 1 &&
             ledger.level <= season.maxLevel &&
+            [ledger.exp, ledger.curr_week_exp].every((n) => Number.isSafeInteger(n) && n >= 0 && n <= 0xffffffff) &&
             [0, 1, 2].includes(ledger.pay_state) &&
             Array.isArray(ledger.free) &&
             Array.isArray(ledger.paid),
@@ -110,15 +112,22 @@ export function battlePassInfo(prepared) {
 }
 export function battlePassSnapshot(tables, state, now) {
     const prepared = prepareBattlePass(tables, state, now)
+    const tasks = battlePassTaskSnapshot(tables, state, now, prepared)
     return {
-        info: battlePassInfo(prepared),
+        info: {
+            ...battlePassInfo(prepared),
+            day_task: tasks.day_task,
+            week_task: tasks.week_task,
+            forever_task: tasks.forever_task,
+        },
+        week_end_time: String(tasks.weekEnd),
         battlepass_end_time: prepared ? String(prepared.season.effectiveEnd) : '0',
     }
 }
 export function requireBattlePass(c) {
     const prepared = prepareBattlePass(c.tables, c.state, c.now)
     ensure(prepared, 'No active battle pass', ErrorCode.BattlePassNotFond)
-    return prepared
+    return prepareBattlePassTaskPeriods(c.tables, c.state, c.now, prepared)
 }
 export function publishBattlePassRewards(c, ledger) {
     c.pushBefore('SCProtoBattlePassLevelRewardSync', {
