@@ -3,6 +3,7 @@ import { notifyBattlePassTasks } from './battle-pass-tasks.js'
 import { registerBattlePass } from './handlers/battle-pass.js'
 import { battlePassSnapshot } from './battle-pass.js'
 import { registerPetStarSoul } from './handlers/pet-star-soul.js'
+import { registerEscBackground, prepareEscBackground, notifyEscBackground, escBackgroundUnlockSnapshot, escBackgroundSnapshots } from './esc-background.js'
 import { registerSocialWheel, prepareSocialWheel, notifySocialWheel, socialWheelSnapshot } from './social-wheel.js'
 import { ErrorCode } from './error-codes.js'
 import { registerChatShields } from './handlers/chat-shields.js'
@@ -474,6 +475,7 @@ export class Game {
         registerNovicePack(on)
         registerPamiMail(on)
         registerSocialWheel(on)
+        registerEscBackground(on)
         registerCombat(on)
         registerClientState(on, store)
         registerCollection(on)
@@ -948,6 +950,27 @@ export class Game {
         if (e.name === 'CSProtoTitleGetList') return [reply(handler({ id: session.id, tables: this.tables }, r))]
         if (e.name === 'CSProtoWorldObjSearch')
             return this.store.read(session.id, (state) => [reply(handler({ state, tables: this.tables }, r))])
+        if (e.name === 'CSProtoSaveEscBackgroundInfo')
+            return this.store.read(session.id, (base) => {
+                const state = { ...base },
+                    before = []
+                const response = handler(
+                    { state, tables: this.tables, pushBefore: (name, value) => before.push(this.packet(name, value)) },
+                    r,
+                )
+                // Construct every wire packet before publishing the small private draft.
+                const packets = [...before, reply(response)]
+                if (JSON.stringify(state.escBackground) === JSON.stringify(base.escBackground)) return packets
+                return this.store.transact(
+                    session.id,
+                    e.id,
+                    (draft) => {
+                        draft.escBackground = state.escBackground
+                        return packets
+                    },
+                    { defer: true, fork: (current) => ({ ...current }) },
+                )
+            })
         if (e.name === 'CSProtoSelectEmoticons')
             return this.store.read(session.id, (state) => {
                 const before = [],
@@ -1162,6 +1185,7 @@ export class Game {
                 if (!battleReport) observeActiveSession(this.tables, state, now)
                 const activeCountersBefore = activeCounterSample(state)
                 const response = recoveredChoice ? {} : handler(context, r)
+                if (!battleReport) notifyEscBackground(context)
                 if (!battleReport) notifySocialWheel(context)
                 if (!battleReport) notifyPamiMail(context, e.name)
                 if (!battleReport) notifyNovicePack(context, e.name)
@@ -1622,6 +1646,7 @@ export class Game {
         const novice = prepareNovicePack(this.tables, state, now).payload
         preparePamiMail(this.tables, state, now)
         prepareSocialWheel(this.tables, state)
+        prepareEscBackground(this.tables, state)
         return [
             this.packet('CSProtoEnterGameCallbackStart', {
                 reconnect: !!r.reconnect,
@@ -1741,6 +1766,10 @@ export class Game {
             this.packet('SCProtoMallNovicePackSync', novice),
             this.packet('CSProtoPamiMailSync', pamiMailSnapshot(this.tables, state, now)),
             this.packet('SCProtoSocialEmoticonsSyncInfo', socialWheelSnapshot(this.tables, state)),
+            this.packet('SCProtoEscBackgroundUnlockBgs', escBackgroundUnlockSnapshot(this.tables, state)),
+            ...escBackgroundSnapshots(this.tables, state).map((value) =>
+                this.packet('SCProtoEscBackgroundInfo', value),
+            ),
             this.packet('CSProtoReadHandbookInfoSync', {
                 infos: Object.values(state.readingBooks ?? {}),
                 send_type: 0,
