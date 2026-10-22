@@ -4,6 +4,7 @@ import { registerChatCustomization } from './handlers/chat-customization.js'
 import { chatEmojiSnapshot } from './chat-emoji.js'
 import { registerPetCosmetics } from './handlers/pet-cosmetics.js'
 import { lockedPetBoxes } from './pet-box-locks.js'
+import { petSkinsSnapshot } from './pet-skins.js'
 import { registerStamina } from './handlers/stamina.js'
 import {
     prepareStamina,
@@ -1046,6 +1047,7 @@ export class Game {
                 const eggIdsBefore = (state.petEggs || []).map((e) => e.guid)
                 const ornamentIdsBefore = (state.ornaments || []).map((entry) => entry.guid)
                 const petRevision = state.petRevision || 0
+                const petSkinRevision = state.petSkinRevision ?? 0
                 const handbookBonusesBefore = state.petHandbookBonuses
                 const petViewBefore = battleReport ? null : hiddenTaskPetGuids(this.tables, state).join(',')
                 const playerLevelBefore = state.player.basic_info.lv
@@ -1273,6 +1275,9 @@ export class Game {
                           ]
                         : []
                 return [
+                    ...((state.petSkinRevision ?? 0) !== petSkinRevision
+                        ? [this.packet('CSProtoPetSkinInfoSync', petSkinsSnapshot(this.tables, state))]
+                        : []),
                     ...playerSync,
                     ...saddleSync,
                     ...bookSync,
@@ -1587,6 +1592,7 @@ export class Game {
                 egg_infos: { eggs: state.petEggs || [] },
             }),
             this.packet('CSProtoPetBoxInfoSync', { box_infos: state.petBoxes }),
+            this.packet('CSProtoPetSkinInfoSync', petSkinsSnapshot(this.tables, state)),
             this.packet('CSProtoKiboDuelGroupInfoSync', kiboDuelSnapshot(state, this.tables)),
             this.packet('CSProtoWorldExplorationSync', explorationSnapshot(state)),
             this.packet('CSProtoWorldBossChestInfoSync', bossFirstChestInfo(this.tables, state)),

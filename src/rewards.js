@@ -16,6 +16,7 @@ import { mainHeroConfigId } from './main-hero.js'
 import { changeTaskItem } from './task-items.js'
 import { grantPlayerCardItem } from './player-card-items.js'
 import { recordHeroAcquisition } from './hero-acquisition.js'
+import { grantPetSkin } from './pet-skins.js'
 export function parseRewards(value, allowZero = false) {
     if (!value) return []
     return String(value)
@@ -100,6 +101,9 @@ export function grantRewards(tables, state, rewards, depth = 0, context = {}) {
             }
             state.nextEssenceGuid = next
             continue
+        } else if (itemtype === 37) {
+            ensure(itemnum === 1, 'Pet skin reward is unique', ErrorCode.GameConfig)
+            if (!grantPetSkin(tables, state, itemid)) continue
         } else if (itemtype === 26) {
             ensure(itemnum === 1, 'Player card decoration is unique', ErrorCode.GameConfig)
             grantPlayerCardItem(tables, state, itemid)
