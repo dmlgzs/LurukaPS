@@ -2,7 +2,13 @@ import { ErrorCode } from '../error-codes.js'
 import { ensure } from './common.js'
 import { worldSync } from './world.js'
 import { syncBattle } from '../battle.js'
-import { cultTrialRoute, cultTrialSnapshot, ensureCultTrialScene, publishCultTrialResult } from '../cult-trial.js'
+import {
+    cultTrialRoute,
+    cultTrialSnapshot,
+    ensureCultTrialScene,
+    publishCultTrialResult,
+    syncCultTrialWave,
+} from '../cult-trial.js'
 import { ensureCultFormation, publishCultFormation, clearCultFormation } from '../cult-formation.js'
 import { trialPayload } from './trial-groups.js'
 import { takePresentationReturn } from '../presentation-return.js'
@@ -149,6 +155,42 @@ export function registerCultTrial(on, tables, catalog) {
             )
         }
         return start(c, r, true)
+    })
+    on('EndlessCultTrialWaves', (c, r) => {
+        const run = c.state.cultTrial
+        ensure(
+            run?.archive_id && run.map_id === c.state.world.map_id,
+            'No active archived cultivation trial',
+            ErrorCode.NotInCultTrial,
+        )
+        ensure(
+            r.dungeon_id === run.dungeon_id &&
+                Number.isSafeInteger(r.waves) &&
+                r.waves > 0 &&
+                Number.isSafeInteger(r.obj_id) &&
+                r.obj_id > 0,
+            'Invalid endless cultivation wave report',
+            ErrorCode.ActivityGrowUpInvalidParam,
+        )
+        const wave = catalog.tables
+            .get('game_events_cul_trial_wave')
+            .find((x) => x.trialId === run.trial_id && x.waveId === r.waves)
+        ensure(
+            wave && String(wave.worldMapId).split('|').map(Number).includes(r.obj_id),
+            'Endless cultivation object does not belong to the reported wave',
+            ErrorCode.ActivityGrowUpInvalidParam,
+        )
+        ensure(
+            r.waves <= (run.current_wave ?? 1),
+            'Endless cultivation wave is not active',
+            ErrorCode.ActivityGrowUpInvalidStage,
+        )
+        // The Blueprint's native call is indirect. Treat its report as an
+        // idempotent resync request, never as proof of enemy death or a win.
+        // Loading (9596) and actual combat completion own all wave transitions.
+        if (!run.current_wave || run.battle_complete || r.waves <= (run.completed_waves ?? 0)) return {}
+        syncCultTrialWave(c)
+        return {}
     })
     on('CultTrialSwitchStep', (c, r) => {
         const { row, entry } = catalog.require(c.state, c.now, r.activity_id, [60]),
