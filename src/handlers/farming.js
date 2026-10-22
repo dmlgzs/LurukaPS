@@ -7,6 +7,7 @@ import { ensure } from './common.js'
 import { cropGrowth, ensureCropOutcome, applyWateringUpgrade } from '../crop-rewards.js'
 import { farmWorker, consumeFarmSeed, storeFarmHarvest } from '../farm-storage.js'
 import { cropFootprint, linkedCropFields } from '../crop-footprint.js'
+import { transplantCrop } from '../crop-transplant.js'
 
 function homeInScene(tables, state) {
     const mapId = Number(tables.get('game').find((row) => row.title === 'HOME_ID')?.value)
@@ -87,23 +88,8 @@ export function registerFarming(on, tables) {
         return {}
     })
     on('FieldReplant', (c, r) => {
-        const home = homeInScene(tables, c.state)
-        ensure(r.main_build?.locate, 'Missing transplant position', ErrorCode.InvalidArgument)
-        ensure(
-            !r.follower_builds?.length,
-            'Multi-field transplant requires its dedicated lifecycle',
-            ErrorCode.FunctionClosed,
-        )
-        const build = field(tables, home, r.main_build.guid)
-        ensure(
-            !build.crop_info?.main_build_guid && !build.crop_info?.follower_build_guids?.length,
-            'Linked crop transplant requires all associated fields',
-            ErrorCode.FunctionClosed,
-        )
-        ensure(!build.crop_info?.is_fixed, 'Fixed field cannot be moved', ErrorCode.FixedFieldCanNotMove)
-        validatePlacement(tables, c.state, build.build_id, r.main_build.locate, build.guid)
-        build.locate = { ...r.main_build.locate, direction: r.main_build.locate.direction || 0 }
-        c.state.homeRevision = (c.state.homeRevision || 0) + 1
+        homeInScene(tables, c.state)
+        transplantCrop(tables, c.state, r)
         return {}
     })
     on('FieldOpen', (c, r) => {

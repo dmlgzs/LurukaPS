@@ -49,7 +49,7 @@ export function buildingRect(tables, buildId, locate) {
     const pos = gridPosition(locate.anchor)
     return { x: pos.x, y: pos.y, w: size[0], h: size[1] }
 }
-export function validatePlacement(tables, state, buildId, locate, ignoreGuid = 0) {
+export function validatePlacement(tables, state, buildId, locate, ignoreGuid = 0, { checkLimit = true } = {}) {
     ensure(locate, 'Missing building placement')
     for (const field of ['position', 'rotation', 'scale', 'center'])
         if (locate[field])
@@ -94,6 +94,9 @@ export function validatePlacement(tables, state, buildId, locate, ignoreGuid = 0
         group = tables.get('home_building_group').find((g) => g.groupId === config.groupId)
     ensure(group, 'Missing building group', ErrorCode.BuildGroupConfNotFound)
     ensure(homeCondition(group.unlockCondi, state), 'Building group is locked')
+    // Existing owned fields can be upgraded into a type with no newly
+    // constructible slots. Moving those instances does not allocate a slot.
+    if (!checkLimit) return group
     const rows = tables
         .get('home_building_num')
         .filter((r) => r.groupId === group.groupId)

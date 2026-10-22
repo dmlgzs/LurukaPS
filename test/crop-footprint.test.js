@@ -92,7 +92,7 @@ test('DNA tree reserves a table-sized footprint for one seed and sends all field
         )
         assert.throws(
             () => f.call('FieldReplant', { main_build: { guid: 100, locate: root.locate } }),
-            (e) => e.code === ErrorCode.FunctionClosed,
+            (e) => e.code === ErrorCode.InvalidArgument,
         )
     } finally {
         f.store.close()

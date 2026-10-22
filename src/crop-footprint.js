@@ -4,7 +4,7 @@ import { gridPosition } from './home-grid.js'
 
 // CBT3 HomeModule_Interact.UpdateSelectGridOfCurSelectSeed divides the
 // configured footprint by two: follower GUIDs reserve cells for ONE seed.
-export function cropFootprint(home, root, config, followerGuids, seen) {
+export function cropFootprint(home, root, config, followerGuids, seen, owner = 0) {
     const size = String(config.homeItemSize).split('|').map(Number)
     ensure(
         size.length === 2 && size.every((n) => Number.isInteger(n) && n > 0 && n % 2 === 0),
@@ -38,9 +38,10 @@ export function cropFootprint(home, root, config, followerGuids, seen) {
             ErrorCode.HomeFieldTypeDismatch,
         )
         ensure(
-            !build.crop_info.seed_id &&
-                !build.crop_info.main_build_guid &&
-                !build.crop_info.follower_build_guids?.length,
+            (owner && build.crop_info.main_build_guid === owner) ||
+                (!build.crop_info.seed_id &&
+                    !build.crop_info.main_build_guid &&
+                    !build.crop_info.follower_build_guids?.length),
             'Farmland already has a crop',
             ErrorCode.HomeFieldHasCrop,
         )
@@ -62,6 +63,16 @@ export function cropFootprint(home, root, config, followerGuids, seen) {
 
 export function linkedCropFields(home, root) {
     const guids = root.crop_info.follower_build_guids ?? []
+    ensure(
+        !root.crop_info.main_build_guid || root.crop_info.main_build_guid === root.guid,
+        'Crop root belongs to another field',
+        ErrorCode.GameConfig,
+    )
+    ensure(
+        new Set([root.guid, ...guids]).size === guids.length + 1,
+        'Duplicate crop field associations',
+        ErrorCode.GameConfig,
+    )
     return [
         root,
         ...guids.map((guid) => {
