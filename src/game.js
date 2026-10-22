@@ -1,5 +1,7 @@
 import { ErrorCode } from './error-codes.js'
 import { registerChatShields } from './handlers/chat-shields.js'
+import { registerShortcuts } from './handlers/shortcuts.js'
+import { pruneItemShortcuts, shortcutSnapshot } from './shortcuts.js'
 import { registerChatCustomization } from './handlers/chat-customization.js'
 import { chatEmojiSnapshot } from './chat-emoji.js'
 import { registerPetCosmetics } from './handlers/pet-cosmetics.js'
@@ -430,6 +432,7 @@ export class Game {
         registerLocalPayments(on, tables, store, { enabled: offlinePayments })
         registerChat(on, store, { runGM })
         registerChatShields(on, store)
+        registerShortcuts(on)
         registerChatCustomization(on)
         registerPlayableEnemies(on, tables, store)
         registerWorldEvents(on, tables)
@@ -917,8 +920,7 @@ export class Game {
         if (e.name === 'CSProtoChatGetShieldList') return [reply(handler({ id: session.id }, r))]
         if (e.name === 'CSProtoChatInfoSync' || e.name === 'CSProtoChatSyncNew')
             return this.store.read(session.id, (state) => [reply(handler({ id: session.id, state }, r))])
-        if (e.name === 'CSProtoTitleGetList')
-            return [reply(handler({ id: session.id, tables: this.tables }, r))]
+        if (e.name === 'CSProtoTitleGetList') return [reply(handler({ id: session.id, tables: this.tables }, r))]
         if (e.name === 'CSProtoWorldObjSearch')
             return this.store.read(session.id, (state) => [reply(handler({ state, tables: this.tables }, r))])
         if (e.name === 'CSProtoWorldMapExtraStatus') {
@@ -950,6 +952,17 @@ export class Game {
                 handler({ state, tables: this.tables, now }, r)
                 return []
             })
+        if (e.name === 'CSProtoShortcutKeySet')
+            return this.store.transact(
+                session.id,
+                e.id,
+                (state) => {
+                    const packets = []
+                    handler({ state, now, pushBefore: (name, value) => packets.push(this.packet(name, value)) }, r)
+                    return packets
+                },
+                { defer: true, fork: (base) => ({ ...base }) },
+            )
         if (e.name === 'CSProtoStaminaSync') {
             const token = this.store.readCacheToken(session.id)
             const cache =
@@ -1250,6 +1263,8 @@ export class Game {
                               }),
                           ]
                         : []
+                if (!battleReport && pruneItemShortcuts(state, now))
+                    context.pushBefore('CSProtoShortcutDataSync', shortcutSnapshot(state, now))
                 const playerDelta = {}
                 if (JSON.stringify(state.player.sbag_infos) !== bagBefore)
                     playerDelta.sbag_infos = state.player.sbag_infos
@@ -1556,6 +1571,7 @@ export class Game {
     loginPackets(state, session, r, frame, id) {
         const now = this.clock()
         prepareStamina(this.tables, state, now)
+        pruneItemShortcuts(state, now)
         return [
             this.packet('CSProtoEnterGameCallbackStart', {
                 reconnect: !!r.reconnect,
@@ -1675,6 +1691,7 @@ export class Game {
             }),
             this.packet('CSProtoPlayableSync', playableSnapshot(state)),
             this.packet('CSProtoAllRouletteInfoSync', roulettePayload(state)),
+            this.packet('CSProtoShortcutDataSync', shortcutSnapshot(state, now)),
             this.packet('CSProtoWorldMapMarkListSync', worldMarkPayload(state)),
             this.packet('CSProtoAnnouncementNotify', announcementSnapshot(this.announcementBaseUrl, now)),
             this.packet('CSProtoChatEmojiSync', chatEmojiSnapshot(this.tables, state)),
