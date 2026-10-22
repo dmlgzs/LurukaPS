@@ -36,6 +36,8 @@ export class Store {
             `SELECT 1 FROM request_log WHERE account_id=? AND message_id=? AND status='error:${ErrorCode.InvalidArgument}' AND created_at>=? ORDER BY id DESC LIMIT 1`,
         )
         this.pending = new Map()
+        this.savedReadTokens = new Map()
+        this.pendingReadTokens = new WeakMap()
         this.flushTimer = setInterval(() => {
             try {
                 this.flushPending()
@@ -64,6 +66,15 @@ export class Store {
                 return { id: account.id, ...this.load(account.id) }
             })
             .immediate()
+    }
+    // Opaque cache keys, not SQL revisions: deferred records deliberately keep
+    // their saved revision until flush. Tokens never retain a large old state.
+    readCacheToken(id) {
+        const pending = this.pending.get(id)
+        const tokens = pending ? this.pendingReadTokens : this.savedReadTokens
+        const key = pending ?? id
+        if (!tokens.has(key)) tokens.set(key, Symbol('player-read-version'))
+        return tokens.get(key)
     }
     load(id) {
         const pending = this.pending.get(id)
@@ -115,6 +126,7 @@ export class Store {
                     })
                     .immediate()
                 this.pending.delete(id)
+                this.savedReadTokens.delete(id)
             } else {
                 const logs = logDeferred
                     ? [...previousLogs, { messageId, createdAt: Date.now() }].slice(-256)
@@ -136,6 +148,7 @@ export class Store {
             })
             .immediate()
         this.pending.delete(id)
+        this.savedReadTokens.delete(id)
         return result
     }
     nextSequence(name, max = 0xffffffff) {
@@ -204,6 +217,7 @@ export class Store {
                 }
             })
             .immediate()
+        for (const id of this.pending.keys()) this.savedReadTokens.delete(id)
         this.pending.clear()
     }
     close() {

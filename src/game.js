@@ -1,4 +1,13 @@
 import { ErrorCode } from './error-codes.js'
+import { registerStamina } from './handlers/stamina.js'
+import {
+    prepareStamina,
+    finishStamina,
+    staminaSyncDue,
+    staminaAttributes,
+    forkStaminaState,
+    staminaCacheSnapshot,
+} from './stamina.js'
 import { registerWorldDifficulty } from './handlers/world-difficulty.js'
 import { worldDifficultySnapshot } from './world-difficulty.js'
 import { registerAchievements } from './handlers/achievements.js'
@@ -432,6 +441,7 @@ export class Game {
         registerCollection(on)
         registerWorld(on)
         registerWorldDifficulty(on)
+        registerStamina(on)
         registerMail(on)
         registerProgression(on)
         this.noviceTasks = registerNoviceTasks(on, tables)
@@ -921,6 +931,48 @@ export class Game {
                 handler({ state, tables: this.tables, now }, r)
                 return []
             })
+        if (e.name === 'CSProtoStaminaSync') {
+            const token = this.store.readCacheToken(session.id)
+            const cache =
+                session.staminaSyncCache?.token === token
+                    ? session.staminaSyncCache
+                    : {
+                          token,
+                          state: this.store.read(session.id, (state) => staminaCacheSnapshot(state)),
+                      }
+            if (!staminaSyncDue(this.tables, cache.state, now)) {
+                const packets = [
+                    this.packet('CSProtoSyncPlayerData', { attr_infos: { attrs: staminaAttributes(cache.state) } }),
+                    reply({}),
+                ]
+                session.staminaSyncCache = cache
+                return packets
+            }
+            let snapshot
+            const packets = this.store.transact(
+                session.id,
+                e.id,
+                (state) => {
+                    const before = []
+                    const response = handler(
+                        {
+                            id: session.id,
+                            state,
+                            tables: this.tables,
+                            now,
+                            pushBefore: (name, value) => before.push(this.packet(name, value)),
+                        },
+                        r,
+                    )
+                    const packets = [...before, reply(response)]
+                    snapshot = staminaCacheSnapshot(state)
+                    return packets
+                },
+                { defer: true, fork: forkStaminaState },
+            )
+            session.staminaSyncCache = { token: this.store.readCacheToken(session.id), state: snapshot }
+            return packets
+        }
         if (fastCombatTelemetry.has(e.name) || fastCombatReplies.has(e.name) || e.name === 'CSProtoStateUpdate')
             return this.store.transact(
                 session.id,
@@ -1013,6 +1065,7 @@ export class Game {
                     push: (name, value) => emit(pushes, name, value, { pushSeq: frame.pushSeq }),
                 }
                 if (!battleReport) {
+                    prepareStamina(this.tables, state, now)
                     preparePetHandbook(this.tables, state)
                     settleRanches(this.tables, state, now, this.rng)
                     settleCollections(this.tables, state, now, this.rng)
@@ -1161,6 +1214,7 @@ export class Game {
                           ]
                         : []
                 reconcileHomeStage(this.tables, state)
+                if (!battleReport) finishStamina(this.tables, state, now)
                 if (!battleReport) notifyAchievements(context)
                 const homeSync =
                     (state.homeRevision || 0) !== homeRevision
@@ -1478,6 +1532,7 @@ export class Game {
     }
     loginPackets(state, session, r, frame, id) {
         const now = this.clock()
+        prepareStamina(this.tables, state, now)
         return [
             this.packet('CSProtoEnterGameCallbackStart', {
                 reconnect: !!r.reconnect,
