@@ -30,7 +30,8 @@ export function campaignStagePlan(tables, mapId) {
                     e.parts.length === 5 &&
                     e.parts.every(Number.isSafeInteger) &&
                     e.parts[0] === 2500 &&
-                    e.parts[1] > 0 &&
+                    e.parts[1] >= 0 &&
+                    (e.parts[1] > 0 || e.parts[3] > 0) &&
                     e.parts[4] > 0,
             ),
         'Campaign stage conditions unavailable',
@@ -39,7 +40,10 @@ export function campaignStagePlan(tables, mapId) {
     const used = new Set()
     return entries.map(({ parts: [, spawner, , objectId, count] }) => {
         const candidates = objects
-            .filter((row) => row.spawnerId === spawner && !used.has(row.id) && (!objectId || row.id === objectId))
+            .filter(
+                (row) =>
+                    (!spawner || row.spawnerId === spawner) && !used.has(row.id) && (!objectId || row.id === objectId),
+            )
             .sort((a, b) => Number(a.commonTag) - Number(b.commonTag))
         ensure(
             candidates.length >= count && candidates.every((row) => /^\d+$/.test(String(row.commonTag))),

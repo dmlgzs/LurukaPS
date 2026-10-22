@@ -7,7 +7,17 @@ const routeCache = new WeakMap()
 // single common dungeon scene. This is not an official dungeon->scene foreign key.
 export function tableWaveCampaignRoute(tables, dungeon) {
     const parts = String(dungeon.victoryCondition).split('#').map(Number)
-    if (parts.length !== 5 || parts[0] !== 2500 || parts[2] !== 0 || parts[3] !== 0 || parts[4] <= 0) return null
+    if (
+        parts.length !== 5 ||
+        !parts.every(Number.isSafeInteger) ||
+        parts[0] !== 2500 ||
+        parts[2] !== 0 ||
+        parts[1] < 0 ||
+        parts[3] < 0 ||
+        (!parts[1] && !parts[3]) ||
+        parts[4] <= 0
+    )
+        return null
     const expected = new Map()
     for (const token of String(dungeon.enemy ?? '').split('|')) {
         const [id, count] = token.split('#').map(Number)
@@ -26,30 +36,20 @@ export function tableWaveCampaignRoute(tables, dungeon) {
         if (
             scene.victoryCondition !== dungeon.victoryCondition ||
             tables.find('world_city', scene.id)?.type !== 2 ||
-            tables.find('world_blueprint', scene.blueprintId)?.path !==
-                'Config/World/Graph/Blueprint/ast_dungeon_ai_common.asset'
+            !/^Config\/World\/Graph\/Blueprint\/ast_(?:story_)?dungeon_ai_common\.asset$/.test(
+                tables.find('world_blueprint', scene.blueprintId)?.path ?? '',
+            )
         )
             continue
         if (!fs.existsSync(path.join(tables.dir, 'worldmap_' + scene.id + '.json'))) continue
-        const rows = tables.get('worldmap_' + scene.id).filter((r) => r.spawnerId === parts[1])
-        if (rows.length !== parts[4]) continue
-        const actual = new Map()
-        let valid = true
-        for (const row of rows) {
-            const packs = String(tables.find('world_enemy_group', row.expandId)?.enemyList ?? '')
-                .split('|')
-                .filter(Boolean)
-            if (!packs.length) valid = false
-            for (const pack of packs) {
-                const id = tables.find('enemy_pack', Number(pack))?.enemyId
-                if (!id) valid = false
-                actual.set(id, (actual.get(id) ?? 0) + 1)
-            }
-        }
-        if (!valid || actual.size !== expected.size || [...expected].some(([id, n]) => actual.get(id) !== n)) continue
         const conditions = String(scene.stringParam)
             .split('|')
             .filter((s) => /^finish_con_intlist(?:_\d+)?#/.test(s))
+            .sort(
+                (a, b) =>
+                    Number(a.split('#')[0].match(/_(\d+)$/)?.[1] ?? 0) -
+                    Number(b.split('#')[0].match(/_(\d+)$/)?.[1] ?? 0),
+            )
         const end = conditions.findIndex(
             (s) =>
                 s
@@ -65,14 +65,49 @@ export function tableWaveCampaignRoute(tables, dungeon) {
             if (error.code === ErrorCode.GameConfig) continue
             throw error
         }
-        if (plan[end]?.length !== rows.length || !plan[end].every((r) => rows.some((x) => x.id === r.id))) continue
+        const rows = plan[end] ?? []
+        if (rows.length !== parts[4]) continue
+        if (!rows.every((r) => (!parts[1] || r.spawnerId === parts[1]) && (!parts[3] || r.id === parts[3]))) continue
+        const actual = new Map()
+        let valid = true
+        // A targeted final group does not describe the earlier combat waves.
+        // Verify the complete prerequisite roster, including story/interact stages.
+        const battleRows = plan
+            .slice(0, end + 1)
+            .flat()
+            .filter((row) => tables.find('world_spawner', row.spawnerId)?.objectType === 50)
+        for (const row of battleRows) {
+            const packs = String(tables.find('world_enemy_group', row.expandId)?.enemyList ?? '')
+                .split('|')
+                .filter(Boolean)
+            if (!packs.length) valid = false
+            for (const pack of packs) {
+                const id = tables.find('enemy_pack', Number(pack))?.enemyId
+                if (!id) valid = false
+                actual.set(id, (actual.get(id) ?? 0) + 1)
+            }
+        }
+        if (!valid) continue
+        const exactRoster = actual.size === expected.size && [...expected].every(([id, n]) => actual.get(id) === n)
+        // A concrete object target plus exact scene victory is stronger than
+        // the generic spawner-only join. Current CBT3 has stale enemy preview
+        // IDs in such dungeons; never substitute those IDs into scene packs.
+        if (
+            !exactRoster &&
+            (!parts[3] ||
+                [...actual.values()].reduce((a, b) => a + b, 0) !== [...expected.values()].reduce((a, b) => a + b, 0))
+        )
+            continue
         matches.push({
             dungeon_id: dungeon.id,
             scene_ids: [scene.id],
             mode: 'table_waves',
             victory_stage_count: end + 1,
             source: 'table_inference',
-            basis: 'Unique common dungeon scene matching exact victory and complete enemyId/count roster',
+            basis: exactRoster
+                ? 'Unique common dungeon scene matching exact victory and complete enemyId/count roster'
+                : 'Unique story dungeon scene matching exact targeted victory and total enemy count; scene packs override inconsistent preview IDs',
+            preview_roster_matches: exactRoster,
             todo: 'Verify scene selection against official CBT3 route; table matching is a local compatibility inference',
         })
     }
