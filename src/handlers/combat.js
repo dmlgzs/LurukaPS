@@ -17,6 +17,7 @@ import {
 } from '../npc-kibo-sp.js'
 import { enemyDefinition } from '../enemy-state.js'
 import { recordGuidedKill } from '../task-kills.js'
+import { notifyActive } from '../daily-active.js'
 import { finishEnemyGroupRelations, pruneInactiveCampaignRelations } from './world-combat.js'
 import { isPlayerDamageSource } from '../damage-owner.js'
 import { advanceEntrustCombat } from './entrust.js'
@@ -374,7 +375,8 @@ export function registerCombat(on) {
                     boundedSet(battle.entities, id, value, 512)
                     if (definition.npc_duel)
                         recordArenaHpStatistics(c, id, source, previous.hp ?? definition.max_hp, hp)
-                    if (died && !definition.npc_duel) recordGuidedKill(c.tables, c.state, value)
+                    if (died && !definition.npc_duel && recordGuidedKill(c.tables, c.state, value, c.now))
+                        notifyActive(c)
                     changed.set(id, {
                         uuid: id,
                         hp,

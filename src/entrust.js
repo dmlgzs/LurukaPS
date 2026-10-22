@@ -1,4 +1,5 @@
 import { ErrorCode } from './error-codes.js'
+import { recordActiveDungeonFinish } from './daily-active.js'
 import { visibleEnemySlots } from './enemy-group-visibility.js'
 import { ensure } from './handlers/common.js'
 import { combatState } from './combat-state.js'
@@ -145,6 +146,8 @@ export function settleEntrustVictory(tables, state, now) {
         if (met) mask |= 1 << index
     })
     run.battle_complete = true
+    // Do not backdate legacy recovery into this day's activity period.
+    if (now === run.end_time) recordActiveDungeonFinish(tables, state, run.dungeon_id, now)
     // Old completed saves never received a claimable box. Give that one
     // recovered box its configured window once, without changing clear time.
     run.chest_ready_time = run.hero_deaths === undefined ? Math.max(run.end_time, now ?? run.end_time) : run.end_time

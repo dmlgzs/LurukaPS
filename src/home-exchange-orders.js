@@ -1,6 +1,7 @@
 import { randomInt } from 'node:crypto'
 import { ensure } from './handlers/common.js'
 import { ErrorCode } from './error-codes.js'
+import { recordActiveProgress } from './daily-active.js'
 import { homeCondition } from './home-grid.js'
 import { ensureHomeExchange, exchangeClock } from './home-exchange.js'
 import { parseRewards, grantRewards } from './rewards.js'
@@ -204,6 +205,7 @@ export function submitExchangeOrder(c, r) {
     const keys = Object.keys(receipts).sort((a, b) => Number(a) - Number(b))
     for (const key of keys.slice(0, Math.max(0, keys.length - 256))) delete receipts[key]
     exchange.completedOrders = (exchange.completedOrders ?? 0) + 1
+    recordActiveProgress(c.tables, c.state, 15003, 1, c.now)
     c.pushBefore('CSProtoSyncPlayerData', {
         basic_info: c.state.player.basic_info,
         attr_infos: c.state.player.attr_infos,

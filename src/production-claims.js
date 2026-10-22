@@ -1,4 +1,5 @@
 import { ErrorCode } from './error-codes.js'
+import { recordActiveProgress } from './daily-active.js'
 import { ensure } from './handlers/common.js'
 import { ensureHome } from './home.js'
 import { productionTables } from './production-tables.js'
@@ -65,6 +66,7 @@ export function claimProductionStock(c, request, { cancel = false, allowEmpty = 
             claimed += available
             h.craftCounts ??= {}
             h.craftCounts[job.productId] = (h.craftCounts[job.productId] || 0) + available
+            recordActiveProgress(tables, c.state, 15011, available, c.now)
         }
         if (cancel) {
             const unfinished = job.count - done

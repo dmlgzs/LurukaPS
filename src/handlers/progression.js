@@ -1,4 +1,5 @@
 import { ErrorCode } from '../error-codes.js'
+import { recordActiveProgress } from '../daily-active.js'
 import { ensure, hero, pet, syncPlayer, syncPets } from './common.js'
 import { aggregateCosts, spend } from '../inventory.js'
 import { syncBattle } from '../battle.js'
@@ -72,6 +73,7 @@ export function registerProgression(on) {
             const gold = Number(product / 10000n)
             ensure(Number.isSafeInteger(gold), 'Gold cost overflow')
             const changed = spend(c.state, costs, gold, c.now)
+            const previousLevel = isHero ? entity.hero_lv : entity.lv
             if (isHero) {
                 entity.hero_lv = result.level
                 entity.hero_exp = result.exp
@@ -80,6 +82,8 @@ export function registerProgression(on) {
                 entity.exp = result.exp
                 c.state.petRevision = (c.state.petRevision ?? 0) + 1
             }
+            if (result.level > previousLevel && !entity.trail && entity.type !== 2)
+                recordActiveProgress(c.tables, c.state, isHero ? 15000 : 15002, 1, c.now)
             syncPlayer(c, {
                 basic_info: c.state.player.basic_info,
                 sbag_infos: { items: changed },

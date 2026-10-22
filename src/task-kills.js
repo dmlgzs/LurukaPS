@@ -1,4 +1,5 @@
 import { TaskGraphs, asList, nodeConditions } from './tasks.js'
+import { recordActiveProgress } from './daily-active.js'
 import { guidedKillRule } from './guided-conditions.js'
 import { deliveryKey } from './task-delivery.js'
 import { WorldObjectCatalog } from './world-objects.js'
@@ -64,12 +65,19 @@ function eachKillGoal(tables, state, fn) {
 }
 // Called once on the authoritative alive->dead transition, never on repeated
 // reports against an already dead enemy. Counts are scoped to the active node.
-export function recordGuidedKill(tables, state, entity) {
+export function recordGuidedKill(tables, state, entity, now) {
+    let activityChanged = false
+    if (now !== undefined) {
+        activityChanged = recordActiveProgress(tables, state, 12002, 1, now)
+        if ([1, 2].includes(tables.find('enemy', entity.config_id)?.enemyType))
+            activityChanged = recordActiveProgress(tables, state, 15014, 1, now) || activityChanged
+    }
     eachKillGoal(tables, state, ({ rule, key, world }) => {
         if (!matches(tables, state, entity, rule, world)) return
         const events = (state.taskEvents ??= {})
         events[key] = Math.min(rule.count, (events[key] ?? 0) + 1)
     })
+    return activityChanged
 }
 // Old servers saved death but lacked this condition. Recover only the first
 // condition of an active dungeon task, with its actual target and run-time

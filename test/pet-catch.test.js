@@ -77,6 +77,8 @@ test('real prologue target102056 queries catch info, consumes one card, creates 
             }),
             result = response.find((x) => x.id === 10714).data
         assert.equal(result.success, true)
+        assert.equal(f.state().dailyActive.day.counts[13109], 1)
+        assert.equal(f.state().dailyActive.week.counts[13109], 1)
         assert.equal(result.tar_id, target)
         assert(result.guid !== '0')
         assert(response.findIndex((x) => x.id === 6517) < response.findIndex((x) => x.id === 10714))

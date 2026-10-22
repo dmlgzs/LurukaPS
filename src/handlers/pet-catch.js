@@ -1,4 +1,5 @@
 import { recordNoviceCounter } from '../novice-counters.js'
+import { recordActiveProgress } from '../daily-active.js'
 import { ensure } from './common.js'
 import { enemyDefinition } from '../enemy-state.js'
 import { createPets, petData } from '../pets.js'
@@ -93,7 +94,7 @@ export function registerPetCatch(on) {
         return {}
     })
     on('CatchPet', (c, r) => {
-        const { id, petId } = target(c, r.tar_id),
+        const { id, petId, enemy } = target(c, r.tar_id),
             item = c.tables.find('common_item', r.item_id)
         ensure(item?.type === 410 && item.subId > 0, 'Invalid catch card')
         const past = c.state.petCaptureResults?.[id]
@@ -117,6 +118,8 @@ export function registerPetCatch(on) {
         card.state = 'used'
         card.target_id = id
         recordNoviceCounter(c.state, 'captures', 1)
+        if ([1, 2].includes(c.tables.find('enemy', enemy.config_id)?.enemyType))
+            recordActiveProgress(c.tables, c.state, 15014, 1, c.now)
         c.state.petCaptureResults ??= {}
         c.state.petCaptureResults[id] = {
             guid: pet.guid,

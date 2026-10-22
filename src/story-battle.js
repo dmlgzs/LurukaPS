@@ -112,7 +112,7 @@ export function registerStoryBattle(on, tables) {
             ensure(teaching || matchedRule, 'Required battle story has not played')
             ensure(target, 'Story-kill objective is not active')
             battle.entities[uuid] = { ...existing, ...def, uuid, hp: 0, alive_state: 1, updated_at: c.now }
-            if ((existing?.hp ?? def.max_hp) > 0) recordGuidedKill(tables, c.state, battle.entities[uuid])
+            if ((existing?.hp ?? def.max_hp) > 0) recordGuidedKill(tables, c.state, battle.entities[uuid], c.now)
             c.state.storyKillReceipts ??= {}
             c.state.storyKillReceipts[key] = {
                 story_ids: matchedRule?.stories ?? [],

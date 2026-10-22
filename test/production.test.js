@@ -47,6 +47,7 @@ test('real workbench recipe starts, ticks, partially claims and cancels without 
         assert.equal(s.player.sbag_infos.items[0].itemnum, 21)
         assert.equal(s.home.builds[0].product[0].total_count, 3)
         assert.equal(s.home.builds[0].product[0].finish_count, 0)
+        assert.equal(s.dailyActive.day.counts[15011] ?? 0, 0)
         const before = store.load(session.id)
         assert.throws(() => call('ProductFinish', { guid: 1, is_all: true }), /No finished/)
         assert.deepEqual(store.load(session.id), before)
@@ -67,6 +68,7 @@ test('real workbench recipe starts, ticks, partially claims and cancels without 
         assert.equal(s.player.sbag_infos.items.find((i) => i.itemid === 300000).itemnum, 27)
         assert.equal(s.home.builds[0].product.length, 0)
         assert.equal(s.home.craftCounts[302001], 1)
+        assert.equal(s.dailyActive.day.counts[15011], 1)
         assert.throws(() => call('ProductCancel', { guid: 1, product_guids: [1] }))
     } finally {
         store.close()

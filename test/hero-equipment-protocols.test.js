@@ -245,6 +245,7 @@ test('logged soul XP item consumes the table XP and gold, rejects self/locked fo
             before = f.state().player.basic_info.gold
         const packets = f.call('ComposeSoulEssence', { guid: 10044, costs: [], cost_items: [{ id: 400000, num: 1 }] })
         const updated = f.state().player.soulessence_infos.soulessences.find((x) => x.guid === 10044)
+        assert.equal(f.state().dailyActive.day.counts[15001] ?? 0, updated.lv > target.lv ? 1 : 0)
         assert.equal(
             t
                 .get('soulessence_level')

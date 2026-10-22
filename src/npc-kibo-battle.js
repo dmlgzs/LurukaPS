@@ -1,4 +1,5 @@
 import { ErrorCode } from './error-codes.js'
+import { recordActiveProgress, notifyActive } from './daily-active.js'
 import { arenaContext, arenaMillis, arenaActionMillis } from './npc-kibo-time.js'
 import { ensure } from './handlers/common.js'
 import { combatState } from './combat-state.js'
@@ -435,6 +436,11 @@ export function finishNpcArenaPresentation(c) {
     startArenaClock(c)
     c.state.combat.npcDuel = { ...c.state.combat.npcDuel, intro_completed_at: c.now }
     info.arena_status = 4
+    if (!run.active_task_join_recorded) {
+        recordActiveProgress(c.tables, c.state, 15071, 1, c.now)
+        c.state.combat.npcDuel = { ...c.state.combat.npcDuel, active_task_join_recorded: true }
+        notifyActive(c)
+    }
     // Preserve already-deployed first pets from a saved pre-fix introduction.
     if (!run.in_fight[first.uuid]) setArenaInFight(c, first, run.positions.selfSummon, true, true)
     if (!run.in_fight[enemyFirst.uuid]) setArenaInFight(c, enemyFirst, run.positions.enemySummon, true, true)

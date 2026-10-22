@@ -65,6 +65,7 @@ test('6227 pays the actual configured currency and reputation before ACK, consum
             rep = parseRewards(row.orderReputation)[0]
         const result = f.call('CSFinishOrder', { order_guid: slot.guid }),
             response = result.find((p) => p.id === 6227).data
+        assert.equal(f.state().dailyActive.week.counts[15003], 1)
         assert.equal(amount(f.state(), reward.itemid) - amount(before, reward.itemid), reward.itemnum)
         for (const cost of parseRewards(row.orderNeedMaterials))
             assert.equal(bag(before, cost.itemid) - bag(f.state(), cost.itemid), cost.itemnum)

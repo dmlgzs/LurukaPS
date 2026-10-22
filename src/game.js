@@ -29,6 +29,15 @@ import { preparePetHandbook, takePetHandbookSync, petHandbookSnapshot } from './
 import { syncHandbookAttributes } from './pet-handbook-sync.js'
 import { registerPetHandbook } from './handlers/pet-handbook.js'
 import { registerCharKibo } from './handlers/char-kibo.js'
+import { registerDailyActive } from './handlers/daily-active.js'
+import {
+    observeActiveSession,
+    activeCounterSample,
+    observeActiveCounters,
+    notifyActive,
+    initialActiveSnapshot,
+    activePeriodDue,
+} from './daily-active.js'
 import { announcementSnapshot } from './announcements.js'
 import { optimizeSyncPackets } from './sync-delta.js'
 import { registerPetCatch } from './handlers/pet-catch.js'
@@ -364,6 +373,7 @@ export class Game {
         registerPetSkill(on)
         registerPetHandbook(on)
         registerCharKibo(on)
+        registerDailyActive(on)
         registerPetCatch(on)
         registerPetEvolution(on)
         registerPlayableLifecycle(on, tables)
@@ -990,7 +1000,13 @@ export class Game {
                     context.push('CSProtoTaskSync', taskSnapshot(this.tables, state))
                 }
                 if (!battleReport) this.noviceTasks.observe(state)
+                if (!battleReport) observeActiveSession(this.tables, state, now)
+                const activeCountersBefore = activeCounterSample(state)
                 const response = recoveredChoice ? {} : handler(context, r)
+                if (!battleReport) {
+                    observeActiveCounters(context, activeCountersBefore)
+                    notifyActive(context)
+                }
                 if ((state.reputationRevision ?? 0) !== reputationRevision)
                     context.pushBefore('CSProtoReputationInfo', reputationSnapshot(this.tables, state))
                 if (!battleReport) this.noviceTasks.notify(context)
@@ -1266,6 +1282,7 @@ export class Game {
             simpleDue = simpleProductionDue(current, now),
             dormDue = dormDayDue(this.tables, current, now),
             activityDue = this.activities.due(current, now),
+            dailyActiveDue = activePeriodDue(this.tables, current, now),
             arenaDue = npcArenaTickDue(current, exact),
             durable =
                 homeDue ||
@@ -1275,6 +1292,7 @@ export class Game {
                 simpleDue ||
                 dormDue ||
                 activityDue ||
+                dailyActiveDue ||
                 !!npcArenaOutcome(current, exact)
         if (
             !homeDue &&
@@ -1284,6 +1302,7 @@ export class Game {
             !simpleDue &&
             !dormDue &&
             !activityDue &&
+            !dailyActiveDue &&
             !arenaDue
         )
             return []
@@ -1295,6 +1314,15 @@ export class Game {
                     eggRevision = state.eggRevision || 0,
                     petRevision = state.petRevision || 0,
                     handbookBonusesBefore = state.petHandbookBonuses
+                if (dailyActiveDue) {
+                    observeActiveSession(this.tables, state, now)
+                    notifyActive({
+                        tables: this.tables,
+                        state,
+                        now,
+                        pushBefore: (name, data) => packets.push(this.packet(name, data)),
+                    })
+                }
                 if (arenaDue)
                     tickNpcArena({
                         id,
@@ -1461,6 +1489,7 @@ export class Game {
             this.packet('CSProtoKiboDuelGroupInfoSync', kiboDuelSnapshot(state, this.tables)),
             this.packet('CSProtoWorldExplorationSync', explorationSnapshot(state)),
             this.packet('CSProtoNoviceTaskInfoSync', this.noviceTasks.initial(state)),
+            this.packet('CSProtoDailyActiveInfoSync', initialActiveSnapshot(this.tables, state, now)),
             this.packet('CSProtoStandPlatesBagInfo', playerCardSnapshot(this.tables, state)),
             this.packet('SCProtoClothesInfoSync', clothesSnapshot(this.tables, state)),
             this.packet('SCProtoPresetWardrobeSync', { info_list: state.wardrobePresets ?? [] }),

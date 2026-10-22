@@ -1,4 +1,5 @@
 import { ErrorCode } from '../error-codes.js'
+import { recordActiveProgress } from '../daily-active.js'
 import { ensure, syncPlayer } from './common.js'
 import { spend, spendCurrency } from '../inventory.js'
 import { pairs, syncBattle } from '../battle.js'
@@ -601,6 +602,7 @@ export function registerHeroEquipment(on, publishEquipment) {
         c.state.player.soulessence_infos.soulessences = all.filter((x) => !used.has(x.guid))
         const total = current.exp_all + target.exp + added
         const next = levels.filter((x) => x.lv <= cap && x.exp_all <= total).at(-1)
+        if (next.lv > target.lv) recordActiveProgress(c.tables, c.state, 15001, 1, c.now)
         target.lv = next.lv
         // Retain excess XP at the rank cap instead of silently discarding paid materials.
         target.exp = total - next.exp_all
