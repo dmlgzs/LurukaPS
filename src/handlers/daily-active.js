@@ -3,8 +3,10 @@ import { ensure } from './common.js'
 import { ErrorCode } from '../error-codes.js'
 import { grantRewards, parseRewards } from '../rewards.js'
 import { rewardSource } from '../reward-source.js'
+import { claimActiveValue } from '../daily-active-rewards.js'
 
 export function registerDailyActive(on) {
+    on('GetActiveValueReward', claimActiveValue)
     on('GetActiveReward', (c, r) => {
         ensure(
             Array.isArray(r.u32s) &&

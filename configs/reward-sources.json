@@ -25,5 +25,6 @@
   "exchangeSale": 144,
   "exchangeOrderSubmit": 146,
   "heroExclusivePet": 159,
-  "dailyActiveTask": 22
+  "dailyActiveTask": 22,
+  "dailyActiveValueReward": 22
 }
