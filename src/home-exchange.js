@@ -6,6 +6,7 @@ import { spend } from './inventory.js'
 import { refreshAutoCropShortcut } from './home.js'
 import { grantRewards, parseRewards } from './rewards.js'
 import { rewardSource } from './reward-source.js'
+import priceOverrides from '../configs/home-exchange-price-overrides.json' with { type: 'json' }
 
 function settleShipment(tables, state, now, kind, shipment) {
     const exchange = state.homeExchange,
@@ -346,6 +347,15 @@ export function exchangeCatalogue(tables) {
         ErrorCode.GameConfig,
     )
     const items = new Map(tables.get('home_exchange_item').map((row) => [row.id, row]))
+    for (const override of priceOverrides.items) {
+        const row = items.get(override.id)
+        ensure(
+            row && [override.externalPrice, override.price].includes(row.price),
+            'Exchange price source differs from the verified client revision',
+            ErrorCode.GameConfig,
+        )
+        items.set(row.id, { ...row, price: override.price })
+    }
     ensure(
         items.size === tables.get('home_exchange_item').length,
         'Duplicate exchange item configuration',
