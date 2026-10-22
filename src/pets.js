@@ -8,6 +8,7 @@ import { pairs } from './battle.js'
 import { initialPetComprehension, repairPetComprehension } from './pet-comprehension.js'
 import { randomMountSpeed } from './mounts.js'
 import { refreshPetCaressPeriod } from './pet-caress.js'
+import { lockedPetBoxes } from './pet-box-locks.js'
 
 // The localized export corrupts pet.gradeScore. Use the numeric CBT3 table.
 const petScores = new Map(
@@ -231,13 +232,14 @@ export function createPets(tables, state, configId, count, builderRuleId = 1001)
         'Pet boxes are full',
     )
     const used = new Set(state.pets.map((p) => p.box_id)),
+        locked = new Set(lockedPetBoxes(tables, state)),
         slots = []
     for (let box = 1; box <= boxCount; box++)
         for (let slot = 1; slot <= boxSize; slot++) {
             const id = box * 100 + slot
-            if (!used.has(id)) slots.push(id)
+            if (!locked.has(box) && !used.has(id)) slots.push(id)
         }
-    ensure(slots.length >= count, 'No free pet slot')
+    ensure(slots.length >= count, 'No free unlocked pet slot', ErrorCode.BagPetFullForAdd)
     let sequence = state.nextPetSequence || 1
     for (const pet of state.pets) {
         const id = BigInt(pet.guid)

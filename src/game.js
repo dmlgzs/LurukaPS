@@ -2,6 +2,8 @@ import { ErrorCode } from './error-codes.js'
 import { registerChatShields } from './handlers/chat-shields.js'
 import { registerChatCustomization } from './handlers/chat-customization.js'
 import { chatEmojiSnapshot } from './chat-emoji.js'
+import { registerPetCosmetics } from './handlers/pet-cosmetics.js'
+import { lockedPetBoxes } from './pet-box-locks.js'
 import { registerStamina } from './handlers/stamina.js'
 import {
     prepareStamina,
@@ -413,6 +415,7 @@ export class Game {
         registerDailyActive(on)
         registerPetCatch(on)
         registerPetEvolution(on)
+        registerPetCosmetics(on)
         registerPlayableLifecycle(on, tables)
         const runGM = registerGM(on, { enabled: gmEnabled })
         registerCore(on)
@@ -1574,6 +1577,7 @@ export class Game {
             this.packet('CSProtoPetInfoSync', {
                 ...releaseFields(state, 'pet', now, this.releaseResetHour),
                 record_pets: state.recordPets ?? [],
+                lock_box_id: lockedPetBoxes(this.tables, state),
                 pet_infos: taskPetPresentation(this.tables, state, { pet_infos: { pets: state.pets } }).pet_infos,
             }),
             this.packet('CSProtoPetEggInfoSync', {
