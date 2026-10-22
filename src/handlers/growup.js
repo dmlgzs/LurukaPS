@@ -1,5 +1,7 @@
+import { archiveGrowupData } from '../growup-archive.js'
 import { ensure } from './common.js'
 export function registerGrowup(on, catalog) {
+    on('ArchiveGrowupData', (c, r) => archiveGrowupData(c, r, catalog))
     const system = catalog.growup
     const context = (c, r) => {
         const { row, entry } = catalog.require(c.state, c.now, r.activity_id, [60])

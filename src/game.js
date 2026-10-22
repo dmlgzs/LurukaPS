@@ -1,3 +1,4 @@
+import { growupArchiveSnapshot } from './growup-archive.js'
 import { notifyBattlePassTasks } from './battle-pass-tasks.js'
 import { registerBattlePass } from './handlers/battle-pass.js'
 import { battlePassSnapshot } from './battle-pass.js'
@@ -1699,6 +1700,7 @@ export class Game {
                 .growupHistorySnapshots(state, now)
                 .map((data) => this.packet('CSProtoActivityGrowUpEndQuerySync', data)),
             this.packet('CSProtoActivitySync', this.activities.snapshot(state, now)),
+            this.packet('CSProtoSyncArchiveGrowupData', growupArchiveSnapshot(this.activities, state)),
             ...(state.cultTrial?.map_id === state.world.map_id
                 ? [this.packet('CSProtoCampaignInfoSync', cultTrialSnapshot(state, { entering: true }))]
                 : []),
