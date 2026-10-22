@@ -33,5 +33,6 @@
     "commonItemUse": 1,
     "battlePassFreeLevel": 132,
     "battlePassPaidLevel": 133,
-    "battlePassSoul": 135
+    "battlePassSoul": 135,
+    "battlePassPurchase": 134
 }

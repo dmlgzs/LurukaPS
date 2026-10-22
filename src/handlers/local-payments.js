@@ -1,3 +1,6 @@
+import { battlePassPurchaseMode, purchaseBattlePass } from '../battle-pass-purchase.js'
+import { prepareBattlePass } from '../battle-pass.js'
+import { battlePassLevelInfo } from '../battle-pass-buy-level.js'
 import { ErrorCode, LocalErrorCode } from '../error-codes.js'
 import { monthlyPayload, purchaseMonthly } from '../monthly-card.js'
 // Client callback sentinel closes the order mask without opening the SDK.
@@ -57,6 +60,18 @@ export function registerLocalPayments(on, tables, store, { enabled = true } = {}
             if (order.recharge) c.push('SCProtoPlayerMallGetRechargeDiamondNtf', order.recharge)
             if (order.gift) c.push('SCProtoPlayerMallPaySuccessNtf', order.gift)
             if (order.monthly) c.push('SCProtoMonthlyCardInfoSync', monthlyPayload(c.state, order.monthly.first))
+            if (order.battlepass) {
+                const current = prepareBattlePass(tables, c.state, c.now)
+                // A replayed old-season order cannot unlock or overwrite a new
+                // season, even if its numeric battlepass ID is reused.
+                if (current?.key === order.battlepass.season_key) {
+                    c.pushBefore(
+                        'SCProtoBattlePassLevelExpPaySync',
+                        battlePassLevelInfo(current.season, current.ledger),
+                    )
+                    c.push('SCProtoBattlePassPayRewards', order.battlepass.data)
+                }
+            }
             if (!isMall)
                 c.push('SCProtoPlayerNoMallPaySuccessNtf', {
                     purchase_sdk_id: sdk.id,
@@ -87,7 +102,15 @@ export function registerLocalPayments(on, tables, store, { enabled = true } = {}
             tables.get('monthly_card').find((x) => x.purchaseSdkID === sdk.id && x.id === sdk.id) ??
             tables.get('monthly_card').find((x) => x.purchaseSdkID === sdk.id)
         let popup
-        if (monthlyConfig) {
+        if (!isMall && battlePassPurchaseMode(tables, sdk.id)) {
+            order.battlepass = purchaseBattlePass(c, sdk, count, id)
+            popup = {
+                popup_id: popupId,
+                pay_source: 0,
+                purchase_sdk_id: sdk.id,
+                battlepass_data: order.battlepass.data,
+            }
+        } else if (monthlyConfig) {
             order.monthly = purchaseMonthly(c, monthlyConfig, count)
             popup = {
                 popup_id: popupId,
