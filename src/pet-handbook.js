@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
+import { observeHandbookAppearance } from './pet-handbook-appearance.js'
 
 const caches = new WeakMap()
 const warnedAmbiguities = new Set()
@@ -275,6 +276,7 @@ export function preparePetHandbook(tables, state, { force = false, only = undefi
         )
         const row = {
             ...old,
+            ...observeHandbookAppearance(tables, plan.pet, old, specimens),
             pet_id: id,
             tasks: active,
             lv,
