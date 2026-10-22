@@ -394,3 +394,4 @@ export function claimBattlePassTask(c, r) {
     return { rewards, ...(rewards.length ? { src: rewardSource(c.tables, 'battlePassTask') } : {}) }
 }
 
+export { grantTaskExp as grantBattlePassTaskExp }
