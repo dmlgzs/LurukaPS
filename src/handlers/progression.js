@@ -78,6 +78,7 @@ export function registerProgression(on) {
             } else {
                 entity.lv = result.level
                 entity.exp = result.exp
+                c.state.petRevision = (c.state.petRevision ?? 0) + 1
             }
             syncPlayer(c, {
                 basic_info: c.state.player.basic_info,

@@ -1,4 +1,5 @@
 import { ornamentSkills } from '../hero-equipment.js'
+import { recordAndSyncHandbookSkill } from '../pet-handbook-sync.js'
 import { reviveFriendlyActor } from '../actor-revival.js'
 import { recordNpcArenaDeaths } from '../npc-kibo-battle.js'
 import { recordArenaHpStatistics, publishArenaStatistics } from '../npc-kibo-statistics.js'
@@ -227,6 +228,7 @@ export function registerCombat(on) {
                 if (battle.energyRemainders) battle.energyRemainders[id] = 0
                 c.push('CSProtoObjBattleInfoSync', { infos: [{ uuid: id, sp: 0, reason: 0 }] })
             }
+            recordAndSyncHandbookSkill(c, p, r)
         }
     })
     on('SkillStop', (c, r) => {

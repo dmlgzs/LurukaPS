@@ -25,6 +25,9 @@ import { repairSavedPetPuzzleVisibility } from './pet-puzzles.js'
 import { repairSavedElevatorVisibility } from './handlers/world-elevator.js'
 import { hiddenTaskPetGuids, taskPetPresentation } from './task-pet-presentation.js'
 import { repairPetCatalog } from './pet-catalog.js'
+import { preparePetHandbook, takePetHandbookSync, petHandbookSnapshot } from './pet-handbook.js'
+import { syncHandbookAttributes } from './pet-handbook-sync.js'
+import { registerPetHandbook } from './handlers/pet-handbook.js'
 import { announcementSnapshot } from './announcements.js'
 import { optimizeSyncPackets } from './sync-delta.js'
 import { registerPetCatch } from './handlers/pet-catch.js'
@@ -358,6 +361,7 @@ export class Game {
         registerPlayableSaves(on)
         registerRoulette(on)
         registerPetSkill(on)
+        registerPetHandbook(on)
         registerPetCatch(on)
         registerPetEvolution(on)
         registerPlayableLifecycle(on, tables)
@@ -684,6 +688,8 @@ export class Game {
                 repairMountSelection(this.tables, state)
                 ensureFlightUnlocked(this.tables, state, now)
                 upgradeSkillState(this.tables, state)
+                preparePetHandbook(this.tables, state, { force: true })
+                takePetHandbookSync(state)
                 upgradeEggState(state)
                 ensureHome(this.tables, state)
                 ensureHomeCanteens(this.tables, state)
@@ -881,6 +887,7 @@ export class Game {
                         after = []
                     const context = {
                         id: session.id,
+                        connectionKey: session.token,
                         requestKey: frame.seq ? session.token + ':' + frame.id + ':' + frame.seq : null,
                         state,
                         now,
@@ -932,6 +939,7 @@ export class Game {
                 const eggIdsBefore = (state.petEggs || []).map((e) => e.guid)
                 const ornamentIdsBefore = (state.ornaments || []).map((entry) => entry.guid)
                 const petRevision = state.petRevision || 0
+                const handbookBonusesBefore = state.petHandbookBonuses
                 const petViewBefore = battleReport ? null : hiddenTaskPetGuids(this.tables, state).join(',')
                 const playerLevelBefore = state.player.basic_info.lv
                 const taskItemRevision = state.taskItemRevision ?? 0
@@ -961,6 +969,7 @@ export class Game {
                     push: (name, value) => emit(pushes, name, value, { pushSeq: frame.pushSeq }),
                 }
                 if (!battleReport) {
+                    preparePetHandbook(this.tables, state)
                     settleRanches(this.tables, state, now, this.rng)
                     settleCollections(this.tables, state, now, this.rng)
                     prepareHomeExchange(context, { historyNotice: e.name !== 'CSProtoCSHistoryReport' })
@@ -1050,6 +1059,9 @@ export class Game {
                     })
                     syncBattle({ ...context, push: context.pushBefore })
                 }
+                if (!battleReport) preparePetHandbook(this.tables, state)
+                const handbookPayload = battleReport ? null : takePetHandbookSync(state)
+                const handbookSync = handbookPayload ? [this.packet('CSProtoPetHandbookInfoSync', handbookPayload)] : []
                 const petSync =
                     (state.petRevision || 0) !== petRevision ||
                     (!battleReport && petViewBefore !== hiddenTaskPetGuids(this.tables, state).join(','))
@@ -1068,6 +1080,7 @@ export class Game {
                           ]
                         : []
                 if (petSync.length) syncBattle({ ...context, push: context.pushBefore })
+                else if (!battleReport) syncHandbookAttributes(context, handbookBonusesBefore)
                 const packets = e.rsp ? [reply(response || {})] : []
                 const eggSync =
                     (state.eggRevision || 0) !== eggRevision
@@ -1147,6 +1160,7 @@ export class Game {
                     ...playerSync,
                     ...saddleSync,
                     ...bookSync,
+                    ...handbookSync,
                     ...petSync,
                     ...before,
                     ...eggSync,
@@ -1277,7 +1291,8 @@ export class Game {
             (state) => {
                 const packets = [],
                     eggRevision = state.eggRevision || 0,
-                    petRevision = state.petRevision || 0
+                    petRevision = state.petRevision || 0,
+                    handbookBonusesBefore = state.petHandbookBonuses
                 if (arenaDue)
                     tickNpcArena({
                         id,
@@ -1374,6 +1389,19 @@ export class Game {
                         if (visible.length) packets.push(this.packet('CSProtoTaskSync', { tasks: visible }))
                     }
                 }
+                if ((state.petRevision || 0) !== petRevision) {
+                    preparePetHandbook(this.tables, state)
+                    const handbook = takePetHandbookSync(state)
+                    if (handbook) packets.push(this.packet('CSProtoPetHandbookInfoSync', handbook))
+                    syncHandbookAttributes(
+                        {
+                            state,
+                            tables: this.tables,
+                            pushBefore: (name, data) => packets.push(this.packet(name, data)),
+                        },
+                        handbookBonusesBefore,
+                    )
+                }
                 return packets
             },
             {
@@ -1417,6 +1445,7 @@ export class Game {
             ...(state.trialGroup || state.cultTrial?.heroes?.length || state.npcArenaTrialTrainer
                 ? [this.packet('CSProtoTrialDatas', trialPayload(state))]
                 : []),
+            this.packet('CSProtoPetHandbookInfoSync', petHandbookSnapshot(state)),
             this.packet('CSProtoPetInfoSync', {
                 ...releaseFields(state, 'pet', now, this.releaseResetHour),
                 record_pets: state.recordPets ?? [],

@@ -5,6 +5,7 @@ import { soulEssenceGrade } from './equipment.js'
 import { soulSkillsAtGrade } from './skills.js'
 import { heroGradeEffects } from './hero-grade.js'
 import { soulEssenceValue } from './soul-values.js'
+import { petHandbookAttributes, preparePetHandbook } from './pet-handbook.js'
 // CBT3 client evidence: ui_configtpl_herotpl.lua:getHeroConfigAtt;
 // ui_store_hero_data_heroattrmoduleinfo.lua:addSub; const.lua:SpecialAttList.
 export const specialAttributes = new Set([1, 3, 5, 201, 229, 230])
@@ -209,6 +210,7 @@ export function refreshBattleState(tables, state) {
     return heros
 }
 export function syncBattle(c) {
+    preparePetHandbook(c.tables, c.state)
     if (c.state.combat) {
         delete c.state.combat.energyActorKey
         delete c.state.combat.energySpecs
@@ -304,6 +306,20 @@ export function petModules(tables, state, pet, heroes) {
                 ],
             },
             { module_type: 5, sub_modules: [{ sub_module_id: 0, attrs: { attrs: [] }, skills: { skills: [] } }] },
+            ...(petHandbookAttributes(tables, state, pet).size
+                ? [
+                      {
+                          module_type: 8,
+                          sub_modules: [
+                              {
+                                  sub_module_id: 0,
+                                  attrs: { attrs: wireAttributes(petHandbookAttributes(tables, state, pet)) },
+                                  skills: { skills: [] },
+                              },
+                          ],
+                      },
+                  ]
+                : []),
         ],
     }
 }
