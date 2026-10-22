@@ -3,6 +3,67 @@ import { ensure } from './handlers/common.js'
 import { homeCondition } from './home-grid.js'
 import { randomInt } from 'node:crypto'
 import { spend } from './inventory.js'
+import { refreshAutoCropShortcut } from './home.js'
+
+export function returnExchangeReservation(c, r) {
+    const config = exchangeItemConfig(c.tables, r.id),
+        clock = exchangeClock(c.tables, c.now)
+    ensure(!r.guid, 'Exchange material must not specify an instance')
+    ensure(!clock.away, 'Merchant is away until daily reset', ErrorCode.InvalidLogic)
+    const exchange = c.state.homeExchange,
+        entry = exchange?.box?.find((e) => e.id === r.id)
+    if (!entry && exchange?.cancelReceipts?.[r.id] === clock.businessDay) return false
+    ensure(entry, 'Exchange reservation was not found', ErrorCode.ExchangeCancelNotFind)
+    ensure(entry.day === clock.businessDay, 'Shipment is already in transit', ErrorCode.InvalidLogic)
+    const bag = c.state.player.sbag_infos.items,
+        byGuid = new Map(bag.map((i) => [i.guid, i])),
+        restored = new Map()
+    let total = 0
+    for (const item of entry.items ?? []) {
+        ensure(
+            item.itemid === config.itemId &&
+                (item.itemtype ?? 3) === 3 &&
+                Number.isInteger(item.itemnum) &&
+                item.itemnum > 0,
+            'Invalid exchange reservation record',
+            ErrorCode.GameConfig,
+        )
+        ensure(
+            /^\d+$/.test(String(item.guid)) && BigInt(item.guid) > 0n && BigInt(item.guid) <= 0xffffffffffffffffn,
+            'Invalid reserved inventory identity',
+            ErrorCode.GameConfig,
+        )
+        const current = byGuid.get(item.guid)
+        ensure(
+            !current || (current.itemid === item.itemid && (current.deadtime ?? 0) === (item.deadtime ?? 0)),
+            'Reserved inventory identity conflicts with the bag',
+            ErrorCode.GameConfig,
+        )
+        const result = restored.get(item.guid) ?? { ...(current ?? item), itemnum: current?.itemnum ?? 0 }
+        result.itemnum += item.itemnum
+        total += item.itemnum
+        ensure(
+            Number.isSafeInteger(result.itemnum) && result.itemnum <= 0xffffffff,
+            'Restored exchange quantity overflow',
+            ErrorCode.GameConfig,
+        )
+        restored.set(item.guid, result)
+    }
+    ensure(total === entry.num, 'Exchange reservation quantity does not match', ErrorCode.GameConfig)
+    for (const [guid, item] of restored) {
+        const old = byGuid.get(guid)
+        if (old) Object.assign(old, item)
+        else bag.push(item)
+        const next = BigInt(c.state.nextItemGuid ?? '1')
+        if (BigInt(guid) >= next) c.state.nextItemGuid = String(BigInt(guid) + 1n)
+    }
+    exchange.box = exchange.box.filter((e) => e !== entry)
+    const receipts = (exchange.cancelReceipts ??= {})
+    receipts[r.id] = clock.businessDay
+    for (const [id, day] of Object.entries(receipts)) if (day !== clock.businessDay) delete receipts[id]
+    refreshAutoCropShortcut(c.tables, c.state, config.itemId)
+    return true
+}
 
 export function exchangeItemConfig(tables, id) {
     ensure(Number.isInteger(id) && id > 0 && id <= 0xffffffff, 'Invalid exchange item ID')

@@ -4,6 +4,7 @@ import {
     exchangeBoxSnapshot,
     exchangeNewsSnapshot,
     reserveExchangeItem,
+    returnExchangeReservation,
 } from '../home-exchange.js'
 export function registerHomeExchange(on, tables) {
     on('CSHistoryReport', (c) => exchangeHistorySnapshot(c.state, true))
@@ -15,6 +16,12 @@ export function registerHomeExchange(on, tables) {
     })
     on('CSAddExchangeObj', (c, r) => {
         reserveExchangeItem(c, r)
+        c.pushBefore('CSProtoSyncPlayerData', { sbag_infos: c.state.player.sbag_infos })
+        c.pushBefore('CSProtoSCHomeexchanceObj', exchangeBoxSnapshot(tables, c.state, c.now))
+        return {}
+    })
+    on('CSCancelExangeObj', (c, r) => {
+        returnExchangeReservation(c, r)
         c.pushBefore('CSProtoSyncPlayerData', { sbag_infos: c.state.player.sbag_infos })
         c.pushBefore('CSProtoSCHomeexchanceObj', exchangeBoxSnapshot(tables, c.state, c.now))
         return {}
