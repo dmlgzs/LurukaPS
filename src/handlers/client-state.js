@@ -6,7 +6,8 @@ import { endSceneTransition } from '../scene-transition.js'
 import { startCultTrialBattle } from '../cult-trial.js'
 import { syncLoadedNpcArena } from './kibo-duel.js'
 import { updateNpcArenaPause } from '../npc-kibo-pause.js'
-export function registerClientState(on) {
+import { changePlayerTitle, playerTitleList } from '../player-titles.js'
+export function registerClientState(on, store) {
     on('GamePause', (c, r) => {
         const gameTime = String(r.game_time ?? '0')
         if (updateNpcArenaPause(c, r))
@@ -69,10 +70,8 @@ export function registerClientState(on) {
         if (records.length > 32) records.splice(0, records.length - 32)
         return {}
     })
-    on('TitleGetList', (c) => ({
-        preffix_title: c.state.titles?.preffix_title ?? [],
-        suffix_title: c.state.titles?.suffix_title ?? [],
-    }))
+    on('TitleGetList', (c) => playerTitleList(store, c.tables, c.id))
+    on('TitleChange', changePlayerTitle)
     on('GetMaxArealine', (c, r) => {
         ensure(Number.isInteger(r.area_id) && r.area_id > 0, 'Invalid area')
         c.push('CSProtoMaxArealineSync', { area_id: r.area_id, max_arealine: 1 })

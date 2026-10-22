@@ -17,6 +17,7 @@ import { changeTaskItem } from './task-items.js'
 import { grantPlayerCardItem } from './player-card-items.js'
 import { recordHeroAcquisition } from './hero-acquisition.js'
 import { grantPetSkin } from './pet-skins.js'
+import { grantPlayerTitle } from './player-titles.js'
 export function parseRewards(value, allowZero = false) {
     if (!value) return []
     return String(value)
@@ -101,6 +102,9 @@ export function grantRewards(tables, state, rewards, depth = 0, context = {}) {
             }
             state.nextEssenceGuid = next
             continue
+        } else if (itemtype === 17) {
+            ensure(itemnum === 1, 'Player title reward is unique', ErrorCode.GameConfig)
+            if (!grantPlayerTitle(tables, state, itemid)) continue
         } else if (itemtype === 37) {
             ensure(itemnum === 1, 'Pet skin reward is unique', ErrorCode.GameConfig)
             if (!grantPetSkin(tables, state, itemid)) continue

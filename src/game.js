@@ -451,7 +451,7 @@ export class Game {
         registerEcology(on, tables)
         registerMall(on, tables)
         registerCombat(on)
-        registerClientState(on)
+        registerClientState(on, store)
         registerCollection(on)
         registerWorld(on)
         registerWorldDifficulty(on)
@@ -917,6 +917,8 @@ export class Game {
         if (e.name === 'CSProtoChatGetShieldList') return [reply(handler({ id: session.id }, r))]
         if (e.name === 'CSProtoChatInfoSync' || e.name === 'CSProtoChatSyncNew')
             return this.store.read(session.id, (state) => [reply(handler({ id: session.id, state }, r))])
+        if (e.name === 'CSProtoTitleGetList')
+            return [reply(handler({ id: session.id, tables: this.tables }, r))]
         if (e.name === 'CSProtoWorldObjSearch')
             return this.store.read(session.id, (state) => [reply(handler({ state, tables: this.tables }, r))])
         if (e.name === 'CSProtoWorldMapExtraStatus') {

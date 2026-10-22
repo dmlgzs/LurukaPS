@@ -187,13 +187,13 @@ test('logged state queries return stored lists and bounded telemetry without fak
     const f = fixture()
     try {
         assert.deepEqual(f.call('ChatGetIsolateList')[0].data, { isolates: [], lists: [] })
-        assert.deepEqual(f.call('TitleGetList')[0].data, { preffix_title: [], suffix_title: [] })
+        assert.deepEqual(f.call('TitleGetList')[0].data, { preffix_title: [171000], suffix_title: [172000] })
         f.store.transact(f.session.id, 0, (s) => {
             s.chatIsolation = { isolates: [2], lists: [] }
-            s.titles = { preffix_title: [10], suffix_title: [20] }
+            s.titles = { preffix_title: [171002], suffix_title: [172002] }
         })
         assert.deepEqual(f.call('ChatGetIsolateList')[0].data.isolates, [2])
-        assert.deepEqual(f.call('TitleGetList')[0].data.suffix_title, [20])
+        assert.deepEqual(f.call('TitleGetList')[0].data.suffix_title, [172000, 172002])
         for (let i = 0; i < 35; i++) f.call('ClientBehaviourRecord', { key: i, args: [i, 1] })
         assert.equal(f.state().clientBehaviour.length, 32)
         assert.equal(f.state().clientBehaviour[0].key, 3)
