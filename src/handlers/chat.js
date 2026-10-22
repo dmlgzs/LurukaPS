@@ -2,6 +2,7 @@ import { ensure } from './common.js'
 import { publicProfile } from '../public-profile.js'
 import { ErrorCode } from '../error-codes.js'
 import { isChatMuted, legacyChatBans, chatRoutingInfo } from '../chat-shields.js'
+import { selectedChatBubble } from '../chat-cosmetics.js'
 function peerId(value) {
     const id = Number(value)
     ensure(Number.isInteger(id) && id > 0 && id <= 0xffffffff, 'Invalid chat recipient')
@@ -104,7 +105,7 @@ export function registerChat(on, store, { runGM } = {}) {
             player_id: c.id,
             basic_info: publicProfile(c.state.player.basic_info),
             extra_info: extra.toString('base64'),
-            bubbleId: r.bubbleId ?? 0,
+            bubbleId: selectedChatBubble(c.tables, c.state, r.bubbleId ?? 0),
             language: r.language ?? c.state.player.basic_info.language ?? 1,
         })
         const value = { target: { tid: target, chat_type: type }, chat: info }
