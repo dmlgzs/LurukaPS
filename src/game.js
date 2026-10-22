@@ -28,6 +28,7 @@ import { repairPetCatalog } from './pet-catalog.js'
 import { preparePetHandbook, takePetHandbookSync, petHandbookSnapshot } from './pet-handbook.js'
 import { syncHandbookAttributes } from './pet-handbook-sync.js'
 import { registerPetHandbook } from './handlers/pet-handbook.js'
+import { registerCharKibo } from './handlers/char-kibo.js'
 import { announcementSnapshot } from './announcements.js'
 import { optimizeSyncPackets } from './sync-delta.js'
 import { registerPetCatch } from './handlers/pet-catch.js'
@@ -362,6 +363,7 @@ export class Game {
         registerRoulette(on)
         registerPetSkill(on)
         registerPetHandbook(on)
+        registerCharKibo(on)
         registerPetCatch(on)
         registerPetEvolution(on)
         registerPlayableLifecycle(on, tables)

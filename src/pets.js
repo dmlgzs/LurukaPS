@@ -314,6 +314,40 @@ export function createCustomizedPets(tables, state, customizedId, count) {
         'Invalid customized pet genes',
         ErrorCode.GameConfig,
     )
+    ensure(
+        [config.laborScoreType, config.mountType].every(
+            (mode) => Number.isSafeInteger(mode) && mode >= 0 && mode <= 0xffffffff,
+        ),
+        'Malformed customized pet labor or mount mode',
+        ErrorCode.GameConfig,
+    )
+    ensure(
+        [0, 1].includes(config.laborScoreType) && [0, 1].includes(config.mountType),
+        'Customized pet labor or mount mode is not implemented',
+        ErrorCode.InvalidProtoID,
+    )
+    let labor
+    if (config.laborScoreType === 1) {
+        labor = initialPetLabor(tables, config.petId)
+        const scores = String(config.laborScore || '')
+            .split('|')
+            .map(Number)
+        ensure(
+            labor.length === scores.length &&
+                scores.every(
+                    (score) => Number.isSafeInteger(score) && score > 0 && tables.find('home_labor_train', score),
+                ),
+            'Invalid customized pet labor scores',
+            ErrorCode.GameConfig,
+        )
+        labor = labor.map((row, index) => ({ ...row, labor_grade: scores[index] }))
+    }
+    if (config.mountType === 1)
+        ensure(
+            Number.isSafeInteger(config.mountSpeed) && config.mountSpeed > 0 && config.mountSpeed <= 0xffffffff,
+            'Invalid customized pet mount speed',
+            ErrorCode.GameConfig,
+        )
     const pets = createPets(tables, state, config.petId, count, config.builderRule || 1001)
     for (const pet of pets) {
         pet.customized_id = config.id
@@ -328,6 +362,8 @@ export function createCustomizedPets(tables, state, customizedId, count) {
             pet.gene_state = Math.ceil(ids.length / 2)
         }
         pet.can_not_release = config.isRelease === 0
+        if (labor) pet.labor_infos = labor.map((row) => ({ ...row }))
+        if (config.mountType === 1) pet.speed = config.mountSpeed
         pet.grade = petGrade(tables, pet)
     }
     return pets
