@@ -192,6 +192,7 @@ test('a real SSR draw spends the correct ticket, transforms an owned hero, grant
             main_item: { item_type: 1, item_id: 101010, item_num: 1 },
             extra_item: [{ item_type: 3, item_id: 502001, item_num: 20 }],
             transform_item: { item_type: 3, item_id: 1100005, item_num: 1 },
+            gacha_surprise: { surprise_type: 0 },
         })
         assert.equal(f.count(501001), tickets - 1)
         assert.equal(f.count(1100005), shard + 1)

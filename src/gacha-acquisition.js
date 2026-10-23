@@ -3,6 +3,31 @@ import { ensure } from './handlers/common.js'
 import { grantRewards, parseRewards } from './rewards.js'
 import { nextHeroAcquisitionCount, recordHeroAcquisition } from './hero-acquisition.js'
 
+// Gacha.proto: GachaSurprise.SurpriseType.SURPRISE_TYPE_UNSPECIFIED.
+const SURPRISE_TYPE_UNSPECIFIED = 0
+
+export function gachaPresentationResult(result) {
+    ensure(
+        result && typeof result === 'object' && !Array.isArray(result),
+        'Invalid saved gacha result',
+        ErrorCode.GameConfig,
+    )
+    const surprise = result.gacha_surprise
+    // CBT3 dereferences this optional object in CheckUpgradeSurprise. Supply
+    // the defined normal state; do not manufacture a rarity upgrade animation.
+    // Old paid receipts also omitted it, so normalize their wire copy only.
+    if (surprise === undefined) return { ...result, gacha_surprise: { surprise_type: SURPRISE_TYPE_UNSPECIFIED } }
+    ensure(
+        surprise &&
+            typeof surprise === 'object' &&
+            !Array.isArray(surprise) &&
+            [0, 1, 2].includes(surprise.surprise_type),
+        'Invalid saved gacha surprise state',
+        ErrorCode.GameConfig,
+    )
+    return result
+}
+
 export const gachaWireItem = ({ itemtype, itemid, itemnum }) => ({
     item_type: itemtype,
     item_id: itemid,
@@ -88,11 +113,11 @@ export function grantGachaAcquisition(tables, state, item, { extra = true } = {}
     const additions = extra ? extraRewards(tables, item.itemtype === 1 ? 1 : 2, config.rarity, count) : []
     delivered.push(...grantRewards(tables, state, additions))
     return {
-        result: {
+        result: gachaPresentationResult({
             main_item: gachaWireItem(item),
             extra_item: additions.map(gachaWireItem),
             ...(transform ? { transform_item: gachaWireItem(transform) } : {}),
-        },
+        }),
         delivered,
         newHero,
         rarity: config.rarity,

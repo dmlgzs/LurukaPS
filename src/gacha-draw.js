@@ -5,7 +5,7 @@ import { ensure } from './handlers/common.js'
 import { parseRewards } from './rewards.js'
 import { payGachaTickets } from './gacha-payment.js'
 import { configTime } from './shops.js'
-import { grantGachaAcquisition, gachaWireItem } from './gacha-acquisition.js'
+import { grantGachaAcquisition, gachaWireItem, gachaPresentationResult } from './gacha-acquisition.js'
 
 const max64 = 0xffffffffffffffffn
 const uint = (n) => Number.isInteger(n) && n >= 0 && n <= 0xffffffff
@@ -463,9 +463,11 @@ export class GachaDrawEngine {
                 'Invalid cached gacha reply',
                 ErrorCode.GameConfig,
             )
+            const cached = structuredClone(past.reply)
             return {
                 reply: {
-                    ...structuredClone(past.reply),
+                    ...cached,
+                    gacha_results: cached.gacha_results.map(gachaPresentationResult),
                     pool_info: this.catalog.snapshot(c.state, config.gachaId),
                     other_pool_infos: (past.reply.other_pool_infos ?? []).map((info) =>
                         this.catalog.snapshot(c.state, info.gacha_pool.pool_id),
