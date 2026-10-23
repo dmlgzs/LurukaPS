@@ -1,0 +1,155 @@
+{
+    "schema_version": 1,
+    "mode": "public-template-link",
+    "source": {
+        "table": "mail",
+        "client_version": "2451868",
+        "sha256": "ef44058ac5e86af302170c02e0192d57c3b1d4455400e1af06094c0e56b5caf3"
+    },
+    "allowed_origins": [
+        "https://survey.manjuu.com"
+    ],
+    "templates": [
+        {
+            "id": 1,
+            "jump_type": 0
+        },
+        {
+            "id": 2,
+            "jump_type": 0
+        },
+        {
+            "id": 3,
+            "jump_type": 0
+        },
+        {
+            "id": 1010,
+            "jump_type": 1
+        },
+        {
+            "id": 1011,
+            "jump_type": 1
+        },
+        {
+            "id": 1021,
+            "jump_type": 0
+        },
+        {
+            "id": 3002,
+            "jump_type": 0
+        },
+        {
+            "id": 3003,
+            "jump_type": 3,
+            "link": "https://survey.manjuu.com/vm/YMCNnzY.aspx"
+        },
+        {
+            "id": 3004,
+            "jump_type": 3,
+            "link": "https://survey.manjuu.com/vm/YMCNnzY.aspx"
+        },
+        {
+            "id": 3005,
+            "jump_type": 3,
+            "link": "https://survey.manjuu.com/vm/YMCNnzY.aspx"
+        },
+        {
+            "id": 3006,
+            "jump_type": 3,
+            "link": "https://survey.manjuu.com/vm/YMCNnzY.aspx"
+        },
+        {
+            "id": 3007,
+            "jump_type": 3,
+            "link": "https://survey.manjuu.com/vm/rqg7qTZ.aspx"
+        },
+        {
+            "id": 3008,
+            "jump_type": 0
+        },
+        {
+            "id": 3009,
+            "jump_type": 0
+        },
+        {
+            "id": 3010,
+            "jump_type": 0
+        },
+        {
+            "id": 3011,
+            "jump_type": 0
+        },
+        {
+            "id": 3012,
+            "jump_type": 0
+        },
+        {
+            "id": 4001,
+            "jump_type": 0
+        },
+        {
+            "id": 4002,
+            "jump_type": 0
+        },
+        {
+            "id": 4003,
+            "jump_type": 0
+        },
+        {
+            "id": 5001,
+            "jump_type": 0
+        },
+        {
+            "id": 6001,
+            "jump_type": 0
+        },
+        {
+            "id": 6002,
+            "jump_type": 0
+        },
+        {
+            "id": 6003,
+            "jump_type": 0
+        },
+        {
+            "id": 6004,
+            "jump_type": 0
+        },
+        {
+            "id": 9901,
+            "jump_type": 0
+        },
+        {
+            "id": 9999,
+            "jump_type": 0
+        },
+        {
+            "id": 20101,
+            "jump_type": 1
+        },
+        {
+            "id": 20102,
+            "jump_type": 1
+        },
+        {
+            "id": 20103,
+            "jump_type": 1
+        },
+        {
+            "id": 20104,
+            "jump_type": 1
+        },
+        {
+            "id": 20105,
+            "jump_type": 1
+        },
+        {
+            "id": 30001,
+            "jump_type": 1
+        },
+        {
+            "id": 200101,
+            "jump_type": 0
+        }
+    ]
+}

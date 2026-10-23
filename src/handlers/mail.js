@@ -3,7 +3,9 @@ import { grantRewards } from '../rewards.js'
 export { addItems } from '../inventory.js'
 import { ensure, syncPlayer } from './common.js'
 import languageCodes from '../../configs/client-language-codes.json' with { type: 'json' }
+import { mailQuestionLink } from '../mail-question-links.js'
 export function registerMail(on) {
+    on('GetQuestionLink', mailQuestionLink)
     const languages = new Set(Object.values(languageCodes))
     ensure(
         languages.size > 0 &&

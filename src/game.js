@@ -998,6 +998,10 @@ export class Game {
         if (e.name === 'CSProtoRecycle') return [reply({})]
         const handler = this.handlers.get(e.id)
         if (!handler) throw new GameError(`Unsupported ${e.name}`, ErrorCode.InvalidProtoID)
+        if (e.name === 'CSProtoGetQuestionLink') {
+            ensure(session.entered, 'Enter game before requesting mail links', ErrorCode.HaveNotEnterGame)
+            return this.store.read(session.id, (state) => [reply(handler({ state, now }, r))])
+        }
         if (e.name === 'CSProtoChatGetShieldList') return [reply(handler({ id: session.id }, r))]
         if (e.name === 'CSProtoChatInfoSync' || e.name === 'CSProtoChatSyncNew')
             return this.store.read(session.id, (state) => [reply(handler({ id: session.id, state }, r))])
