@@ -1,5 +1,6 @@
 import { ErrorCode } from '../error-codes.js'
 import { checkpointSnapshot } from '../world-checkpoints.js'
+import { clearAbyssRuntime } from '../abyss-flow.js'
 import { registerExplorationRewards } from './exploration-rewards.js'
 import { recordNpcArenaMovement } from '../npc-kibo-battle.js'
 import { expireArenaTrialTrainer } from '../npc-kibo-trainer.js'
@@ -198,6 +199,7 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
         c.push('CSProtoTrialDatas', trialPayload(s))
         if (clearedManager) c.push('CSProtoSyncPlayerData', { group_mgrs: [clearedManager] })
     }
+    if (s.abyssRun && s.abyssRun.map_id !== w.map_id) clearAbyssRuntime(c)
     const cultivationExtra = cultActivityAttrExtra(s)
     c.push('CSProtoWorldMapPointSync', { u32s: w.points })
     if (includeMarks) c.push('CSProtoWorldMapMarkListSync', worldMarkPayload(s))

@@ -7,7 +7,7 @@ import { syncBattle } from '../battle.js'
 import { ensure } from './common.js'
 import { ErrorCode } from '../error-codes.js'
 import { startAbyssBattle, advanceAbyssCombat } from '../abyss-battle.js'
-import { nextAbyssRoom } from '../abyss-flow.js'
+import { nextAbyssRoom, clearAbyssRuntime } from '../abyss-flow.js'
 
 export function publishAbyssEntry(c) {
     const run = c.state.abyssRun,
@@ -39,6 +39,25 @@ export function enterAbyssScene(c, r = {}) {
     return {}
 }
 export function registerAbyssChallenge(on) {
+    on('AbyssChallengeQuit', (c) => {
+        const run = c.state.abyssRun
+        if (!run) return {}
+        const target = run.return_world
+        ensure(
+            target && [1, 3, 7].includes(c.tables.find('world_city', target.map_id)?.type),
+            'Saved abyss entrance is unavailable',
+            ErrorCode.InstanceSceneConfNotExist,
+        )
+        ensure(
+            target.pos && ['x', 'y', 'z'].every((k) => Number.isSafeInteger(target.pos[k])),
+            'Saved abyss entrance position is malformed',
+            ErrorCode.GameConfig,
+        )
+        Object.assign(c.state.world, structuredClone(target))
+        clearAbyssRuntime({ ...c, push: c.pushBefore })
+        worldSync({ ...c, push: c.pushBefore })
+        return {}
+    })
     on('AbyssChallengeNext', (c) => {
         nextAbyssRoom(c)
         publishAbyssEntry(c)
