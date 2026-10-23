@@ -1,4 +1,6 @@
 import { captureRepeatFormation } from '../repeat-formation.js'
+import { captureDungeonFavorEntry } from '../dungeon-favor-entry.js'
+import { dungeonFavorRewardContext } from '../hero-favor-rewards.js'
 import { claimRepeatChest, claimRepeatFirstPass } from '../repeat-event-rewards.js'
 import { repeatSnapshot } from '../repeat-event.js'
 import { ErrorCode } from '../error-codes.js'
@@ -60,6 +62,9 @@ function claimEntrustChest(c, times = 1) {
     if (run.chest_claimed) return []
     const catalog = getEntrustCatalog(c.tables),
         chest = catalog.chest(run.entrust_id)
+    // Fixed recipients come only from the genuinely captured entry, even when
+    // type12 players change their current formation before claiming.
+    const personalFavor = dungeonFavorRewardContext(c.tables, c.state, 'dungeon-chest')
     ensure(c.now <= (run.chest_ready_time ?? run.end_time) + chest.time, 'Entrust chest expired')
     ensure(times === 1 || chest.multimes === 1, 'Chest does not support multiple claims')
     for (const cost of parseRewards(chest.need)) {
@@ -107,7 +112,7 @@ function claimEntrustChest(c, times = 1) {
         exp = catalog.get(run.entrust_id).dungeon.userExp
     // Material chest pools already include player XP through nested drops.
     if (run.kind !== 'material' && exp > 0) rewards.push({ itemtype: 10, itemid: 10, itemnum: exp * times })
-    run.rewards = grantRewards(c.tables, c.state, rewards)
+    run.rewards = grantRewards(c.tables, c.state, rewards, 0, { personalFavor })
     run.chest_claimed = true
     run.claim_times = times
     run.stage_index = catalog.stages(run.entrust_id).at(-1).index + 1
@@ -358,6 +363,7 @@ export function startEntrust(c, id, restart = false, kind = 'entrust') {
     worldSync({ ...c, push: c.pushBefore }, {}, active ? 49 : 256, false)
     // Capture after worldSync restores an expired story/home trial formation.
     if (kind === 'repeat') entrust.run.repeat_formation = captureRepeatFormation(c.state, entrust.run, c.now)
+    else entrust.run.favor_entry = captureDungeonFavorEntry(tables, c.state, entrust.run, c.now)
     syncBattle({ ...c, push: c.pushBefore })
     return {}
 }

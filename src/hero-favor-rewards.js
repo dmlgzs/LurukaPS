@@ -1,21 +1,43 @@
 import policy from '../configs/hero-favor-reward-policy.json' with { type: 'json' }
 import { heroFavorabilityPlan } from './hero-favorability.js'
 import { repeatEntryFavorCandidates } from './repeat-formation.js'
+import { dungeonEntryFavorCandidates } from './dungeon-favor-entry.js'
 import { ensure } from './handlers/common.js'
 import { ErrorCode } from './error-codes.js'
 
 // LOCAL policy explicitly selected by the user. A stable entry roster proves
 // recipients, not the official per-person/share amount or daily limit.
 export function repeatFavorRewardContext(tables, state, operation) {
+    return entryFavorRewardContext(tables, state, operation, 'repeat-entry')
+}
+
+export function dungeonFavorRewardContext(tables, state, operation) {
+    return entryFavorRewardContext(tables, state, operation, 'dungeon-entry')
+}
+
+function candidatesFor(tables, state, scope) {
+    ensure(scope === 'repeat-entry' || scope === 'dungeon-entry', 'Unknown favor entry context', ErrorCode.GameConfig)
+    return scope === 'repeat-entry'
+        ? repeatEntryFavorCandidates(tables, state)
+        : dungeonEntryFavorCandidates(tables, state)
+}
+
+function entryFavorRewardContext(tables, state, operation, scope) {
     ensure(
         policy.allocation === 'entry-favor-roster-each-v1',
         'Personal favor allocation policy unavailable',
         ErrorCode.FunctionClosed,
     )
-    const candidates = repeatEntryFavorCandidates(tables, state)
+    const kind = state.entrust?.run?.kind ?? 'entrust'
+    ensure(
+        Array.isArray(policy.enabledRunKinds) && policy.enabledRunKinds.includes(kind),
+        'Dungeon favor entry policy is not enabled',
+        ErrorCode.FunctionClosed,
+    )
+    const candidates = candidatesFor(tables, state, scope)
     ensure(
         candidates.status === 'verified-entry-candidates',
-        'Repeat favor requires a verified entry formation; leave and enter a fresh run',
+        'Dungeon favor requires a verified entry formation; leave and enter a fresh run',
         ErrorCode.FunctionClosed,
     )
     ensure(
@@ -26,6 +48,8 @@ export function repeatFavorRewardContext(tables, state, operation) {
     for (const id of candidates.hero_guids) heroFavorabilityPlan(tables, state, id, 0)
     return {
         policy: policy.allocation,
+        scope,
+        runKind: kind,
         instanceId: candidates.instance_id,
         heroGuids: [...candidates.hero_guids],
         operation,
@@ -49,11 +73,15 @@ export function grantEntryHeroFavor(tables, state, amount, context) {
     )
     const run = state.entrust?.run
     ensure(
-        run?.kind === 'repeat' && run.instance_id === context.instanceId,
+        run &&
+            (run.kind ?? 'entrust') === context.runKind &&
+            run.instance_id === context.instanceId &&
+            Array.isArray(policy.enabledRunKinds) &&
+            policy.enabledRunKinds.includes(context.runKind),
         'Personal favor context no longer matches the run',
         ErrorCode.GameConfig,
     )
-    const expected = repeatEntryFavorCandidates(tables, state)
+    const expected = candidatesFor(tables, state, context.scope)
     ensure(
         expected.status === 'verified-entry-candidates' &&
             JSON.stringify(expected.hero_guids) === JSON.stringify(context.heroGuids),
@@ -61,7 +89,8 @@ export function grantEntryHeroFavor(tables, state, amount, context) {
         ErrorCode.GameConfig,
     )
     const key = context.operation + ':' + context.ordinal++
-    const receipts = run.repeat_favor_receipts ?? {}
+    const receiptField = context.scope === 'repeat-entry' ? 'repeat_favor_receipts' : 'dungeon_favor_receipts'
+    const receipts = run[receiptField] ?? {}
     ensure(
         receipts && typeof receipts === 'object' && !Array.isArray(receipts),
         'Invalid personal favor receipt ledger',
@@ -110,6 +139,6 @@ export function grantEntryHeroFavor(tables, state, amount, context) {
         ...state.player.heros_info,
         heros: heroes.map((hero) => (updates.has(hero.guid) ? { ...hero, ...updates.get(hero.guid) } : hero)),
     }
-    run.repeat_favor_receipts = { ...receipts, [key]: receipt }
+    run[receiptField] = { ...receipts, [key]: receipt }
     return receipt
 }
