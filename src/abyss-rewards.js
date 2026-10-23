@@ -38,3 +38,41 @@ export function claimAbyssPassRewards(c, request) {
         level_info: selected.map((row) => ({ ...row, pass_level_reward_flag: true })),
     }
 }
+export function claimAbyssStarRewards(c, request) {
+    const { tables, mode, context, snapshot, field } = abyssClaimContext(c, request),
+        group = request.mode === 3 ? context.rotation.reward : context.row.reward,
+        rows = tables
+            .get('abbys_reward')
+            .filter((row) => row.groupId === group)
+            .sort((a, b) => a.num - b.num),
+        levels = snapshot[field + '_mode_info'],
+        stars = levels.filter((x) => x.passed).reduce((n, x) => n + x.star_num, 0),
+        maxStars = context.levels.reduce((n, id) => n + tables.find('abbys_level', id).star, 0)
+    ensure(
+        rows.length > 0 &&
+            rows.every(
+                (row, i) =>
+                    Number.isSafeInteger(row.num) &&
+                    row.num > 0 &&
+                    row.num <= maxStars &&
+                    (!i || row.num > rows[i - 1].num),
+            ),
+        'Abyss star reward group is invalid',
+        ErrorCode.AbyssStarRewardInvalidGroup,
+    )
+    const claimed = new Set(mode.starClaims ?? []),
+        selected = rows.filter((row) => row.num <= stars && !claimed.has(row.num)),
+        plan = selected.map((row) => ({ row, rewards: parseRewards(row.reward) }))
+    ensure(selected.length > 0, 'No unclaimed abyss star rewards', ErrorCode.AbyssStarRewardAlready)
+    for (const { row, rewards } of plan) {
+        grantRewards(c.tables, c.state, rewards, 0, { randomInt: c.randomInt })
+        claimed.add(row.num)
+    }
+    mode.starClaims = [...claimed].sort((a, b) => a - b)
+    return {
+        mode: request.mode,
+        reward_info: {
+            reward_list: rows.filter((r) => claimed.has(r.num)).map((r) => ({ stage_num: r.num, reward_flag: true })),
+        },
+    }
+}
