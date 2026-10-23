@@ -56,7 +56,7 @@ test('real TCP captain aggregates9548, sends the client final9536 only after rea
                 dungeon_id: f.targets[1].dungeonId,
                 ask: false,
                 player_id: captain.id,
-                cancel: true,
+                cancel: false,
             })
         c.send('ReplyChangeDungeon', { accept: true })
         c.send('Heartbeat', { client_time: { time: '2' } })

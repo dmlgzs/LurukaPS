@@ -97,17 +97,17 @@ export class LegacyTeamTargetChanges {
             this.connectionsMatch(p)
         )
     }
+    currentTargetNotice(room, proposer) {
+        // Legacy MultiTeamStore reads only target+ask. cancel=true instead
+        // overrides KiboArenaStore's opponent check in the shared parser.
+        return { dungeon_id: room.target.dungeon_id, ask: false, player_id: proposer, cancel: false }
+    }
     close(c, room, p, status) {
         if (p.status !== 'pending') return
         p.status = status
         p.closed_at = c.now
         this.save(p)
-        this.notify(c, p.participants, 'CSProtoChangeDungeonSync', {
-            dungeon_id: room.target.dungeon_id,
-            ask: false,
-            player_id: p.proposer_id,
-            cancel: true,
-        })
+        this.notify(c, p.participants, 'CSProtoChangeDungeonSync', this.currentTargetNotice(room, p.proposer_id))
     }
     cancel(c, room) {
         const p = this.get(room.id)
@@ -145,12 +145,7 @@ export class LegacyTeamTargetChanges {
         p.status = 'committed'
         p.closed_at = c.now
         this.save(p)
-        this.notify(c, p.participants, 'CSProtoChangeDungeonSync', {
-            dungeon_id: room.target.dungeon_id,
-            ask: false,
-            player_id: p.proposer_id,
-            cancel: false,
-        })
+        this.notify(c, p.participants, 'CSProtoChangeDungeonSync', this.currentTargetNotice(room, p.proposer_id))
         this.notify(c, p.participants, 'CSProtoMatchTeamDataSync', this.teams.snapshot(room, c.id, c.state))
     }
     change(c, r) {
@@ -178,12 +173,7 @@ export class LegacyTeamTargetChanges {
                 return {}
             }
             if (p && p.status !== 'pending' && p.proposer_id === c.id && p.target.dungeon_id === r.dungeon_id) {
-                c.push('CSProtoChangeDungeonSync', {
-                    dungeon_id: room.target.dungeon_id,
-                    ask: false,
-                    player_id: c.id,
-                    cancel: true,
-                })
+                c.push('CSProtoChangeDungeonSync', this.currentTargetNotice(room, c.id))
                 c.push('CSProtoMatchTeamDataSync', this.teams.snapshot(room, c.id, c.state))
                 return {}
             }

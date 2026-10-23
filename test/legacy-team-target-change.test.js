@@ -132,7 +132,7 @@ test('an indexed idle maintenance pass expires once at15s and restores the curre
                 dungeon_id: targets[0].dungeonId,
                 ask: false,
                 player_id: f.id(1),
-                cancel: true,
+                cancel: false,
             })
         assert.equal(f.teams.changes.get(before.id).status, 'expired')
         assert.deepEqual(f.room(), before)
@@ -200,7 +200,14 @@ test('a real leave cancels the bound roster proposal and a reconnect cannot fina
         propose(f)
         f.relog(2)
         const packets = commit(f)
-        assert(packets.some((packet) => packet.id === 9546 && f.decode(packet).cancel))
+        assert(
+            packets.some(
+                (packet) =>
+                    packet.id === 9546 &&
+                    f.decode(packet).dungeon_id === targets[0].dungeonId &&
+                    f.decode(packet).ask === false,
+            ),
+        )
         assert.equal(f.teams.changes.get(id).status, 'cancelled')
         assert.equal(f.room().target.dungeon_id, targets[0].dungeonId)
     } finally {

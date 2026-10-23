@@ -18,7 +18,7 @@ test('real TCP target proposals expire on the idle scheduler and disconnect canc
                 dungeon_id: f.targets[0].dungeonId,
                 ask: false,
                 player_id: captain.id,
-                cancel: true,
+                cancel: false,
             })
         assert.equal(f.server.game.legacyMatchTeams.changes.get(room.team_id).status, 'expired')
         captain.send('ChangeDungeon', { dungeon_id: f.targets[1].dungeonId, scene_type: 12 })
@@ -26,7 +26,12 @@ test('real TCP target proposals expire on the idle scheduler and disconnect canc
         const closed = new Promise((resolve) => peer.socket.once('close', resolve))
         peer.socket.destroy()
         await closed
-        assert.equal(f.decode(await captain.next(9546)).cancel, true)
+        assert.deepEqual(f.decode(await captain.next(9546)), {
+            dungeon_id: f.targets[0].dungeonId,
+            ask: false,
+            player_id: captain.id,
+            cancel: false,
+        })
         assert.equal(f.decode(await captain.next(9561)).status, 1)
         assert.equal(f.server.game.legacyMatchTeams.changes.get(room.team_id).status, 'cancelled')
         assert.equal(f.server.game.legacyMatchTeams.roomFor(captain.id).target.dungeon_id, f.targets[0].dungeonId)
