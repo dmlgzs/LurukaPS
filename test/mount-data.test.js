@@ -85,7 +85,7 @@ test('mount roulette selection supplies short-press ride ID and mount actions ig
         assert.equal(f.state().pets.find((p) => p.guid === cloud.guid).satiety_val, before)
         f.call('WorldMapPlayerStatus', { status: 0, arg: '0', doRecord: true })
         const snapshot = f.store.load(f.session.id)
-        assert.throws(() => f.call('WorldMapPlayerPlayerAction', { action: 3 }), /not mounted/)
+        assert(f.call('WorldMapPlayerPlayerAction', { action: 3 }).some((x) => x.id === 9120))
         assert.deepEqual(f.store.load(f.session.id), snapshot)
         const remove = f.call('PetRemoveRoulettePos', { u32: 2 })
         assert.equal(remove.find((x) => x.id === 6565).data.ride_id, wolf.guid)

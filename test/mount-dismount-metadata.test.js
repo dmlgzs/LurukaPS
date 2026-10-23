@@ -56,7 +56,9 @@ test('mount identity transitions through zero over repeated same-pet cycles and 
             assert.equal(state.world.lastMountMetadata, undefined)
             assert.equal(state.mountRideId, id)
             assert.deepEqual(state.world.pos, position)
-            assert.throws(() => call('WorldMapPlayerPlayerAction', { action: 3 }), /not mounted/)
+            const exited = structuredClone(state)
+            assert(call('WorldMapPlayerPlayerAction', { action: 3 }).some((packet) => packet.id === 9120))
+            assert.deepEqual(store.load(session.id).state, exited)
             const snapshots = []
             worldSync(
                 {

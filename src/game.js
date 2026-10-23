@@ -275,6 +275,7 @@ const deferredMessages = new Set([
 // These client deltas have replies, but must not reset the relation graph or
 // use ordinary request persistence while combat is running.
 const fastCombatReplies = new Set([
+    'CSProtoWorldMapPlayerPlayerAction',
     'CSProtoObjHatredIncSync',
     'CSProtoPlayerHatredIncSync',
     'CSProtoHatredResetSync',
@@ -1169,7 +1170,8 @@ export class Game {
                 {
                     defer: true,
                     fork: (base) =>
-                        e.name === 'CSProtoStateUpdate' ? forkMovement(base) : forkFastCombat(base, e.name, r),
+                        ['CSProtoStateUpdate', 'CSProtoWorldMapPlayerPlayerAction'].includes(e.name)
+                            ? forkMovement(base) : forkFastCombat(base, e.name, r),
                 },
             )
         return this.store.transact(

@@ -1,4 +1,4 @@
-import { beginMountActionLifecycle, endMountActionLifecycle } from '../mount-action-lifecycle.js'
+import { beginMountActionLifecycle, endMountActionLifecycle, isExitedMountAction } from '../mount-action-lifecycle.js'
 import { ErrorCode } from '../error-codes.js'
 import { checkpointSnapshot } from '../world-checkpoints.js'
 import { clearAbyssRuntime } from '../abyss-flow.js'
@@ -555,9 +555,10 @@ export function registerWorld(on) {
         return {}
     })
     on('WorldMapPlayerPlayerAction', (c, r) => {
-        ensure([1, 2, 3].includes(r.action), 'Invalid mount action')
+        ensure([1, 2, 3].includes(r.action), 'Invalid mount action', ErrorCode.InvalidArgument)
         const w = c.state.world
-        ensure(w.status === 1 && w.mount && w.mount !== '0', 'Player is not mounted')
+        if (isExitedMountAction(c)) return {}
+        ensure(w.status === 1 && w.mount && w.mount !== '0', 'Player is not mounted', ErrorCode.PlayerNotInMountType)
         pet(c.state, w.mount)
         // TODO: Reconstruct official mount satiety drain/recovery and sync semantics.
         // Until then satiety is intentionally not part of local action validation.
