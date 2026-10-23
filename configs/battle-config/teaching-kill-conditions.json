@@ -136,6 +136,206 @@
       ],
       "completionDelaySeconds": 3,
       "sourceShape": "linear-skill-v1"
+    },
+    {
+      "battleFsmType": 1010141,
+      "sourceGraph": "ast_fsm_battle_teach_1010141",
+      "sourceSha256": "53c4525a7713359b52b723bd5872bba776097d0fb4a07d6b4fd0c059cdf8aa5a",
+      "fsmNode": "4",
+      "ops": [
+        {
+          "kind": "skill",
+          "id": 10101412,
+          "index": 0
+        },
+        {
+          "kind": "wait",
+          "milliseconds": 1000
+        },
+        {
+          "kind": "skill",
+          "id": 10101404,
+          "index": 0
+        },
+        {
+          "kind": "wait",
+          "milliseconds": 1500
+        },
+        {
+          "kind": "skill",
+          "id": 10101412,
+          "index": 0
+        },
+        {
+          "kind": "wait",
+          "milliseconds": 1500
+        },
+        {
+          "kind": "skill",
+          "id": 10101413,
+          "index": 0
+        },
+        {
+          "kind": "wait",
+          "milliseconds": 6000
+        }
+      ],
+      "sourceShape": "timed-linear-v2",
+      "proofPolicy": "local-server-clock-v1"
+    },
+    {
+      "battleFsmType": 1070021,
+      "sourceGraph": "ast_fsm_battle_teach_1070021",
+      "sourceSha256": "138841907571e559c401a314f5612d9906992f9d3876e4b26df4c544911981ad",
+      "fsmNode": "3",
+      "ops": [
+        {
+          "kind": "skill",
+          "id": 10700204,
+          "index": 0
+        },
+        {
+          "kind": "skill",
+          "id": 10700212,
+          "index": 0
+        },
+        {
+          "kind": "wait",
+          "milliseconds": 3000
+        },
+        {
+          "kind": "skill",
+          "id": 10700213,
+          "index": 0
+        },
+        {
+          "kind": "skill",
+          "id": 10700210,
+          "index": 0
+        },
+        {
+          "kind": "wait",
+          "milliseconds": 3000
+        }
+      ],
+      "sourceShape": "timed-linear-v2",
+      "proofPolicy": "local-server-clock-v1"
+    },
+    {
+      "battleFsmType": 1080051,
+      "sourceGraph": "ast_fsm_battle_teach_1080051",
+      "sourceSha256": "d3a1c5fb0d8f1423b81ff3ec977a5e2f1cd344ce204da85903caecb60c4d88f3",
+      "fsmNode": "2",
+      "ops": [
+        {
+          "kind": "skill",
+          "id": 10800513,
+          "index": 0
+        },
+        {
+          "kind": "wait",
+          "milliseconds": 2000
+        },
+        {
+          "kind": "skill",
+          "id": 10800510,
+          "index": 2
+        },
+        {
+          "kind": "skill",
+          "id": 10800510,
+          "index": 2
+        },
+        {
+          "kind": "wait",
+          "milliseconds": 2000
+        }
+      ],
+      "sourceShape": "timed-linear-v2",
+      "proofPolicy": "local-server-clock-v1"
+    },
+    {
+      "battleFsmType": 1120021,
+      "sourceGraph": "ast_fsm_battle_teach_1120021",
+      "sourceSha256": "ca542e30e6d8179b17c6f6311cb59ca05947f02cfbf39c18f0ac861d0992e43e",
+      "fsmNode": "3",
+      "ops": [
+        {
+          "kind": "element",
+          "id": 112002118,
+          "executorTypes": [
+            1
+          ],
+          "networkOperation": 1,
+          "elementContract": {
+            "shape": "lasting-buff-replace-op1-v1",
+            "asset": "Assets/ResourcesAssets/Config/Battle/Element/Assets/ast_112002118.asset",
+            "elementType": 8,
+            "combineType": 3,
+            "serializedIsLasting": false,
+            "runtimeIsLasting": true,
+            "runtimeBasis": [
+              "BuffElement.Parse:0600a77d",
+              "OnExecuteNormalElement:0600a5be",
+              "ExcuteElement:0600a5d0"
+            ],
+            "source": [
+              {
+                "file": "rd_assets_resourcesassets_config_vstring_azurconfig_azurconfig_bytes.dec.bytes",
+                "sha256": "e2fbf9784305889638effe0ac3a9af83ebdbd2b01373dc931623c69762c6b8c9"
+              },
+              {
+                "file": "rd_assets_resourcesassets_config_vstring_vstring_bytes.dec.bytes",
+                "sha256": "6c1cda4925b40e7379aa9304d26d4cf4b043cffc5bb677c215571ac1e9042e1a"
+              },
+              {
+                "file": "mmap-schema.json",
+                "sha256": "354f1c6e6bf3fa6662fe1ea640809b348c18cff5b042658d345cbca750976e35"
+              }
+            ],
+            "clientAssemblySha256": "5eedb27d0983532a8cc063e3ba465882c0b50589733eaf4392ae8cb89110cd6c",
+            "evidenceRecordSha256": "937b30fcfa60157273c27f9e828673583ca5a045197df8dfd2d6d728b692d250",
+            "resources": [
+              {
+                "name": "rd_assets_resourcesassets_config_vstring_azurconfig_azurconfig_bytes",
+                "version": "2451868",
+                "sha256": "a09914ee4e8dcc51d9c28266e525b389c28cf578ca3f023b6ab7fe6005b05914",
+                "crc32": 2463809358
+              },
+              {
+                "name": "rd_assets_resourcesassets_config_vstring_vstring_bytes",
+                "version": "2451868",
+                "sha256": "0f032fbbdedc5f758fd17f08882695fb8952d6c6910a73fdf2e66f9f614e3b41",
+                "crc32": 2855464684
+              }
+            ]
+          }
+        },
+        {
+          "kind": "wait",
+          "milliseconds": 1000
+        },
+        {
+          "kind": "skill",
+          "id": 11200212,
+          "index": 0
+        },
+        {
+          "kind": "wait",
+          "milliseconds": 2000
+        },
+        {
+          "kind": "skill",
+          "id": 11200213,
+          "index": 0
+        },
+        {
+          "kind": "wait",
+          "milliseconds": 3000
+        }
+      ],
+      "sourceShape": "timed-linear-v2",
+      "proofPolicy": "local-server-clock-v1"
     }
   ],
   "unsupported": [
@@ -152,23 +352,19 @@
     1010041,
     1010061,
     1010081,
-    1010141,
     1030021,
     1070011,
-    1070021,
     1080011,
     1080021,
     1080031,
-    1080051,
     1090011,
     1090021,
     1110011,
     1120011,
-    1120021,
     1990011,
     1990021,
     1990031,
     1990081
   ],
-  "todo": "Compile other teaching FSM control-flow forms before accepting their client-condition kills. This schema validates network-observable triggers; UI guide completion is client-local. Additional linear-skill-v1 rules retain a trailing literal wait as server-clock completionDelaySeconds and reject intermediate timers, branches, loops, parallel waits, skill-slot-only triggers and unknown prerequisites; UI-only actions remain local."
+  "todo": "Compile other teaching FSM control-flow forms before accepting their client-condition kills. This schema validates network-observable triggers; UI guide completion is client-local. Additional linear-skill-v1 rules retain a trailing literal wait as server-clock completionDelaySeconds and reject intermediate timers, branches, loops, parallel waits, skill-slot-only triggers and unknown prerequisites; UI-only actions remain local. timed-linear-v2 preserves literal millisecond waits between exact network events and Hero-executor element waits. LOCAL server wall-clock pause/reconnect policy is explicit in teaching-vm-policy.json; other FSM shapes remain unsupported."
 }

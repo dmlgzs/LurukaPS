@@ -539,7 +539,8 @@ export function registerCombat(on) {
                 if (c.state.petCaptureResults?.[e.tar_id] || c.state.petCaptureResults?.[e.buff?.creator_id]) continue
                 if (e.tar_id !== '0') actor(c, e.tar_id)
                 ensure(e.op >= 1 && e.op <= 10, 'Unknown element operation')
-                const id = e.uniqueId
+                const id = e.uniqueId,
+                    priorTeachingElement = battle.elements[id]
                 if (e.op === 2) delete battle.elements[id]
                 else if ([1, 7, 10].includes(e.op)) {
                     ensure(id !== '0' && e.buff, 'Missing element data')
@@ -551,7 +552,7 @@ export function registerCombat(on) {
                 recordArenaControlEvent(c, e)
                 recordArenaElementOrigin(c, e)
                 recordArenaDamageElement(c, e)
-                observeTeachingElement(c, e)
+                observeTeachingElement(c, e, priorTeachingElement)
             }
         }
         battle.report_count++

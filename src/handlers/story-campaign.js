@@ -225,8 +225,12 @@ export function settleStoryCampaignScene(c) {
 function settlePlayableCampaign(c) {
     const run = c.state.storyCampaign
     if (run.status !== 2 || run.map_id !== c.state.world.map_id) return false
-    const plan = storyCampaignStagePlan(c.tables, run), before = run.stage_index ?? 0
-    while ((run.stage_index ?? 0) < plan.length && campaignStageSatisfied(c.tables, c.state, plan[run.stage_index ?? 0]))
+    const plan = storyCampaignStagePlan(c.tables, run),
+        before = run.stage_index ?? 0
+    while (
+        (run.stage_index ?? 0) < plan.length &&
+        campaignStageSatisfied(c.tables, c.state, plan[run.stage_index ?? 0])
+    )
         run.stage_index = (run.stage_index ?? 0) + 1
     const won = localCampaignSatisfied(c.tables, c.state)
     if (won) {
@@ -238,8 +242,12 @@ function settlePlayableCampaign(c) {
     if (!won && before === (run.stage_index ?? 0)) return false
     ensureStoryCampaignScene(c.tables, c.state, c.now)
     c.push('CSProtoCampaignInfoSync', storyCampaignSnapshot(c.state))
-    c.push('CSProtoWorldMapSync', { cmd: 47, creator_id: c.id, map_id: run.map_id,
-        map_info: { creator_id: c.id, map_id: run.map_id, objs: storyCampaignSnapshot(c.state).scene_datas[0].objs } })
+    c.push('CSProtoWorldMapSync', {
+        cmd: 47,
+        creator_id: c.id,
+        map_id: run.map_id,
+        map_info: { creator_id: c.id, map_id: run.map_id, objs: storyCampaignSnapshot(c.state).scene_datas[0].objs },
+    })
     return true
 }
 
@@ -326,7 +334,7 @@ export function endStoryCampaignScene(c, r) {
         if (
             run.teaching_id &&
             !storySceneDefeated(c.tables, c.state) &&
-            teachingSceneKillReady(c.tables, c.state, c.now)
+            teachingSceneKillReady(c.tables, c.state, c.now, c.arena_now_ms)
         ) {
             // The teaching challenge can report success before its FSM's
             // delayed StoryKillReq. ACK this verified intent, but do not grant
@@ -438,8 +446,11 @@ export function registerStoryCampaign(on, tables) {
         ensure(!c.state.entrust?.run && !c.state.multiCampaign && !c.state.storyCampaign, 'Another dungeon is active')
         if (config.localPlayableRoute) {
             const next = c.state.nextStoryCampaignInstanceId ?? 1
-            ensure(Number.isSafeInteger(next) && next > 0 && next < Number.MAX_SAFE_INTEGER,
-                'Campaign instance counter is damaged or exhausted', ErrorCode.GameConfig)
+            ensure(
+                Number.isSafeInteger(next) && next > 0 && next < Number.MAX_SAFE_INTEGER,
+                'Campaign instance counter is damaged or exhausted',
+                ErrorCode.GameConfig,
+            )
         }
         const w = c.state.world
         const run = (c.state.storyCampaign = {
@@ -453,15 +464,17 @@ export function registerStoryCampaign(on, tables) {
             task_ids: config.taskIds,
             stage_conditions: config.stageConditions,
             victory_stage_count: config.victoryStageCount,
-            ...(config.localPlayableRoute ? {
-                local_playable_condition: config.localPlayableRoute.local_condition,
-                playable_ids: config.localPlayableRoute.playable_ids,
-                opening_story: config.localPlayableRoute.opening_stories[0],
-                ending_story: config.localPlayableRoute.ending_story,
-                opening_delete_tag: config.localPlayableRoute.delete_tag,
-                playable_successes: {},
-                next_playable_attempt: 0,
-            } : {}),
+            ...(config.localPlayableRoute
+                ? {
+                      local_playable_condition: config.localPlayableRoute.local_condition,
+                      playable_ids: config.localPlayableRoute.playable_ids,
+                      opening_story: config.localPlayableRoute.opening_stories[0],
+                      ending_story: config.localPlayableRoute.ending_story,
+                      opening_delete_tag: config.localPlayableRoute.delete_tag,
+                      playable_successes: {},
+                      next_playable_attempt: 0,
+                  }
+                : {}),
             entry_tasks: config.taskIds.length
                 ? structuredClone(campaignEntryTasks(tables, c.state, config.dungeon.id))
                 : undefined,

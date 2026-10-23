@@ -1,0 +1,11 @@
+{
+  "id": "local-server-clock-v1",
+  "origin": "LOCAL",
+  "clockField": "arena_now_ms",
+  "timeUnit": "milliseconds",
+  "pause": "server-wall-time-continues",
+  "reconnect": "same-instance-persisted-deadline-continues",
+  "clockRollback": "do-not-advance",
+  "maxReceipts": 512,
+  "todo": "LOCAL verification policy, not proven official ownerSystem pause/offline semantics. Use the existing injectable Game arenaClockMs; never use client cast/op timestamps as elapsed time. No missing/legacy timer receipt is upgraded to success. Receipt overflow blocks this proof until a new teaching instance."
+}
