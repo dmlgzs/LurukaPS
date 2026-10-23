@@ -742,6 +742,7 @@ export class Game {
             }
             const packets = this.store.transact(session.id, e.id, (state) => {
                 const previousMapId = state.world.map_id
+                delete state.world.mountActionLifecycle // A login never inherits prior-session exit authorization.
                 // Preserve genuine retained deaths before scene repair can
                 // replace an old combat map; the final snapshot is sent later.
                 recoverBossFirstClears(this.tables, state, now)

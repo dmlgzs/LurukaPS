@@ -1,3 +1,4 @@
+import { beginMountActionLifecycle, endMountActionLifecycle } from '../mount-action-lifecycle.js'
 import { ErrorCode } from '../error-codes.js'
 import { checkpointSnapshot } from '../world-checkpoints.js'
 import { clearAbyssRuntime } from '../abyss-flow.js'
@@ -517,12 +518,20 @@ export function registerWorld(on) {
         ensure(Number.isInteger(r.status) && r.status >= 0 && r.status < 6, 'Invalid player status')
         const w = c.state.world,
             arg = String(r.arg ?? '0'),
-            previousMount = w.mount
+            previousMount = w.mount,
+            leavingMount = r.status !== 1 && w.status === 1 && previousMount && previousMount !== '0'
         delete w.lastMountMetadata // Retire the withdrawn client-identity compatibility state.
         if (r.status === 1) {
             delete w.pendingMountExit
             const mount = pet(c.state, arg)
             ensure(!mount.work_status, 'Stationed pet cannot be mounted')
+            ensure(c.tables.find('mount', mount.config_id), 'Pet is not a mount', ErrorCode.PetIsNotMount)
+            const scene = c.tables.find('world_city', w.map_id)
+            ensure(scene, 'Mount scene configuration is missing', ErrorCode.NoWorldCityConf)
+            ensure(Number.isInteger(scene.mountAvailable) && scene.mountAvailable >= 0,
+                'Invalid scene mount availability', ErrorCode.GameConfig)
+            ensure(scene.mountAvailable > 0, 'Scene cannot mount', ErrorCode.SceneCantMount)
+            beginMountActionLifecycle(c, mount)
             syncGroupControl(c)
             w.mount = mount.guid
             if (c.state.mountRideId !== mount.guid) {
@@ -530,14 +539,19 @@ export function registerWorld(on) {
                 c.push('CSProtoRideMountInfo', mountPayload(c.tables, c.state))
             }
         } else {
+            endMountActionLifecycle(c.state, w.map_id, c)
             w.mount = '0'
             w.mount_status = 0
         }
         w.status = r.status
         w.status_arg = arg
         w.mountSyncVersion = 1
-        if (w.mount !== previousMount) playerStatusSync(c, 17)
-        playerStatusSync(c, 25)
+        // ReqLeaveMount's ACK callback unblocks input but does not clear the
+        // client's MountId. Apply the exit state before that successful ACK.
+        // Keep ride-entry and unrelated status ordering unchanged.
+        const statusContext = leavingMount ? { ...c, push: c.pushBefore } : c
+        if (w.mount !== previousMount) playerStatusSync(statusContext, 17)
+        playerStatusSync(statusContext, 25)
         return {}
     })
     on('WorldMapPlayerPlayerAction', (c, r) => {

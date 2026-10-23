@@ -1,3 +1,4 @@
+import { endMountActionLifecycle } from './mount-action-lifecycle.js'
 import { ErrorCode } from './error-codes.js'
 import { randomInt } from 'node:crypto'
 import { ensure } from './handlers/common.js'
@@ -50,8 +51,9 @@ export function mountPayload(tables, state) {
 }
 
 // Active riding is scene-local. The selected roulette mount remains available.
-export function clearSceneMount(state) {
+export function clearSceneMount(state, previousMapId = state.world.map_id) {
     const world = state.world
+    endMountActionLifecycle(state, previousMapId)
     const changed = world.status === 1 || (world.mount && world.mount !== '0') || !!world.mount_status
     if (world.status === 1) {
         world.status = 0
