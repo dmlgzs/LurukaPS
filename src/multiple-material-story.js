@@ -1,5 +1,6 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
+import { weeklyDungeonPolicy } from './weekly-dungeons.js'
 const caches = new WeakMap()
 const fields = (text) =>
     Object.fromEntries(
@@ -12,10 +13,17 @@ const fields = (text) =>
             }),
     )
 export function materialStoryPlan(tables, run) {
-    if (run?.kind !== 'material') return null
+    const weekly = run?.kind === 'weekly'
+    if (run?.kind !== 'material' && !weekly) return null
     let cache = caches.get(tables)
     if (!cache) caches.set(tables, (cache = new Map()))
-    if (cache.has(run.map_id)) return cache.get(run.map_id)
+    const cacheKey = `${run.kind}:${run.map_id}`
+    if (cache.has(cacheKey)) return cache.get(cacheKey)
+    const invalid = (message) => {
+        ensure(!weekly, message, ErrorCode.GameConfig)
+        cache.set(cacheKey, null)
+        return null
+    }
     const scene = tables.find('dungeon_scene', run.map_id),
         city = tables.find('world_city', run.map_id),
         bp = scene && tables.find('world_blueprint', scene.blueprintId)
@@ -27,26 +35,23 @@ export function materialStoryPlan(tables, run) {
         !bp.path.endsWith('/multiplayer_dungeon_common.asset') ||
         fields(scene.boolParam).isBossOnly !== 'true'
     ) {
-        cache.set(run.map_id, null)
-        return null
+        return invalid('Weekly boss blueprint configuration unavailable')
     }
     const p = fields(scene.intParam),
         storyId = Number(p.bossStoryID),
         bossId = Number(p.bossID),
-        triggerId = Number(p.bossTriggerID),
         pointId = Number(p.bossTransferID)
-    if (![storyId, bossId, triggerId, pointId].every((n) => Number.isInteger(n) && n > 0)) {
-        cache.set(run.map_id, null)
-        return null
-    }
+    let triggerId = Number(p.bossTriggerID)
+    const missingTrigger = weekly && p.bossTriggerID === undefined
+    if (
+        ![storyId, bossId, pointId].every((n) => Number.isInteger(n) && n > 0) ||
+        (!missingTrigger && !(Number.isInteger(triggerId) && triggerId > 0))
+    )
+        return invalid('Weekly boss intro parameters unavailable')
     const rows = tables.get(`worldmap_${run.map_id}`),
         boss = rows.find((r) => r.id === bossId),
-        trigger = rows.find((r) => r.id === triggerId),
         point = tables.find('world_borthpos', pointId)
-    if (!boss || !trigger || point?.cityId !== run.map_id) {
-        cache.set(run.map_id, null)
-        return null
-    }
+    if (!boss || point?.cityId !== run.map_id) return invalid('Weekly boss intro route unavailable')
     const stages = rows
         .flatMap((row) => {
             const t = String(row.expandParams ?? '')
@@ -63,12 +68,43 @@ export function materialStoryPlan(tables, run) {
                 : []
         })
         .sort((a, b) => a.index - b.index)
+    let localTriggerSource
+    if (missingTrigger) {
+        ensure(
+            typeof weeklyDungeonPolicy.intro?.enabled === 'boolean' &&
+                weeklyDungeonPolicy.intro.missingBossTrigger === 'unique-initial-interaction-marker',
+            'LOCAL weekly missing-trigger policy is invalid',
+            ErrorCode.GameConfig,
+        )
+        ensure(
+            weeklyDungeonPolicy.intro.enabled,
+            'LOCAL weekly missing-trigger compatibility is disabled',
+            ErrorCode.FunctionClosed,
+        )
+        const candidates = stages.filter((s) => s.index === 1 && s.type === 13)
+        ensure(candidates.length === 1, 'Weekly initial interaction marker is ambiguous', ErrorCode.GameConfig)
+        triggerId = candidates[0].row.id
+        localTriggerSource = {
+            mode: 'local-inferred',
+            table: `worldmap_${run.map_id}`,
+            row_id: triggerId,
+            spawner_id: candidates[0].row.spawnerId,
+            field: 'autoBattleIndex#1',
+            policy: 'unique-initial-interaction-marker',
+        }
+    }
+    const trigger = rows.find((r) => r.id === triggerId)
+    if (!trigger) return invalid('Weekly boss trigger object unavailable')
     const triggerSpawner = tables.find('world_spawner', trigger.spawnerId),
-        op = String(trigger.interactOptions || triggerSpawner?.interactOps || '')
+        op = (String(trigger.interactOptions ?? '').trim() || String(triggerSpawner?.interactOps ?? ''))
             .split('|')
             .map(Number)
             .map((id) => tables.find('world_interact', id))
-            .find((r) => r?.interactAction === 75)
+            .find(
+                (r) =>
+                    r?.interactAction === 75 ||
+                    (weekly && triggerSpawner?.objectType === 13 && r?.interactAction === 10019),
+            )
     if (
         stages.length !== 3 ||
         stages[0].type !== 13 ||
@@ -76,10 +112,9 @@ export function materialStoryPlan(tables, run) {
         stages[1].type !== 50 ||
         stages[2].type !== 30 ||
         !op ||
-        triggerSpawner?.objectType !== 306
+        !(triggerSpawner?.objectType === 306 || (weekly && triggerSpawner?.objectType === 13))
     ) {
-        cache.set(run.map_id, null)
-        return null
+        return invalid('Weekly boss intro stage/interaction configuration invalid')
     }
     ensure(tables.find('story', storyId), 'Material intro story configuration unavailable', ErrorCode.StoryConfNotExist)
     ensure(
@@ -104,8 +139,22 @@ export function materialStoryPlan(tables, run) {
         boss_index: stages[1].index,
         range: op.interactRange * 100,
         pos: { x: Math.round(xyz[0] * 100), y: Math.round(xyz[1] * 100), z: Math.round(xyz[2] * 100) },
+        ...(localTriggerSource
+            ? {
+                  local_trigger_source: {
+                      ...localTriggerSource,
+                      interact_id: op.id,
+                      interact_options_source: String(trigger.interactOptions || '').trim()
+                          ? 'worldmap'
+                          : 'world_spawner',
+                      override_params: String(trigger.interactOptions || '').trim()
+                          ? String(trigger.interactOverrideParams || '')
+                          : '',
+                  },
+              }
+            : {}),
     }
-    cache.set(run.map_id, plan)
+    cache.set(cacheKey, plan)
     return plan
 }
 export function materialStoryPending(run) {

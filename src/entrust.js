@@ -7,6 +7,7 @@ import { ensure } from './handlers/common.js'
 import { combatState } from './combat-state.js'
 import { enemyDefinition } from './enemy-state.js'
 import { recordMaterialVictory } from './material-dungeons.js'
+import { recordWeeklyVictory } from './weekly-dungeons.js'
 
 const catalogs = new WeakMap()
 export function getEntrustCatalog(tables) {
@@ -25,25 +26,34 @@ export class EntrustCatalog {
         this.stageCache = new Map()
     }
 
-    get(id) {
+    get(id, kind) {
         ensure(Number.isInteger(id) && id > 0, 'Invalid entrust ID')
-        const repeat = repeatDungeon(this.tables, id)
+        const weekly = kind === 'weekly' ? this.tables.find('dungeon_weekly', id) : null
+        ensure(kind !== 'weekly' || weekly, 'Weekly dungeon configuration unavailable', ErrorCode.DungeonConfNotExist)
+        const repeat = weekly ? null : repeatDungeon(this.tables, id)
         const source = repeat ? repeatEventTables(this.tables) : this.tables
-        const commission = this.tables.find('dungeon_entrust', id),
-            material = commission ? null : this.tables.find('dungeon_material', id),
-            entrust =
-                commission ??
-                (material && { ...material, groupId: material.type, taskUnlock: material.unlock }) ??
-                (repeat && { id, dungeonId: id, groupId: 0, taskUnlock: repeat.dungeon.unlockCondition })
+        const commission = weekly ? null : this.tables.find('dungeon_entrust', id),
+            material = commission || weekly ? null : this.tables.find('dungeon_material', id),
+            entrust = weekly
+                ? { ...weekly, groupId: weekly.dungeongroup }
+                : (commission ??
+                  (material && { ...material, groupId: material.type, taskUnlock: material.unlock }) ??
+                  (repeat && { id, dungeonId: id, groupId: 0, taskUnlock: repeat.dungeon.unlockCondition }))
         ensure(entrust, 'Unknown entrust', ErrorCode.EntrustConfigNone)
         const dungeon = source.find('dungeon', entrust.dungeonId)
         ensure(dungeon, 'Entrust dungeon configuration unavailable', ErrorCode.DungeonConfNotExist)
-        if (!this.scenes.has(id)) {
+        const key = `${weekly ? 'weekly' : 'legacy'}:${id}`
+        if (!this.scenes.has(key)) {
             // The box filter is the explicit dungeon-to-scene relationship.
             // Numbered [test] city labels do NOT correspond to entrust IDs.
-            const chest = source
+            const boxes = source
                 .get('stamina_chest_drop')
-                .find((row) => row.worldFilter === `${material ? 4 : 1}|${dungeon.id}`)
+                .filter((row) => row.worldFilter === `${material || weekly ? 4 : 1}|${dungeon.id}`)
+            if (weekly) {
+                ensure(boxes.length > 0, 'Weekly chest configuration unavailable', ErrorCode.NoStaminaBoxDropConf)
+                ensure(boxes.length === 1, 'Weekly chest configuration is ambiguous', ErrorCode.GameConfig)
+            }
+            const chest = boxes[0]
             const city = chest && source.find('world_city', chest.worldmapcityid)
             const scene = city && source.find('dungeon_scene', city.id)
             const point =
@@ -55,17 +65,17 @@ export class EntrustCatalog {
                 'Entrust scene mapping unavailable',
                 ErrorCode.InstanceSceneConfNotExist,
             )
-            this.scenes.set(id, { city, scene, point, chest })
+            this.scenes.set(key, { city, scene, point, chest })
         }
-        return { entrust, dungeon, material, repeat, ...this.scenes.get(id) }
+        return { entrust, dungeon, material: weekly ? null : material, repeat, weekly, ...this.scenes.get(key) }
     }
 
-    victoryObjects(id) {
-        const { scene, repeat } = this.get(id)
+    victoryObjects(id, kind) {
+        const { scene, repeat } = this.get(id, kind)
         const source = repeat ? repeatEventTables(this.tables) : this.tables
-        const [kind, spawner, , , count, ...extra] = String(scene.victoryCondition).split('#').map(Number)
+        const [conditionKind, spawner, , , count, ...extra] = String(scene.victoryCondition).split('#').map(Number)
         ensure(
-            kind === 2500 && spawner > 0 && count > 0 && !extra.length,
+            conditionKind === 2500 && spawner > 0 && count > 0 && !extra.length,
             'Unsupported entrust victory condition',
             ErrorCode.GameConfig,
         )
@@ -81,9 +91,10 @@ export class EntrustCatalog {
         })
     }
 
-    stages(id) {
-        if (!this.stageCache.has(id)) {
-            const { scene, repeat } = this.get(id)
+    stages(id, kind) {
+        const key = `${kind === 'weekly' ? 'weekly' : 'legacy'}:${id}`
+        if (!this.stageCache.has(key)) {
+            const { scene, repeat } = this.get(id, kind)
             const source = repeat ? repeatEventTables(this.tables) : this.tables
             const rows = source
                 .get(`worldmap_${scene.id}`)
@@ -111,20 +122,20 @@ export class EntrustCatalog {
                 'Invalid entrust stage order',
                 ErrorCode.GameConfig,
             )
-            this.stageCache.set(id, rows)
+            this.stageCache.set(key, rows)
         }
-        return this.stageCache.get(id)
+        return this.stageCache.get(key)
     }
 
-    chest(id) {
-        const { dungeon, material, repeat } = this.get(id)
+    chest(id, kind) {
+        const { dungeon, material, repeat, weekly } = this.get(id, kind)
         const source = repeat ? repeatEventTables(this.tables) : this.tables
         const row = source.get('stamina_chest_drop').find((entry) => {
             const [type, target] = String(entry.worldFilter).split('|').map(Number)
-            return type === (material ? 4 : 1) && target === dungeon.id
+            return type === (material || weekly ? 4 : 1) && target === dungeon.id
         })
         ensure(
-            row && row.worldmapid === this.stages(id).at(-1).row.id,
+            row && row.worldmapid === this.stages(id, kind).at(-1).row.id,
             'Entrust chest configuration unavailable',
             ErrorCode.NoStaminaBoxDropConf,
         )
@@ -137,7 +148,7 @@ export function settleEntrustVictory(tables, state, now) {
     if (!run || run.battle_complete || !run.end_time || !run.battle_start_time) return false
     const catalog = getEntrustCatalog(tables)
     if (!entrustVictoryComplete(catalog, state, run.entrust_id)) return false
-    const { scene, entrust } = catalog.get(run.entrust_id)
+    const { scene, entrust } = catalog.get(run.entrust_id, run.kind)
     const goals = tables
         .get('common_challenge')
         .filter((row) => row.group === scene.challengeGroup && row.type === 1)
@@ -181,6 +192,10 @@ export function settleEntrustVictory(tables, state, now) {
         recordMaterialVictory(tables, state, run, mask)
         return true
     }
+    if (run.kind === 'weekly') {
+        recordWeeklyVictory(tables, state, run, mask)
+        return true
+    }
     const old = state.entrust.records[run.entrust_id]
     state.entrust.records[run.entrust_id] = {
         ...old,
@@ -217,7 +232,7 @@ export function entrustChestGivenUp(tables, run) {
         ErrorCode.GameConfig,
     )
     ensure(
-        receipt.box_id === getEntrustCatalog(tables).chest(run.entrust_id).id,
+        receipt.box_id === getEntrustCatalog(tables).chest(run.entrust_id, run.kind).id,
         'Stamina chest give-up identity mismatch',
         ErrorCode.GameConfig,
     )
@@ -227,7 +242,7 @@ export function entrustChestGivenUp(tables, run) {
 export function entrustChestSnapshot(tables, state) {
     const run = state.entrust?.run
     if (!run?.battle_complete) return { boxes: [] }
-    const chest = getEntrustCatalog(tables).chest(run.entrust_id)
+    const chest = getEntrustCatalog(tables).chest(run.entrust_id, run.kind)
     return {
         boxes: [
             {
@@ -236,7 +251,7 @@ export function entrustChestSnapshot(tables, state) {
                     run.chest_claimed || entrustChestGivenUp(tables, run) ? 0 : (run.chest_ready_time ?? run.end_time),
                 map_id: run.map_id,
                 box_count: run.chest_claimed ? (run.claim_times ?? 1) : 0,
-                stage_type: run.kind === 'material' ? 4 : 1,
+                stage_type: ['material', 'weekly'].includes(run.kind) ? 4 : 1,
                 stage_id: run.dungeon_id,
             },
         ],
@@ -342,7 +357,7 @@ export function entrustMultiBaseSnapshot(state, accountId) {
 export function ensureEntrustSceneObjects(tables, state, now) {
     const run = state.entrust?.run
     if (!run || state.world.map_id !== run.map_id) return false
-    const config = getEntrustCatalog(tables).get(run.entrust_id)
+    const config = getEntrustCatalog(tables).get(run.entrust_id, run.kind)
     if (run.map_id !== config.scene.id) {
         run.migrated_from_map = run.map_id
         run.map_id = config.scene.id
@@ -356,7 +371,7 @@ export function ensureEntrustSceneObjects(tables, state, now) {
     }
     const records = (state.worldObjects ??= {})
     let changed = false
-    const stages = getEntrustCatalog(tables).stages(run.entrust_id)
+    const stages = getEntrustCatalog(tables).stages(run.entrust_id, run.kind)
     if (run.sceneObjectVersion !== 4) {
         for (const key of Object.keys(records)) if (key.startsWith(`${run.map_id}:`)) delete records[key]
         if (state.combat?.map_id === run.map_id) delete state.combat
@@ -497,10 +512,11 @@ export function ensureEntrustSceneObjects(tables, state, now) {
 }
 
 export function entrustVictoryComplete(catalog, state, id) {
-    const { scene } = catalog.get(id)
+    const kind = state.entrust?.run?.entrust_id === id ? state.entrust.run.kind : undefined
+    const { scene } = catalog.get(id, kind)
     if (state.world.map_id !== scene.id || state.combat?.map_id !== scene.id) return false
     return catalog
-        .victoryObjects(id)
+        .victoryObjects(id, kind)
         .every(({ objectId, count }) =>
             Array.from({ length: count }, (_, slot) =>
                 ((3n << 56n) | (BigInt(slot) << 32n) | BigInt(objectId)).toString(),

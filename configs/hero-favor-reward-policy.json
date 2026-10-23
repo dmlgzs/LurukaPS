@@ -1,7 +1,7 @@
 {
     "allocation": "entry-favor-roster-each-v1",
     "scope": "verified-local-dungeon-entry",
-    "enabledRunKinds": ["repeat", "material", "entrust"],
+    "enabledRunKinds": ["repeat", "material", "entrust", "weekly"],
     "maximumLevelOverflow": "discard-with-receipt",
     "legacyGlobalBalance": "do-not-migrate",
     "missingContext": "warn-and-preserve-legacy-global-outside-entry-context",

@@ -52,6 +52,7 @@ import { installAbyssFormation, abyssDungeonInfo, abyssActorInfo } from './abyss
 import { homeExchangeDue, prepareHomeExchange, homeExchangeLoginData } from './home-exchange.js'
 import { ensureReputations, reputationSnapshot } from './reputation.js'
 import { materialDungeonSnapshot } from './material-dungeons.js'
+import { prepareWeeklyQuota, weeklyDungeonSnapshot, weeklyQuotaDue } from './weekly-dungeons.js'
 import { prepareCropOutcomes } from './crop-rewards.js'
 import { reconcileHomeStage } from './home-stage.js'
 import { npcArenaTickDue, forkNpcArenaRuntime, tickNpcArena } from './npc-kibo-service.js'
@@ -1572,6 +1573,7 @@ export class Game {
             dormDue = dormDayDue(this.tables, current, now),
             activityDue = this.activities.due(current, now),
             dailyActiveDue = activePeriodDue(this.tables, current, now),
+            weeklyReady = weeklyQuotaDue(this.tables, current, now),
             arenaDue = npcArenaTickDue(current, exact),
             abyssDue =
                 session?.entered && session.id === id && this.abyssTickOwners.get(id) === session
@@ -1586,6 +1588,7 @@ export class Game {
                 dormDue ||
                 activityDue ||
                 dailyActiveDue ||
+                weeklyReady ||
                 !!abyssDue ||
                 !!npcArenaOutcome(current, exact)
         if (
@@ -1597,6 +1600,7 @@ export class Game {
             !dormDue &&
             !activityDue &&
             !dailyActiveDue &&
+            !weeklyReady &&
             !arenaDue &&
             !abyssDue
         )
@@ -1609,6 +1613,15 @@ export class Game {
                     eggRevision = state.eggRevision || 0,
                     petRevision = state.petRevision || 0,
                     handbookBonusesBefore = state.petHandbookBonuses
+                // An idle client opening the weekly page must see the new quota.
+                // This enters a durable transaction once per actual epoch only;
+                // ordinary ticks and every skill/movement stay outside it.
+                if (weeklyReady && prepareWeeklyQuota(this.tables, state, now))
+                    packets.push(
+                        this.packet('CSProtoSyncPlayerData', {
+                            attr_infos: { attrs: state.player.attr_infos.attrs.filter((r) => r.attr_id === 104) },
+                        }),
+                    )
                 if (abyssDue)
                     expireAbyssTimeout(
                         {
@@ -1760,6 +1773,7 @@ export class Game {
             pushBefore: (name, value) => repeatRewards.push(this.packet(name, value)),
         })
         prepareStamina(this.tables, state, now)
+        prepareWeeklyQuota(this.tables, state, now)
         pruneItemShortcuts(state, now)
         observeJourney(this.tables, state)
         const novice = prepareNovicePack(this.tables, state, now).payload
@@ -1840,6 +1854,7 @@ export class Game {
             this.packet('CSProtoRepeatEventTaskSync', repeatTaskSnapshot(this.tables, state)),
             ...repeatRewards,
             this.packet('SCProtoDungeonMaterialInfoSync', materialDungeonSnapshot(state)),
+            this.packet('CSProtoMultiCampaignInfoSync', { camp: weeklyDungeonSnapshot(this.tables, state) }),
             this.packet('CSProtoEntrustStarRewardSync', entrustStarRewardSnapshot(state)),
             ...(state.entrust?.run?.map_id === state.world.map_id
                 ? [
@@ -1857,7 +1872,20 @@ export class Game {
                                     entrustMultiBaseSnapshot(state, session.id),
                                 ),
                                 this.packet('CSProtoMultiCampaignInfoSync', {
-                                    camp: [entrustMultiSnapshot(state.entrust.run)],
+                                    camp: [
+                                        {
+                                            ...entrustMultiSnapshot(state.entrust.run),
+                                            ...(state.entrust.run.kind === 'weekly'
+                                                ? {
+                                                      star:
+                                                          state.weeklyDungeonRecords?.[state.entrust.run.entrust_id]
+                                                              ?.star ??
+                                                          state.entrust.run.star_mask ??
+                                                          0,
+                                                  }
+                                                : {}),
+                                        },
+                                    ],
                                 }),
                                 this.packet('CSProtoCurMultiCampaignInfoSync', entrustMultiSnapshot(state.entrust.run)),
                             ]),

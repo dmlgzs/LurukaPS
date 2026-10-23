@@ -27,7 +27,11 @@ function qualification(tables, id) {
 // Captured exactly once after entry worldSync has restored expired formations.
 // This records reward recipients; it does not lock type12 teams or pet bindings.
 export function captureDungeonFavorEntry(tables, state, run, now) {
-    ensure(['material', 'entrust'].includes(kindOf(run)), 'Unsupported dungeon favor entry kind', ErrorCode.GameConfig)
+    ensure(
+        ['material', 'entrust', 'weekly'].includes(kindOf(run)),
+        'Unsupported dungeon favor entry kind',
+        ErrorCode.GameConfig,
+    )
     const manager = activeFormationManager(state),
         group = manager?.groups?.find((row) => row.id === manager.cur_group)
     ensure(
@@ -88,7 +92,7 @@ export function captureDungeonFavorEntry(tables, state, run, now) {
 
 export function dungeonEntryFavorCandidates(tables, state) {
     const run = state.entrust?.run
-    if (!run || !['material', 'entrust'].includes(kindOf(run)))
+    if (!run || !['material', 'entrust', 'weekly'].includes(kindOf(run)))
         return { status: 'no-local-dungeon-run', hero_guids: [] }
     const entry = run.favor_entry
     if (!entry) return { status: 'legacy-entry-unverified', hero_guids: [] }

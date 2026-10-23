@@ -13,6 +13,7 @@ import {
 import { ErrorCode } from '../error-codes.js'
 import { rewardSource } from '../reward-source.js'
 import { materialDungeonSnapshot, materialDungeonUnlocked } from '../material-dungeons.js'
+import { weeklyDungeonUnlocked, prepareWeeklyQuota, requireWeeklySystem } from '../weekly-dungeons.js'
 import { ensure, syncPlayer } from './common.js'
 import { syncBattle } from '../battle.js'
 import { grantRewards, parseRewards } from '../rewards.js'
@@ -39,7 +40,7 @@ import {
 } from '../entrust.js'
 
 function isSingleEntrust(c) {
-    return getEntrustCatalog(c.tables).get(c.state.entrust.run.entrust_id).city.type === 2
+    return getEntrustCatalog(c.tables).get(c.state.entrust.run.entrust_id, c.state.entrust.run.kind).city.type === 2
 }
 
 function unlocked(rule, state) {
@@ -59,6 +60,8 @@ function unlocked(rule, state) {
 function claimEntrustChest(c, times = 1) {
     ensure(Number.isSafeInteger(times) && times > 0 && times <= 0xffffffff, 'Invalid entrust claim multiplier')
     const run = c.state.entrust?.run
+    // Weekly rewards are introduced by the independent 9974 continuation.
+    ensure(run?.kind !== 'weekly', 'Weekly chest claim is not implemented', ErrorCode.FunctionClosed)
     if (run?.kind === 'repeat') {
         const result = claimRepeatChest(c, times)
         c.repeatExtraRewards = result.extra
@@ -70,7 +73,7 @@ function claimEntrustChest(c, times = 1) {
     ensure(!entrustChestGivenUp(c.tables, run), 'Stamina chest was given up', ErrorCode.StaminaBoxNotExist)
     if (run.chest_claimed) return []
     const catalog = getEntrustCatalog(c.tables),
-        chest = catalog.chest(run.entrust_id)
+        chest = catalog.chest(run.entrust_id, run.kind)
     // Fixed recipients come only from the genuinely captured entry, even when
     // type12 players change their current formation before claiming.
     const personalFavor = dungeonFavorRewardContext(c.tables, c.state, 'dungeon-chest')
@@ -103,7 +106,7 @@ function claimEntrustChest(c, times = 1) {
             // Pay them with the stamina-funded share, never from a win report.
             // TODO: confirm bonus repetition/multipliers against an official
             // settlement; current behavior follows the per-share reward data.
-            const ids = String(catalog.get(run.entrust_id).material.challengeReward || '')
+            const ids = String(catalog.get(run.entrust_id, run.kind).material.challengeReward || '')
                 .split('|')
                 .map(Number)
             for (let star = 0; star < ids.length; star++) {
@@ -118,13 +121,13 @@ function claimEntrustChest(c, times = 1) {
         }
     }
     const rewards = [...merged.values()],
-        exp = catalog.get(run.entrust_id).dungeon.userExp
+        exp = catalog.get(run.entrust_id, run.kind).dungeon.userExp
     // Material chest pools already include player XP through nested drops.
     if (run.kind !== 'material' && exp > 0) rewards.push({ itemtype: 10, itemid: 10, itemnum: exp * times })
     run.rewards = grantRewards(c.tables, c.state, rewards, 0, { personalFavor })
     run.chest_claimed = true
     run.claim_times = times
-    run.stage_index = catalog.stages(run.entrust_id).at(-1).index + 1
+    run.stage_index = catalog.stages(run.entrust_id, run.kind).at(-1).index + 1
     if (run.kind !== 'material') c.state.entrust.records[run.entrust_id].first_reward_claimed = true
     syncPlayer({ ...c, push: c.pushBefore })
     syncEntrustStage(c)
@@ -135,7 +138,7 @@ function stageContext(c) {
     const run = c.state.entrust?.run
     if (!run || c.state.world.map_id !== run.map_id) return null
     const catalog = getEntrustCatalog(c.tables)
-    return { run, catalog, stages: catalog.stages(run.entrust_id) }
+    return { run, catalog, stages: catalog.stages(run.entrust_id, run.kind) }
 }
 
 export function syncEntrustStage(c, previousEnemyObjectId) {
@@ -183,7 +186,7 @@ export function syncEntrustEnemyBattle(c, previousEnemyObjectId) {
         c.push('SCProtoControlChangeByAddNtf', { agent_uid, cli_data: { uuid: agent_uid } })
     }
     if (!single && run.battle_complete && !run.chest_claimed && !entrustChestGivenUp(c.tables, run)) {
-        const chest = getEntrustCatalog(c.tables).chest(run.entrust_id)
+        const chest = getEntrustCatalog(c.tables).chest(run.entrust_id, run.kind)
         c.push('SCProtoObjAppearNtf', {
             agent_uid: ((8n << 56n) | BigInt(chest.worldmapid)).toString(),
             agent_type: 9,
@@ -209,8 +212,9 @@ export function validateEntrustObjectInteraction(c, objectId, completing) {
     ensure(stage.index <= context.run.stage_index, 'Entrust stage is not active')
     if (stage.type === 50 && stage.index === context.run.stage_index)
         ensure(
-            context.catalog.victoryObjects(context.run.entrust_id).find((entry) => entry.objectId === objectId)?.count >
-                0 &&
+            context.catalog
+                .victoryObjects(context.run.entrust_id, context.run.kind)
+                .find((entry) => entry.objectId === objectId)?.count > 0 &&
                 Object.values(c.state.combat?.entities ?? {}).filter(
                     (enemy) => enemy.object_id === objectId && enemy.hp === 0,
                 ).length ===
@@ -231,7 +235,9 @@ export function completeEntrustObject(c, objectId, completing) {
     const stage = stages[position]
     if (stage.type === 13) {
         if (prepareMaterialStory(c)) {
-            syncEntrustStage(c)
+            // The weekly marker is its own actual 9133 SetComplete trigger.
+            // The following beginMaterialStoryInteraction publishes the intro.
+            if (run.kind !== 'weekly') syncEntrustStage(c)
             return []
         }
         run.stage_index = stages[position + 1].index
@@ -287,7 +293,8 @@ export function syncEntrust(c, run) {
     if (isSingleEntrust(c)) c.pushBefore('CSProtoCampaignInfoSync', campaignSnapshot(run))
     else {
         if (active) c.pushBefore('CSProtoMultiCampaignBaseInfoSync', entrustMultiBaseSnapshot(c.state, c.id))
-        c.pushBefore('CSProtoMultiCampaignInfoSync', { camp: [multi] })
+        const record = run.kind === 'weekly' ? c.state.weeklyDungeonRecords?.[run.entrust_id] : null
+        c.pushBefore('CSProtoMultiCampaignInfoSync', { camp: [{ ...multi, star: record?.star ?? multi.star }] })
         c.pushBefore('CSProtoCurMultiCampaignInfoSync', active ? multi : { ...multi, status: 1 })
     }
     c.pushBefore('SCProtoMultiCampaignPlayerDmgInfoSync', entrustDamageSnapshot(c.state, c.id))
@@ -295,7 +302,7 @@ export function syncEntrust(c, run) {
         if (run.kind === 'material') c.pushBefore('SCProtoDungeonMaterialInfoSync', materialDungeonSnapshot(c.state))
         else if (run.kind === 'repeat')
             c.pushBefore('CSProtoRepeatEventSync', repeatSnapshot(c.state, c.activityCatalog, c.now))
-        else c.pushBefore('CSProtoEntrustInfoSync', entrustInfoSnapshot(c.state))
+        else if (run.kind !== 'weekly') c.pushBefore('CSProtoEntrustInfoSync', entrustInfoSnapshot(c.state))
         c.pushBefore('CSProtoStaminaBoxSync', entrustChestSnapshot(c.tables, c.state))
     }
 }
@@ -324,16 +331,21 @@ export function exitEntrust(c) {
 export function startEntrust(c, id, restart = false, kind = 'entrust') {
     const tables = c.tables,
         catalog = getEntrustCatalog(tables)
-    const config = catalog.get(id),
+    const config = catalog.get(id, kind),
         active = c.state.entrust?.run
     ensure(
-        (kind === 'material') === !!config.material && (kind === 'repeat') === !!config.repeat,
+        (kind === 'material') === !!config.material &&
+            (kind === 'repeat') === !!config.repeat &&
+            (kind === 'weekly') === !!config.weekly,
         'Dungeon entry type does not match configuration',
     )
+    if (kind === 'weekly') requireWeeklySystem(c)
     ensure(
-        kind === 'material'
-            ? materialDungeonUnlocked(config.entrust.taskUnlock, c.state)
-            : unlocked(config.entrust.taskUnlock, c.state),
+        kind === 'weekly'
+            ? weeklyDungeonUnlocked(config.entrust.taskUnlock, c.state)
+            : kind === 'material'
+              ? materialDungeonUnlocked(config.entrust.taskUnlock, c.state)
+              : unlocked(config.entrust.taskUnlock, c.state),
         'Dungeon is locked',
         ErrorCode.EntrustUnlock,
     )
@@ -342,15 +354,17 @@ export function startEntrust(c, id, restart = false, kind = 'entrust') {
         !active ||
             (restart &&
                 active.entrust_id === id &&
+                (active.kind ?? 'entrust') === kind &&
                 (kind === 'repeat' ? [1, 2, 3, 4] : [2, 3]).includes(active.status)),
         'Another entrust is active',
     )
+    if (kind === 'weekly') prepareWeeklyQuota(tables, c.state, c.now)
     const entrust = (c.state.entrust ??= { records: {}, starRewards: {}, nextInstanceId: 1 })
     {
         const w = c.state.world
         // Enter/ReEnter always starts a new challenge. Only login/load
         // resumes an existing run; historical stars never restore a box.
-        if (entrust.records[id]) delete entrust.records[id].pending_chest
+        if (kind === 'entrust' && entrust.records[id]) delete entrust.records[id].pending_chest
         const run = {
             ...(kind !== 'entrust' ? { kind } : {}),
             entrust_id: id,
@@ -393,9 +407,15 @@ export function startMaterialDungeon(c, r) {
         'Unsupported material dungeon entry parameters',
         ErrorCode.FunctionClosed,
     )
-    const rows = c.tables.get('dungeon_material').filter((row) => row.dungeonId === r.dungeon_id)
-    ensure(rows.length === 1, 'Material dungeon configuration unavailable', ErrorCode.DungeonConfNotExist)
-    return startEntrust(c, rows[0].id, false, 'material')
+    const material = c.tables.get('dungeon_material').filter((row) => row.dungeonId === r.dungeon_id),
+        weekly = c.tables.get('dungeon_weekly').filter((row) => row.dungeonId === r.dungeon_id)
+    ensure(
+        material.length + weekly.length > 0,
+        'Dungeon entry configuration unavailable',
+        ErrorCode.DungeonConfNotExist,
+    )
+    ensure(material.length + weekly.length === 1, 'Dungeon entry configuration is ambiguous', ErrorCode.GameConfig)
+    return startEntrust(c, (weekly[0] ?? material[0]).id, false, weekly.length ? 'weekly' : 'material')
 }
 
 export function registerEntrust(on, tables) {
@@ -482,7 +502,7 @@ export function registerEntrust(on, tables) {
     )
     on('StaminaBoxGet', (c, r) => {
         const run = c.state.entrust?.run
-        ensure(run && r.box_id === catalog.chest(run.entrust_id).id, 'Invalid entrust chest claim')
+        ensure(run && r.box_id === catalog.chest(run.entrust_id, run.kind).id, 'Invalid entrust chest claim')
         ensureEntrustSceneObjects(tables, c.state)
         return {
             reward: { rewards: claimEntrustChest(c, r.times), src: rewardSource(c.tables, 'staminaChest') },
@@ -502,7 +522,7 @@ export function registerEntrust(on, tables) {
         // cancellation uses a different local event and must not enter here.
         ensure(run.kind === 'material', 'Unsupported stamina chest give-up mode', ErrorCode.FunctionClosed)
         ensure(run.map_id === c.state.world.map_id, 'Not in stamina chest map', ErrorCode.NotInMap)
-        const chest = catalog.chest(run.entrust_id)
+        const chest = catalog.chest(run.entrust_id, run.kind)
         ensure(r.box_id === chest.id, 'Stamina chest does not exist', ErrorCode.StaminaBoxNotExist)
         ensure(run.battle_complete && !run.chest_claimed, 'No unclaimed stamina chest', ErrorCode.StaminaBoxNotExist)
         if (!entrustChestGivenUp(c.tables, run)) {
@@ -527,7 +547,7 @@ export function registerEntrust(on, tables) {
                 ErrorCode.StaminaBoxExpired,
             )
             run.chest_given_up = { instance_id: run.instance_id, box_id: chest.id, at: c.now }
-            run.stage_index = catalog.stages(run.entrust_id).at(-1).index + 1
+            run.stage_index = catalog.stages(run.entrust_id, run.kind).at(-1).index + 1
         } else
             ensure(
                 run.chest_given_up.box_id === chest.id,

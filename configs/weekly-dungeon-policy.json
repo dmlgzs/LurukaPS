@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "scope": "local-single-player-weekly-dungeon",
+  "intro": { "missingBossTrigger": "unique-initial-interaction-marker", "enabled": true },
+  "quota": {
+    "currencyId": 104,
+    "limitGameTitle": "Weeklychallengetimes",
+    "weekdayGameTitle": "WEEKLY_REFRESH_TIME",
+    "hourGameTitle": "DAILY_REFRESH_TIME",
+    "utcOffsetMinutes": 480,
+    "strategy": "set-to-limit",
+    "firstExistingBalance": "preserve",
+    "firstMissingBalance": "initialize-limit",
+    "clockRollback": "keep-current-period"
+  },
+  "note": "LOCAL compatibility, not proven official server rules. TODO: verify omitted bossTriggerID semantics, initial 104 allocation, weekly reset/refill, GM overflow and server timezone. Runtime routes, costs, rewards, limit and refresh day/hour come from current tables."
+}
