@@ -1,5 +1,5 @@
 import { ErrorCode } from '../error-codes.js'
-import { ensureHome } from '../home.js'
+import { ownedProduction } from '../production-claims.js'
 import { spend } from '../inventory.js'
 import { refreshProduction } from '../production.js'
 import { productionSeconds } from '../production-time.js'
@@ -9,13 +9,13 @@ import { homeCondition } from '../home-grid.js'
 
 export function registerCooking(on, tables) {
     on('CookRequest', (c, r) => {
-        const home = ensureHome(tables, c.state)
-        const homeMapId = Number(tables.get('game').find((row) => row.title === 'HOME_ID')?.value)
-        ensure(c.state.world.map_id === homeMapId, 'Cooking requires the home scene')
+        // Home-center management opens this same station queue remotely:
+        // CellFreeWorkProduction.OnClickChoose (06029822) sets
+        // isFromHomeCenter=true; the current sender does not require HOME_ID.
+        // Keep owned, placed and ready building checks, like ProductStart.
+        const { h: home, b: build } = ownedProduction(c, r.build_guid)
         const recipe = cookingRecipe(tables, r.cook_id),
             product = recipe.product
-        const build = home.builds.find((entry) => entry.guid === r.build_guid)
-        ensure(build && [1, 4].includes(build.status), 'Cooking/processing station is not owned or placed')
         const station = tables.find('home_building_production', build.build_id)
         ensure(station, 'Cooking station configuration is missing', ErrorCode.BuildProductConfNotFound)
         ensure(
