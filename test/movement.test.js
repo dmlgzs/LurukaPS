@@ -6,6 +6,7 @@ import { Protocol } from '../src/protocol.js'
 import { Tables } from '../src/player.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
+import { afterBattlePassBeforePush } from './battle-pass-packet-fixture.js'
 const config = configuration(),
     protocol = new Protocol(config.base),
     tables = new Tables(config.tables)
@@ -79,7 +80,7 @@ test('movement from other actors cannot move player and malformed batches roll b
     }
 })
 
-test('optimistic CBT3 hero switch only acknowledges and preserves movement through repeated switches', () => {
+test('optimistic CBT3 hero switch synchronizes the selected formation and preserves movement through repeated switches', () => {
     const f = fixture()
     try {
         const s = f.state(),
@@ -103,8 +104,32 @@ test('optimistic CBT3 hero switch only acknowledges and preserves movement throu
                 angle: 0,
                 switch_type: 56,
             })
-            assert.equal(packets.length, 1)
-            assert.equal(packets[0].id, protocol.byName.get('CSProtoSwitchWorldGroupControl').id)
+            assert.equal(packets[0].id, protocol.byName.get('CSProtoSyncPlayerData').id)
+            const manager = f.state().player.group_mgrs.find((m) => m.type === 1)
+            assert.equal(manager.groups.find((g) => g.id === manager.cur_group).control, next)
+            const syncType = protocol.byName.get('CSProtoSyncPlayerData').rsp
+            assert.deepEqual(
+                packets[0].data,
+                protocol.decode(
+                    syncType,
+                    protocol.encode(syncType, {
+                        group_mgrs: [
+                            {
+                                type: manager.type,
+                                src: 1,
+                                cur_group: manager.cur_group,
+                                groups: manager.groups.filter((group) => group.id === manager.cur_group),
+                            },
+                        ],
+                    }),
+                ),
+            )
+            const rest = afterBattlePassBeforePush(packets.slice(1), tables, f.state(), 1800000000)
+            assert.deepEqual(
+                rest.map((p) => p.id),
+                [protocol.byName.get('CSProtoSwitchWorldGroupControl').id],
+            )
+            assert.deepEqual(rest[0].data, {})
             assert.notEqual(f.state().world.pos.x, 0)
             move(old, 999)
             move(next, x)

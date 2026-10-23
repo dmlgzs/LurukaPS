@@ -8,6 +8,8 @@ import { registerPetBoxOrder } from './pet-box-order.js'
 import { registerEscBackground, prepareEscBackground, notifyEscBackground, escBackgroundUnlockSnapshot, escBackgroundSnapshots } from './esc-background.js'
 import { registerSocialWheel, prepareSocialWheel, notifySocialWheel, socialWheelSnapshot } from './social-wheel.js'
 import { ErrorCode } from './error-codes.js'
+import { registerFriends } from './handlers/friends.js'
+import { friendLoginSnapshots } from './friends.js'
 import { registerChatShields } from './handlers/chat-shields.js'
 import { registerShortcuts } from './handlers/shortcuts.js'
 import { pruneItemShortcuts, shortcutSnapshot } from './shortcuts.js'
@@ -453,6 +455,7 @@ export class Game {
         registerLocalPayments(on, tables, store, { enabled: offlinePayments })
         registerChat(on, store, { runGM })
         registerChatShields(on, store)
+        registerFriends(on, store)
         registerShortcuts(on)
         registerPhotoTemplates(on)
         registerChatCustomization(on)
@@ -1105,7 +1108,7 @@ export class Game {
         return this.store.transact(
             session.id,
             e.id,
-            (state) => {
+            (state, transaction) => {
                 const battleReport = e.name === 'CSProtoBattleInfoReduce'
                 const saddlesBefore = JSON.stringify(state.mountSaddles)
                 const booksBefore = JSON.stringify(state.readingBooks ?? {})
@@ -1152,6 +1155,7 @@ export class Game {
                 const pushes = []
                 const context = {
                     id: session.id,
+                    editPlayer: transaction?.editPlayer,
                     previousMapId: state.world.map_id,
                     combatSessionId: session.token,
                     requestKey: frame.seq ? session.token + ':' + frame.id + ':' + frame.seq : null,
@@ -1792,6 +1796,7 @@ export class Game {
             this.packet('CSProtoPhotoGraphTempletSync', photoTemplateSnapshot(state)),
             this.packet('CSProtoWorldMapMarkListSync', worldMarkPayload(state)),
             this.packet('CSProtoAnnouncementNotify', announcementSnapshot(this.announcementBaseUrl, now)),
+            ...friendLoginSnapshots(state).map(data => this.packet('CSProtoFriendSync', data)),
             this.packet('CSProtoChatEmojiSync', chatEmojiSnapshot(this.tables, state)),
             this.packet('SCProtoChatBubbleSync', chatBubbleSnapshot(this.tables, state)),
             this.packet('SCProtoChatBackgroundSync', chatBackgroundSnapshot(this.tables, state)),

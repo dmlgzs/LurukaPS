@@ -139,20 +139,39 @@ export class Store {
             }
             return result
         }
+        const related = new Map()
         const result = this.db
             .transaction(() => {
                 const { state } = this.load(id)
-                const result = fn(state)
+                // Rare social operations may update another account. Borrow no
+                // live pending state, and publish neither account before the
+                // caller finishes encoding every response/notification.
+                const editPlayer = (peer) => {
+                    if (!Number.isSafeInteger(peer) || peer < 1 || peer > 0xffffffff)
+                        throw Error('Invalid related player')
+                    if (peer === id) return state
+                    if (!related.has(peer)) related.set(peer, this.load(peer).state)
+                    return related.get(peer)
+                }
+                const result = fn(state, { editPlayer })
                 if (result?.then) throw Error('Asynchronous player transaction is forbidden')
                 this.savePlayer.run(JSON.stringify(state), Date.now(), id)
                 for (const entry of this.pending.get(id)?.logs ?? [])
                     this.log.run(id, entry.messageId, 'ok', entry.createdAt)
                 this.log.run(id, messageId, 'ok', Date.now())
+                for (const [peer, draft] of related) {
+                    this.savePlayer.run(JSON.stringify(draft), Date.now(), peer)
+                    for (const entry of this.pending.get(peer)?.logs ?? [])
+                        this.log.run(peer, entry.messageId, 'ok', entry.createdAt)
+                    this.log.run(peer, messageId, 'ok', Date.now())
+                }
                 return result
             })
             .immediate()
-        this.pending.delete(id)
-        this.savedReadTokens.delete(id)
+        for (const peer of [id, ...related.keys()]) {
+            this.pending.delete(peer)
+            this.savedReadTokens.delete(peer)
+        }
         return result
     }
     nextSequence(name, max = 0xffffffff) {

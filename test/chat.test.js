@@ -1,3 +1,4 @@
+import { afterBattlePassBeforePush, fixtureNow } from './battle-pass-packet-fixture.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -374,15 +375,39 @@ test('schema2 upgrades chat storage and outgoing encode failure rolls back inser
 
 test('world chat room discovery, joining and relog reflect persisted routing membership', () => {
     const store = new Store(':memory:'),
-        game = new Game(protocol, store, tables),
+        game = new Game(protocol, store, tables, { clock: () => fixtureNow }),
         a = {},
         b = {}
     try {
         call(game, a, 'EnterGame', { open_id: 'room-a' })
         call(game, b, 'EnterGame', { open_id: 'room-b' })
-        assert.equal(call(game, a, 'ChatRoomNum', { chat_type: 2 })[0].data.count, 1)
+        {
+            const packets = afterBattlePassBeforePush(
+                call(game, a, 'ChatRoomNum', { chat_type: 2 }),
+                tables,
+                store.load(a.id).state,
+                fixtureNow,
+            )
+            assert.deepEqual(
+                packets.map((p) => p.id),
+                [protocol.byName.get('CSProtoChatRoomNum').id],
+            )
+            assert.deepEqual(packets[0].data, { chat_type: 2, count: 1 })
+        }
         call(game, b, 'AddChat', { target: { tid: '3', chat_type: 2 }, msg: bytes('room three') })
-        assert.equal(call(game, a, 'ChatRoomNum', { chat_type: 2 })[0].data.count, 3)
+        {
+            const packets = afterBattlePassBeforePush(
+                call(game, a, 'ChatRoomNum', { chat_type: 2 }),
+                tables,
+                store.load(a.id).state,
+                fixtureNow,
+            )
+            assert.deepEqual(
+                packets.map((p) => p.id),
+                [protocol.byName.get('CSProtoChatRoomNum').id],
+            )
+            assert.deepEqual(packets[0].data, { chat_type: 2, count: 3 })
+        }
         const output = call(game, a, 'ChatWorldJoin', { sysId: '3' })
         assert.equal(output[0].id, 9944)
         assert.equal(output[0].data.sysId, '3')
