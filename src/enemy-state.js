@@ -6,6 +6,7 @@ import { taskEnemyGroups } from './task-enemy-groups.js'
 import { arenaProperty } from './npc-kibo-properties.js'
 import { taskEnemyPacks } from './task-enemy-slots.js'
 import { abyssTables } from './abyss-catalog.js'
+import { abyssEnemyHpScale } from './abyss-battle-config.js'
 const catalogs = new WeakMap()
 export function enemyDefinition(tables, state, uuid) {
     if (state.abyssRun?.map_id === state.world.map_id) tables = abyssTables(tables)
@@ -146,9 +147,11 @@ export function enemyDefinition(tables, state, uuid) {
     const base = tables.find('template_value', property?.baseAttributeId),
         growth = tables.find('template_value', template)
     if (!base || !growth) return null
-    const maxHp = Math.floor(
+    let maxHp = Math.floor(
         Math.fround(Math.fround(pairs(base.baseAttribute).get(5) * pairs(growth.baseAttribute).get(5)) / 10000),
     )
+    if (state.abyssRun?.map_id === state.world.map_id)
+        maxHp = Math.floor((maxHp * abyssEnemyHpScale(tables, state.abyssRun.dungeon_id, object)) / 10000)
     if (!Number.isSafeInteger(maxHp) || maxHp <= 0 || maxHp > 0xffffffff) return null
     return {
         config_id: enemy.id,

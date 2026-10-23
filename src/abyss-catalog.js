@@ -1,9 +1,9 @@
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { configTime } from './shops.js'
 import { ensure } from './handlers/common.js'
 import { ErrorCode } from './error-codes.js'
 import { Tables } from './player.js'
+import { activeAbyssRotation } from './abyss-rotation.js'
 const routeData = JSON.parse(fs.readFileSync(new URL('../configs/abyss-routes.json', import.meta.url)))
 const policy = JSON.parse(fs.readFileSync(new URL('../configs/abyss-policy.json', import.meta.url)))
 const directory = fileURLToPath(new URL('../configs/abyss-tables/', import.meta.url)),
@@ -56,16 +56,14 @@ export function abyssTables(external) {
     cache.set(external, adapter)
     return adapter
 }
-export function abyssRotation(tables, now) {
-    const rows = tables.get('abbys_time').filter((x) => configTime(x.startTime) <= now && now < configTime(x.endTime))
-    ensure(rows.length <= 1, 'Ambiguous abyss rotation configuration', ErrorCode.GameConfig)
-    return rows[0] ?? null
+export function abyssRotation(tables, now, policy) {
+    return activeAbyssRotation(tables, now, policy)
 }
-export function abyssModeLevels(tables, mode, now) {
+export function abyssModeLevels(tables, mode, now, policy) {
     ensure([1, 2, 3].includes(mode), 'Invalid abyss mode', ErrorCode.AbyssInvalidMode)
     const row = tables.find('abbys_mode', mode)
     ensure(row, 'Abyss mode configuration unavailable', ErrorCode.AbyssInvalidMode)
-    const rotation = mode === 3 ? abyssRotation(tables, now) : null
+    const rotation = mode === 3 ? abyssRotation(tables, now, policy) : null
     ensure(mode !== 3 || rotation, 'Abyss rotation is not open', ErrorCode.AbyssRotationChange)
     return { row, rotation, levels: ids(mode === 3 ? rotation.level : row.level) }
 }

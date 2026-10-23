@@ -10,7 +10,8 @@ export function abyssFixture(name = 'abyss-challenge', file = ':memory:', resume
         p = new Protocol(cfg.base),
         store = new Store(file),
         session = {},
-        game = new Game(p, store, tables, { clock: () => 1800000000 })
+        time = { now: 1800000000 },
+        game = new Game(p, store, tables, { clock: () => time.now })
     let seq = 1
     const call = (name, r = {}) => {
         const e = p.byName.get(name.startsWith('CSProto') ? name : 'CSProto' + name)
@@ -53,5 +54,5 @@ export function abyssFixture(name = 'abyss-challenge', file = ':memory:', resume
                 })),
         }
     }
-    return { tables, p, store, session, game, call, decode, state, request, login }
+    return { tables, p, store, session, game, call, decode, state, request, login, time }
 }

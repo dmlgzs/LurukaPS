@@ -2,7 +2,6 @@ import { abyssTables, abyssModeLevels, abyssRoute } from './abyss-catalog.js'
 import { abyssChallengeRoster } from './abyss-roster.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
-import { configTime } from './shops.js'
 export function abyssLevelRecord(state, mode, id, rotationId = 0) {
     return mode === 3
         ? state.abyss?.rotation?.id === rotationId
@@ -96,7 +95,7 @@ export function createAbyssRun(c, request) {
         mode: request.mode,
         level_id: level.id,
         rotation_id: rotation?.id ?? 0,
-        rotation_end: rotation ? configTime(rotation.endTime) : 0,
+        rotation_end: rotation?.effectiveEnd ?? 0,
         ...roster,
         rooms: rooms.map((x) => ({ ...x.route, dungeon_id: x.dungeon.id })),
         part_index: 0,

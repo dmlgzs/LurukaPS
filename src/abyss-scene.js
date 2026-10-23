@@ -4,29 +4,6 @@ import { ErrorCode } from './error-codes.js'
 import { combatState } from './combat-state.js'
 import { enemyDefinition } from './enemy-state.js'
 import { visibleEnemySlots } from './enemy-group-visibility.js'
-const hpScales = new WeakMap()
-export function abyssEnemyScale(tables, dungeonId, objectId) {
-    let rows = hpScales.get(tables)
-    if (!rows) hpScales.set(tables, (rows = new Map()))
-    if (!rows.has(dungeonId)) {
-        const map = new Map()
-        for (const text of String(tables.find('dungeon', dungeonId)?.difficultIndex ?? '')
-            .split('|')
-            .filter(Boolean)) {
-            const [id, ...values] = text.split('#').map(Number)
-            ensure(
-                id > 0 && values.length % 2 === 0 && values.every(Number.isSafeInteger),
-                'Invalid abyss dungeon scaling',
-                ErrorCode.GameConfig,
-            )
-            const attrs = new Map()
-            for (let i = 0; i < values.length; i += 2) attrs.set(values[i], values[i + 1])
-            map.set(id, attrs)
-        }
-        rows.set(dungeonId, map)
-    }
-    return rows.get(dungeonId).get(objectId)?.get(5) ?? 10000
-}
 export function ensureAbyssScene(external, state, now) {
     const run = state.abyssRun
     if (!run || run.map_id !== state.world.map_id) return false
@@ -80,7 +57,7 @@ export function ensureAbyssScene(external, state, now) {
             const uid = ((3n << 56n) | (BigInt(slot) << 32n) | BigInt(row.id)).toString(),
                 base = enemyDefinition(tables, state, uid)
             ensure(base?.level > 0, 'Missing abyss enemy level/attributes', ErrorCode.NoEnemyConf)
-            const max_hp = Math.floor((base.max_hp * abyssEnemyScale(tables, run.dungeon_id, row.id)) / 10000)
+            const max_hp = base.max_hp
             ensure(
                 Number.isSafeInteger(max_hp) && max_hp > 0 && max_hp <= 0xffffffff,
                 'Invalid abyss enemy HP scale',

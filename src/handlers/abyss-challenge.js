@@ -6,6 +6,7 @@ import { worldSync } from './world.js'
 import { syncBattle } from '../battle.js'
 import { ensure } from './common.js'
 import { ErrorCode } from '../error-codes.js'
+import { startAbyssBattle, advanceAbyssCombat } from '../abyss-battle.js'
 
 export function publishAbyssEntry(c) {
     const run = c.state.abyssRun,
@@ -33,9 +34,11 @@ export function enterAbyssScene(c, r = {}) {
         ErrorCode.AbyssInvalidDungeonID,
     )
     publishAbyssEntry(c)
+    advanceAbyssCombat(c)
     return {}
 }
 export function registerAbyssChallenge(on) {
+    on('AbyssChallengeRealStart', startAbyssBattle)
     on('AbyssChallenge', (c, r) => {
         createAbyssRun(c, r)
         publishAbyssEntry(c)

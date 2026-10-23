@@ -43,9 +43,9 @@ test('abyss fresh current table adapter maps 34 exact-roster/object scenes and t
     assert.equal(abyssRoute(tables, 34950).route.map_id, 6824)
     assert.equal(abyssRoute(tables, 35080).route.map_id, 6837)
     for (const id of [34860, 34940]) {
-        assert.equal(abyssRoute(tables,id).route.map_id,6815)
-        assert.deepEqual(abyssRoute(tables,id).route.equivalent_alternatives,[6815,6823])
-        assert.equal(abyssRoute(tables,id).route.policy,'canonical_equivalent_scene')
+        assert.equal(abyssRoute(tables, id).route.map_id, 6815)
+        assert.deepEqual(abyssRoute(tables, id).route.equivalent_alternatives, [6815, 6823])
+        assert.equal(abyssRoute(tables, id).route.policy, 'canonical_equivalent_scene')
     }
     assert.equal(
         tables.find('dungeon', 34760).mountAvailable,
@@ -75,7 +75,7 @@ test('abyss rotation bounds follow actual table dates and never synthesize a new
     const row = tables.get('abbys_time')[0]
     assert.equal(abyssModeLevels(tables, 3, configTime(row.startTime)).levels.length, 7)
     assert.throws(
-        () => abyssModeLevels(tables, 3, configTime(row.endTime)),
+        () => abyssModeLevels(tables, 3, configTime(row.endTime), { expiredRotation: 'closed' }),
         (e) => e.code === ErrorCode.AbyssRotationChange,
     )
     assert.throws(

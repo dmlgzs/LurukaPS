@@ -11,7 +11,7 @@ import { ErrorCode } from '../src/error-codes.js'
 const cfg = configuration(),
     tables = new Tables(cfg.tables),
     protocol = new Protocol(cfg.base)
-test('11449 answers configured unplayed levels without granting progress, rewards or reviving an expired rotation', () => {
+test('11449 answers unplayed levels and the explicitly extended existing offline rotation without granting progress or rewards', () => {
     const store = new Store(':memory:'),
         game = new Game(protocol, store, tables, { clock: () => 1800000000 }),
         session = {}
@@ -27,8 +27,9 @@ test('11449 answers configured unplayed levels without granting progress, reward
             data = protocol.decode(protocol.byId.get(11449).rsp, response.payload)
         assert.equal(data.newer_mode_info.length, 7)
         assert.equal(data.persistent_mode_info.length, 7)
-        assert.deepEqual(data.rotation_mode_info, [])
-        assert.equal(data.rotation_id, 0)
+        assert.equal(data.rotation_mode_info.length, 7)
+        assert.equal(data.rotation_id, tables.get('abbys_time')[0].id)
+        assert(data.rotation_mode_info.every((r) => !r.passed && r.star_num === 0 && !r.pass_level_reward_flag))
         assert(data.newer_mode_info.every((r) => !r.passed && !r.pass_level_reward_flag && r.star_num === 0))
         assert(data.newer_star_reward_info.reward_list.every((r) => !r.reward_flag))
         const after = store.load(session.id).state
@@ -74,7 +75,7 @@ test('abyss query preserves actual saved progress and isolates current rotation 
     const wrong = structuredClone(state)
     wrong.abyss.rotation.id++
     assert.equal(abyssDataSnapshot(tables, wrong, start).rotation_mode_info[0].passed, false)
-    assert.deepEqual(abyssDataSnapshot(tables, state, end).rotation_mode_info, [])
+    assert.deepEqual(abyssDataSnapshot(tables, state, end, { expiredRotation: 'closed' }).rotation_mode_info, [])
     assert.equal(abyssDataSnapshot(tables, state, start - 1).rotation_id, 0)
 })
 test('abyss query distinguishes unavailable configuration and malformed saved numeric progress', () => {

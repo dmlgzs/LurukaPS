@@ -1,20 +1,16 @@
-import { configTime } from './shops.js'
 import { ensure } from './handlers/common.js'
 import { ErrorCode } from './error-codes.js'
+import { activeAbyssRotation } from './abyss-rotation.js'
 const fields = ['newer', 'persistent', 'rotation']
 const ids = (value) =>
     String(value ?? '')
         .split('|')
         .filter(Boolean)
         .map(Number)
-export function abyssDataSnapshot(tables, state, now) {
+export function abyssDataSnapshot(tables, state, now, policy) {
     const data = state.abyss ?? {},
         result = {}
-    const periods = tables
-        .get('abbys_time')
-        .filter((row) => configTime(row.startTime) <= now && now < configTime(row.endTime))
-    ensure(periods.length <= 1, 'Ambiguous abyss rotation configuration', ErrorCode.GameConfig)
-    const rotation = periods[0]
+    const rotation = activeAbyssRotation(tables, now, policy)
     for (let mode = 1; mode <= 3; mode++) {
         const row = tables.find('abbys_mode', mode)
         ensure(row, 'Abyss mode configuration unavailable', ErrorCode.AbyssInvalidMode)
@@ -70,7 +66,7 @@ export function abyssDataSnapshot(tables, state, now) {
     return {
         ...result,
         rotation_id: rotation?.id ?? 0,
-        rotation_mode_end_time: rotation ? configTime(rotation.endTime) : 0,
+        rotation_mode_end_time: rotation?.effectiveEnd ?? 0,
         max_rotation_3star_count: data.maxRotation3starCount ?? 0,
         inherit_notify_flag: data.inheritNotify === true,
         last_rotation_heros: structuredClone(data.lastRotationHeroes ?? []),

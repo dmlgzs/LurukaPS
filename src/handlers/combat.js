@@ -25,6 +25,7 @@ import { advanceEntrustCombat } from './entrust.js'
 import { settleStoryCampaignScene } from './story-campaign.js'
 import { observeTeachingSkill, observeTeachingElement } from '../teaching-kill-conditions.js'
 import { advanceCultTrialCombat } from '../cult-trial.js'
+import { advanceAbyssCombat, updateAbyssPetHealth } from '../abyss-battle.js'
 import { isRetiredTrialActor, temporaryHeroes, temporaryPets, activeFormationManager } from '../trial-actors.js'
 import { ensure } from './common.js'
 import { heroModules, heroBattleLimits, heroBattleConfig, petModules, pairs } from '../battle.js'
@@ -335,6 +336,11 @@ export function registerCombat(on) {
         const reportSp = advanceEnergy(c, battle, changed)
         const update = (id, values, source, applyHp = true) => {
             if (id === '0') return
+            const abyssPet = values.delta !== undefined && updateAbyssPetHealth(c, id, values.delta)
+            if (abyssPet) {
+                changed.set(id, abyssPet)
+                return
+            }
             const arena = battle.npcDuel
             if (arena && (arena.actors[id] || arena.actors[source])) {
                 if (!arena.actors[id]) return // Arena trainers are not damageable contestants.
@@ -554,6 +560,7 @@ export function registerCombat(on) {
         for (const id of deadGroups) finishEnemyGroupRelations(c, id)
         if (deadGroups.size) pruneInactiveCampaignRelations(c)
         if (deadGroups.size) advanceCultTrialCombat(c)
+        advanceAbyssCombat(c)
         advanceEntrustCombat(c)
         settleStoryCampaignScene(c)
         if (entrustDamageChanged && entrustRun.last_damage_sync_at !== c.now) {

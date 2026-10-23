@@ -342,6 +342,15 @@ function forkBattleReport(base) {
             ? { storyCampaign: { ...base.storyCampaign, completed_scenes: [...base.storyCampaign.completed_scenes] } }
             : {}),
         ...(base.cultTrial ? { cultTrial: { ...base.cultTrial } } : {}),
+        ...(base.abyssRun
+            ? {
+                  abyssRun: {
+                      ...base.abyssRun,
+                      dead_hero_ids: base.abyssRun.dead_hero_ids.slice(),
+                      pet_hp: { ...base.abyssRun.pet_hp },
+                  },
+              }
+            : {}),
     }
 }
 function forkFastCombat(base, name, request) {
