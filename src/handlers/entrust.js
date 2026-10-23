@@ -56,7 +56,7 @@ function claimEntrustChest(c, times = 1) {
         const result = claimRepeatChest(c, times)
         c.repeatExtraRewards = result.extra
         syncPlayer({ ...c, push: c.pushBefore })
-        syncStage(c)
+        syncEntrustStage(c)
         return result.rewards
     }
     ensure(run?.battle_complete && run.map_id === c.state.world.map_id, 'Entrust battle is not finished')
