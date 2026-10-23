@@ -322,6 +322,9 @@ export function registerCombat(on) {
         }
     })
     on('BattleInfoReduce', (c, r) => {
+        // The configured boss intro is a cinematic barrier, not a kill report.
+        // Ignore stale HP reports until the issued story's 11468 callback.
+        if (c.state.abyssRun?.map_id === c.state.world.map_id && c.state.abyssRun.phase === 'intro') return {}
         const rows = expandBattleReport(r),
             battle = combatState(c.state, c.now),
             changed = new Map(),

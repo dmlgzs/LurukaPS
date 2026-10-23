@@ -46,7 +46,7 @@ export function ensureAbyssScene(external, state, now) {
         }
         if (!battleIds.has(row.id)) continue
         record.complete = deadIds.has(row.id)
-        record.active = run.phase === 'running' && activeWave.includes(row.id) && !record.complete
+        record.active = ['running', 'intro'].includes(run.phase) && activeWave.includes(row.id) && !record.complete
         record.state_data = { step: 0, complete: record.complete }
         const group = tables.find('world_enemy_group', row.expandId),
             packs = String(group?.enemyList ?? '')

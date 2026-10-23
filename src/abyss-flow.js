@@ -31,6 +31,7 @@ export function nextAbyssRoom(c) {
         'real_start_time',
         'end_time',
         'initialized_map',
+        'intro',
     ])
         delete run[key]
     run.task_tags = abyssTaskTags(c.tables, run, c.now)
@@ -113,7 +114,7 @@ export function retryAbyssRoom(c) {
             run.challenges.slice(0, run.part_index).flatMap((x) => x.heros.map((x) => x.hero.hero_guid)),
         )
     ensure(
-        ['ready', 'running', 'won', 'lost'].includes(run.phase) &&
+        ['ready', 'running', 'intro', 'won', 'lost'].includes(run.phase) &&
             run.challenges.slice(0, run.part_index).every((x) => x.win),
         'Saved abyss retry phase is invalid',
         ErrorCode.GameConfig,
@@ -159,6 +160,7 @@ export function retryAbyssRoom(c) {
         'real_start_time',
         'end_time',
         'initialized_map',
+        'intro',
     ])
         delete run[key]
     run.task_tags = abyssTaskTags(c.tables, run, c.now)

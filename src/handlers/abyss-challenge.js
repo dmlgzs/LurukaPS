@@ -9,6 +9,7 @@ import { ErrorCode } from '../error-codes.js'
 import { startAbyssBattle, advanceAbyssCombat } from '../abyss-battle.js'
 import { nextAbyssRoom, clearAbyssRuntime, retryAbyssRoom } from '../abyss-flow.js'
 import { abyssModeRecord } from '../abyss-run.js'
+import { finishAbyssIntro, publishAbyssIntro } from '../abyss-intro.js'
 
 export function publishAbyssEntry(c) {
     const run = c.state.abyssRun,
@@ -36,10 +37,12 @@ export function enterAbyssScene(c, r = {}) {
         ErrorCode.AbyssInvalidDungeonID,
     )
     publishAbyssEntry(c)
+    publishAbyssIntro(c)
     advanceAbyssCombat(c)
     return {}
 }
 export function registerAbyssChallenge(on) {
+    on('AbyssBossIntroDone', finishAbyssIntro)
     on('AbyssChallengeReset', (c, r) => {
         const tables = abyssTables(c.tables),
             context = abyssModeLevels(tables, r.mode, c.now),

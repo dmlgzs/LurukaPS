@@ -8,6 +8,7 @@ import { completedEnemyGroup } from './enemy-group-completion.js'
 import { heroBattleLimits } from './battle.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
+import { beginAbyssIntro, publishAbyssIntro } from './abyss-intro.js'
 export function requireAbyssRun(c) {
     const run = c.state.abyssRun
     ensure(run && run.map_id === c.state.world.map_id, 'No current abyss challenge', ErrorCode.AbyssNoChallengeList)
@@ -22,7 +23,14 @@ function heroStates(state) {
     return new Map(state.player.heros_info.battle_infos.map((x) => [x.hero_id, x]))
 }
 export function abyssRunTime(run, now) {
-    return run.total_battle_time + (run.phase === 'running' ? Math.max(0, now - run.real_start_time) : 0)
+    return (
+        run.total_battle_time +
+        (run.phase === 'running'
+            ? Math.max(0, now - run.real_start_time)
+            : run.phase === 'intro'
+              ? run.intro.elapsed_before
+              : 0)
+    )
 }
 export function abyssTaskTags(tables, run, now, final = false) {
     const elapsed = abyssRunTime(run, now),
@@ -94,6 +102,11 @@ export function syncAbyssBattleScene(c) {
 export function startAbyssBattle(c) {
     const run = requireAbyssRun(c),
         plan = abyssBattlePlan(c.tables, run.dungeon_id)
+    if (run.phase === 'intro') {
+        syncAbyssBattleScene(c)
+        publishAbyssIntro(c)
+        return {}
+    }
     if (run.phase === 'running') {
         if (advanceAbyssCombat(c)) return {}
         syncAbyssBattleScene(c)
@@ -105,8 +118,10 @@ export function startAbyssBattle(c) {
     run.wave_index = 0
     run.wave_objects = plan.waves[0].objects.slice()
     run.completed_objects = []
+    beginAbyssIntro(c)
     run.task_tags = abyssTaskTags(c.tables, run, c.now)
     syncAbyssBattleScene(c)
+    publishAbyssIntro(c)
     return {}
 }
 export function updateAbyssPetHealth(c, id, delta) {
@@ -197,8 +212,10 @@ export function advanceAbyssCombat(c) {
     if (next) {
         run.wave_index++
         run.wave_objects = next.objects.slice()
+        beginAbyssIntro(c)
         run.task_tags = abyssTaskTags(c.tables, run, c.now)
         syncAbyssBattleScene(c)
+        publishAbyssIntro(c)
     } else settleAbyssRoom(c, true)
     return true
 }
