@@ -1,3 +1,4 @@
+import { settleStoryCampaignScene } from './story-campaign.js'
 import { prepareCampaignPlayableStart, bindCampaignPlayableStart, requireCampaignPlayableRun, acceptCampaignPlayableFinish, playableWire } from '../campaign-playable-ledger.js'
 import { ErrorCode } from '../error-codes.js'
 import fs from 'node:fs'
@@ -324,6 +325,7 @@ export function registerPlayableLifecycle(on, tables) {
     on('PlayableFinish', (c, r) => {
         const row = config(r.playId),
             run = c.state.playableRuns?.[row.id]
+        const campaign = requireCampaignPlayableRun(c.state, row.id, run, { finishing: true })
         ensure(run && run.map_id === c.state.world.map_id, 'Playable is not running')
         const index = r.index ?? 0,
             score = r.score ?? 0
@@ -332,6 +334,9 @@ export function registerPlayableLifecycle(on, tables) {
             'Invalid playable finish',
         )
         const finished = (c.state.playableFinishes ??= {})
+        if (campaign && finished[row.id])
+            ensure(finished[row.id].campaign_instance_id === campaign.instance_id && finished[row.id].campaign_attempt_id === run.campaign_attempt_id,
+                'Playable finish belongs to another campaign attempt', ErrorCode.InvalidLogic)
         if (!finished[row.id]) {
             ensure(run.finish_step >= requiredStep(row) && run.status === 2, 'Playable has not completed its steps')
             if (row.id === 60001)
@@ -344,10 +349,13 @@ export function registerPlayableLifecycle(on, tables) {
                 selected_pet_group: run.selected_pet_group,
                 selected_pet_guid: run.selected_pet_guid,
                 finished_at: c.now,
+                ...(campaign ? { campaign_instance_id: run.campaign_instance_id, campaign_attempt_id: run.campaign_attempt_id } : {}),
             }
         }
         run.status = 3
+        acceptCampaignPlayableFinish(c.state, row.id, run, finished[row.id])
         sync(c)
+        if (campaign) settleStoryCampaignScene(c)
         return { playId: row.id, reward: { rewards: [] }, drop_id: [], pos: c.state.world.pos }
     })
     on('PlayableScoreReward', (c, r) => {
