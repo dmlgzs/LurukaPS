@@ -1,6 +1,6 @@
 import { createAbyssRun, installAbyssFormation, abyssDungeonInfo, abyssActorInfo } from '../abyss-run.js'
 import { ensureAbyssScene } from '../abyss-scene.js'
-import { abyssTables } from '../abyss-catalog.js'
+import { abyssTables, abyssModeLevels } from '../abyss-catalog.js'
 import { abyssDataSnapshot } from '../abyss-data.js'
 import { worldSync } from './world.js'
 import { syncBattle } from '../battle.js'
@@ -8,6 +8,7 @@ import { ensure } from './common.js'
 import { ErrorCode } from '../error-codes.js'
 import { startAbyssBattle, advanceAbyssCombat } from '../abyss-battle.js'
 import { nextAbyssRoom, clearAbyssRuntime, retryAbyssRoom } from '../abyss-flow.js'
+import { abyssModeRecord } from '../abyss-run.js'
 
 export function publishAbyssEntry(c) {
     const run = c.state.abyssRun,
@@ -39,6 +40,51 @@ export function enterAbyssScene(c, r = {}) {
     return {}
 }
 export function registerAbyssChallenge(on) {
+    on('AbyssChallengeReset', (c, r) => {
+        const tables = abyssTables(c.tables),
+            context = abyssModeLevels(tables, r.mode, c.now),
+            level = tables.find('abbys_level', r.abyss_level),
+            run = c.state.abyssRun
+        ensure(
+            level?.mode === r.mode && context.levels.includes(level.id),
+            'Invalid abyss reset level',
+            ErrorCode.AbyssInvalidLevel,
+        )
+        ensure(
+            !run || (run.mode === r.mode && run.level_id === level.id),
+            'Cannot reset another active abyss challenge',
+            ErrorCode.AbyssInvalidChallengeLevel,
+        )
+        if (run) {
+            const target = run.return_world
+            ensure(
+                target && [1, 3, 7].includes(c.tables.find('world_city', target.map_id)?.type),
+                'Saved abyss entrance is unavailable',
+                ErrorCode.InstanceSceneConfNotExist,
+            )
+            ensure(
+                target.pos && ['x', 'y', 'z'].every((k) => Number.isSafeInteger(target.pos[k])),
+                'Saved abyss entrance position is malformed',
+                ErrorCode.GameConfig,
+            )
+            Object.assign(c.state.world, structuredClone(target))
+            clearAbyssRuntime({ ...c, push: c.pushBefore })
+        }
+        const mode = abyssModeRecord(c.state, r.mode, context.rotation),
+            saved = mode.levels[level.id]
+        if (saved) {
+            delete saved.resume
+            saved.challenge_list = []
+        }
+        c.pushBefore('SCProtoAbyssLevelInfoUpdate', {
+            mode: r.mode,
+            level_info: abyssDataSnapshot(tables, c.state, c.now)[
+                ['newer', 'persistent', 'rotation'][r.mode - 1] + '_mode_info'
+            ].find((x) => x.cur_level === level.id),
+        })
+        if (run) worldSync({ ...c, push: c.pushBefore })
+        return {}
+    })
     on('AbyssChallengeRetry', (c) => {
         const run = retryAbyssRoom(c)
         publishAbyssEntry(c)
