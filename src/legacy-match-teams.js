@@ -450,6 +450,79 @@ export class LegacyMatchTeams {
         c.pushTo(r.pid, 'CSProtoInviteDataSync', this.inviteNotice(row, room, c.state))
         return {}
     }
+    replyInvitation(c, r) {
+        ensure(this.db.inTransaction, 'Team operation requires an atomic transaction', ErrorCode.GameConfig)
+        const value = r.invite_id
+        ensure(
+            (typeof value === 'string' || Number.isSafeInteger(value)) &&
+                /^(0|[1-9]\d*)$/.test(String(value)) &&
+                String(value).length <= 20 &&
+                BigInt(value) > 0n &&
+                BigInt(value) <= BigInt(MAX_ROOM_ID),
+            'Invalid invitation room identity',
+            ErrorCode.ReqParamsError,
+        )
+        const id = Number(value),
+            accepted = r.is_accept ?? false,
+            offer = this.invitationFor(c.id)
+        ensure(typeof accepted === 'boolean', 'Invalid invitation reply', ErrorCode.ReqParamsError)
+        ensure(offer && offer.room_id === id, 'No invitation for this player and room', ErrorCode.NotInviteMatchTeam)
+        ensure(
+            !r.dungeon_id || r.dungeon_id === offer.target.dungeon_id,
+            'Invitation target does not match',
+            ErrorCode.TeamTargetChanged,
+        )
+        if (offer.status !== 'pending') {
+            if (offer.status === 'declined' && !accepted) return {}
+            const member = this.roomFor(c.id)
+            ensure(
+                accepted && offer.status === 'accepted' && member?.id === id,
+                'Invitation was already handled',
+                member ? ErrorCode.IsInMatchTeam : ErrorCode.NotInviteMatchTeam,
+            )
+            // A known accepted receipt is replayed as the current snapshot;
+            // never insert a second member or re-run the admission transition.
+            c.push('CSProtoMatchTeamDataSync', this.snapshot(member, c.id, c.state))
+            return {}
+        }
+        ensure(uint(c.now) && c.now >= offer.created_at, 'Invalid invitation reply clock', ErrorCode.GameConfig)
+        ensure(c.now < offer.expires_at, 'Invitation expired', ErrorCode.InviteMatchTeamExpired)
+        const room = this.roomFor(offer.inviter_id)
+        ensure(room && room.id === id, 'Invited team no longer exists', ErrorCode.TeamNotExists)
+        ensure(sameTarget(room.target, offer.target), 'Invited team target changed', ErrorCode.TeamTargetChanged)
+        if (!accepted) {
+            this.db.prepare("UPDATE legacy_match_invites SET status='declined' WHERE recipient_id=?").run(c.id)
+            c.pushTo(offer.inviter_id, 'CSProtoRejectInviteJoin', {
+                pid: c.id,
+                name: Buffer.from(c.state.player.basic_info.name, 'base64').toString('utf8'),
+            })
+            return {}
+        }
+        ensure(!this.roomFor(c.id), 'Already accepted another team invitation', ErrorCode.HaveInvitedAccepted)
+        ensure(this.isOnline(offer.inviter_id), 'Inviting player is offline', ErrorCode.PlayerNotOnline)
+        this.requireLobby(c, room)
+        ensure(!busy(c.state), 'Cannot join a team during a dungeon', ErrorCode.CannotMatch)
+        const inviter = this.store.load(offer.inviter_id).state
+        ensure(
+            !legacyChatBans(c.state).has(offer.inviter_id),
+            'Invitee has blocked the inviter',
+            ErrorCode.YouBanTarget,
+        )
+        ensure(!legacyChatBans(inviter).has(c.id), 'Inviter has blocked the invitee', ErrorCode.TargetBanYou)
+        this.peerTarget(c, c.id, c.state, room)
+        ensure(room.members.length < MAX_MEMBERS, 'Team became full', ErrorCode.ExceedMatchTeamPlayerNum)
+        ensure(room.revision < 0xffffffff, 'Team revision overflow', ErrorCode.GameConfig)
+        room.members.push({ id: c.id, joined_at: c.now })
+        room.revision++
+        this.db.prepare('INSERT INTO legacy_match_members(player_id,room_id) VALUES(?,?)').run(c.id, room.id)
+        this.db.prepare('UPDATE legacy_match_rooms SET payload=? WHERE id=?').run(JSON.stringify(room), room.id)
+        this.db.prepare("UPDATE legacy_match_invites SET status='accepted' WHERE recipient_id=?").run(c.id)
+        const snapshot = this.snapshot(room, c.id, c.state)
+        c.push('CSProtoMatchTeamDataSync', snapshot)
+        for (const member of room.members)
+            if (member.id !== c.id) c.pushTo(member.id, 'CSProtoMatchTeamDataSync', snapshot)
+        return {}
+    }
 }
 
 export function registerLegacyMatchTeams(on, store, tables) {
@@ -457,5 +530,6 @@ export function registerLegacyMatchTeams(on, store, tables) {
     on('CreateMatchTeam', (c, r) => teams.create(c, r))
     on('LeaveMatchTeam', (c, r) => teams.leave(c, r))
     on('InviteJoin', (c, r) => teams.invite(c, r))
+    on('ReplyInviteJoin', (c, r) => teams.replyInvitation(c, r))
     return teams
 }
