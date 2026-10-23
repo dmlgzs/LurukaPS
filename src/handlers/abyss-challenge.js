@@ -7,6 +7,7 @@ import { syncBattle } from '../battle.js'
 import { ensure } from './common.js'
 import { ErrorCode } from '../error-codes.js'
 import { startAbyssBattle, advanceAbyssCombat } from '../abyss-battle.js'
+import { nextAbyssRoom } from '../abyss-flow.js'
 
 export function publishAbyssEntry(c) {
     const run = c.state.abyssRun,
@@ -38,6 +39,11 @@ export function enterAbyssScene(c, r = {}) {
     return {}
 }
 export function registerAbyssChallenge(on) {
+    on('AbyssChallengeNext', (c) => {
+        nextAbyssRoom(c)
+        publishAbyssEntry(c)
+        return {}
+    })
     on('AbyssChallengeRealStart', startAbyssBattle)
     on('AbyssChallenge', (c, r) => {
         createAbyssRun(c, r)
