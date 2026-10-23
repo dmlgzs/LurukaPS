@@ -588,5 +588,6 @@ export function registerLegacyMatchTeams(on, store, tables, encodeNotice) {
     on('InviteJoin', (c, r) => teams.invite(c, r))
     on('ReplyInviteJoin', (c, r) => teams.replyInvitation(c, r))
     on('ChangeDungeon', (c, r) => teams.changes.change(c, r))
+    on('ReplyChangeDungeon', (c, r) => teams.changes.vote(c, r))
     return teams
 }

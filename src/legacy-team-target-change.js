@@ -282,6 +282,48 @@ export class LegacyTeamTargetChanges {
             })
         return {}
     }
+    vote(c, r) {
+        ensure(this.db.inTransaction, 'Target vote needs an atomic transaction', ErrorCode.GameConfig)
+        const room = this.teams.roomFor(c.id)
+        ensure(room, 'Not in a legacy match team', ErrorCode.NotInMatchTeam)
+        const p = this.get(room.id),
+            accept = r.accept ?? false
+        ensure(
+            p && p.participants.some((member) => member.id === c.id),
+            'No target proposal for this participant',
+            ErrorCode.ReqParamsError,
+        )
+        ensure(typeof accept === 'boolean', 'Invalid target decision', ErrorCode.ReqParamsError)
+        ensure(
+            !r.dungeon_id || r.dungeon_id === p.target.dungeon_id,
+            'Decision target does not match the proposal',
+            ErrorCode.TeamTargetChanged,
+        )
+        if (p.status !== 'pending') return {} // Real closed receipt; no decision/target is changed.
+        ensure(uint(c.now), 'Invalid target decision clock', ErrorCode.GameConfig)
+        if (c.now >= p.expires_at || !this.contextMatches(room, p)) {
+            this.close(c, room, p, c.now >= p.expires_at ? 'expired' : 'cancelled')
+            return {}
+        }
+        const member = p.participants.find((member) => member.id === c.id)
+        ensure(member.connection === c.combatSessionId, 'Participant connection changed', ErrorCode.TeamTargetChanged)
+        const previous = p.votes.find((vote) => vote.id === c.id)
+        if (previous) {
+            // Current UI permits one choice; an already recorded decision is
+            // not reversed by a duplicate/late timer callback.
+            if (previous.accept === accept && accept)
+                this.notify(c, [p.proposer_id], 'CSProtoReplyChangeDungeonNtf', { player_id: c.id, accept: true })
+            return {}
+        }
+        p.votes.push({ id: c.id, accept })
+        // Only the initiating captain initialized targetDungeonId and its
+        // local accepted-map. Broadcasting9548 to others can make them send
+        // a final9536 with an uninitialized or stale target.
+        this.notify(c, [p.proposer_id], 'CSProtoReplyChangeDungeonNtf', { player_id: c.id, accept })
+        if (accept) this.save(p)
+        else this.close(c, room, p, 'declined')
+        return {}
+    }
     maintenance(now, roomId) {
         ensure(uint(now), 'Invalid target maintenance clock', ErrorCode.GameConfig)
         const rows =
