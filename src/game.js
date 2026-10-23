@@ -748,6 +748,7 @@ export class Game {
                 return [reply({ open_id: r.open_id, pid: a.id, guid: a.id, server_token: session.token })]
             }
             const packets = this.store.transact(session.id, e.id, (state) => {
+                this.legacyMatchTeams.onLogin(session.id)
                 const previousMapId = state.world.map_id
                 delete state.world.mountActionLifecycle // A login never inherits prior-session exit authorization.
                 delete state.world.eventRuntime // Re-authorize saved event admissions through a fresh10715 after scene load.

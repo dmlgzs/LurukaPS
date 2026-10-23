@@ -74,6 +74,26 @@ export async function startServer(config, logger = console) {
     const sockets = new Set(),
         owners = new Map(),
         sessions = new Map()
+    let closing = false
+    game.legacyMatchTeams.isOnline = (id) => {
+        const socket = owners.get(id)
+        return !!(socket && !socket.destroyed && sessions.get(socket)?.session.entered)
+    }
+    function notifyLegacyTeamPresence(id, online) {
+        if (closing) return
+        try {
+            const room = game.legacyMatchTeams.roomFor(id)
+            if (!room) return
+            const packet = game.packet('SCProtoTeamMemOnlineNtf', {
+                scene_type: room.target.scene_type,
+                player_id: id,
+                status: online ? 0 : 1,
+            })
+            for (const member of room.members) if (member.id !== id) deliverTo(member.id, packet)
+        } catch (error) {
+            logger.warn('Legacy team presence omitted: ' + error.message)
+        }
+    }
     function deliverTo(id, packet) {
         const target = owners.get(id),
             connection = target && sessions.get(target)
@@ -169,7 +189,10 @@ export async function startServer(config, logger = console) {
             sockets.delete(socket)
             sessions.delete(socket)
             if (session.entryChatNoticeTimer) clearTimeout(session.entryChatNoticeTimer)
-            if (owners.get(session.id) === socket) owners.delete(session.id)
+            if (owners.get(session.id) === socket) {
+                owners.delete(session.id)
+                if (session.entered) notifyLegacyTeamPresence(session.id, false)
+            }
         })
         socket.on('data', (chunk) => {
             let activeFrame
@@ -209,7 +232,10 @@ export async function startServer(config, logger = console) {
                             if (old && old !== socket) old.destroy()
                             owners.set(session.id, socket)
                         }
-                        if (entering && session.entered) scheduleEntryWorldChatNotice(session, socket)
+                        if (entering && session.entered) {
+                            scheduleEntryWorldChatNotice(session, socket)
+                            notifyLegacyTeamPresence(session.id, true)
+                        }
                     } catch (err) {
                         diagnostics.record({ protocol, frame, accountId: session.id, error: err })
                         try {
@@ -518,6 +544,7 @@ export async function startServer(config, logger = console) {
         store,
         runtime,
         async close() {
+            closing = true
             clearInterval(productionTimer)
             clearInterval(arenaTimer)
             for (const s of sockets) s.destroy()

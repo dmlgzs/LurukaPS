@@ -1,8 +1,10 @@
 import { ErrorCode } from './error-codes.js'
-import { ensure, group } from './handlers/common.js'
+import { ensure, group, GameError } from './handlers/common.js'
 import { materialDungeonUnlocked } from './material-dungeons.js'
 import { requireWeeklySystem, weeklyDungeonUnlocked } from './weekly-dungeons.js'
 import { getEntrustCatalog } from './entrust.js'
+import invitePolicy from '../configs/legacy-match-team-policy.json' with { type: 'json' }
+import { legacyChatBans } from './chat-shields.js'
 
 const uint = (n) => Number.isSafeInteger(n) && n >= 0 && n <= 0xffffffff
 const playerId = (n) => uint(n) && n > 0
@@ -10,6 +12,10 @@ const playerId = (n) => uint(n) && n > 0
 // InviteData.team_id is cast to Int32 by SyncTeamInvite06025dcf.
 const MAX_MEMBERS = 3
 const MAX_ROOM_ID = 0x7fffffff
+const busy = (state) =>
+    !!(state.entrust?.run || state.multiCampaign || state.storyCampaign || state.cultTrial || state.abyssRun)
+const sameTarget = (a, b) =>
+    ['dungeon_id', 'scene_type', 'site_id', 'kind', 'config_id'].every((key) => a?.[key] === b?.[key])
 
 export function legacyMatchTarget(c, r) {
     ensure(playerId(r.dungeon_id), 'Invalid team dungeon identity', ErrorCode.ReqParamsError)
@@ -81,10 +87,18 @@ export class LegacyMatchTeams {
         this.store = store
         this.tables = tables
         this.db = store.db
+        this.isOnline = () => false
+        this.policy = structuredClone(invitePolicy)
         this.db.exec(`
             CREATE TABLE IF NOT EXISTS legacy_match_rooms (id INTEGER PRIMARY KEY, payload TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS legacy_match_members (player_id INTEGER PRIMARY KEY, room_id INTEGER NOT NULL);
             CREATE INDEX IF NOT EXISTS legacy_match_members_room ON legacy_match_members(room_id);
+            CREATE TABLE IF NOT EXISTS legacy_match_invites (
+                recipient_id INTEGER PRIMARY KEY, room_id INTEGER NOT NULL, inviter_id INTEGER NOT NULL,
+                position INTEGER NOT NULL, target TEXT NOT NULL, created_at INTEGER NOT NULL,
+                expires_at INTEGER NOT NULL, status TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS legacy_match_invites_room ON legacy_match_invites(room_id);
         `)
     }
     roomFor(id) {
@@ -159,9 +173,9 @@ export class LegacyMatchTeams {
                 dungeon_end_time: '0',
                 scene_type: room.target.scene_type,
                 site_id: room.target.site_id,
-                // Online presence is a transport fact. Do not fabricate every
-                // persisted member as online; the present caller is known here.
-                online_players: members.filter((member) => member.pid === ownId).map((member) => member.pid),
+                online_players: members
+                    .filter((member) => member.pid === ownId || this.isOnline(member.pid))
+                    .map((member) => member.pid),
             },
             reason: 0,
         }
@@ -195,6 +209,7 @@ export class LegacyMatchTeams {
         }
         this.db.prepare('INSERT INTO legacy_match_rooms(id,payload) VALUES(?,?)').run(id, JSON.stringify(room))
         this.db.prepare('INSERT INTO legacy_match_members(player_id,room_id) VALUES(?,?)').run(c.id, id)
+        this.db.prepare('DELETE FROM legacy_match_invites WHERE recipient_id=?').run(c.id)
         c.push('CSProtoMatchTeamDataSync', this.snapshot(room, c.id, c.state))
         return {}
     }
@@ -209,6 +224,12 @@ export class LegacyMatchTeams {
             return null
         }
     }
+    onLogin(id) {
+        ensure(this.db.inTransaction, 'Invitation login cleanup requires a transaction', ErrorCode.GameConfig)
+        //9521 has no expiry field and the new client would restart its full
+        //30s animation. Never replay an old offer with a misleading countdown.
+        this.db.prepare("DELETE FROM legacy_match_invites WHERE recipient_id=? AND status='pending'").run(id)
+    }
     leave(c, r) {
         ensure(this.db.inTransaction, 'Team operation requires an atomic transaction', ErrorCode.GameConfig)
         ensure(uint(r.u32 ?? 0), 'Invalid leave team operation', ErrorCode.ReqParamsError)
@@ -221,6 +242,9 @@ export class LegacyMatchTeams {
             else c.pushTo(recipient, name, value)
         }
         const previous = room.members.map((member) => member.id)
+        // Old offers must not authorize joining a roster/captain that changed
+        // after the actual invitation. The client closes its own30s window.
+        this.db.prepare('DELETE FROM legacy_match_invites WHERE room_id=? OR recipient_id=?').run(room.id, c.id)
         if (dismiss || room.members.length === 1) {
             this.db.prepare('DELETE FROM legacy_match_members WHERE room_id=?').run(room.id)
             this.db.prepare('DELETE FROM legacy_match_rooms WHERE id=?').run(room.id)
@@ -243,11 +267,195 @@ export class LegacyMatchTeams {
         }
         return {}
     }
+    invitationFor(id) {
+        const row = this.db.prepare('SELECT * FROM legacy_match_invites WHERE recipient_id=?').get(id)
+        if (!row) return null
+        ensure(
+            row.recipient_id === id &&
+                playerId(row.inviter_id) &&
+                playerId(row.room_id) &&
+                row.room_id <= MAX_ROOM_ID &&
+                uint(row.position) &&
+                row.position < MAX_MEMBERS &&
+                uint(row.created_at) &&
+                uint(row.expires_at) &&
+                row.expires_at > row.created_at &&
+                ['pending', 'accepted', 'declined'].includes(row.status),
+            'Invalid saved team invitation',
+            ErrorCode.GameConfig,
+        )
+        let target
+        try {
+            target = JSON.parse(row.target)
+        } catch {
+            ensure(false, 'Invalid saved invitation target', ErrorCode.GameConfig)
+        }
+        ensure(
+            target &&
+                playerId(target.dungeon_id) &&
+                target.scene_type === 12 &&
+                target.site_id === 0 &&
+                playerId(target.config_id) &&
+                ['material', 'weekly'].includes(target.kind),
+            'Invalid saved invitation target',
+            ErrorCode.GameConfig,
+        )
+        return { ...row, target }
+    }
+    invitationWindow() {
+        const policy = this.policy
+        ensure(
+            policy?.schema_version === 1 &&
+                policy.invite_timeout_game_title === 'UI_TEAM_INVITATION_PLAYTIME' &&
+                uint(policy.expected_client_window_seconds) &&
+                policy.expected_client_window_seconds > 0,
+            'Invalid LOCAL invitation expiry policy',
+            ErrorCode.GameConfig,
+        )
+        const rows = this.tables.get('game').filter((row) => row.title === policy.invite_timeout_game_title)
+        ensure(
+            rows.length === 1 && /^\d+$/.test(String(rows[0].value)),
+            'Team invitation duration configuration unavailable',
+            ErrorCode.GameConfig,
+        )
+        const seconds = Number(rows[0].value)
+        ensure(
+            seconds === policy.expected_client_window_seconds,
+            'Invitation table/window relation changed',
+            ErrorCode.GameConfig,
+        )
+        return seconds
+    }
+    requireLobby(c, room) {
+        for (const { id } of room.members) {
+            const state = id === c.id ? c.state : this.store.load(id).state
+            ensure(!busy(state), 'Team has a member in an active dungeon', ErrorCode.TeamInBattle)
+        }
+    }
+    peerTarget(c, id, state, room) {
+        try {
+            const target = legacyMatchTarget({ ...c, id, state }, { ...room.target, dungeon_site: room.target.site_id })
+            ensure(sameTarget(target, room.target), 'Team target relation changed', ErrorCode.TeamTargetChanged)
+        } catch (error) {
+            if (error.code === ErrorCode.EntrustUnlock) {
+                const definition = this.tables.find(
+                    room.target.kind === 'weekly' ? 'dungeon_weekly' : 'dungeon_material',
+                    room.target.config_id,
+                )
+                const condition = String(room.target.kind === 'weekly' ? definition?.taskUnlock : definition?.unlock)
+                const levelLocked = condition.split('|').some((token) => {
+                    const [kind, level] = token.split('#').map(Number)
+                    return kind === 2004 && state.player.basic_info.lv < level
+                })
+                throw new GameError(
+                    'Invited player does not meet dungeon requirements',
+                    levelLocked ? ErrorCode.TeamTargetLevelNotMet : ErrorCode.TargetUnlockSystem,
+                )
+            }
+            if (error.code === ErrorCode.SystemLock)
+                throw new GameError('Invited player system is locked', ErrorCode.TargetUnlockSystem)
+            throw error
+        }
+    }
+    inviteNotice(row, room, inviterState) {
+        return {
+            invite: {
+                pid: row.inviter_id,
+                team_id: String(row.room_id),
+                dungeon_id: room.target.dungeon_id,
+                name: Buffer.from(inviterState.player.basic_info.name, 'base64').toString('utf8'),
+                scene_type: room.target.scene_type,
+                cancel: false,
+            },
+        }
+    }
+    invite(c, r) {
+        ensure(this.db.inTransaction, 'Team operation requires an atomic transaction', ErrorCode.GameConfig)
+        ensure(
+            playerId(r.pid) && uint(r.position ?? 0) && (r.position ?? 0) < MAX_MEMBERS,
+            'Invalid team invitation target/position',
+            ErrorCode.ReqParamsError,
+        )
+        ensure(r.pid !== c.id, 'Cannot invite yourself', ErrorCode.CannotOptYourSelf)
+        // Current ReqInvitePlayer sends false. is_quit is not proven to mean
+        // cancel; do not reinterpret it as a destructive operation.
+        ensure(!r.is_quit, 'Legacy invitation is_quit behavior is not implemented', ErrorCode.FunctionClosed)
+        const room = this.roomFor(c.id)
+        ensure(room, 'Not in a legacy match team', ErrorCode.NotInMatchTeam)
+        // LOCAL permission policy until the old Lua UI/official rule is
+        // confirmed. Both captain-only and ordinary-member invites are
+        // supported; do not describe this default as verified official law.
+        ensure(
+            ['captain', 'members'].includes(this.policy?.invite_permission),
+            'Invalid LOCAL invitation permission policy',
+            ErrorCode.GameConfig,
+        )
+        if (this.policy.invite_permission === 'captain')
+            ensure(room.captain === c.id, 'Only the captain can invite', ErrorCode.IsNotMatchTeamLeader)
+        ensure(
+            r.dungeon_id === room.target.dungeon_id,
+            'Invitation target no longer matches the team',
+            ErrorCode.TeamTargetChanged,
+        )
+        this.requireLobby(c, room)
+        ensure(this.store.hasPlayer(r.pid), 'Invited player does not exist', ErrorCode.InvalidTarget)
+        ensure(!this.roomFor(r.pid), 'Invited player is already in a team', ErrorCode.InvitedMemberInMatchTeam)
+        ensure(this.isOnline(r.pid), 'Invited player is offline', ErrorCode.PlayerNotOnline)
+        const peer = this.store.load(r.pid).state
+        ensure(!legacyChatBans(c.state).has(r.pid), 'Inviter has blocked the target', ErrorCode.YouBanTarget)
+        ensure(!legacyChatBans(peer).has(c.id), 'Invited player has blocked the inviter', ErrorCode.TargetBanYou)
+        ensure(!busy(peer), 'Invited player is busy', ErrorCode.TargetBusy)
+        this.peerTarget(c, r.pid, peer, room)
+        const seconds = this.invitationWindow()
+        ensure(uint(c.now) && c.now <= 0xffffffff - seconds, 'Invalid team invitation clock', ErrorCode.GameConfig)
+        const prior = this.invitationFor(r.pid)
+        if (prior?.status === 'pending' && prior.expires_at > c.now) {
+            ensure(
+                prior.room_id === room.id && prior.inviter_id === c.id && sameTarget(prior.target, room.target),
+                'Player has another pending team invitation',
+                ErrorCode.TargetBeingInvited,
+            )
+            // Do not restart the client's30s timer or extend server expiry.
+            return {}
+        }
+        const reserved = this.db
+            .prepare(
+                "SELECT count(*) AS n FROM legacy_match_invites WHERE room_id=? AND status='pending' AND expires_at>?",
+            )
+            .get(room.id, c.now).n
+        ensure(room.members.length < MAX_MEMBERS, 'Team is full', ErrorCode.ExceedMatchTeamPlayerNum)
+        ensure(
+            room.members.length + reserved < MAX_MEMBERS,
+            'All remaining team places are invited',
+            ErrorCode.InviteMatchTeamNumLimit,
+        )
+        const row = {
+            recipient_id: r.pid,
+            room_id: room.id,
+            inviter_id: c.id,
+            position: r.position ?? 0,
+            target: JSON.stringify(room.target),
+            created_at: c.now,
+            expires_at: c.now + seconds,
+            status: 'pending',
+        }
+        this.db
+            .prepare(
+                `INSERT INTO legacy_match_invites(recipient_id,room_id,inviter_id,position,target,created_at,expires_at,status)
+            VALUES(@recipient_id,@room_id,@inviter_id,@position,@target,@created_at,@expires_at,@status)
+            ON CONFLICT(recipient_id) DO UPDATE SET room_id=excluded.room_id,inviter_id=excluded.inviter_id,position=excluded.position,
+            target=excluded.target,created_at=excluded.created_at,expires_at=excluded.expires_at,status=excluded.status`,
+            )
+            .run(row)
+        c.pushTo(r.pid, 'CSProtoInviteDataSync', this.inviteNotice(row, room, c.state))
+        return {}
+    }
 }
 
 export function registerLegacyMatchTeams(on, store, tables) {
     const teams = new LegacyMatchTeams(store, tables)
     on('CreateMatchTeam', (c, r) => teams.create(c, r))
     on('LeaveMatchTeam', (c, r) => teams.leave(c, r))
+    on('InviteJoin', (c, r) => teams.invite(c, r))
     return teams
 }

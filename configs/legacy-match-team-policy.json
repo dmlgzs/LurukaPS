@@ -1,0 +1,8 @@
+{
+    "schema_version": 1,
+    "basis": "current-client-window-local-server-policy",
+    "officially_verified": false,
+    "invite_permission": "captain",
+    "invite_timeout_game_title": "UI_TEAM_INVITATION_PLAYTIME",
+    "expected_client_window_seconds": 30
+}
