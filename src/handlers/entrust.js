@@ -1,3 +1,4 @@
+import { captureRepeatFormation } from '../repeat-formation.js'
 import { repeatSnapshot } from '../repeat-event.js'
 import { ErrorCode } from '../error-codes.js'
 import { rewardSource } from '../reward-source.js'
@@ -345,6 +346,8 @@ export function startEntrust(c, id, restart = false, kind = 'entrust') {
     c.pushBefore('CSProtoCurMultiCampaignInfoSync', { status: 1, dungeon_id: entrust.run.dungeon_id })
     syncEntrust(c, entrust.run)
     worldSync({ ...c, push: c.pushBefore }, {}, active ? 49 : 256, false)
+    // Capture after worldSync restores an expired story/home trial formation.
+    if (kind === 'repeat') entrust.run.repeat_formation = captureRepeatFormation(c.state, entrust.run, c.now)
     syncBattle({ ...c, push: c.pushBefore })
     return {}
 }

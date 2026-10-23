@@ -79,6 +79,7 @@ import {
 import { announcementSnapshot } from './announcements.js'
 import { optimizeSyncPackets } from './sync-delta.js'
 import { registerRepeatEvent } from './handlers/repeat-event.js'
+import { repeatFormationBefore, validateRepeatFormation } from './repeat-formation.js'
 import { repeatSnapshot, repeatTaskSnapshot, observeRepeatStamina } from './repeat-event.js'
 import { registerPetCatch } from './handlers/pet-catch.js'
 import { refundPendingCatchCards } from './handlers/pet-catch.js'
@@ -1196,6 +1197,7 @@ export class Game {
                 if (!battleReport) this.noviceTasks.observe(state)
                 if (!battleReport) observeActiveSession(this.tables, state, now)
                 const activeCountersBefore = activeCounterSample(state)
+                const repeatRosterBefore = battleReport ? null : repeatFormationBefore(this.tables, state)
                 const response = recoveredChoice ? {} : handler(context, r)
                 if (!battleReport) notifyEscBackground(context)
                 if (!battleReport) notifySocialWheel(context)
@@ -1379,6 +1381,7 @@ export class Game {
                               }),
                           ]
                         : []
+                if (!battleReport) validateRepeatFormation(this.tables, state, repeatRosterBefore)
                 return [
                     ...((state.appearanceRevision ?? 0) !== appearanceRevision
                         ? [
