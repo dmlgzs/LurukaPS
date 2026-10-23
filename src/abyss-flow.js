@@ -101,6 +101,7 @@ export function clearAbyssRuntime(c) {
         if (maps.has(Number(key.split(':')[0]))) delete s.worldObjects[key]
     delete s.abyssRun
     delete s.combat
+    c.push('SCProtoAbyssDungeonMonsterBuffSync', { buff_ids: [] })
     c.push('CSProtoSyncPlayerData', { group_mgrs: [restored] })
     c.push('CSProtoOnlineModeChange', { mode: 1 })
     syncBattle(c)

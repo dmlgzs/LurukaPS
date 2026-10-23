@@ -10,6 +10,7 @@ import { startAbyssBattle, advanceAbyssCombat } from '../abyss-battle.js'
 import { nextAbyssRoom, clearAbyssRuntime, retryAbyssRoom } from '../abyss-flow.js'
 import { abyssModeRecord } from '../abyss-run.js'
 import { finishAbyssIntro, publishAbyssIntro } from '../abyss-intro.js'
+import { publishAbyssMonsterBuffs } from '../abyss-buffs.js'
 
 export function publishAbyssEntry(c) {
     const run = c.state.abyssRun,
@@ -22,6 +23,7 @@ export function publishAbyssEntry(c) {
     c.pushBefore('CSProtoSyncPlayerData', { group_mgrs: [c.state.player.group_mgrs.find((x) => x.type === 7)] })
     syncBattle({ ...c, push: c.pushBefore })
     c.pushBefore('SCProtoAbyssDungeonInfoSync', abyssDungeonInfo(c.state))
+    publishAbyssMonsterBuffs(c)
     c.pushBefore('SCProtoAbyssLevelInfoUpdate', {
         mode: run.mode,
         level_info: abyssDataSnapshot(tables, c.state, c.now)[
