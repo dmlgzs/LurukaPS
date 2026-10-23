@@ -1174,7 +1174,8 @@ export class Game {
                     defer: true,
                     fork: (base) =>
                         ['CSProtoStateUpdate', 'CSProtoWorldMapPlayerPlayerAction'].includes(e.name)
-                            ? forkMovement(base) : forkFastCombat(base, e.name, r),
+                            ? forkMovement(base)
+                            : forkFastCombat(base, e.name, r),
                 },
             )
         return this.store.transact(

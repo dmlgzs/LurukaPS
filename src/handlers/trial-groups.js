@@ -7,7 +7,10 @@ import { petData } from '../pets.js'
 import { retireTrialActors, temporaryHeroes, temporaryPets } from '../trial-actors.js'
 import { mainHeroConfigId } from '../main-hero.js'
 export function trialPayload(state) {
-    return { trial_heros: temporaryHeroes(state).filter(x=>!x.abyss), trial_pets: temporaryPets(state).filter(x=>!x.abyss) }
+    return {
+        trial_heros: temporaryHeroes(state).filter((x) => !x.abyss),
+        trial_pets: temporaryPets(state).filter((x) => !x.abyss),
+    }
 }
 export function refreshTrialPetBindings(state) {
     const heroes = [...state.player.heros_info.heros, ...(state.trialGroup?.heroes ?? [])],

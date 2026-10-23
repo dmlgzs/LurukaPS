@@ -354,9 +354,16 @@ export function customizedPetRewardDefinition(tables, customizedId) {
     return { config, comprehensionRows, fixedGenes, maxGenes, labor }
 }
 export function createCustomizedPets(tables, state, customizedId, count) {
-    const { config, comprehensionRows, fixedGenes, maxGenes, labor } = customizedPetRewardDefinition(tables, customizedId)
+    const { config, comprehensionRows, fixedGenes, maxGenes, labor } = customizedPetRewardDefinition(
+        tables,
+        customizedId,
+    )
     const comprehension = comprehensionRows.map(({ attr_id, level, minimum, maximum }) => ({
-        attr_id, level, value: minimum === maximum ? minimum : randomInt(minimum, maximum + 1), init_level: level, cur_exp: 0,
+        attr_id,
+        level,
+        value: minimum === maximum ? minimum : randomInt(minimum, maximum + 1),
+        init_level: level,
+        cur_exp: 0,
     }))
     const pets = createPets(tables, state, config.petId, count, config.builderRule || 1001)
     for (const pet of pets) {

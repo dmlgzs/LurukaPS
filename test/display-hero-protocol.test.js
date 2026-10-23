@@ -45,7 +45,7 @@ test('6137 stores the full one-based three-slot selection, syncs before callback
         )
         assert.equal(shown[0].config, heroes[0].conf_id)
         assert.equal(shown[0].lv, heroes[0].hero_lv)
-        assert.deepEqual(store.publicProfiles(-1).find(profile => profile.id === session.id).info.hero, shown)
+        assert.deepEqual(store.publicProfiles(-1).find((profile) => profile.id === session.id).info.hero, shown)
         assert.deepEqual(state().player.basic_info.info.achievement, [1])
         for (const hero of [
             [{ hero_id: heroes[0].guid, pos: 0 }],

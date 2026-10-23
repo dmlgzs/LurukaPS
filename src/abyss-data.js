@@ -70,7 +70,9 @@ export function abyssDataSnapshot(tables, state, now, policy) {
             // Native GetStarRewardData derives this-claim popup data from the
             // newly appended suffix of this cumulative list. Unclaimed tiers
             // come from abbys_reward and must not pre-fill that client cache.
-            reward_list: rewards.filter((r) => claimed.has(r.num)).map((r) => ({ stage_num: r.num, reward_flag: true })),
+            reward_list: rewards
+                .filter((r) => claimed.has(r.num))
+                .map((r) => ({ stage_num: r.num, reward_flag: true })),
         }
     }
     return {

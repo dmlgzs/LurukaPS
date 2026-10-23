@@ -152,8 +152,10 @@ test('journey reward receipts and points survive SQLite close, reopen and login'
         for (const name of fs.readdirSync(dir)) {
             assert.ok(/^state\.sqlite(?:-journal|-wal|-shm)?$/.test(name))
             for (let attempt = 0; ; attempt++) {
-                try { fs.unlinkSync(path.join(dir, name)); break }
-                catch (error) {
+                try {
+                    fs.unlinkSync(path.join(dir, name))
+                    break
+                } catch (error) {
                     if (error.code !== 'EBUSY' || attempt >= 20) throw error
                     await new Promise((resolve) => setTimeout(resolve, 100))
                 }

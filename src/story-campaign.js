@@ -189,7 +189,7 @@ export function storyCampaignConfig(tables, groupId, difficulty) {
     const savedRoute = legacyRoutes.get(dungeon.id)
     const route =
         savedRoute?.mode === 'table_waves' || !savedRoute
-            ? tableWaveCampaignRoute(tables, dungeon) ?? localPlayableCampaignRoute(tables, dungeon)
+            ? (tableWaveCampaignRoute(tables, dungeon) ?? localPlayableCampaignRoute(tables, dungeon))
             : savedRoute
     ensure(taskMapping || route, 'Campaign group is not implemented', ErrorCode.InvalidProtoID)
     const graphs = taskMapping ? new TaskGraphs(tables) : null

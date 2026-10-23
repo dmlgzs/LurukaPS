@@ -31,7 +31,10 @@ export class EntrustCatalog {
         const source = repeat ? repeatEventTables(this.tables) : this.tables
         const commission = this.tables.find('dungeon_entrust', id),
             material = commission ? null : this.tables.find('dungeon_material', id),
-            entrust = commission ?? (material && { ...material, groupId: material.type, taskUnlock: material.unlock }) ?? (repeat && {id, dungeonId: id, groupId: 0, taskUnlock: repeat.dungeon.unlockCondition})
+            entrust =
+                commission ??
+                (material && { ...material, groupId: material.type, taskUnlock: material.unlock }) ??
+                (repeat && { id, dungeonId: id, groupId: 0, taskUnlock: repeat.dungeon.unlockCondition })
         ensure(entrust, 'Unknown entrust', ErrorCode.EntrustConfigNone)
         const dungeon = source.find('dungeon', entrust.dungeonId)
         ensure(dungeon, 'Entrust dungeon configuration unavailable', ErrorCode.DungeonConfNotExist)

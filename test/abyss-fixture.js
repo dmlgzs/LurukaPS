@@ -24,7 +24,7 @@ export function abyssFixture(name = 'abyss-challenge', file = ':memory:', resume
         // Existing scene assertions explicitly decode the cmd49/256 payload.
         const packet =
             name === 'CSProtoWorldMapSync'
-                ? matches.find((x) => [49, 256].includes(p.decode(e.rsp, x.payload).cmd)) ?? matches[0]
+                ? (matches.find((x) => [49, 256].includes(p.decode(e.rsp, x.payload).cmd)) ?? matches[0])
                 : matches[0]
         return p.decode(e.rsp, packet.payload)
     }

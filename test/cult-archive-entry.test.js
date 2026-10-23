@@ -104,7 +104,7 @@ test('9610 all forty actual kill batches settle endless score and wave history w
             assert.equal(f.state().worldObjects['6557:' + (i + 4)].active, false)
             const syncs = packets
                     .filter((p) => p.id === f.protocol.byName.get('CSProtoWorldMapSync').id)
-                .map((p) => f.protocol.decode('cs.WorldMapNotify', p.payload)),
+                    .map((p) => f.protocol.decode('cs.WorldMapNotify', p.payload)),
                 snapshot = syncs.find((x) => x.cmd === 47).map_info.objs,
                 dead = snapshot.find((x) => x.obj_id === i + 4)
             assert.equal(dead.active, false)

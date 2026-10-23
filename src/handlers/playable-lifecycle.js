@@ -1,5 +1,11 @@
 import { settleStoryCampaignScene } from './story-campaign.js'
-import { prepareCampaignPlayableStart, bindCampaignPlayableStart, requireCampaignPlayableRun, acceptCampaignPlayableFinish, playableWire } from '../campaign-playable-ledger.js'
+import {
+    prepareCampaignPlayableStart,
+    bindCampaignPlayableStart,
+    requireCampaignPlayableRun,
+    acceptCampaignPlayableFinish,
+    playableWire,
+} from '../campaign-playable-ledger.js'
 import { ErrorCode } from '../error-codes.js'
 import fs from 'node:fs'
 import { ensure, syncPlayer } from './common.js'
@@ -209,7 +215,7 @@ export function registerPlayableLifecycle(on, tables) {
         if (finished) {
             ;(c.state.playableScoreClaims ??= {})[row.id] = campaign
                 ? Number(BigInt(c.state.playableScoreClaims[row.id] ?? 0) | BigInt(finished.reward_info ?? 0))
-                : finished.reward_info ?? 0
+                : (finished.reward_info ?? 0)
             delete c.state.playableFinishes[row.id]
         }
         // Client simulator keeps children of the newly started parent, replaces other runs.
@@ -337,8 +343,12 @@ export function registerPlayableLifecycle(on, tables) {
         )
         const finished = (c.state.playableFinishes ??= {})
         if (campaign && finished[row.id])
-            ensure(finished[row.id].campaign_instance_id === campaign.instance_id && finished[row.id].campaign_attempt_id === run.campaign_attempt_id,
-                'Playable finish belongs to another campaign attempt', ErrorCode.InvalidLogic)
+            ensure(
+                finished[row.id].campaign_instance_id === campaign.instance_id &&
+                    finished[row.id].campaign_attempt_id === run.campaign_attempt_id,
+                'Playable finish belongs to another campaign attempt',
+                ErrorCode.InvalidLogic,
+            )
         if (!finished[row.id]) {
             ensure(run.finish_step >= requiredStep(row) && run.status === 2, 'Playable has not completed its steps')
             if (row.id === 60001)
@@ -351,7 +361,9 @@ export function registerPlayableLifecycle(on, tables) {
                 selected_pet_group: run.selected_pet_group,
                 selected_pet_guid: run.selected_pet_guid,
                 finished_at: c.now,
-                ...(campaign ? { campaign_instance_id: run.campaign_instance_id, campaign_attempt_id: run.campaign_attempt_id } : {}),
+                ...(campaign
+                    ? { campaign_instance_id: run.campaign_instance_id, campaign_attempt_id: run.campaign_attempt_id }
+                    : {}),
             }
         }
         run.status = 3

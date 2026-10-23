@@ -64,7 +64,8 @@ test('11458 requires actual room victory, loads the table-defined next scene/tea
         assert(
             packets.findIndex((x) => x.id === 11460) <
                 packets.findIndex(
-                    (x) => x.id === 9103 && f.p.decode(f.p.byName.get('CSProtoWorldMapSync').rsp, x.payload).cmd === 256,
+                    (x) =>
+                        x.id === 9103 && f.p.decode(f.p.byName.get('CSProtoWorldMapSync').rsp, x.payload).cmd === 256,
                 ),
         )
         assert.equal(f.state().combat.map_id, second.map_id)

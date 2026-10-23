@@ -139,4 +139,3 @@ test('a later broken reward, full egg inventory or packet failure rolls back eve
         f.close()
     }
 })
-

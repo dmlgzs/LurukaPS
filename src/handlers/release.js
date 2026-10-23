@@ -1,4 +1,4 @@
-import { ensurePetNotInKiboTour } from "../kibo-tour-ledger.js"
+import { ensurePetNotInKiboTour } from '../kibo-tour-ledger.js'
 import { ErrorCode } from '../error-codes.js'
 import { petInActiveNpcDuel } from '../npc-kibo-duel.js'
 import { ensure } from './common.js'

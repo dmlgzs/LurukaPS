@@ -40,15 +40,13 @@ function fixture(file = ':memory:', count = 1) {
         for (const manager of state.player.group_mgrs)
             for (const group of manager.groups) for (const h of group.heros) h.pet_id = '0'
         for (const pet of createPets(tables, state, 500002, count)) {
-            pet.comprehension = tables
-                .get('pet_learningenum')
-                .map(({ attributeEnum: attr_id }) => ({
-                    attr_id,
-                    level: 1,
-                    init_level: 1,
-                    cur_exp: 0,
-                    value: tables.get('pet_talent_upgrade').find((r) => r.attrId === attr_id && r.level === 1).InterA,
-                }))
+            pet.comprehension = tables.get('pet_learningenum').map(({ attributeEnum: attr_id }) => ({
+                attr_id,
+                level: 1,
+                init_level: 1,
+                cur_exp: 0,
+                value: tables.get('pet_talent_upgrade').find((r) => r.attrId === attr_id && r.level === 1).InterA,
+            }))
         }
     })
     const reload = () => {

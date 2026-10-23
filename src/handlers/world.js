@@ -528,8 +528,11 @@ export function registerWorld(on) {
             ensure(c.tables.find('mount', mount.config_id), 'Pet is not a mount', ErrorCode.PetIsNotMount)
             const scene = c.tables.find('world_city', w.map_id)
             ensure(scene, 'Mount scene configuration is missing', ErrorCode.NoWorldCityConf)
-            ensure(Number.isInteger(scene.mountAvailable) && scene.mountAvailable >= 0,
-                'Invalid scene mount availability', ErrorCode.GameConfig)
+            ensure(
+                Number.isInteger(scene.mountAvailable) && scene.mountAvailable >= 0,
+                'Invalid scene mount availability',
+                ErrorCode.GameConfig,
+            )
             ensure(scene.mountAvailable > 0, 'Scene cannot mount', ErrorCode.SceneCantMount)
             beginMountActionLifecycle(c, mount)
             syncGroupControl(c)

@@ -205,7 +205,8 @@ export class ActivityCatalog {
         const confs = this.rows.map((row) => this.tours.presentationWindow(this.window(row, now), state, row)),
             activitys = []
         for (const row of this.rows) {
-            if (!this.active(row, state, now) && !(row.type === 80 && this.tours.hasRuns(state.activities?.[row.id]))) continue
+            if (!this.active(row, state, now) && !(row.type === 80 && this.tours.hasRuns(state.activities?.[row.id])))
+                continue
             const entry = this.entry(state, row.id)
             entry.opened ||= now
             const data = {}
@@ -267,7 +268,11 @@ export class ActivityCatalog {
             .digest('hex')
         if (force || signature !== c.state.activitySyncSignature) {
             c.state.activitySyncSignature = signature
-            const tourTimes = JSON.stringify(activity.confs.filter(conf => this.rows.some(row => row.id === conf.activity_id && row.type === 80)))
+            const tourTimes = JSON.stringify(
+                activity.confs.filter((conf) =>
+                    this.rows.some((row) => row.id === conf.activity_id && row.type === 80),
+                ),
+            )
             if (tourTimes !== c.state.kiboTourPresentationSignature) {
                 c.state.kiboTourPresentationSignature = tourTimes
                 c.pushBefore('CSProtoSyncCommonTimeConf', this.commonTimes(c.now, c.state))

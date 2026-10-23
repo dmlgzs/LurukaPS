@@ -3,7 +3,13 @@ import { captureDungeonFavorEntry } from '../dungeon-favor-entry.js'
 import { dungeonFavorRewardContext } from '../hero-favor-rewards.js'
 import { claimRepeatChest, claimRepeatFirstPass } from '../repeat-event-rewards.js'
 import { repeatSnapshot } from '../repeat-event.js'
-import { prepareMaterialStory, beginMaterialStory, materialStoryStartPayload, materialStoryPending, replayMaterialStory } from '../multiple-material-story.js'
+import {
+    prepareMaterialStory,
+    beginMaterialStory,
+    materialStoryStartPayload,
+    materialStoryPending,
+    replayMaterialStory,
+} from '../multiple-material-story.js'
 import { ErrorCode } from '../error-codes.js'
 import { rewardSource } from '../reward-source.js'
 import { materialDungeonSnapshot, materialDungeonUnlocked } from '../material-dungeons.js'
@@ -287,7 +293,8 @@ export function syncEntrust(c, run) {
     c.pushBefore('SCProtoMultiCampaignPlayerDmgInfoSync', entrustDamageSnapshot(c.state, c.id))
     if (run.battle_complete) {
         if (run.kind === 'material') c.pushBefore('SCProtoDungeonMaterialInfoSync', materialDungeonSnapshot(c.state))
-        else if (run.kind === 'repeat') c.pushBefore('CSProtoRepeatEventSync', repeatSnapshot(c.state, c.activityCatalog, c.now))
+        else if (run.kind === 'repeat')
+            c.pushBefore('CSProtoRepeatEventSync', repeatSnapshot(c.state, c.activityCatalog, c.now))
         else c.pushBefore('CSProtoEntrustInfoSync', entrustInfoSnapshot(c.state))
         c.pushBefore('CSProtoStaminaBoxSync', entrustChestSnapshot(c.tables, c.state))
     }
@@ -319,7 +326,10 @@ export function startEntrust(c, id, restart = false, kind = 'entrust') {
         catalog = getEntrustCatalog(tables)
     const config = catalog.get(id),
         active = c.state.entrust?.run
-    ensure((kind === 'material') === !!config.material && (kind === 'repeat') === !!config.repeat, 'Dungeon entry type does not match configuration')
+    ensure(
+        (kind === 'material') === !!config.material && (kind === 'repeat') === !!config.repeat,
+        'Dungeon entry type does not match configuration',
+    )
     ensure(
         kind === 'material'
             ? materialDungeonUnlocked(config.entrust.taskUnlock, c.state)
@@ -330,7 +340,9 @@ export function startEntrust(c, id, restart = false, kind = 'entrust') {
     ensure(!c.state.multiCampaign && !c.state.storyCampaign && !c.state.cultTrial, 'Another dungeon is active')
     ensure(
         !active ||
-            (restart && active.entrust_id === id && (kind === 'repeat' ? [1, 2, 3, 4] : [2, 3]).includes(active.status)),
+            (restart &&
+                active.entrust_id === id &&
+                (kind === 'repeat' ? [1, 2, 3, 4] : [2, 3]).includes(active.status)),
         'Another entrust is active',
     )
     const entrust = (c.state.entrust ??= { records: {}, starRewards: {}, nextInstanceId: 1 })

@@ -83,7 +83,11 @@ test('type, slot, source snapshot, eligibility and real unexpired ownership are 
         [a, b] = quickIds
     try {
         f.grant([a, nonQuickId])
-        unchanged(f, () => f.game.dispatch(f.session, { id: 6569, seq: 500, payload: Buffer.from([8, 2]) }), ErrorCode.ShortcutItemType)
+        unchanged(
+            f,
+            () => f.game.dispatch(f.session, { id: 6569, seq: 500, payload: Buffer.from([8, 2]) }),
+            ErrorCode.ShortcutItemType,
+        )
         unchanged(f, () => f.add(a, 7), ErrorCode.ShortcutItemSlotInVilid)
         unchanged(f, () => f.add(nonQuickId, 1), ErrorCode.ShortcutItemType)
         unchanged(f, () => f.add(b, 1), ErrorCode.ItemNotEnough)

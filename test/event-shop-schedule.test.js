@@ -111,7 +111,11 @@ for (const [mode, code] of [
                 ]
             })
             const packets = call('ListShopArrayItems', { shop_ids: [502] })
-            assert.equal(p.decode('SCListShopItemsArray', packets.find((packet) => packet.id === 6073).payload).infos[0].shop_items.length, 1)
+            assert.equal(
+                p.decode('SCListShopItemsArray', packets.find((packet) => packet.id === 6073).payload).infos[0]
+                    .shop_items.length,
+                1,
+            )
             const request = { shop_id: 502, items: [{ slot_id: 502001, goods_id: 502001, times: 1 }] }
             if (code) {
                 const before = structuredClone(s.load(session.id).state)

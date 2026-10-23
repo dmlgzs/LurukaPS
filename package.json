@@ -11,7 +11,9 @@
   "scripts": {
     "start": "node src/main.js",
     "coverage:protocol": "node scripts/coverage.js",
-    "test": "node --test"
+    "test": "node --test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",

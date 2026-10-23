@@ -247,8 +247,11 @@ test('legacy half-clear checkpoint resumes through copy31 aliases into the next 
         f.call('AbyssChallengeRealStart')
         f.time.now += 40
         for (let step = 0; step < 128 && f.state().abyssRun.phase === 'running'; step++) {
-            const s = f.state(), run = s.abyssRun
-            const enemy = Object.values(s.combat.entities).find((x) => run.wave_objects.includes(x.object_id) && x.hp > 0)
+            const s = f.state(),
+                run = s.abyssRun
+            const enemy = Object.values(s.combat.entities).find(
+                (x) => run.wave_objects.includes(x.object_id) && x.hp > 0,
+            )
             assert(enemy, 'active configured wave has a live enemy')
             f.call('BattleInfoReduce', {
                 uint64_dic: [run.challenges[0].control, enemy.uuid],
@@ -273,5 +276,7 @@ test('legacy half-clear checkpoint resumes through copy31 aliases into the next 
         assert.equal(run.map_id, run.rooms[1].map_id)
         assert.deepEqual(run.pets, saved.pets)
         assert.deepEqual(f.state().pets, permanent)
-    } finally { f.store.close() }
+    } finally {
+        f.store.close()
+    }
 })

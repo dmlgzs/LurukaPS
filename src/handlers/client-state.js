@@ -1,4 +1,4 @@
-import { recordLocalCampaignStory } from "../campaign-playable-story.js"
+import { recordLocalCampaignStory } from '../campaign-playable-story.js'
 import { isPreviousTrialActor } from './trial-groups.js'
 import { ensure, group } from './common.js'
 import { recordTaskBehaviour } from '../task-events.js'

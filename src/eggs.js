@@ -31,11 +31,16 @@ export function eggRewardDefinition(tables, id, constraints = undefined) {
     const config = tables.find('pet_egg', id)
     ensure(config, 'Unknown pet egg', ErrorCode.EggConfNotExist)
     if (constraints) constrainedEggPools(tables, id, constraints)
-    const quantities = weights(config.affixquantityweight), pool = weights(config.affixweight)
+    const quantities = weights(config.affixquantityweight),
+        pool = weights(config.affixweight)
     ensure(quantities.length > 0, 'Missing egg affix count config', ErrorCode.GameConfig)
     for (const entries of [quantities, pool]) {
         const total = entries.reduce((sum, entry) => sum + entry.weight, 0)
-        ensure(Number.isSafeInteger(total) && total < 2 ** 48 && (!entries.length || total > 0), 'Invalid egg weight sum', ErrorCode.GameConfig)
+        ensure(
+            Number.isSafeInteger(total) && total < 2 ** 48 && (!entries.length || total > 0),
+            'Invalid egg weight sum',
+            ErrorCode.GameConfig,
+        )
     }
     ensure(new Set(pool.map((x) => x.id)).size === pool.length, 'Duplicate egg affix definition', ErrorCode.GameConfig)
     const groups = new Set()
@@ -44,7 +49,11 @@ export function eggRewardDefinition(tables, id, constraints = undefined) {
         ensure(row, 'Missing egg affix', ErrorCode.GameConfig)
         groups.add(row.mutexgroup ? `group:${row.mutexgroup}` : `affix:${entry.id}`)
     }
-    ensure(quantities.every((x) => x.id <= groups.size), 'Unsatisfiable egg affix pool', ErrorCode.GameConfig)
+    ensure(
+        quantities.every((x) => x.id <= groups.size),
+        'Unsatisfiable egg affix pool',
+        ErrorCode.GameConfig,
+    )
     return { config, quantities, pool }
 }
 export function createEggs(tables, state, id, count, rng = randomInt, constraints = undefined) {

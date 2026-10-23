@@ -8,12 +8,18 @@ export function petInKiboTour(state, guid) {
     for (const [activityId, entry] of Object.entries(state.activities ?? {})) {
         const ledger = entry.kiboTour
         if (!ledger) continue
-        ensure(ledger.runs && typeof ledger.runs === 'object' && !Array.isArray(ledger.runs),
-            'Saved Kibo tour ledger is malformed', ErrorCode.GameConfig)
+        ensure(
+            ledger.runs && typeof ledger.runs === 'object' && !Array.isArray(ledger.runs),
+            'Saved Kibo tour ledger is malformed',
+            ErrorCode.GameConfig,
+        )
         for (const run of Object.values(ledger.runs)) {
-            ensure(run && [0, 1, 2].includes(run.state) && Array.isArray(run.pet_ids),
-                'Saved Kibo tour reservation is malformed', ErrorCode.GameConfig)
-            if (run.state !== 2 && run.pet_ids.some(value => String(value) === id))
+            ensure(
+                run && [0, 1, 2].includes(run.state) && Array.isArray(run.pet_ids),
+                'Saved Kibo tour reservation is malformed',
+                ErrorCode.GameConfig,
+            )
+            if (run.state !== 2 && run.pet_ids.some((value) => String(value) === id))
                 return { activity_id: Number(activityId), run }
         }
     }

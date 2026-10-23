@@ -13,7 +13,11 @@ export class ShopGoodsTips {
     constructor(tables) {
         const index = (name, key) => {
             const rows = tables.get(name)
-            ensure(rows.every((row) => uint(row[key])), `Invalid ${name} identity`, ErrorCode.GameConfig)
+            ensure(
+                rows.every((row) => uint(row[key])),
+                `Invalid ${name} identity`,
+                ErrorCode.GameConfig,
+            )
             const result = new Map(rows.map((row) => [row[key], row]))
             ensure(result.size === rows.length, `Duplicate ${name} identity`, ErrorCode.GameConfig)
             return result
@@ -23,7 +27,10 @@ export class ShopGoodsTips {
         this.goods = index('goods', 'goodsId')
     }
     members(shop) {
-        const values = String(shop.goodsList || '').split('|').filter(Boolean).map(Number)
+        const values = String(shop.goodsList || '')
+            .split('|')
+            .filter(Boolean)
+            .map(Number)
         ensure(values.every(uint), 'Invalid shop slot list', ErrorCode.GameConfig)
         return values
     }
@@ -33,9 +40,13 @@ export class ShopGoodsTips {
         ensure(object(records), 'Invalid shop tip ledger', ErrorCode.GameConfig)
         for (const [slot, entry] of Object.entries(records)) {
             ensure(
-                uint(Number(slot)) && String(Number(slot)) === slot && object(entry) &&
-                    uint(entry.shop_id) && uint(entry.goods_id),
-                'Invalid shop tip record', ErrorCode.GameConfig,
+                uint(Number(slot)) &&
+                    String(Number(slot)) === slot &&
+                    object(entry) &&
+                    uint(entry.shop_id) &&
+                    uint(entry.goods_id),
+                'Invalid shop tip record',
+                ErrorCode.GameConfig,
             )
         }
         return records
@@ -46,7 +57,11 @@ export class ShopGoodsTips {
         const shop = this.shops.get(shopId)
         ensure(shop, 'Unknown shop', ErrorCode.ShopConfNotExist)
         const slot = this.slots.get(slotId)
-        ensure(slot && this.members(shop).includes(slotId), 'Slot does not belong to this shop', ErrorCode.InvalidArgument)
+        ensure(
+            slot && this.members(shop).includes(slotId),
+            'Slot does not belong to this shop',
+            ErrorCode.InvalidArgument,
+        )
         ensure(slot.slotType === 1, 'Random shop slot assignment is not implemented', ErrorCode.InvalidProtoID)
         ensure(uint(slot.slotParam), 'Invalid fixed shop slot goods', ErrorCode.GameConfig)
         const goods = this.goods.get(slot.slotParam)
@@ -59,12 +74,20 @@ export class ShopGoodsTips {
     snapshot(state) {
         const tipInfos = []
         for (const [key, entry] of Object.entries(this.ledger(state))) {
-            const slotId = Number(key), shop = this.shops.get(entry.shop_id), slot = this.slots.get(slotId)
+            const slotId = Number(key),
+                shop = this.shops.get(entry.shop_id),
+                slot = this.slots.get(slotId)
             // Removed products/stores and changed assignments are no longer read.
             // Retain their receipts internally; never trust stale saved IDs as a
             // current assignment, and never substitute goods ID for slot ID.
-            if (shop && slot?.slotType === 1 && slot.slotParam === entry.goods_id &&
-                this.goods.has(entry.goods_id) && this.members(shop).includes(slotId)) tipInfos.push(slotId)
+            if (
+                shop &&
+                slot?.slotType === 1 &&
+                slot.slotParam === entry.goods_id &&
+                this.goods.has(entry.goods_id) &&
+                this.members(shop).includes(slotId)
+            )
+                tipInfos.push(slotId)
         }
         return { tipInfos: tipInfos.sort((a, b) => a - b), isAll: true }
     }

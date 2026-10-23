@@ -168,18 +168,33 @@ test('real dismount map status clears the client mount before its9117 ACK; ride 
     try {
         const entry = f.mount()
         const entryAck = entry.findIndex((packet) => packet.id === 9117)
-        const entryMaps = entry.flatMap((packet, index) => packet.id === 9103 ? [{index,data:protocol.decode('WorldMapNotify',packet.payload)}] : [])
+        const entryMaps = entry.flatMap((packet, index) =>
+            packet.id === 9103 ? [{ index, data: protocol.decode('WorldMapNotify', packet.payload) }] : [],
+        )
         assert(entryMaps.length > 0)
-        assert(entryMaps.every((packet) => packet.index > entryAck), 'this fix does not reorder the unexamined ride-entry callback contract')
-        const exit = f.leave(), ack = exit.findIndex((packet) => packet.id === 9117)
-        const status = exit.flatMap((packet, index) => packet.id === 9103 ? [{index,data:protocol.decode('WorldMapNotify',packet.payload)}] : [])
+        assert(
+            entryMaps.every((packet) => packet.index > entryAck),
+            'this fix does not reorder the unexamined ride-entry callback contract',
+        )
+        const exit = f.leave(),
+            ack = exit.findIndex((packet) => packet.id === 9117)
+        const status = exit.flatMap((packet, index) =>
+            packet.id === 9103 ? [{ index, data: protocol.decode('WorldMapNotify', packet.payload) }] : [],
+        )
         assert(status.some((packet) => packet.data.cmd === 17))
         assert(status.some((packet) => packet.data.cmd === 25))
-        assert(status.every((packet) => packet.index < ack), 'clear m_MountId before ACK callback unblocks input')
+        assert(
+            status.every((packet) => packet.index < ack),
+            'clear m_MountId before ACK callback unblocks input',
+        )
         for (const packet of status) {
             const player = packet.data.map_info.players[0]
-            assert.equal(player.mount, '0'); assert.equal(player.status, 0)
-            assert.equal(player.move.length, 0); assert.equal(player.group, undefined)
+            assert.equal(player.mount, '0')
+            assert.equal(player.status, 0)
+            assert.equal(player.move.length, 0)
+            assert.equal(player.group, undefined)
         }
-    } finally { f.store.close() }
+    } finally {
+        f.store.close()
+    }
 })

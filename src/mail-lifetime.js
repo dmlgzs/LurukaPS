@@ -4,12 +4,21 @@ const uint = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 0x
 export function mailGuid(value, allowZero = false, code = ErrorCode.InvalidMailID) {
     if (typeof value === 'number') ensure(Number.isSafeInteger(value), 'Mail identity lost precision', code)
     const text = String(value ?? (allowZero ? '0' : ''))
-    ensure(/^(0|[1-9]\d*)$/.test(text) && BigInt(text) <= 0xffffffffffffffffn && (allowZero || text !== '0'), 'Invalid mail identity', code)
+    ensure(
+        /^(0|[1-9]\d*)$/.test(text) && BigInt(text) <= 0xffffffffffffffffn && (allowZero || text !== '0'),
+        'Invalid mail identity',
+        code,
+    )
     return text
 }
 export function mailEffectValid(mail, now) {
-    const duration = mail.effecttm ?? 0, collect = mail.collect ?? false
-    ensure(uint(duration) && typeof collect === 'boolean', 'Saved mail lifetime is malformed', ErrorCode.MailConfigError)
+    const duration = mail.effecttm ?? 0,
+        collect = mail.collect ?? false
+    ensure(
+        uint(duration) && typeof collect === 'boolean',
+        'Saved mail lifetime is malformed',
+        ErrorCode.MailConfigError,
+    )
     // CBT3 MailStore.CheckMailEffectValid 06018117: permanent or collected
     // mail remains valid; finite life is a DURATION added to creation time.
     if (!duration || collect) return true
@@ -21,7 +30,8 @@ export function mailEffectValid(mail, now) {
 export function selectMailRewards(state, request, now) {
     const requested = mailGuid(request.u64, true)
     ensure(Array.isArray(state.mail), 'Saved mail collection is malformed', ErrorCode.MailConfigError)
-    const used = new Set(), rows = []
+    const used = new Set(),
+        rows = []
     for (const mail of state.mail) {
         ensure(mail && typeof mail === 'object', 'Saved mail is malformed', ErrorCode.MailConfigError)
         const id = mailGuid(mail.guid, false, ErrorCode.MailConfigError)
@@ -29,7 +39,11 @@ export function selectMailRewards(state, request, now) {
         used.add(id)
         if (requested !== '0' && id !== requested) continue
         for (const field of ['fetch', 'is_delete'])
-            ensure(mail[field] === undefined || typeof mail[field] === 'boolean', 'Saved mail flag is malformed', ErrorCode.MailConfigError)
+            ensure(
+                mail[field] === undefined || typeof mail[field] === 'boolean',
+                'Saved mail flag is malformed',
+                ErrorCode.MailConfigError,
+            )
         rows.push(mail)
     }
     if (requested !== '0') {
