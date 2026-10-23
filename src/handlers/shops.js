@@ -1,17 +1,26 @@
 import { ErrorCode } from '../error-codes.js'
 import { ShopCatalog } from '../shops.js'
+import { ShopGoodsTips } from '../shop-goods-tips.js'
 import { ensure, syncPlayer } from './common.js'
 import { spend, spendCurrency } from '../inventory.js'
 import { grantRewards, parseRewards } from '../rewards.js'
 export function registerShops(on, tables) {
     const catalog = new ShopCatalog(tables)
+    const tips = new ShopGoodsTips(tables)
+    on('ShopGoodsTipReq', (c, r) => {
+        c.push('SCProtoShopGoodsTipSync', tips.read(c.state, r))
+        return {}
+    })
     on('ShopInfoReq', (c, r) => {
         c.push('SCProtoShopInfoSync', { shop_id: r.shop_id, shop_info: catalog.info(r.shop_id, c.state, c.now) })
+        c.push('SCProtoShopGoodsTipSync', tips.snapshot(c.state))
         return {}
     })
     on('ListShopArrayItems', (c, r) => {
         ensure(r.shop_ids.length > 0 && r.shop_ids.length <= 50, 'Invalid shop query')
-        return { infos: [...new Set(r.shop_ids)].map((id) => catalog.info(id, c.state, c.now)) }
+        const infos = [...new Set(r.shop_ids)].map((id) => catalog.info(id, c.state, c.now))
+        c.push('SCProtoShopGoodsTipSync', tips.snapshot(c.state))
+        return { infos }
     })
     on('ShopBuyItems', (c, r) => {
         const shop = catalog.shop(r.shop_id, c.state, c.now)
@@ -75,4 +84,5 @@ export function registerShops(on, tables) {
         c.push('SCProtoShopInfoSync', { shop_id: r.shop_id, shop_info: catalog.info(r.shop_id, c.state, c.now) })
         return { shop_id: r.shop_id, rewards }
     })
+    return tips
 }

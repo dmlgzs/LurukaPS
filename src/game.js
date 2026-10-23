@@ -540,7 +540,7 @@ export class Game {
         registerItems(on)
         registerSnackBags(on)
         registerSoulStoryRecords(on)
-        registerShops(on, tables)
+        this.shopGoodsTips = registerShops(on, tables)
         registerHome(on, tables)
         registerWorldCollection(on)
         registerHomeDorm(on, tables)
@@ -1786,6 +1786,7 @@ export class Game {
                 { seq: frame.seq, pushSeq: frame.pushSeq },
             ),
             this.packet('SCProtoWorldDifficultyInfo', worldDifficultySnapshot(this.tables, state)),
+            this.packet('SCProtoShopGoodsTipSync', this.shopGoodsTips.snapshot(state)),
             ...(state.trialGroup || state.cultTrial?.heroes?.length || state.npcArenaTrialTrainer
                 ? [this.packet('CSProtoTrialDatas', trialPayload(state))]
                 : []),

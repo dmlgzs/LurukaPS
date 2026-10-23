@@ -23,7 +23,7 @@ test('logged expired stage shops query as closed without entering invalid goods 
         call('EnterGame', { open_id: 'expired-event-shop' })
         const packets = call('ListShopArrayItems', { shop_ids: [100101, 100102, 100103] })
         const e = p.byName.get('CSProtoListShopArrayItems')
-        const reply = p.decode(e.rsp, packets.at(-1).payload)
+        const reply = p.decode(e.rsp, packets.find((packet) => packet.id === e.id).payload)
         assert.equal(reply.infos.length, 3)
         assert.ok(reply.infos.every((x) => x.shop_items.length === 0 && x.end_time < 1791824493))
         const before = structuredClone(s.load(session.id).state.player)
@@ -105,10 +105,13 @@ for (const [mode, code] of [
         try {
             call('EnterGame', { open_id: 'scheduled-shop-' + mode })
             s.transact(session.id, 0, (state) => {
-                state.player.attr_infos.attrs = [{ attr_id: 413, attr_val: '1000' }]
+                state.player.attr_infos.attrs = [
+                    ...state.player.attr_infos.attrs.filter((row) => row.attr_id !== 413),
+                    { attr_id: 413, attr_val: '1000' },
+                ]
             })
             const packets = call('ListShopArrayItems', { shop_ids: [502] })
-            assert.equal(p.decode('SCListShopItemsArray', packets.at(-1).payload).infos[0].shop_items.length, 1)
+            assert.equal(p.decode('SCListShopItemsArray', packets.find((packet) => packet.id === 6073).payload).infos[0].shop_items.length, 1)
             const request = { shop_id: 502, items: [{ slot_id: 502001, goods_id: 502001, times: 1 }] }
             if (code) {
                 const before = structuredClone(s.load(session.id).state)

@@ -20,7 +20,10 @@ function setup() {
     }
     call('EnterGame', { open_id: 'shop' })
     store.transact(session.id, 0, (s) => {
-        s.player.attr_infos.attrs = [{ attr_id: 413, attr_val: '1000' }]
+        s.player.attr_infos.attrs = [
+            ...s.player.attr_infos.attrs.filter((row) => row.attr_id !== 413),
+            { attr_id: 413, attr_val: '1000' },
+        ]
     })
     return { store, session, call }
 }
@@ -35,11 +38,11 @@ test('shop list, purchase prices, delivered goods and persistent limit count', (
         assert(info.shop_items[0].dead_time > Date.now() / 1000)
         call('ShopBuyItems', basket(2))
         const s = store.load(session.id).state
-        assert.equal(s.player.attr_infos.attrs[0].attr_val, '968')
+        assert.equal(s.player.attr_infos.attrs.find((row) => row.attr_id === 413).attr_val, '968')
         assert.equal(s.player.sbag_infos.items.find((i) => i.itemid === 400002).itemnum, 2)
         assert.equal(s.shopPurchases['502:502001'].count, 2)
         const listed = call('ListShopArrayItems', { shop_ids: [502, 502] })
-        const data = p.decode('SCListShopItemsArray', listed[0].payload)
+        const data = p.decode('SCListShopItemsArray', listed.find((packet) => packet.id === 6073).payload)
         assert.equal(data.infos.length, 1)
         assert.equal(data.infos[0].shop_items[0].buy_times, 2)
     } finally {
@@ -66,7 +69,7 @@ test('batched duplicates, wrong membership and insufficient currency roll back',
             assert.deepEqual(store.load(session.id), before)
         }
         store.transact(session.id, 0, (s) => {
-            s.player.attr_infos.attrs[0].attr_val = '15'
+            s.player.attr_infos.attrs.find((row) => row.attr_id === 413).attr_val = '15'
         })
         const poor = store.load(session.id)
         assert.throws(() => call('ShopBuyItems', basket(1)), /Insufficient/)
