@@ -1,3 +1,4 @@
+import { ensurePetNotInKiboTour } from "../kibo-tour-ledger.js"
 import { ErrorCode } from '../error-codes.js'
 import { petInActiveNpcDuel } from '../npc-kibo-duel.js'
 import { ensure } from './common.js'
@@ -14,6 +15,7 @@ export function registerRelease(on, tables) {
         const pets = r.pet_list.map((id) => {
             const pet = c.state.pets.find((p) => p.guid === id)
             ensure(pet, 'Pet not owned')
+            ensurePetNotInKiboTour(c.state, pet.guid)
             ensure(!petInActiveNpcDuel(c.state, pet.guid), 'Pet is in the active duel roster', ErrorCode.PetInBattle)
             const config = tables.find('pet', pet.config_id)
             ensure(config?.isRelease === 1 && !pet.can_not_release, 'Pet cannot be released')
