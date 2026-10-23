@@ -35,3 +35,16 @@ test('campaign Start refuses missing instance or wrong campaign membership atomi
   assert.throws(()=>f.call('PlayableStart',{u32:62071}),/does not belong/)
  }finally{f.store.close()}
 })
+test('campaign Step rejects another epoch, advances only monotonically and hides its internal attempt in the response',()=>{
+ const f=fixture('campaign-step-epoch')
+ try {
+  f.call('PlayableStart',{u32:62071})
+  const step=f.call('PlayableStep',{playId:62071,is_step:true,finish_step:1}).find(p=>p.id===9406).data
+  assert.equal(step.play.status,2);assert.equal(step.play.finish_step,1)
+  assert.deepEqual(Object.keys(playableWire(f.state().playableRuns[62071])).sort(),Object.keys(step.play).filter(k=>step.play[k]!==undefined).sort())
+  assert.throws(()=>f.call('PlayableStep',{playId:62071,is_step:true,finish_step:0}),/Invalid playable step/)
+  f.edit(s=>s.storyCampaign.instance_id++)
+  const before=f.state();assert.throws(()=>f.call('PlayableStep',{playId:62071,is_step:true,finish_step:1}),/current campaign instance/)
+  assert.deepEqual(f.state(),before)
+ }finally{f.store.close()}
+})

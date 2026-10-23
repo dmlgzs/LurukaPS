@@ -247,17 +247,10 @@ export function registerPlayableLifecycle(on, tables) {
     on('PlayableStep', (c, r) => {
         const row = config(r.playId),
             run = c.state.playableRuns?.[row.id]
+        requireCampaignPlayableRun(c.state, row.id, run, { finishing: true })
         ensure(run && run.map_id === c.state.world.map_id, 'Playable is not running')
         if (run.status === 3 && c.state.playableFinishes?.[row.id]?.map_id === run.map_id) {
-            const {
-                map_id,
-                selected_step,
-                selected_pet_group,
-                selected_pet_guid,
-                rewarded_steps,
-                prior_reward_info,
-                ...play
-            } = run
+            const play = playableWire(run)
             return { play, pos: c.state.world.pos, rewards: { rewards: [] }, drop_id: [] }
         }
         let rewards = [],
@@ -319,15 +312,7 @@ export function registerPlayableLifecycle(on, tables) {
         // removes the run, otherwise OnPlayableSync force-resets its objects.
         if (rewards.length) syncPlayer({ ...c, push: c.pushBefore })
         if (changed || run.status === 2) sync(c)
-        const {
-            map_id,
-            selected_step,
-            selected_pet_group,
-            selected_pet_guid,
-            rewarded_steps,
-            prior_reward_info,
-            ...play
-        } = run
+        const play = playableWire(run)
         return {
             play,
             pos: c.state.world.pos,
