@@ -45,6 +45,7 @@ import { achievementSnapshot, notifyAchievements } from './achievements.js'
 import { registerAbyssData } from './handlers/abyss-data.js'
 import { registerAbyssChallenge } from './handlers/abyss-challenge.js'
 import { ensureAbyssScene } from './abyss-scene.js'
+import { abyssTimeoutDue, expireAbyssTimeout } from './abyss-battle.js'
 import { installAbyssFormation, abyssDungeonInfo, abyssActorInfo } from './abyss-run.js'
 import { homeExchangeDue, prepareHomeExchange, homeExchangeLoginData } from './home-exchange.js'
 import { ensureReputations, reputationSnapshot } from './reputation.js'
@@ -439,6 +440,9 @@ export class Game {
     ) {
         this.announcementBaseUrl = 'http://127.0.0.1:20001/'
         this.syncOptimization = syncOptimization
+        // Only the newest successfully entered connection may receive an idle
+        // abyss settlement. The TCP layer additionally checks the socket owner.
+        this.abyssTickOwners = new Map()
         this.clock = clock
         this.arenaClockMs = arenaClockMs
         this.rng = rng
@@ -680,8 +684,10 @@ export class Game {
     }
     dispatch(session, frame) {
         const packets = this.dispatchRaw(session, frame)
-        if (!this.syncOptimization) return packets
         const entry = this.protocol.byId.get(frame.id)
+        if (session.entered && ['CSProtoEnterGame', 'CSProtoRenterGame'].includes(entry?.name))
+            this.abyssTickOwners.set(session.id, session)
+        if (!this.syncOptimization) return packets
         const taskId = ['CSProtoTaskClientCondAfter', 'CSProtoTaskClientAfter', 'CSProtoTaskAccept'].includes(
             entry?.name,
         )
@@ -1462,7 +1468,7 @@ export class Game {
         )
     }
     tick(id, session) {
-        const packets = this.tickRaw(id)
+        const packets = this.tickRaw(id, session)
         return this.syncOptimization && session ? optimizeSyncPackets(this.protocol, session, packets, 'tick') : packets
     }
     tickArena(id, session) {
@@ -1520,7 +1526,7 @@ export class Game {
         if (session) this.trackArenaTick(session, 0, packets)
         return this.syncOptimization && session ? optimizeSyncPackets(this.protocol, session, packets, 'tick') : packets
     }
-    tickRaw(id) {
+    tickRaw(id, session) {
         const now = this.clock(),
             arenaNowMs = this.arenaTime(now),
             exact = arenaNowMs / 1000,
@@ -1534,6 +1540,10 @@ export class Game {
             activityDue = this.activities.due(current, now),
             dailyActiveDue = activePeriodDue(this.tables, current, now),
             arenaDue = npcArenaTickDue(current, exact),
+            abyssDue =
+                session?.entered && session.id === id && this.abyssTickOwners.get(id) === session
+                    ? abyssTimeoutDue(this.tables, current, now)
+                    : false,
             durable =
                 homeDue ||
                 ranchReady ||
@@ -1543,6 +1553,7 @@ export class Game {
                 dormDue ||
                 activityDue ||
                 dailyActiveDue ||
+                !!abyssDue ||
                 !!npcArenaOutcome(current, exact)
         if (
             !homeDue &&
@@ -1553,7 +1564,8 @@ export class Game {
             !dormDue &&
             !activityDue &&
             !dailyActiveDue &&
-            !arenaDue
+            !arenaDue &&
+            !abyssDue
         )
             return []
         return this.store.transact(
@@ -1564,6 +1576,17 @@ export class Game {
                     eggRevision = state.eggRevision || 0,
                     petRevision = state.petRevision || 0,
                     handbookBonusesBefore = state.petHandbookBonuses
+                if (abyssDue)
+                    expireAbyssTimeout(
+                        {
+                            id,
+                            state,
+                            tables: this.tables,
+                            now,
+                            push: (name, value) => packets.push(this.packet(name, value)),
+                        },
+                        abyssDue,
+                    )
                 if (dailyActiveDue) {
                     observeActiveSession(this.tables, state, now)
                     notifyActive({

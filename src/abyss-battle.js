@@ -32,6 +32,30 @@ export function abyssRunTime(run, now) {
               : 0)
     )
 }
+export function abyssTimeoutDue(external, state, now) {
+    const run = state.abyssRun
+    if (!run || run.map_id !== state.world.map_id || run.phase !== 'running') return false
+    ensure(
+        [now, run.real_start_time, run.total_battle_time].every((value) => Number.isSafeInteger(value) && value >= 0),
+        'Abyss timer state is malformed',
+        ErrorCode.GameConfig,
+    )
+    if (abyssRunTime(run, now) < abyssBattlePlan(external, run.dungeon_id).limit) return false
+    return {
+        instance_id: run.instance_id,
+        map_id: run.map_id,
+        part_index: run.part_index,
+        dungeon_id: run.dungeon_id,
+        real_start_time: run.real_start_time,
+    }
+}
+export function expireAbyssTimeout(c, expected) {
+    const due = abyssTimeoutDue(c.tables, c.state, c.now)
+    if (!due || !expected || Object.keys(due).some((key) => due[key] !== expected[key])) return false
+    // Reuse the actual defeat/ledger/scene producer. A timer never marks a wave
+    // dead, starts another room, grants stars or creates reward receipts.
+    return advanceAbyssCombat(c)
+}
 export function abyssTaskTags(tables, run, now, final = false) {
     const elapsed = abyssRunTime(run, now),
         fallen = run.dead_hero_ids.length,
