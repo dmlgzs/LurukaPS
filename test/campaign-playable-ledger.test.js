@@ -48,3 +48,15 @@ test('campaign Step rejects another epoch, advances only monotonically and hides
   assert.deepEqual(f.state(),before)
  }finally{f.store.close()}
 })
+test('campaign Cancel preserves permanent rewards and success facts, and a subsequent Start allocates a new attempt',()=>{
+ const f=fixture('campaign-cancel-epoch')
+ try {
+  f.call('PlayableStart',{u32:62071});f.edit(s=>{s.playableStageClaims={62071:{map_id:6226,flag:'2'}};s.playableScoreClaims={62071:6};s.storyCampaign.playable_successes={62071:{instance_id:71,play_id:62071}}})
+  f.call('PlayableCancel',{playId:62071});assert.equal(f.state().playableRuns[62071],undefined)
+  assert.equal(f.state().playableStageClaims[62071].flag,'2');assert.equal(f.state().playableScoreClaims[62071],6)
+  assert.equal(f.state().storyCampaign.playable_successes[62071].play_id,62071)
+  f.call('PlayableStart',{u32:62071});assert.equal(f.state().playableRuns[62071].campaign_attempt_id,2)
+  f.edit(s=>s.storyCampaign.instance_id++)
+  const before=f.state();assert.throws(()=>f.call('PlayableCancel',{playId:62071}),/current campaign instance/);assert.deepEqual(f.state(),before)
+ }finally{f.store.close()}
+})

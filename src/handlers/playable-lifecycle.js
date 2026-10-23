@@ -229,6 +229,7 @@ export function registerPlayableLifecycle(on, tables) {
     })
     on('PlayableCancel', (c, r) => {
         config(r.playId)
+        requireCampaignPlayableRun(c.state, r.playId, c.state.playableRuns?.[r.playId], { finishing: true })
         const runs = (c.state.playableRuns ??= {})
         const removed = new Set([r.playId])
         let changed = true
