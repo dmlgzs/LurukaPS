@@ -185,4 +185,43 @@ export class KiboTourSystem {
         this.closeRun(state, ledger, run, 'cancelled', now)
         return true
     }
+    prepareReward(state, entry, row, request, now) {
+        this.requireActivity(row)
+        const ledger = this.entry(entry), run = ledger.runs[request.tour_id]
+        if (!run) {
+            const receipt = ledger.receipts[ledger.last_receipt?.[request.tour_id]]
+            ensure(receipt?.status === 'claimed' && receipt.tour_id === request.tour_id,
+                'Kibo tour does not exist', ErrorCode.ActivityTourNotExist)
+            return { replay: true, receipt }
+        }
+        this.validateRun(run)
+        ensure(now >= run.end_time, 'Kibo tour is not ready for rewards', ErrorCode.ActivityTourStateCannotReward)
+        ensure(!Object.hasOwn(ledger.receipts, run.attempt_id),
+            'Tour reward would overwrite an existing receipt', ErrorCode.GameConfig)
+        ensure(Array.isArray(run.rewards) && run.rewards.length > 0 &&
+            run.rewards.every(r => uint(r.itemtype) && r.itemtype > 0 && uint(r.itemid) && r.itemid > 0 && uint(r.itemnum) && r.itemnum > 0),
+            'Saved tour reward snapshot is malformed', ErrorCode.GameConfig)
+        ensure(Array.isArray(run.pet_experience) && run.pet_experience.length === run.pet_ids.length &&
+            new Set(run.pet_experience.map(r => r.pet_id)).size === run.pet_ids.length,
+            'Saved tour experience snapshot is malformed', ErrorCode.GameConfig)
+        const experience = run.pet_ids.map(id => {
+            const snapshot = run.pet_experience.find(r => r.pet_id === id)
+            ensure(snapshot && uint(snapshot.config_id) && snapshot.config_id > 0 && uint(snapshot.gain),
+                'Saved tour pet experience is malformed', ErrorCode.GameConfig)
+            const pet = state.pets.find(p => String(p.guid) === id)
+            ensure(pet, `Kibo tour ${row.id}/${run.tour_id} is missing reserved pet ${id}; trip retained`, ErrorCode.PetNotExist)
+            ensure(!pet.trial && !pet.trail && pet.type !== 2 && pet.config_id === snapshot.config_id,
+                'Reserved tour pet identity changed', ErrorCode.ActivityTourPetsDataError)
+            return { pet, gain: snapshot.gain }
+        })
+        return { replay: false, ledger, run, experience }
+    }
+    finishReward(state, prepared, rewards, experience, now) {
+        const { ledger, run } = prepared
+        ensure(uint(ledger.total_times) && ledger.total_times < 0xffffffff, 'Tour completion count overflow', ErrorCode.GameConfig)
+        const receipt = this.closeRun(state, ledger, run, 'claimed', now)
+        ledger.total_times++
+        receipt.rewards = structuredClone(rewards)
+        receipt.experience = structuredClone(experience)
+    }
 }
