@@ -209,10 +209,45 @@ export class LegacyMatchTeams {
             return null
         }
     }
+    leave(c, r) {
+        ensure(this.db.inTransaction, 'Team operation requires an atomic transaction', ErrorCode.GameConfig)
+        ensure(uint(r.u32 ?? 0), 'Invalid leave team operation', ErrorCode.ReqParamsError)
+        const room = this.roomFor(c.id)
+        ensure(room, 'Not in a legacy match team', ErrorCode.NotInMatchTeam)
+        const dismiss = (r.u32 ?? 0) !== 0
+        ensure(!dismiss || room.captain === c.id, 'Only the captain can dismiss a team', ErrorCode.IsNotMatchTeamLeader)
+        const notify = (recipient, name, value) => {
+            if (recipient === c.id) c.push(name, value)
+            else c.pushTo(recipient, name, value)
+        }
+        const previous = room.members.map((member) => member.id)
+        if (dismiss || room.members.length === 1) {
+            this.db.prepare('DELETE FROM legacy_match_members WHERE room_id=?').run(room.id)
+            this.db.prepare('DELETE FROM legacy_match_rooms WHERE id=?').run(room.id)
+            // TDR_NONE=0, not an invented timeout reason.9549 clears the UI
+            // and invokes the caller's stored exit callback.
+            for (const id of previous) notify(id, 'CSProtoTeamDimissSync', { reason: 0 })
+        } else {
+            room.members = room.members.filter((member) => member.id !== c.id)
+            // LOCAL deterministic succession until an official rule is known:
+            // the first remaining member in insertion order becomes captain.
+            if (room.captain === c.id) room.captain = room.members[0].id
+            ensure(room.revision < 0xffffffff, 'Team revision overflow', ErrorCode.GameConfig)
+            room.revision++
+            this.db.prepare('DELETE FROM legacy_match_members WHERE player_id=?').run(c.id)
+            this.db.prepare('UPDATE legacy_match_rooms SET payload=? WHERE id=?').run(JSON.stringify(room), room.id)
+            for (const id of previous)
+                notify(id, 'CSProtoLeaveTeamSync', { player_id: c.id, new_captain: room.captain, reason: 0 })
+            const snapshot = this.snapshot(room, c.id, c.state)
+            for (const { id } of room.members) notify(id, 'CSProtoMatchTeamDataSync', snapshot)
+        }
+        return {}
+    }
 }
 
 export function registerLegacyMatchTeams(on, store, tables) {
     const teams = new LegacyMatchTeams(store, tables)
     on('CreateMatchTeam', (c, r) => teams.create(c, r))
+    on('LeaveMatchTeam', (c, r) => teams.leave(c, r))
     return teams
 }
