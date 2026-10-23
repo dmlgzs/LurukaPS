@@ -12,4 +12,13 @@ export function registerKiboTours(on, catalog) {
         catalog.notify(c, true)
         return {}
     })
+    on('KiboTourCancel', (c, r) => {
+        const row = catalog.rows.find(row => row.id === r.activity_id)
+        ensure(row, 'Kibo tour activity configuration missing', ErrorCode.NoActivityConf)
+        ensure(row.type === 80, 'Activity does not support Kibo tours', ErrorCode.ActivityTypeNotEqual)
+        const changed = catalog.tours.cancel(c.state, catalog.entry(c.state, row.id), row, r, c.now)
+        if (changed) syncPets({ ...c, push: c.pushBefore })
+        catalog.notify(c, true)
+        return {}
+    })
 }

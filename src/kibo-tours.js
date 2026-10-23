@@ -66,14 +66,16 @@ export class KiboTourSystem {
             uint(l.total_times) && l.runs && typeof l.runs === 'object' && !Array.isArray(l.runs) &&
             l.receipts && typeof l.receipts === 'object' && !Array.isArray(l.receipts),
             'Saved tour ledger is malformed', ErrorCode.GameConfig)
+        for (const [key, run] of Object.entries(l.runs)) this.validateRun(run, key)
         return l
     }
-    validateRun(run) {
+    validateRun(run, key = run?.tour_id) {
         ensure(run && uint(run.tour_id) && run.tour_id > 0 && Number.isSafeInteger(run.attempt_id) && run.attempt_id > 0 &&
             [0, 1].includes(run.state) && Number.isSafeInteger(run.start_time) && Number.isSafeInteger(run.end_time) &&
             run.start_time >= 0 && run.end_time > run.start_time && Array.isArray(run.pet_ids) &&
             run.pet_ids.length > 0 && run.pet_ids.length <= 6 && new Set(run.pet_ids).size === run.pet_ids.length,
             'Saved tour run is malformed', ErrorCode.GameConfig)
+        ensure(String(key) === String(run.tour_id), 'Saved tour key and run identity differ', ErrorCode.GameConfig)
         for (const id of run.pet_ids) guid(id)
         return run
     }
@@ -127,6 +129,9 @@ export class KiboTourSystem {
         ensure(Number.isSafeInteger(end) && end <= this.claimDisplayEnd,
             'Local tour duration exceeds supported display horizon', ErrorCode.FunctionClosed)
         ensure(ledger.next_attempt < Number.MAX_SAFE_INTEGER, 'Tour attempt counter exhausted', ErrorCode.GameConfig)
+        ensure(!Object.hasOwn(ledger.receipts, ledger.next_attempt) &&
+            !Object.values(ledger.runs).some(run => run.attempt_id === ledger.next_attempt),
+            'Tour attempt counter would overwrite an existing receipt', ErrorCode.GameConfig)
         const petExperience = ids.map(id => {
             const pet = state.pets.find(p => String(p.guid) === id)
             ensure(pet && !pet.trial && !pet.trail && pet.type !== 2,
@@ -148,5 +153,36 @@ export class KiboTourSystem {
         for (const id of ids) state.pets.find(p => String(p.guid) === id).tour_state = 1
         state.petRevision = (state.petRevision ?? 0) + 1
         return { created: true, run }
+    }
+    closeRun(state, ledger, run, status, now) {
+        ensure(ledger.runs[run.tour_id] === run, 'Tour closure has no matching active identity', ErrorCode.GameConfig)
+        ensure(!Object.hasOwn(ledger.receipts, run.attempt_id),
+            'Tour closure would overwrite an existing receipt', ErrorCode.GameConfig)
+        const receipt = { attempt_id: run.attempt_id, tour_id: run.tour_id, pet_ids: [...run.pet_ids], status, closed_at: now }
+        ledger.receipts[run.attempt_id] = receipt
+        ;(ledger.last_receipt ??= {})[run.tour_id] = run.attempt_id
+        delete ledger.runs[run.tour_id]
+        let changed = false
+        for (const id of run.pet_ids) {
+            const pet = state.pets.find(p => String(p.guid) === id)
+            if (!pet) continue // Cancellation must remain a recovery path for a damaged old trip.
+            const value = petInKiboTour(state, id) ? 1 : 0
+            if (pet.tour_state !== value) { pet.tour_state = value; changed = true }
+        }
+        if (changed) state.petRevision = (state.petRevision ?? 0) + 1
+        return receipt
+    }
+    cancel(state, entry, row, request, now) {
+        this.requireActivity(row)
+        const ledger = this.entry(entry), run = ledger.runs[request.tour_id]
+        if (!run) {
+            const receipt = ledger.receipts[ledger.last_receipt?.[request.tour_id]]
+            ensure(receipt?.status === 'cancelled' && receipt.tour_id === request.tour_id,
+                'Kibo tour does not exist', ErrorCode.ActivityTourNotExist)
+            return false
+        }
+        this.validateRun(run)
+        this.closeRun(state, ledger, run, 'cancelled', now)
+        return true
     }
 }
