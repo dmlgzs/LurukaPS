@@ -229,8 +229,16 @@ export async function startServer(config, logger = console) {
                         }
                         if (session.id) {
                             const old = owners.get(session.id)
+                            const replacedEnteredConnection =
+                                old && old !== socket && sessions.get(old)?.session.entered
                             if (old && old !== socket) old.destroy()
                             owners.set(session.id, socket)
+                            // A real Login1001 can replace an entered owner
+                            // before the new connection has sent EnterGame.
+                            // Its old close callback must not erase the new
+                            // owner, but teammates still need the offline edge.
+                            if (replacedEnteredConnection && !session.entered)
+                                notifyLegacyTeamPresence(session.id, false)
                         }
                         if (entering && session.entered) {
                             scheduleEntryWorldChatNotice(session, socket)

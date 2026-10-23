@@ -22,7 +22,7 @@ test('real invitation replies create a three-player room and9561 follows actual 
         { warn: (text) => warnings.push(text), info: () => {} },
     )
     const decode = (frame) => server.protocol.decode(server.protocol.byId.get(frame.id).rsp, frame.payload)
-    async function connect(account) {
+    async function connect(account, loginOnly = false) {
         const socket = net.connect(server.tcp.address().port, '127.0.0.1'),
             reader = new FrameReader(),
             queue = []
@@ -48,10 +48,16 @@ test('real invitation replies create a three-player room and9561 follows actual 
         }
         clients.push(client)
         await once(socket, 'connect')
-        client.send('EnterGame', { open_id: account })
-        const frame = await client.next(5001)
+        client.send(loginOnly ? 'Login' : 'EnterGame', { open_id: account })
+        const frame = await client.next(loginOnly ? 1001 : 5001)
         assert.equal(frame.error, 0)
-        client.id = decode(frame).player_id
+        client.id = loginOnly ? decode(frame).pid : decode(frame).player_id
+        client.enter = async () => {
+            client.send('EnterGame', { open_id: account })
+            const entered = await client.next(5001)
+            assert.equal(entered.error, 0)
+            assert.equal(decode(entered).player_id, client.id)
+        }
         return client
     }
     try {
@@ -72,7 +78,10 @@ test('real invitation replies create a three-player room and9561 follows actual 
         assert.deepEqual(joined.online_players, [captain.id, peer.id])
         await captain.next(9520)
         const oldClosed = new Promise((resolve) => peer.socket.once('close', resolve))
-        const replacement = await connect('tcp-room-member')
+        const replacement = await connect('tcp-room-member', true)
+        assert.equal(server.game.legacyMatchTeams.isOnline(peer.id), false)
+        assert.deepEqual(decode(await captain.next(9561)), { scene_type: 12, player_id: peer.id, status: 1 })
+        await replacement.enter()
         const restored = decode(await replacement.next(9520)).team
         assert.equal(restored.team_id, room.team_id)
         assert.deepEqual(restored.online_players, [captain.id, peer.id])
