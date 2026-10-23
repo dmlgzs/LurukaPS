@@ -1,3 +1,4 @@
+import { materialStoryPending } from '../multiple-material-story.js'
 import { ornamentSkills } from '../hero-equipment.js'
 import { recordAndSyncHandbookSkill } from '../pet-handbook-sync.js'
 import { reviveFriendlyActor } from '../actor-revival.js'
@@ -369,6 +370,12 @@ export function registerCombat(on) {
                 const previous = battle.entities[id] ?? { uuid: id },
                     definition = enemyDefinition(c.tables, c.state, id)
                 if (definition?.npc_duel && !battle.npcDuel.in_fight[id]) return
+                const introRun = c.state.entrust?.run
+                if (
+                    materialStoryPending(introRun) &&
+                    Number(BigInt(id) & 0xffffffffn) === introRun.materialStory.boss_id
+                )
+                    return
                 if (definition && values.delta !== undefined) {
                     const hp = !applyHp
                         ? (previous.hp ?? definition.max_hp)

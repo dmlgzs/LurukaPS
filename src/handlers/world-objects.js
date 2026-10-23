@@ -9,7 +9,7 @@ import { grantRewards, parseRewards } from '../rewards.js'
 import { spend, spendCurrency } from '../inventory.js'
 import { applyRepairVisuals } from '../world-repairs.js'
 import { randomInt } from 'node:crypto'
-import { completeEntrustObject, validateEntrustObjectInteraction } from './entrust.js'
+import { completeEntrustObject, validateEntrustObjectInteraction, beginMaterialStoryInteraction } from './entrust.js'
 import { taskNodeCompleted } from '../tasks.js'
 // World resource prefabs do not expose their drop ID in worldmap/world_spawner.
 // These IDs match the shipped resource variants and their configured drop pools.
@@ -345,6 +345,7 @@ export function registerWorldObjects(on, tables) {
                 tool_type: input.tool_type ?? 0,
             })
             const entrustRewards = completeEntrustObject(c, id, claim)
+            beginMaterialStoryInteraction(c, id)
             const { claims: currentClaims, ...currentWire } = records[key]
             output[output.length - 1].obj = currentWire
             if (entrustRewards.length) {

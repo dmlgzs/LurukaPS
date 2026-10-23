@@ -1,4 +1,5 @@
 import { repeatDungeon, repeatEventTables, recordRepeatVictory } from './repeat-event.js'
+import { applyMaterialStoryVisibility, materialStoryPending } from './multiple-material-story.js'
 import { ErrorCode } from './error-codes.js'
 import { recordActiveDungeonFinish } from './daily-active.js'
 import { visibleEnemySlots } from './enemy-group-visibility.js'
@@ -256,7 +257,16 @@ export function campaignSnapshot(run) {
 export function entrustMultiSnapshot(run) {
     return {
         dungeon_id: run.dungeon_id,
-        status: run.status === 2 ? (run.stage_index > 1 ? 3 : 2) : run.status === 3 ? 4 : run.status === 5 ? 6 : 1,
+        status:
+            run.status === 2
+                ? !materialStoryPending(run) && run.stage_index > 1
+                    ? 3
+                    : 2
+                : run.status === 3
+                  ? 4
+                  : run.status === 5
+                    ? 6
+                    : 1,
         // MultiplePlayingData passes these timestamps to a millisecond timer.
         // Supplying Unix seconds made the UI display roughly 20,704 days.
         start_time: String((run.battle_start_time ?? 0) * 1000),
@@ -363,7 +373,9 @@ export function ensureEntrustSceneObjects(tables, state, now) {
         const stage = stagesById.get(row.id)
         if (stage) {
             const finished = stage.index < run.stage_index
-            const active = stage.index === run.stage_index || (stage.type === 30 && finished)
+            const active =
+                (stage.index === run.stage_index || (stage.type === 30 && finished)) &&
+                !(materialStoryPending(run) && row.id === run.materialStory.boss_id)
             if (
                 record.active !== active ||
                 record.complete !== finished ||
@@ -374,6 +386,7 @@ export function ensureEntrustSceneObjects(tables, state, now) {
             record.complete = finished
             record.state_data = { ...record.state_data, step: finished ? 1 : 0, complete: finished }
         }
+        if (applyMaterialStoryVisibility(run, row, record)) changed = true
         const spawner = tables.find('world_spawner', row.spawnerId)
         if (spawner?.objectType !== 50) continue
         // An inactive group with omitted times becomes an expired refresh entry

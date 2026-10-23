@@ -3,6 +3,7 @@ import { captureDungeonFavorEntry } from '../dungeon-favor-entry.js'
 import { dungeonFavorRewardContext } from '../hero-favor-rewards.js'
 import { claimRepeatChest, claimRepeatFirstPass } from '../repeat-event-rewards.js'
 import { repeatSnapshot } from '../repeat-event.js'
+import { prepareMaterialStory, beginMaterialStory, materialStoryStartPayload, materialStoryPending, replayMaterialStory } from '../multiple-material-story.js'
 import { ErrorCode } from '../error-codes.js'
 import { rewardSource } from '../reward-source.js'
 import { materialDungeonSnapshot, materialDungeonUnlocked } from '../material-dungeons.js'
@@ -118,7 +119,7 @@ function claimEntrustChest(c, times = 1) {
     run.stage_index = catalog.stages(run.entrust_id).at(-1).index + 1
     if (run.kind !== 'material') c.state.entrust.records[run.entrust_id].first_reward_claimed = true
     syncPlayer({ ...c, push: c.pushBefore })
-    syncStage(c)
+    syncEntrustStage(c)
     return run.rewards
 }
 
@@ -129,7 +130,7 @@ function stageContext(c) {
     return { run, catalog, stages: catalog.stages(run.entrust_id) }
 }
 
-function syncStage(c, previousEnemyObjectId) {
+export function syncEntrustStage(c, previousEnemyObjectId) {
     ensureEntrustSceneObjects(c.tables, c.state, c.now)
     // The interaction reply completes the marker/chest locally. Publish the
     // next wave only after that reply so the client cannot apply the old
@@ -221,10 +222,14 @@ export function completeEntrustObject(c, objectId, completing) {
     if (position < 0 || stages[position].index !== run.stage_index) return []
     const stage = stages[position]
     if (stage.type === 13) {
+        if (prepareMaterialStory(c)) {
+            syncEntrustStage(c)
+            return []
+        }
         run.stage_index = stages[position + 1].index
         run.battle_start_time = c.now
         run.real_start_time = c.now
-        syncStage(c)
+        syncEntrustStage(c)
         return []
     }
     if (stage.type !== 30) return []
@@ -238,7 +243,7 @@ export function completeEntrustObject(c, objectId, completing) {
 
 export function advanceEntrustCombat(c) {
     const context = stageContext(c)
-    if (!context || context.run.status !== 2) return false
+    if (!context || context.run.status !== 2 || materialStoryPending(context.run)) return false
     const { run, stages } = context
     const position = stages.findIndex((entry) => entry.index === run.stage_index)
     const stage = stages[position]
@@ -264,7 +269,7 @@ export function advanceEntrustCombat(c) {
     }
     run.stage_index = stages[position + 1].index
     if (stages[position + 1].type === 30) run.end_time = c.now
-    syncStage(c, stage.row.id)
+    syncEntrustStage(c, stage.row.id)
     return true
 }
 
@@ -431,6 +436,7 @@ export function registerEntrust(on, tables) {
         // ownership of the active group through the normal control protocol.
         c.push('CSProtoOnlineModeChange', { mode: isSingleEntrust(c) ? 5 : 4 })
         syncEntrustEnemyBattle(c)
+        replayMaterialStory(c)
     })
     on('EndDungeonScene', (c, r) => {
         if (c.state.cultTrial) return endCultTrialScene(c, r)
@@ -506,4 +512,14 @@ export function registerEntrust(on, tables) {
         c.pushBefore('CSProtoEntrustStarRewardSync', entrustStarRewardSnapshot(c.state))
         return { rewards }
     })
+}
+
+export function beginMaterialStoryInteraction(c, objectId) {
+    if (!beginMaterialStory(c, objectId)) return false
+    const run = c.state.entrust.run
+    ensureEntrustSceneObjects(c.tables, c.state, c.now)
+    syncEntrust({ ...c, pushBefore: c.push }, run)
+    worldSync(c, {}, 19, false)
+    c.push('SCProtoPlayerStoryStart', materialStoryStartPayload(run.materialStory))
+    return true
 }
