@@ -1,4 +1,5 @@
 import { ErrorCode } from '../error-codes.js'
+import { checkpointSnapshot } from '../world-checkpoints.js'
 import { registerExplorationRewards } from './exploration-rewards.js'
 import { recordNpcArenaMovement } from '../npc-kibo-battle.js'
 import { expireArenaTrialTrainer } from '../npc-kibo-trainer.js'
@@ -224,6 +225,7 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
             players: [mapPlayer(c)],
         },
     })
+    if ([WORLD_MAP_CMD_ENTER, 49].includes(cmd)) c.push('CSProtoWorldCheckpointSync', checkpointSnapshot(s))
     // CutWorld creates the destination SceneProxy synchronously before its
     // loading flow. Retain the dungeon AOI/preload protocol on reconnect;
     // the entrust handler assigns the active group's control separately.

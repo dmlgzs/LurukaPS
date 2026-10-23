@@ -157,6 +157,8 @@ import { registerWorldObjects, reconcileWorldCollectionFinalDrops } from './hand
 import { registerTransform } from './handlers/transform.js'
 import { registerWorldCombat } from './handlers/world-combat.js'
 import { registerWorldSearch } from './handlers/world-search.js'
+import { registerWorldCheckpoints } from './handlers/world-checkpoints.js'
+import { checkpointSnapshot } from './world-checkpoints.js'
 import { recoverInitialDungeonKills } from './task-kills.js'
 import { registerAIControl, clientAIReports } from './handlers/ai-control.js'
 import { retireCapturedEnemy } from './handlers/world-combat.js'
@@ -480,6 +482,7 @@ export class Game {
         registerWorldCombat(on)
         registerTransform(on, tables, store)
         registerWorldSearch(on, tables)
+        registerWorldCheckpoints(on, tables)
         registerAIControl(on)
         registerEcology(on, tables)
         registerMall(on, tables)
@@ -1383,6 +1386,8 @@ export class Game {
                           ]
                         : []
                 if (!battleReport) validateRepeatFormation(this.tables, state, repeatRosterBefore)
+                if (['CSProtoWorldCheckpointOpen', 'CSProtoWorldCheckpointClose'].includes(e.name))
+                    context.push('CSProtoWorldCheckpointSync', checkpointSnapshot(state))
                 return [
                     ...((state.appearanceRevision ?? 0) !== appearanceRevision
                         ? [
