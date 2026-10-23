@@ -4,6 +4,7 @@ import { Protocol } from '../src/protocol.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { createPets } from '../src/pets.js'
+import { technologyState } from '../src/technology.js'
 
 export function ranchFixture(name, options = {}) {
     const cfg = configuration(),
@@ -37,6 +38,12 @@ export function ranchFixture(name, options = {}) {
             p.talent_id = []
             p.satiety_val = 10000
         }
+        // This fixture bypasses the real LvUp dispatcher by directly setting
+        // player.lv. Reconcile level-gated automatic technology before testing
+        // worker idempotency, as the normal HomeSync payload does. Otherwise
+        // its first HomeSync adds nodes after notifyJourney cached homeRevision,
+        // and a second no-op assignment legitimately observes the new revision.
+        technologyState(tables, s)
     })
     return {
         tables,
