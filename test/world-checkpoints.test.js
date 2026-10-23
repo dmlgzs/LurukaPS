@@ -172,6 +172,11 @@ test('checkpoint references survive a real SQLite close/reopen and synchronize o
     }
 })
 
+const close = (id = 100403, type = 0, owner = 0) => ({
+    checkpoint_id: id,
+    checkpoint_info: { checkpoint_type: type, args: [owner] },
+})
+
 test('checkpoint final synchronization uses the final scene after a same-request transfer', () => {
     const f = fixture()
     try {
@@ -190,5 +195,93 @@ test('checkpoint final synchronization uses the final scene after a same-request
         assert.ok(packets.indexOf(syncs.at(-1)) > packets.findIndex((p) => p.id === 9134))
     } finally {
         f.store.close()
+    }
+})
+
+test('9145 removes only its matching source and the post-ACK full list repairs unconditional client removal', () => {
+    const f = fixture()
+    try {
+        setMap(f, 100)
+        f.store.transact(f.session.id, 0, (s) => {
+            s.tasks = [{ task_id: 106001, nodes: [] }]
+        })
+        f.call('WorldCheckpointOpen', open())
+        f.call('WorldCheckpointOpen', open(100403, 2, 106001))
+        // A finished task must still be able to release its previously opened reference.
+        f.store.transact(f.session.id, 0, (s) => {
+            s.tasks = []
+        })
+        const packets = f.call('WorldCheckpointClose', close(100403, 2, 106001)),
+            reply = packets.find((p) => p.id === 9145),
+            sync = packets.find((p) => p.id === 9147)
+        assert.deepEqual(reply.data.u32s, [100403])
+        assert.deepEqual(sync.data.checkpoint_ids, [100403])
+        assert.ok(packets.indexOf(reply) < packets.indexOf(sync))
+        assert.deepEqual(Object.keys(f.state().worldCheckpoints[100][100403].sources), ['0:0'])
+        f.call('WorldCheckpointClose', close(100403, 2, 106001))
+        assert.deepEqual(checkpointSnapshot(f.state()).checkpoint_ids, [100403])
+        const last = f.call('WorldCheckpointClose', close())
+        assert.deepEqual(last.find((p) => p.id === 9147).data.checkpoint_ids, [])
+        const saved = f.state().worldCheckpoints
+        f.call('WorldCheckpointClose', close())
+        assert.deepEqual(f.state().worldCheckpoints, saved)
+    } finally {
+        f.store.close()
+    }
+})
+
+test('9145 rejects malformed and wrong-map closes and rolls back when its post-ACK synchronization cannot encode', () => {
+    const f = fixture()
+    try {
+        setMap(f, 100)
+        f.call('WorldCheckpointOpen', open())
+        for (const [request, code] of [
+            [close(620203), ErrorCode.NotSameCity],
+            [close(100403, 99), ErrorCode.ParamError],
+            [close(100403, 0, 12), ErrorCode.ParamError],
+            [close(100403, 2, 0), ErrorCode.ParamError],
+        ]) {
+            const before = f.state()
+            assert.throws(
+                () => f.call('WorldCheckpointClose', request),
+                (e) => e.code === code,
+            )
+            assert.deepEqual(f.state(), before)
+        }
+        const before = f.state(),
+            encode = f.protocol.encode.bind(f.protocol),
+            schema = f.protocol.byId.get(9147).rsp
+        f.protocol.encode = (type, value) => {
+            if (type === schema) throw Error('checkpoint close codec')
+            return encode(type, value)
+        }
+        assert.throws(() => f.call('WorldCheckpointClose', close()), /checkpoint close codec/)
+        assert.deepEqual(f.state(), before)
+        f.protocol.encode = encode
+        f.call('WorldCheckpointClose', close())
+        assert.deepEqual(checkpointSnapshot(f.state()).checkpoint_ids, [])
+    } finally {
+        f.store.close()
+    }
+})
+
+test('9145 closed checkpoints stay closed after a real SQLite reopen', () => {
+    const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'lurukaps-checkpoint-')),
+        database = path.join(folder, 'save.sqlite')
+    let f = fixture(database, 'checkpoint-close-sqlite')
+    try {
+        setMap(f, 100)
+        f.call('WorldCheckpointOpen', open())
+        f.call('WorldCheckpointClose', close())
+        f.store.close()
+        f = fixture(database, 'checkpoint-close-sqlite')
+        assert.deepEqual(checkpointSnapshot(f.state()).checkpoint_ids, [])
+        const packets = f.call('WorldCheckpointClose', close())
+        assert.deepEqual(packets.find((p) => p.id === 9147).data.checkpoint_ids, [])
+    } finally {
+        f.store.close()
+        assert.equal(path.dirname(path.resolve(folder)), path.resolve(os.tmpdir()))
+        assert.ok(path.basename(folder).startsWith('lurukaps-checkpoint-'))
+        fs.rmSync(folder, { recursive: true, force: true })
     }
 })
