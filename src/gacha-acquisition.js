@@ -33,7 +33,7 @@ export const gachaWireItem = ({ itemtype, itemid, itemnum }) => ({
     item_id: itemid,
     item_num: itemnum,
 })
-function duplicateItem(tables, config) {
+function duplicateItem(tables, config, count, limitToProgression) {
     const rows = String(config.gradeUpItem || '')
         .split('|')
         .filter(Boolean)
@@ -56,7 +56,11 @@ function duplicateItem(tables, config) {
         'Nonuniform duplicate hero conversion is not implemented',
         ErrorCode.FunctionClosed,
     )
-    return rows[0]
+    // Each progression slot accounts for one repeat after the initial hero.
+    // CBT3's observation description stops shards after those six slots.
+    // Self-choice has a separate, unproven overflow conversion contract;
+    // preserve its existing no-extra-currency conversion until verified.
+    return limitToProgression && count > rows.length + 1 ? undefined : rows[0]
 }
 function extraRewards(tables, type, rarity, count) {
     const rows = tables.get('gacha_add_reward')
@@ -97,8 +101,8 @@ export function grantGachaAcquisition(tables, state, item, { extra = true } = {}
         const owned = state.player.heros_info.heros.some((hero) => hero.conf_id === item.itemid && !hero.trail)
         count = nextHeroAcquisitionCount(state, item.itemid, owned)
         if (owned) {
-            transform = duplicateItem(tables, config)
-            delivered.push(...grantRewards(tables, state, [transform]))
+            transform = duplicateItem(tables, config, count, extra)
+            if (transform) delivered.push(...grantRewards(tables, state, [transform]))
             recordHeroAcquisition(state, item.itemid, true)
         } else {
             delivered.push(...grantRewards(tables, state, [item]))

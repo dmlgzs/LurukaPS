@@ -488,7 +488,7 @@ test('actual draw counters unlock existing 9702 and 9703 claims, including dupli
         f.fund(501001, 10)
         f.draw(1001, 10)
         assert.equal(f.count(502001), 320)
-        assert.equal(f.count(1100005), 10)
+        assert.equal(f.count(1100005), 6)
         assert.equal(f.pool(1001).gacha_pool.draw_up_hero_count, 10)
         assert(f.call('GachaStep', { u32: 1001 }).data.rewards.rewards.length)
         const up = f.call('GachaUp', { u32: 1001 }).data
@@ -502,6 +502,79 @@ test('actual draw counters unlock existing 9702 and 9703 claims, including dupli
         assert.equal(f.state().gacha.hero_counts[101010], 11)
     } finally {
         f.store.close()
+    }
+})
+
+test('four- and five-star observations stop shards at the table limit while keeping extras, replay and persisted acquisition counts', () => {
+    for (const [id, rarity, shard, normalExtra, overflowExtra] of [
+        [101010, 4, 1100005, 20, 50],
+        [199008, 3, 1100029, 5, 10],
+    ]) {
+        const openId = 'gacha-copy-limit-' + id
+        const f = fixture(openId, { rng: (max) => (max === 100000 && rarity === 3 ? 800 : 0) })
+        try {
+            f.store.transact(f.session.id, 0, (state) => {
+                state.player.heros_info.heros = state.player.heros_info.heros.filter((hero) => hero.conf_id !== id)
+                state.heroAcquisitionCounts ??= {}
+                state.heroAcquisitionCounts[id] = 0
+                state.gacha.hero_counts = state.heroAcquisitionCounts
+            })
+            f.session.syncCache.clear()
+            f.fund(501001, 10)
+            const starCurrency = f.count(502001)
+            let finalRequest
+            for (let copy = 1; copy <= 9; copy++) {
+                finalRequest = f.frame('GachaDraw', { pool_id: 1001, draw_count: 1 })
+                const result = f.dispatch(finalRequest).data.gacha_results[0]
+                assert.equal(result.main_item.item_id, id)
+                assert.deepEqual(result.extra_item, [
+                    { item_type: 3, item_id: 502001, item_num: copy <= 7 ? normalExtra : overflowExtra },
+                ])
+                if (copy >= 2 && copy <= 7)
+                    assert.deepEqual(result.transform_item, { item_type: 3, item_id: shard, item_num: 1 })
+                else assert.equal(result.transform_item, undefined)
+                assert.equal(f.state().heroAcquisitionCounts[id], copy)
+                assert.equal(f.state().gacha.hero_counts[id], copy)
+                assert.equal(f.count(shard), copy <= 7 ? copy - 1 : 0)
+                if (copy === 7) {
+                    // Simulate spending all shards; eligibility depends on
+                    // lifetime acquisitions, not the remaining inventory.
+                    f.store.transact(f.session.id, 0, (state) => {
+                        state.player.sbag_infos.items = state.player.sbag_infos.items.filter(
+                            (item) => item.itemid !== shard,
+                        )
+                    })
+                }
+            }
+            assert.equal(f.count(502001), starCurrency + 7 * normalExtra + 2 * overflowExtra)
+            const beforeReplay = structuredClone(f.state())
+            assert.equal(f.dispatch(finalRequest).data.gacha_results[0].transform_item, undefined)
+            assert.deepEqual(f.state(), beforeReplay)
+            f.call('EnterGame', { open_id: openId }, {})
+            assert.equal(f.state().heroAcquisitionCounts[id], 9)
+            const beforeFailure = structuredClone(f.state())
+            const originalEncode = f.protocol.encode.bind(f.protocol)
+            const responseType = f.protocol.byName.get('CSProtoGachaDraw').rsp
+            try {
+                f.protocol.encode = (type, value) => {
+                    if (type === responseType) throw Error('late overflow reward response failure')
+                    return originalEncode(type, value)
+                }
+                assert.throws(() => f.draw(1001), /late overflow reward response failure/)
+                assert.deepEqual(f.state(), beforeFailure)
+            } finally {
+                f.protocol.encode = originalEncode
+            }
+            const tenth = f.draw(1001).data.gacha_results[0]
+            assert.equal(tenth.transform_item, undefined)
+            assert.equal(tenth.extra_item[0].item_num, overflowExtra)
+            assert.equal(f.state().heroAcquisitionCounts[id], 10)
+            assert.equal(f.count(shard), 0)
+            assert.equal(f.count(501001), 0)
+            assert.equal(f.state().gacha.history.length, 10)
+        } finally {
+            f.store.close()
+        }
     }
 })
 
@@ -562,8 +635,11 @@ test('central hero rewards contribute to the same acquisition counter used by ga
         })
         assert.equal(f.state().heroAcquisitionCounts[101010], 7)
         f.fund(501001, 1)
+        const shards = f.count(1100005)
         const result = f.draw(1001).data.gacha_results[0]
         assert.equal(result.extra_item[0].item_num, 50)
+        assert.equal(result.transform_item, undefined)
+        assert.equal(f.count(1100005), shards)
         assert.equal(f.state().gacha.hero_counts[101010], 8)
         assert.equal(f.state().heroAcquisitionCounts[101010], 8)
     } finally {
