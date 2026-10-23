@@ -34,7 +34,13 @@ export function deliveryRequirements(condition) {
             'Invalid selection requirement',
             ErrorCode.GameConfig,
         )
-        ensure(data.itemBigType === 3, 'Unsupported selected task item category', ErrorCode.InvalidProtoID)
+        // Current graphs contain common-item subtype/choice delivery and one
+        // accessory choice. Other resource categories need their own contract.
+        ensure(
+            data.itemBigType === 3 || (condition.conditionId === 2514 && data.itemBigType === 15),
+            'Unsupported selected task item category',
+            ErrorCode.FunctionClosed,
+        )
         const allowedIds = Array.isArray(data.itemIds) ? data.itemIds : data.itemIds ? [data.itemIds] : []
         if (condition.conditionId === 2514)
             ensure(
@@ -115,8 +121,12 @@ export function submitTaskItems(c, condition, context, items) {
         const key = `${item.item_type}:${item.item_id}`
         if (spec.mode === 'exact') ensure(requirements.has(key), 'Item not requested by task')
         else {
-            const config = c.tables.find('common_item', item.item_id)
-            ensure(config, 'Unknown submitted item')
+            const config = c.tables.find(data.itemBigType === 15 ? 'accessory' : 'common_item', item.item_id)
+            ensure(
+                config,
+                'Unknown submitted item',
+                data.itemBigType === 15 ? ErrorCode.OrnamentConfFail : ErrorCode.GameConfig,
+            )
             ensure(
                 spec.mode === 'choice' ? spec.allowedIds.includes(item.item_id) : config.type === data.itemType,
                 'Item not requested by task',

@@ -139,14 +139,29 @@ export function registerTasks(register, tables) {
         sync(c, r.is_trace ? { trace_id: r.task_id } : { del_trace_list: [r.task_id] })
         return {}
     })
-    for (const [name, conditionId] of [
-        ['TaskSubmitItem', 2501],
-        ['TaskSubmitItemType', 2513],
-        ['TaskSubmitItemChoose', 2514],
+    for (const [name, conditionId, parameterError] of [
+        ['TaskSubmitItem', 2501, ErrorCode.SubItemParamError],
+        ['TaskSubmitItemType', 2513, ErrorCode.SubmitItemTypeParamError],
+        ['TaskSubmitItemChoose', 2514, ErrorCode.SubmitItemChooseParamError],
     ])
         on(name, (c, r) => {
+            const submittedIndex = r.node_index ?? 0,
+                submittedConfig = graphs.get(r.task_id).nodes.get(r.node_id)
+            ensure(submittedConfig, 'Task submission node does not exist', ErrorCode.TaskNoNodeId)
+            const submittedConditions = nodeConditions(submittedConfig)
+            // Receipts identify resources within a task epoch, not the wire
+            // protocol. Validate the graph before acknowledging a retry.
+            ensure(
+                Number.isInteger(submittedIndex) && submittedIndex >= 0 && submittedIndex < submittedConditions.length,
+                'Task submission condition index is outside limits',
+                ErrorCode.TaskNodeIndexLimit,
+            )
+            ensure(
+                submittedConditions[submittedIndex].conditionId === conditionId,
+                'Wrong task submission protocol',
+                parameterError,
+            )
             if (
-                conditionId === 2501 &&
                 instanceDeliveryReplay(
                     c.state,
                     { taskId: r.task_id, nodeId: r.node_id, index: r.node_index ?? 0 },
