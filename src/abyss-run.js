@@ -2,6 +2,7 @@ import { abyssTables, abyssModeLevels, abyssRoute } from './abyss-catalog.js'
 import { abyssChallengeRoster } from './abyss-roster.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
+import { validateAbyssCheckpoint, restoreAbyssCheckpoint } from './abyss-resume.js'
 export function abyssLevelRecord(state, mode, id, rotationId = 0) {
     return mode === 3
         ? state.abyss?.rotation?.id === rotationId
@@ -89,7 +90,8 @@ export function createAbyssRun(c, request) {
             .map((id) => abyssRoute(tables, id)),
         roster = abyssChallengeRoster(tables, s, level, request),
         saved = abyssModeRecord(s, request.mode, rotation),
-        old = saved.levels[level.id]
+        old = saved.levels[level.id],
+        checkpoint = validateAbyssCheckpoint(old?.resume, roster, level, rotation)
     const run = {
         version: 1,
         mode: request.mode,
@@ -117,6 +119,7 @@ export function createAbyssRun(c, request) {
     }
     s.nextAbyssInstanceId = run.instance_id + 1
     s.abyssRun = run
+    restoreAbyssCheckpoint(s, run, checkpoint)
     saved.levels[level.id] = {
         cur_level: level.id,
         challenge_list: structuredClone(run.challenges),
@@ -126,7 +129,7 @@ export function createAbyssRun(c, request) {
         task_tags_list: structuredClone(old?.task_tags_list ?? []),
     }
     installAbyssFormation(s)
-    Object.assign(s.world, tables.position(rooms[0].point))
+    Object.assign(s.world, tables.position(rooms[run.part_index].point))
     return run
 }
 export function installAbyssFormation(state) {
