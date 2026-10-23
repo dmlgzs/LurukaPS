@@ -353,7 +353,17 @@ export function claimJourney(c, request) {
         ErrorCode.InvalidArgument,
     )
     observeJourney(c.tables, c.state)
-    const claims = []
+    const claims = [],
+        selectedTargets = new Set()
+    const addTarget = (target, explicit) => {
+        const saved = ledger.targets[target.id]
+        if (saved?.claimed || selectedTargets.has(target.id)) return
+        if (!explicit && (!target.supported || !saved?.complete)) return
+        ensure(target.supported, 'Journey condition event source not implemented', ErrorCode.FunctionClosed)
+        ensure(saved?.complete, 'Journey reward requirements are incomplete', ErrorCode.JourneyContReward)
+        selectedTargets.add(target.id)
+        claims.push({ id: target.id, target, row: target })
+    }
     for (const id of ids) {
         const target = model.byTarget.get(id),
             task = model.byTask.get(id)
@@ -361,15 +371,16 @@ export function claimJourney(c, request) {
         const owner = task ?? model.byTask.get(model.owner.get(id))
         ensure(owner, 'Journey target is not referenced by an active task', ErrorCode.JourneyConfError)
         ensure(journeyUnlocked(model, c.state, owner), 'Journey stage is locked', ErrorCode.JourneyTypeLock)
-        const saved = (target ? ledger.targets : ledger.tasks)[id]
-        if (saved?.claimed) continue
-        if (target) ensure(target.supported, 'Journey condition event source not implemented', ErrorCode.FunctionClosed)
-        ensure(
-            target ? saved?.complete : taskComplete(model, c.state, id),
-            'Journey reward requirements are incomplete',
-            ErrorCode.JourneyContReward,
-        )
-        claims.push({ id, target, row: target ?? task })
+        if (target) {
+            // Retain explicitly addressed target compatibility; current CBT3
+            // UI sends the owning journey_task ID, not this target ID.
+            addTarget(target, true)
+            continue
+        }
+        // PageStarJourney.ReqCurPanelReward (0602a11b) sends every displayed
+        // task ID. Claim its ready targets even while the card is incomplete.
+        for (const targetId of task.ids) addTarget(model.byTarget.get(targetId), false)
+        if (!ledger.tasks[id]?.claimed && taskComplete(model, c.state, id)) claims.push({ id, target: null, row: task })
     }
     const rewards = grantRewards(
         c.tables,
