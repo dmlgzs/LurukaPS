@@ -14,6 +14,7 @@ import { ErrorCode } from '../error-codes.js'
 import { rewardSource } from '../reward-source.js'
 import { materialDungeonSnapshot, materialDungeonUnlocked } from '../material-dungeons.js'
 import { weeklyDungeonUnlocked, prepareWeeklyQuota, requireWeeklySystem } from '../weekly-dungeons.js'
+import { claimWeeklyChest } from '../weekly-chest.js'
 import { ensure, syncPlayer } from './common.js'
 import { syncBattle } from '../battle.js'
 import { grantRewards, parseRewards } from '../rewards.js'
@@ -502,6 +503,12 @@ export function registerEntrust(on, tables) {
     )
     on('StaminaBoxGet', (c, r) => {
         const run = c.state.entrust?.run
+        if (run?.kind === 'weekly') {
+            const rewards = claimWeeklyChest(c, r)
+            syncPlayer({ ...c, push: c.pushBefore })
+            syncEntrustStage(c)
+            return { reward: { rewards, src: rewardSource(c.tables, 'staminaChest') }, extra_reward: { rewards: [] } }
+        }
         ensure(run && r.box_id === catalog.chest(run.entrust_id, run.kind).id, 'Invalid entrust chest claim')
         ensureEntrustSceneObjects(tables, c.state)
         return {
