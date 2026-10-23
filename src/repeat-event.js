@@ -139,3 +139,108 @@ export function recordRepeatVictory(tables, state, run) {
         public_data: { ...old?.public_data },
     }
 }
+
+function repeatTaskRows(tables, eventId) {
+    const current = repeatEventTables(tables)
+    const activity = current.get('repeat_event_activity').find((row) => row.gameEventsId === eventId)
+    ensure(activity, 'Repeat task activity configuration unavailable', ErrorCode.RepeatEventLevelInvalidActivityConf)
+    return current.get('repeat_event_task').filter((row) => row.group === activity.taskGroup)
+}
+export function repeatTaskSnapshot(tables, state) {
+    const finished_task_data = []
+    for (const event of repeatEventTables(tables).get('repeat_event_activity')) {
+        const data = state.repeatEvent?.events?.[event.gameEventsId],
+            stamina = data?.total_cost_stamina ?? 0
+        ensure(
+            Number.isSafeInteger(stamina) && stamina >= 0 && stamina <= 0xffffffff,
+            'Invalid repeat stamina ledger',
+            ErrorCode.GameConfig,
+        )
+        for (const task of repeatTaskRows(tables, event.gameEventsId)) {
+            const parts = String(task.finishCondition).split('#').map(Number)
+            const [kind, first, second, third] = parts
+            const dungeon = kind === 12017 ? repeatEventTables(tables).find('dungeon', second) : null
+            const target = kind === 11006 ? first : third
+            ensure(
+                ((kind === 11006 && parts.length === 2) ||
+                    (kind === 12017 && parts.length === 4 && dungeon?.groupId === first)) &&
+                    target > 0 &&
+                    Number.isSafeInteger(target),
+                'Unsupported repeat task condition',
+                ErrorCode.RepeatEventLevelTaskConfigError,
+            )
+            // Same 12017 DungeonClear proof used by the task system: an actual
+            // authoritative campaign receipt, never a client victory flag.
+            const value = kind === 11006 ? stamina : (state.storyCampaignClears?.[second]?.count ?? 0)
+            ensure(
+                Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff,
+                'Invalid repeat dungeon clear receipt',
+                ErrorCode.GameConfig,
+            )
+            const claimed = data?.claimed_tasks?.includes(task.id) ?? false
+            finished_task_data.push({
+                event_id: event.gameEventsId,
+                task_id: task.id,
+                value,
+                status: claimed ? 2 : value >= target ? 1 : 0,
+            })
+        }
+    }
+    return { finished_task_data }
+}
+// 11006 is the shared actual stamina-spend event. Count only its positive delta
+// while this event is active, never a user's pre-existing aggregate at login.
+export function observeRepeatStamina(c, before) {
+    const delta = (c.state.noviceCounters?.staminaSpent ?? 0) - before.stamina
+    if (delta <= 0) return
+    ensure(Number.isSafeInteger(delta), 'Invalid repeat stamina event', ErrorCode.GameConfig)
+    let changed = false
+    for (const event of repeatEventTables(c.tables).get('repeat_event_activity')) {
+        const configured = c.activityCatalog.rows.find((row) => row.id === event.gameEventsId)
+        if (!configured || !c.activityCatalog.active(configured, c.state, c.now)) continue
+        const ledger = (c.state.repeatEvent = { ...c.state.repeatEvent, events: { ...c.state.repeatEvent?.events } })
+        const old = ledger.events[event.gameEventsId],
+            total = (old?.total_cost_stamina ?? 0) + delta
+        ensure(
+            Number.isSafeInteger(total) && total <= 0xffffffff,
+            'Repeat stamina counter overflow',
+            ErrorCode.GameConfig,
+        )
+        ledger.events[event.gameEventsId] = { ...old, total_cost_stamina: total }
+        changed = true
+    }
+    if (changed) c.pushBefore('CSProtoRepeatEventTaskModify', repeatTaskSnapshot(c.tables, c.state))
+}
+export function repeatClaimableTasks(c, requested) {
+    ensure(
+        Array.isArray(requested) &&
+            requested.length <= 100 &&
+            new Set(requested).size === requested.length &&
+            requested.every((id) => Number.isSafeInteger(id) && id > 0),
+        'Invalid repeat task selection',
+        ErrorCode.RepeatEventLevelTaskConfigError,
+    )
+    const all = repeatTaskSnapshot(c.tables, c.state).finished_task_data
+    const active = all.filter((row) => {
+        const event = c.activityCatalog.rows.find((event) => event.id === row.event_id)
+        return event && c.activityCatalog.active(event, c.state, c.now)
+    })
+    const selected = requested.length
+        ? requested.map((id) => {
+              const found = active.filter((row) => row.task_id === id)
+              ensure(
+                  found.length === 1,
+                  'Repeat task configuration unavailable',
+                  ErrorCode.RepeatEventLevelTaskConfigError,
+              )
+              ensure(found[0].status !== 0, 'Repeat task is incomplete', ErrorCode.RepeatEventLevelTaskNotDone)
+              return found[0]
+          })
+        : active.filter((row) => row.status === 1)
+    return selected
+        .filter((row) => row.status === 1)
+        .map((row) => ({
+            ...row,
+            config: repeatTaskRows(c.tables, row.event_id).find((task) => task.id === row.task_id),
+        }))
+}

@@ -5,11 +5,11 @@ import { Store } from '../../src/store.js'
 import { Game } from '../../src/game.js'
 import { createCustomOrnaments } from '../../src/ornaments.js'
 
-export function ornamentFixture(name) {
+export function ornamentFixture(name, { filename = ':memory:' } = {}) {
     const config = configuration(),
         tables = new Tables(config.tables),
         protocol = new Protocol(config.base),
-        store = new Store(':memory:'),
+        store = new Store(filename),
         game = new Game(protocol, store, tables),
         session = {}
     let seq = 1

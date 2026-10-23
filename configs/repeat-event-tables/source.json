@@ -53,13 +53,13 @@
       "rows": 712
     }
   ],
-  "selection": "All 12 repeat_event_level dungeons and their explicit stamina-chest map relationships; not whole external DataTable.",
+  "selection": "All 12 repeat_event_level dungeons, explicit stamina-chest map relationships, and the task-referenced dungeon3974; not whole external DataTable.",
   "counts": {
     "repeat_event_activity": 1,
     "repeat_event_chapter": 1,
     "repeat_event_level": 12,
     "repeat_event_task": 3,
-    "dungeon": 12,
+    "dungeon": 13,
     "dungeon_scene": 12,
     "world_city": 12,
     "stamina_chest_drop": 12

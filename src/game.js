@@ -79,7 +79,7 @@ import {
 import { announcementSnapshot } from './announcements.js'
 import { optimizeSyncPackets } from './sync-delta.js'
 import { registerRepeatEvent } from './handlers/repeat-event.js'
-import { repeatSnapshot } from './repeat-event.js'
+import { repeatSnapshot, repeatTaskSnapshot, observeRepeatStamina } from './repeat-event.js'
 import { registerPetCatch } from './handlers/pet-catch.js'
 import { refundPendingCatchCards } from './handlers/pet-catch.js'
 import { repairCharacterCreationMarker } from './character-creation.js'
@@ -1204,6 +1204,7 @@ export class Game {
                 if (!battleReport) notifyJourney(context, e.name)
                 if (!battleReport) {
                     observeActiveCounters(context, activeCountersBefore)
+                    observeRepeatStamina(context, activeCountersBefore)
                     notifyActive(context)
                     notifyBattlePassTasks(context)
                 }
@@ -1729,6 +1730,7 @@ export class Game {
             this.packet('CSProtoTeachInfoSync', { u32s: state.teachingRecords ?? [] }),
             this.packet('CSProtoEntrustInfoSync', entrustInfoSnapshot(state)),
             this.packet('CSProtoRepeatEventSync', repeatSnapshot(state)),
+            this.packet('CSProtoRepeatEventTaskSync', repeatTaskSnapshot(this.tables, state)),
             this.packet('SCProtoDungeonMaterialInfoSync', materialDungeonSnapshot(state)),
             this.packet('CSProtoEntrustStarRewardSync', entrustStarRewardSnapshot(state)),
             ...(state.entrust?.run?.map_id === state.world.map_id
