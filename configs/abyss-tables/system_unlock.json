@@ -1,0 +1,19 @@
+[
+  {
+    "id": 1700,
+    "name": "7301444403968",
+    "unlockCondi": "2007#107016",
+    "homeUnlock": 0,
+    "lockTips": "7301444405504",
+    "gmCloseTips": "7301444405760",
+    "unlockTips": "ABYSS",
+    "buttonShow": 0,
+    "icon": "UI/Atlas/SystemIcon/tex_unlock_abyss_icon.png",
+    "targetParam": "",
+    "dungeon": 0,
+    "resourceBar": "",
+    "upOneLevel": 0,
+    "param": 0,
+    "filterConfig": 0
+  }
+]

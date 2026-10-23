@@ -14,15 +14,25 @@ export function temporaryHeroes(state) {
     return [
         ...(state.trialGroup?.heroes ?? []),
         ...(state.cultTrial?.heroes ?? []),
+        ...(state.abyssRun && state.abyssRun.map_id === state.world?.map_id ? (state.abyssRun.heroes ?? []) : []),
         ...(arena && arena.map_id === state.world?.map_id && arena.duel_id === state.multiCampaign?.duel_id
             ? [arena.hero]
             : []),
     ]
 }
 export function temporaryPets(state) {
-    return [...(state.trialGroup?.pets ?? []), ...(state.cultTrial?.pets ?? [])]
+    return [
+        ...(state.trialGroup?.pets ?? []),
+        ...(state.cultTrial?.pets ?? []),
+        ...(state.abyssRun && state.abyssRun.map_id === state.world?.map_id ? (state.abyssRun.pets ?? []) : []),
+    ]
 }
 export function activeFormationManager(state) {
-    const type = state.cultTrial && state.cultTrial.map_id === state.world.map_id ? 8 : 1
+    const type =
+        state.abyssRun && state.abyssRun.map_id === state.world.map_id
+            ? 7
+            : state.cultTrial && state.cultTrial.map_id === state.world.map_id
+              ? 8
+              : 1
     return state.player.group_mgrs.find((manager) => manager.type === type)
 }

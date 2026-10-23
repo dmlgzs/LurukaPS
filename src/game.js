@@ -5,7 +5,13 @@ import { battlePassSnapshot } from './battle-pass.js'
 import { registerGeneFruit } from './handlers/pet-gene-fruit.js'
 import { registerPetStarSoul } from './handlers/pet-star-soul.js'
 import { registerPetBoxOrder } from './pet-box-order.js'
-import { registerEscBackground, prepareEscBackground, notifyEscBackground, escBackgroundUnlockSnapshot, escBackgroundSnapshots } from './esc-background.js'
+import {
+    registerEscBackground,
+    prepareEscBackground,
+    notifyEscBackground,
+    escBackgroundUnlockSnapshot,
+    escBackgroundSnapshots,
+} from './esc-background.js'
 import { registerSocialWheel, prepareSocialWheel, notifySocialWheel, socialWheelSnapshot } from './social-wheel.js'
 import { ErrorCode } from './error-codes.js'
 import { registerFriends } from './handlers/friends.js'
@@ -37,6 +43,9 @@ import { registerJourney } from './handlers/journey.js'
 import { journeySnapshot, observeJourney, notifyJourney } from './journey.js'
 import { achievementSnapshot, notifyAchievements } from './achievements.js'
 import { registerAbyssData } from './handlers/abyss-data.js'
+import { registerAbyssChallenge } from './handlers/abyss-challenge.js'
+import { ensureAbyssScene } from './abyss-scene.js'
+import { installAbyssFormation, abyssDungeonInfo, abyssActorInfo } from './abyss-run.js'
 import { homeExchangeDue, prepareHomeExchange, homeExchangeLoginData } from './home-exchange.js'
 import { ensureReputations, reputationSnapshot } from './reputation.js'
 import { materialDungeonSnapshot } from './material-dungeons.js'
@@ -439,6 +448,7 @@ export class Game {
         }
         registerTrialGroups(on, tables)
         registerAbyssData(on, tables)
+        registerAbyssChallenge(on)
         registerPlayableSaves(on)
         registerRoulette(on)
         registerGeneFruit(on)
@@ -721,7 +731,13 @@ export class Game {
                 ensureHome(this.tables, state)
                 ensureReputations(this.tables, state)
                 this.activities.ensureGuideTasks(state, now)
-                if (!state.storyCampaign && !state.entrust?.run && !state.multiCampaign && !state.cultTrial) {
+                if (
+                    !state.storyCampaign &&
+                    !state.entrust?.run &&
+                    !state.multiCampaign &&
+                    !state.cultTrial &&
+                    !state.abyssRun
+                ) {
                     const point = this.activities.guideReturnPoint(state, now)
                     if (point) Object.assign(state.world, this.tables.position(point))
                 }
@@ -780,6 +796,8 @@ export class Game {
                 ensureEntrustSceneObjects(this.tables, state, now)
                 ensureStoryCampaignScene(this.tables, state, now)
                 ensureCultTrialScene(this.tables, state, now)
+                ensureAbyssScene(this.tables, state, now)
+                if (state.abyssRun?.map_id === state.world.map_id) installAbyssFormation(state)
                 recordCultTrialResult(this.tables, state)
                 ensureCultFormation(this.tables, this.activities, state, session.id)
                 recoverInitialDungeonKills(this.tables, state)
@@ -1713,6 +1731,12 @@ export class Game {
             this.packet('SCProtoWorldDifficultyInfo', worldDifficultySnapshot(this.tables, state)),
             ...(state.trialGroup || state.cultTrial?.heroes?.length || state.npcArenaTrialTrainer
                 ? [this.packet('CSProtoTrialDatas', trialPayload(state))]
+                : []),
+            ...(state.abyssRun?.map_id === state.world.map_id
+                ? [
+                      this.packet('CSProtoAbyssHeroInfoSync', abyssActorInfo(state)),
+                      this.packet('SCProtoAbyssDungeonInfoSync', abyssDungeonInfo(state)),
+                  ]
                 : []),
             this.packet('CSProtoPetHandbookInfoSync', petHandbookSnapshot(state)),
             this.packet('CSProtoPetInfoSync', {

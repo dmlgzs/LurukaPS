@@ -1,0 +1,471 @@
+{
+  "version": "2451868",
+  "routes": [
+    {
+      "map_id": 6805,
+      "point_id": 680501,
+      "object_ids": [
+        1500006,
+        1500008
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34760,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6806,
+      "point_id": 680601,
+      "object_ids": [
+        1500006,
+        1500008
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34770,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6807,
+      "point_id": 680701,
+      "object_ids": [
+        1500006,
+        1500008
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34780,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6808,
+      "point_id": 680801,
+      "object_ids": [
+        1500009,
+        1500010
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34790,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6809,
+      "point_id": 680901,
+      "object_ids": [
+        1500009,
+        1500011
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34800,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6810,
+      "point_id": 681001,
+      "object_ids": [
+        1500009,
+        1500010
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34810,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6811,
+      "point_id": 681101,
+      "object_ids": [
+        1500006,
+        1500008
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34820,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6812,
+      "point_id": 681201,
+      "object_ids": [
+        1500009,
+        1500010
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34830,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6813,
+      "point_id": 681301,
+      "object_ids": [
+        1500006,
+        1500008
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34840,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6814,
+      "point_id": 681401,
+      "object_ids": [
+        1500006
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34850,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6815,
+      "point_id": 681501,
+      "object_ids": [
+        1500006
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34860,
+      "basis": "Exact roster/victory/object matches with fully equivalent scene/position/expanded-group gameplay fields; canonical smallest scene is explicit local compatibility",
+      "policy": "canonical_equivalent_scene",
+      "equivalent_alternatives": [
+        6815,
+        6823
+      ],
+      "todo": "Equivalent identity choice is local, verify official CBT3 route"
+    },
+    {
+      "map_id": 6816,
+      "point_id": 681601,
+      "object_ids": [
+        1500011,
+        1500012
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34870,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6817,
+      "point_id": 681701,
+      "object_ids": [
+        1500009,
+        1500010
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34880,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6818,
+      "point_id": 681801,
+      "object_ids": [
+        1500009,
+        1500010
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34890,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6819,
+      "point_id": 681901,
+      "object_ids": [
+        1500009,
+        1500011
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34900,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6820,
+      "point_id": 682001,
+      "object_ids": [
+        1500012,
+        1500013
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34910,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6821,
+      "point_id": 682101,
+      "object_ids": [
+        1500014,
+        1500015
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34920,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6822,
+      "point_id": 682201,
+      "object_ids": [
+        1500006
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34930,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6815,
+      "point_id": 681501,
+      "object_ids": [
+        1500006
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34940,
+      "basis": "Exact roster/victory/object matches with fully equivalent scene/position/expanded-group gameplay fields; canonical smallest scene is explicit local compatibility",
+      "policy": "canonical_equivalent_scene",
+      "equivalent_alternatives": [
+        6815,
+        6823
+      ],
+      "todo": "Equivalent identity choice is local, verify official CBT3 route"
+    },
+    {
+      "map_id": 6824,
+      "point_id": 682401,
+      "object_ids": [
+        1500008
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34950,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6825,
+      "point_id": 682501,
+      "object_ids": [
+        1500009
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34960,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6826,
+      "point_id": 682601,
+      "object_ids": [
+        1500009,
+        1500011
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34970,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6827,
+      "point_id": 682701,
+      "object_ids": [
+        1500009,
+        1500011
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34980,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6828,
+      "point_id": 682801,
+      "object_ids": [
+        1500009,
+        1500011
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 34990,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6829,
+      "point_id": 682901,
+      "object_ids": [
+        1500010
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 35000,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6830,
+      "point_id": 683001,
+      "object_ids": [
+        1500009,
+        1500010
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 35010,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6831,
+      "point_id": 683101,
+      "object_ids": [
+        1500011
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 35020,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6832,
+      "point_id": 683201,
+      "object_ids": [
+        1500011,
+        1500012
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 35030,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6833,
+      "point_id": 683301,
+      "object_ids": [
+        1500010
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 35040,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6834,
+      "point_id": 683401,
+      "object_ids": [
+        1500011,
+        1500012
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 35050,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6835,
+      "point_id": 683501,
+      "object_ids": [
+        1500009
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 35060,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6836,
+      "point_id": 683601,
+      "object_ids": [
+        1500013,
+        1500016,
+        1500017
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 35070,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6837,
+      "point_id": 683701,
+      "object_ids": [
+        1500009
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 35080,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6838,
+      "point_id": 683801,
+      "object_ids": [
+        1500011
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 35090,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6839,
+      "point_id": 683901,
+      "object_ids": [
+        1500016,
+        1500017,
+        1500018
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 35100,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    },
+    {
+      "map_id": 6840,
+      "point_id": 684001,
+      "object_ids": [
+        1500009
+      ],
+      "blueprint": 300307,
+      "dungeon_id": 35110,
+      "basis": "Unique exact victory and enemyId/count roster plus configured difficultIndex object IDs",
+      "policy": "table_inference",
+      "todo": "Verify official CBT3 dungeon-to-scene route"
+    }
+  ],
+  "ambiguous": []
+}

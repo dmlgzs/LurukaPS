@@ -25,12 +25,13 @@ export function pet(s, id) {
     ensure(p, 'Pet not owned')
     return p
 }
-export function manager(s, type = 1) {
+export function manager(s, type) {
+    type ??= s.abyssRun && s.abyssRun.map_id === s.world.map_id ? 7 : 1
     const m = s.player.group_mgrs.find((m) => m.type === type)
     ensure(m, 'Unknown group type')
     return m
 }
-export function group(s, type = 1, id) {
+export function group(s, type, id) {
     const m = manager(s, type)
     const g = m.groups.find((g) => g.id === (id ?? m.cur_group))
     ensure(g, 'Unknown group')

@@ -1,0 +1,4 @@
+{
+  "equivalentScenes": "canonical",
+  "notes": "Local compatibility: only fully equivalent candidate scenes may use the canonical smallest map ID. Set closed to reject all inferred equivalent choices. This is not an official route foreign key or a reward/unlock override."
+}

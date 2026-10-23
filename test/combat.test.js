@@ -8,12 +8,13 @@ import { Game } from '../src/game.js'
 import { expandBattleReport } from '../src/combat-state.js'
 import { enemyDefinition } from '../src/enemy-state.js'
 import { populateParty } from './party-fixture.js'
+import { afterBattlePassBeforePush, fixtureNow } from './battle-pass-packet-fixture.js'
 const config = configuration(),
     protocol = new Protocol(config.base),
     tables = new Tables(config.tables)
 function fixture(options = {}) {
     const store = new Store(':memory:'),
-        game = new Game(protocol, store, tables, options),
+        game = new Game(protocol, store, tables, { clock: () => fixtureNow, ...options }),
         session = {}
     const call = (name, r = {}) => {
         const e = protocol.byName.get('CSProto' + name)
@@ -236,7 +237,11 @@ test('element add/query/change/delete and direct attribute reports retain per-wo
                 },
             ],
         })
-        const packets = f.call('RequestHeroElement', { u64s: [id] })
+        const packets = afterBattlePassBeforePush(f.call('RequestHeroElement', { u64s: [id] }), tables, f.state())
+        assert.deepEqual(
+            packets.map((p) => p.id),
+            [11113],
+        )
         assert.equal(packets[0].id, 11113)
         assert.equal(packets[0].data.info[0].buff.begin_time, '975')
         assert.equal(packets[0].data.info[0].uniqueId, '9999999999999999')
@@ -253,7 +258,12 @@ test('element add/query/change/delete and direct attribute reports retain per-wo
             uint64_dic: [id, '9999999999999999'],
             battle_info: [{ element_info: { op: 2, tar_id: '1', uniqueId: '2' } }],
         })
-        assert.deepEqual(f.call('RequestHeroElement', { u64s: [id] })[0].data.info, [])
+        const empty = afterBattlePassBeforePush(f.call('RequestHeroElement', { u64s: [id] }), tables, f.state())
+        assert.deepEqual(
+            empty.map((p) => p.id),
+            [11113],
+        )
+        assert.deepEqual(empty[0].data.info, [])
     } finally {
         f.store.close()
     }

@@ -50,7 +50,14 @@ export function registerClientState(on, store) {
         }
     })
     on('SwitchGroupControlEnd', (c, r) => {
-        const g = group(c.state, c.state.cultTrial?.map_id === c.state.world.map_id ? 8 : 1)
+        const g = group(
+            c.state,
+            c.state.abyssRun?.map_id === c.state.world.map_id
+                ? 7
+                : c.state.cultTrial?.map_id === c.state.world.map_id
+                  ? 8
+                  : 1,
+        )
         if (!g.heros.some((h) => h.hero_id === r.uuid) && isPreviousTrialActor(c.state, r.uuid)) return
         ensure(
             g.heros.some((h) => h.hero_id === r.uuid),

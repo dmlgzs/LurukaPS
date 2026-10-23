@@ -44,7 +44,7 @@ export const WORLD_MAP_CMD_ENTER = 256
 function mapPlayer(c) {
     const s = c.state,
         w = s.world,
-        g = group(s, s.cultTrial?.map_id === s.world.map_id ? 8 : 1),
+        g = group(s, s.abyssRun?.map_id === s.world.map_id ? 7 : s.cultTrial?.map_id === s.world.map_id ? 8 : 1),
         ids = g.heros.filter((h) => h.hero_id && h.hero_id !== '0').map((h) => h.hero_id)
     const move = { pos: w.pos, angle: w.angle, area_id: w.area_id, move_status: 1, timestamp: String(c.now * 1000) }
     return {
@@ -247,6 +247,8 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
         c.push('CSProtoOnlineModeChange', { mode: 5 })
         c.push('CSProtoCampaignInfoSync', cultTrialSnapshot(s, { entering: true }))
     }
+    if ([WORLD_MAP_CMD_ENTER, 49].includes(cmd) && s.abyssRun?.map_id === w.map_id)
+        c.push('CSProtoOnlineModeChange', { mode: 5 })
 }
 export function rememberMap(c, destination) {
     const w = c.state.world

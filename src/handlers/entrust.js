@@ -13,6 +13,7 @@ import { worldSync } from './world.js'
 import { enterStoryCampaignScene, endStoryCampaignScene, exitStoryCampaign } from './story-campaign.js'
 import { enterCultTrialScene, exitCultTrial, endCultTrialScene } from './cult-trial.js'
 import { startCultTrialBattle } from '../cult-trial.js'
+import { enterAbyssScene } from './abyss-challenge.js'
 import { reportNpcArenaLoadFinish } from '../npc-kibo-battle.js'
 import {
     getEntrustCatalog,
@@ -380,6 +381,7 @@ export function registerEntrust(on, tables) {
     on('EnterEntrust', (c, r) => start(c, r.entrust_id))
     on('ReEnterEntrust', (c, r) => start(c, r.entrust_id, true))
     on('EnterDungeonScene', (c, r) => {
+        if (c.state.abyssRun) return enterAbyssScene(c, r)
         if (c.state.cultTrial) return enterCultTrialScene(c, r)
         if (c.state.storyCampaign) return enterStoryCampaignScene(c, r)
         const run = c.state.entrust?.run

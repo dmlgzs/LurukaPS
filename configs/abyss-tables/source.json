@@ -1,0 +1,264 @@
+{
+  "version": "2451868",
+  "sources": [
+    "azurjs/docs/evidence/abyss-b06-20261023/tables/source.json",
+    "azurjs/docs/evidence/abyss-b06-20261023/scene-tables/source.json"
+  ],
+  "tables": [
+    {
+      "name": "dungeon",
+      "rows": 36,
+      "sha256": "ffe4a474ffc9fc356f73b46cbca9b6bcbba417b7913f64a0cf92988295d38890"
+    },
+    {
+      "name": "dungeon_scene",
+      "rows": 36,
+      "sha256": "4cff47b7a58eade7d4c1f3c414339e3fe357eecf72e5a2802ef818f538f46b7d"
+    },
+    {
+      "name": "world_city",
+      "rows": 36,
+      "sha256": "a21c5991d604ee12732e958839d0730cd6a3b545bf8844f9132f234ce09491db"
+    },
+    {
+      "name": "world_borthpos",
+      "rows": 36,
+      "sha256": "db0f501fc5157a0610afdb4edc96b1bdee857232888bd9cf447c52e8f7e82b56"
+    },
+    {
+      "name": "world_enemy_group",
+      "rows": 62,
+      "sha256": "210f16db477daf92c0908941c4a8e9b7aa7cd79a2df6966479842d3a7866dfc0"
+    },
+    {
+      "name": "enemy_pack",
+      "rows": 54,
+      "sha256": "0de3e4722d4418bdbd779d79ae855724d629a90928bb936a1271fe534688bac7"
+    },
+    {
+      "name": "world_spawner",
+      "rows": 5,
+      "sha256": "4413b157d3a5801a480d30dd717c2e914106833c5942ec006a12e06cf55bfc60"
+    },
+    {
+      "name": "abbys_mode",
+      "rows": 3,
+      "sha256": "9bb23d31080695b40615b779adab21130b67f87ece0a4ed1a6207c66578a794c"
+    },
+    {
+      "name": "abbys_level",
+      "rows": 21,
+      "sha256": "0fe68d181c7aee502f1bd6e3850289e1e18d60eff28e89205b322e300ae50d69"
+    },
+    {
+      "name": "abbys_time",
+      "rows": 1,
+      "sha256": "fbadcd7684d4484bb4cd6464b8c13d79cfa412470b18d34d10447223c63b5166"
+    },
+    {
+      "name": "abbys_reward",
+      "rows": 28,
+      "sha256": "93abc6979a7eae7d262bbc0c995fad4d52119b420a9987a9bbc118ba57fadcc6"
+    },
+    {
+      "name": "abbys_buff",
+      "rows": 94,
+      "sha256": "95245c76e35ca5802093a53c3d31801ccb03feaaf21a7d6278634cf6195b9623"
+    },
+    {
+      "name": "abbys_buff_group",
+      "rows": 5,
+      "sha256": "80c18333b7c317ac8d2fcdc14adf8d34dba566bfaf4031e725e2613472e14936"
+    },
+    {
+      "name": "abbys_direct_pass",
+      "rows": 5,
+      "sha256": "f0f8abf5e9df668f8c9ac8c06109c2b59862a7526b3bc0dcef79421e651f7d96"
+    },
+    {
+      "name": "system_unlock",
+      "rows": 1,
+      "sha256": "d25ec2683403f65bf8317a2f2947a306b5cfcae9bd6c7fac56be7456c6e3b5e9"
+    },
+    {
+      "name": "worldmap_6805",
+      "rows": 6,
+      "sha256": "6c81250896852e7fc0a8a7fdd028590507f4ee5ed3957b534567c71429dab398"
+    },
+    {
+      "name": "worldmap_6806",
+      "rows": 6,
+      "sha256": "1e51081b8d825e61eb6ba5a32d670049326b1cec0185606aa7f3abfe51fcb131"
+    },
+    {
+      "name": "worldmap_6807",
+      "rows": 6,
+      "sha256": "7da3a861a3e3d41345026c70aa11c9bd245bddf143398dd769e7d8d90fb9c111"
+    },
+    {
+      "name": "worldmap_6808",
+      "rows": 6,
+      "sha256": "38a740f3b337c1651b8fe631ce6c3715b8b454ff7a1b8667beeaa3d32773aca2"
+    },
+    {
+      "name": "worldmap_6809",
+      "rows": 6,
+      "sha256": "c0648026ac84fc0bb2225f2ee22eab79c806cd416e35f3ad5d7fe35052970299"
+    },
+    {
+      "name": "worldmap_6810",
+      "rows": 6,
+      "sha256": "e56bede4a3c6effef47cd78e0f1347d1dda348985181c6aceecd5a701065d55c"
+    },
+    {
+      "name": "worldmap_6811",
+      "rows": 6,
+      "sha256": "a24794eb36063a8b1ec7596cb4bd4890e1f165db2fb41810ca8449aec854417c"
+    },
+    {
+      "name": "worldmap_6812",
+      "rows": 6,
+      "sha256": "b1eafbfd5c42a09b3b02bc4e4802d3073cb08729e191972815ee0d2237dd9a83"
+    },
+    {
+      "name": "worldmap_6813",
+      "rows": 6,
+      "sha256": "3d28c35262eebe3fbad1d5c84572072b476c3684d97be7d1faa0175ddd8fcacf"
+    },
+    {
+      "name": "worldmap_6814",
+      "rows": 5,
+      "sha256": "a635647a3413abd74402e34f8745e165784b46470689d7007e6c14566c6a7c83"
+    },
+    {
+      "name": "worldmap_6815",
+      "rows": 5,
+      "sha256": "7dd2d8b25bdc8727be9bfe491fff41b71b4a188cd216914a3ba1ca4a840aed56"
+    },
+    {
+      "name": "worldmap_6816",
+      "rows": 6,
+      "sha256": "449e74570d995bbbdd055b7ad227a9eb24cf13ee22fb908fe6464fa5fb6a8061"
+    },
+    {
+      "name": "worldmap_6817",
+      "rows": 6,
+      "sha256": "f8afe7a85f8c1339e4ee3b950c68b6d2b711de870aecf313d517ba8383f34fed"
+    },
+    {
+      "name": "worldmap_6818",
+      "rows": 6,
+      "sha256": "4e8783da78df012f3ca8ac2e5733e15333b3b5ad426f70b841f862a929b5b404"
+    },
+    {
+      "name": "worldmap_6819",
+      "rows": 6,
+      "sha256": "d27e4dfb1048944d8fe3169da81914e8990ca75f6536ed14dd0e2d385b878e88"
+    },
+    {
+      "name": "worldmap_6820",
+      "rows": 6,
+      "sha256": "d633db082396d1e825798667045efd8e47dcf051e1da1b3be4d1f4797be0ce14"
+    },
+    {
+      "name": "worldmap_6821",
+      "rows": 6,
+      "sha256": "a2d5ee4e6edda840acde9aa841dc78a962d89ae1aff591dae7c72f2dbee23756"
+    },
+    {
+      "name": "worldmap_6822",
+      "rows": 5,
+      "sha256": "ddd0aaec37984f150302021e14aec8e5cdd04ca5e090a93eaa1c9e7588031bdb"
+    },
+    {
+      "name": "worldmap_6823",
+      "rows": 5,
+      "sha256": "7f098d11babd3404af6196e461f962bd2da46ad28105967e733fcb8b6b6921a7"
+    },
+    {
+      "name": "worldmap_6824",
+      "rows": 5,
+      "sha256": "69e9dc098cf9437537b987cec47a584c68db0f68a1e774dcc7d3333d8901b87f"
+    },
+    {
+      "name": "worldmap_6825",
+      "rows": 5,
+      "sha256": "6b2e5b9286a1da31b3e25c1c71c242de5de71cc444ab71bddf12d777458cc9d5"
+    },
+    {
+      "name": "worldmap_6826",
+      "rows": 6,
+      "sha256": "42968dd9521b1ceb4a37def21f5986a3c372892274ac32829bfdad45c87cbfcd"
+    },
+    {
+      "name": "worldmap_6827",
+      "rows": 6,
+      "sha256": "c4b368c5aac1a268d2bf669618e86a47cf546d573d90e352b048958bc3b0bb8b"
+    },
+    {
+      "name": "worldmap_6828",
+      "rows": 6,
+      "sha256": "2b9f64d19f8a8a534976ac0c420428759ba7219e2f3934faa5d8b67b5ca1ea7c"
+    },
+    {
+      "name": "worldmap_6829",
+      "rows": 5,
+      "sha256": "1ecf69195e367a8aa5352db572d2c13ce748363d3134211603da1439963f6d45"
+    },
+    {
+      "name": "worldmap_6830",
+      "rows": 6,
+      "sha256": "d01515c7e9cc92491ef15e9e5d503d4c49472a88648c5fc7288ccc3a80cf9e7a"
+    },
+    {
+      "name": "worldmap_6831",
+      "rows": 5,
+      "sha256": "62d5f2ecef84ee4dd685d78bdaf8b44299bfef78e609d0bf5a304267e714ea22"
+    },
+    {
+      "name": "worldmap_6832",
+      "rows": 6,
+      "sha256": "4c21cf77faaecfc550fde0b175dbeca029a1bfabf0277aa2b18ff11cf12ba455"
+    },
+    {
+      "name": "worldmap_6833",
+      "rows": 5,
+      "sha256": "daa30fd7d09396a3a3d6a707c38705febe7bc645c7a2a06f7ba80dd09908d7b6"
+    },
+    {
+      "name": "worldmap_6834",
+      "rows": 6,
+      "sha256": "35af6aec46d20f8dfff3365ac3b0113bd99cbe95b1e426eb6aa36fdc50133dd9"
+    },
+    {
+      "name": "worldmap_6835",
+      "rows": 5,
+      "sha256": "2073c76acccd514ae1cf7c0687496007a33fd3117c242b1a80488129995bb943"
+    },
+    {
+      "name": "worldmap_6836",
+      "rows": 7,
+      "sha256": "a3e522f3d0915265a6e5461a07fe1d7ca85f58606cd66722314ce06cade8bb49"
+    },
+    {
+      "name": "worldmap_6837",
+      "rows": 5,
+      "sha256": "ea5a9dbc10ca181ce559b69d946593a8edebbbcdf3fba7e0e1d26c840eec20ef"
+    },
+    {
+      "name": "worldmap_6838",
+      "rows": 5,
+      "sha256": "98aafdfeff2852def013200d57ded778599da14ae6661972391a9ad2f317cc7e"
+    },
+    {
+      "name": "worldmap_6839",
+      "rows": 7,
+      "sha256": "defd1a348c467d021f0164c5b6894c41101a8531733b0c542e699c0cd1538757"
+    },
+    {
+      "name": "worldmap_6840",
+      "rows": 5,
+      "sha256": "bfbef85806f4f09410d5570f78537394480b712bfd5831c10d6e8f0144fcb44e"
+    }
+  ]
+}

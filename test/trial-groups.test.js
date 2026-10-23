@@ -9,12 +9,13 @@ import { Store } from '../src/store.js'
 import { Protocol } from '../src/protocol.js'
 import { Game } from '../src/game.js'
 import { TaskGraphs } from '../src/tasks.js'
+import { afterBattlePassBeforePush, fixtureNow } from './battle-pass-packet-fixture.js'
 const cfg = configuration(),
     tables = new Tables(cfg.tables),
     protocol = new Protocol(cfg.base)
 test('actual prologue controller opens trial107001, supports combat and reconnect, then restores owned formation', () => {
     const store = new Store(':memory:'),
-        game = new Game(protocol, store, tables)
+        game = new Game(protocol, store, tables, { clock: () => fixtureNow })
     let session = {},
         seq = 1
     const call = (name, r = {}) => {
@@ -30,8 +31,10 @@ test('actual prologue controller opens trial107001, supports combat and reconnec
         const original = structuredClone(state().player.group_mgrs[0]),
             owned = structuredClone(state().player.heros_info.heros)
         const request = { open: true, force: true, trial_heros: [{ id: 107001, pos: -1 }] },
-            packets = call('TrialGroupChange', request)
+            packets = afterBattlePassBeforePush(call('TrialGroupChange', request), tables, state())
         assert.equal(packets[0].id, 5987)
+        assert(packets.findIndex((p) => p.id === 10006) > 0)
+        assert(packets.findIndex((p) => p.id === 10006) < packets.findIndex((p) => p.id === 5008))
         assert.equal(packets.at(-1).id, 5008)
         let s = state()
         const hero = s.trialGroup.heroes[0]
@@ -112,7 +115,7 @@ test('actual prologue controller opens trial107001, supports combat and reconnec
 
 test('actual node56 non-forced trial replaces one slot in a saved-party copy and restores it afterward', () => {
     const store = new Store(':memory:'),
-        game = new Game(protocol, store, tables),
+        game = new Game(protocol, store, tables, { clock: () => fixtureNow }),
         session = {}
     let seq = 1
     const call = (name, r = {}) => {
@@ -141,8 +144,14 @@ test('actual node56 non-forced trial replaces one slot in a saved-party copy and
         })
         const before = store.load(session.id).state.player.group_mgrs[0],
             original = structuredClone(before.groups.find((g) => g.id === before.cur_group))
-        const result = call('TrialGroupChange', { open: true, force: false, trial_heros: [{ id: 107001, pos: -1 }] })
+        const result = afterBattlePassBeforePush(
+            call('TrialGroupChange', { open: true, force: false, trial_heros: [{ id: 107001, pos: -1 }] }),
+            tables,
+            store.load(session.id).state,
+        )
         assert.equal(result[0].id, 5987)
+        assert(result.findIndex((p) => p.id === 10006) > 0)
+        assert(result.findIndex((p) => p.id === 10006) < result.findIndex((p) => p.id === 5008))
         const state = store.load(session.id).state,
             group = state.player.group_mgrs[0].groups.find((g) => g.id === 0),
             trial = state.trialGroup.heroes[0]

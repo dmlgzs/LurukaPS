@@ -1,9 +1,27 @@
 import { WorldObjectCatalog } from './world-objects.js'
 import { TaskGraphs, asList, nodeConditions } from './tasks.js'
+import { abyssTables } from './abyss-catalog.js'
 const catalogs = new WeakMap()
 export function inactiveCampaignEnemyGroup(tables, state, uuid) {
     const id = BigInt(uuid),
         run = state.storyCampaign
+    if (Number(id >> 56n) === 3 && state.abyssRun?.map_id === state.world.map_id) {
+        const objectId = Number(id & 0xffffffffn),
+            record = state.worldObjects?.[state.world.map_id + ':' + objectId]
+        if (record?.active !== false) return null
+        const scoped = abyssTables(tables),
+            row = scoped.find('worldmap_' + state.world.map_id, objectId)
+        if (!row || scoped.find('world_spawner', row.spawnerId)?.objectType !== 50) return null
+        const count = String(scoped.find('world_enemy_group', row.expandId)?.enemyList ?? '')
+            .split('|')
+            .filter(Boolean).length
+        if (!count || count > 256) return null
+        const root = (id & ~(0xffffffn << 32n)).toString()
+        return {
+            root,
+            members: Array.from({ length: count }, (_, slot) => (BigInt(root) | (BigInt(slot) << 32n)).toString()),
+        }
+    }
     if (Number(id >> 56n) !== 3 || !run?.task_ids?.length || run.map_id !== state.world.map_id) return null
     const objectId = Number(id & 0xffffffffn),
         record = state.worldObjects?.[state.world.map_id + ':' + objectId]

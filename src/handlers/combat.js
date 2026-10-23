@@ -33,6 +33,15 @@ export function actor(c, value) {
     const id = u64(value)
     ensure(id !== '0', 'Missing combat actor')
     const kind = Number(BigInt(id) >> 56n)
+    if (kind === 30 || kind === 31) {
+        const m = activeFormationManager(c.state),
+            g = m?.groups.find((x) => x.id === m.cur_group)
+        ensure(
+            c.state.abyssRun?.map_id === c.state.world.map_id &&
+                g?.heros.some((x) => (kind === 30 ? x.hero_id === id : x.pet_id === id)),
+            'Abyss actor is not in the active challenge team',
+        )
+    }
     if (kind === 1)
         ensure(
             c.state.player.heros_info.heros.some((h) => h.guid === id),

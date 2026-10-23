@@ -92,6 +92,11 @@ function heroSkills(tables, config, hero) {
     return [...skills.values()]
 }
 export function heroModules(tables, state, hero) {
+    if (hero.abyss) {
+        const data = state.abyssRun?.heroAttrs?.[hero.guid]
+        if (!data) throw Error('Abyss hero attribute snapshot unavailable')
+        return data
+    }
     const config = requireRow(tables, 'hero', hero.conf_id)
     const property = requireRow(tables, 'unit_property', config.propertyId)
     // CBT3 Lua selects template_hero by level; rank is not part of that lookup.
@@ -251,6 +256,11 @@ export function syncBattle(c) {
 }
 
 export function petModules(tables, state, pet, heroes) {
+    if (pet.abyss) {
+        const data = state.abyssRun?.petAttrs?.[pet.guid]
+        if (!data) throw Error('Abyss pet attribute snapshot unavailable')
+        return data
+    }
     const baseRow = requireRow(tables, 'template_value', pet.config_id)
     const growth = requireRow(tables, 'template_value', 5001000 + pet.lv)
     const factors = pairs(growth.baseAttribute),

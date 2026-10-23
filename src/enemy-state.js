@@ -5,8 +5,10 @@ import { pairs } from './battle.js'
 import { taskEnemyGroups } from './task-enemy-groups.js'
 import { arenaProperty } from './npc-kibo-properties.js'
 import { taskEnemyPacks } from './task-enemy-slots.js'
+import { abyssTables } from './abyss-catalog.js'
 const catalogs = new WeakMap()
 export function enemyDefinition(tables, state, uuid) {
+    if (state.abyssRun?.map_id === state.world.map_id) tables = abyssTables(tables)
     const arena = state.combat?.npcDuel
     const actor = arena?.map_id === state.world.map_id ? arena.actors[String(uuid)] : null
     if (actor)
@@ -25,7 +27,7 @@ export function enemyDefinition(tables, state, uuid) {
     if (![3, 4, 7].includes(kind)) return null
     let cached = catalogs.get(tables)
     if (!cached) {
-        cached = { world: new WorldObjectCatalog(tables), graphs: new TaskGraphs(tables) }
+        cached = { world: new WorldObjectCatalog(tables, tables.abyss_directory), graphs: new TaskGraphs(tables) }
         catalogs.set(tables, cached)
     }
     let packId, worldRow, taskConfig, groupSize, taskGroup
@@ -111,7 +113,9 @@ export function enemyDefinition(tables, state, uuid) {
               ? state.storyCampaign.dungeon_id
               : state.cultTrial?.map_id === state.world.map_id
                 ? state.cultTrial.dungeon_id
-                : null
+                : state.abyssRun?.map_id === state.world.map_id
+                  ? state.abyssRun.dungeon_id
+                  : null
     const dungeon = dungeonId ? tables.find('dungeon', dungeonId) : null
     const configured =
         pack?.levelPolicy === 3 && dungeon
