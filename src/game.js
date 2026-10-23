@@ -2,6 +2,7 @@ import { growupArchiveSnapshot } from './growup-archive.js'
 import { notifyBattlePassTasks } from './battle-pass-tasks.js'
 import { registerBattlePass } from './handlers/battle-pass.js'
 import { battlePassSnapshot } from './battle-pass.js'
+import { registerMaterialStoryVoting } from './handlers/material-story-voting.js'
 import { registerMaterialStory } from './handlers/multiple-material-story.js'
 import { registerGeneFruit } from './handlers/pet-gene-fruit.js'
 import { registerPetStarSoul } from './handlers/pet-star-soul.js'
@@ -465,6 +466,7 @@ export class Game {
         registerAbyssChallenge(on)
         registerPlayableSaves(on)
         registerRoulette(on)
+        registerMaterialStoryVoting(on)
         registerMaterialStory(on)
         registerGeneFruit(on)
         registerPetStarSoul(on)
