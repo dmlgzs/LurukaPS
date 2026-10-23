@@ -35,8 +35,8 @@ test('HTTP model describes all five actual pools using ordinary thresholds and c
     }
     const limited = detail(1001)
     assert.equal(limited.probability_detail.star5.text, '基础概率 0.8%')
-    assert.equal(limited.probability_detail.star4.text, '基础概率 5.2%')
-    assert.equal(limited.probability_detail.star3.text, '基础概率 94%')
+    assert.equal(limited.probability_detail.star4.text, '基础概率 6%')
+    assert.equal(limited.probability_detail.star3.text, '基础概率 93.2%')
     assert.deepEqual(limited.probability_detail.star5.objects, [{ name: '涂山小玉', is_up: true }])
     assert.equal(limited.probability_up_target.star5.ratio, '100%')
     assert.equal(limited.probability_up_target.star4.ratio, '50%')

@@ -135,7 +135,7 @@ export class GachaDrawEngine {
     }
     compile(config) {
         ensure(
-            this.policy.probability_mode === 'cumulative_thresholds',
+            this.policy.probability_mode === 'category_masses',
             'Gacha probability mode not implemented',
             ErrorCode.FunctionClosed,
         )
@@ -232,11 +232,20 @@ export class GachaDrawEngine {
         let threshold = 0
         for (const r of rules) {
             ensure(r.probability_base <= scale, 'Gacha probability exceeds its scale', ErrorCode.GameConfig)
-            // FIRST_FREE's one-off fixed tutorial rule is forced separately;
-            // the remaining probabilities are ordered cumulative thresholds.
-            if (r.guaranteeCount === 1 && !r.isRepeatable && r.probability_base === scale) continue
-            ensure(r.probability_base >= threshold, 'Gacha probability thresholds are unordered', ErrorCode.GameConfig)
-            threshold = r.probability_base
+            // CBT3's limited-pool description gives disjoint 0.8% / 6% / 93.2%.
+            // Base values are category masses; only the final fallback defines
+            // the scale/remainder. FIRST_FREE is a forced one-off, not a mass.
+            const forcedOnly = r.guaranteeCount === 1 && !r.isRepeatable && r.probability_base === scale
+            const mass = r === fallback ? scale - threshold : forcedOnly ? 0 : r.probability_base
+            ensure(
+                mass >= 0 && threshold + mass <= scale,
+                'Gacha probability masses exceed their scale',
+                ErrorCode.GameConfig,
+            )
+            r.probability_mass = mass
+            r.probability_threshold = threshold + mass
+            if (forcedOnly) r.probability_threshold = 0
+            threshold += mass
         }
         return { rules, scale, pool }
     }
@@ -519,7 +528,7 @@ export class GachaDrawEngine {
                 (r) =>
                     (r.guaranteeCount > 0 &&
                         entry.pity.find((p) => p.pity_id === r.guaranteeId).pity_count + 1 >= r.guaranteeCount) ||
-                    roll < r.probability_base,
+                    roll < r.probability_threshold,
             )
             ensure(winner, 'Gacha rules did not produce an item', ErrorCode.GameConfig)
             const bucket = weighted(winner.buckets, c.randomInt)

@@ -163,6 +163,55 @@ test('all five current pools compile their actual 17 populated guarantee rules',
     assert.equal(catalog.pools.size, 5)
     assert.equal(count, 17)
 })
+
+test('ordinary category masses share one model with HTTP details without counting forced tutorial rewards twice', () => {
+    const tables = gachaTables(new Tables(cfg.tables)),
+        catalog = new GachaCatalog(tables),
+        engine = new GachaDrawEngine(catalog, tables)
+    for (const [id, ssr] of [
+        [1001, 800],
+        [2001, 1200],
+        [8001, 800],
+        [9001, 800],
+        [10001, 1200],
+    ]) {
+        const model = engine.compile(catalog.configuration(id))
+        const mass = (rarity) =>
+            model.rules.filter((rule) => rule.minimum === rarity).reduce((sum, rule) => sum + rule.probability_mass, 0)
+        assert.equal(mass(4), ssr)
+        assert.equal(mass(3), 6000)
+        assert.equal(mass(2), 100000 - ssr - 6000)
+        assert.equal(model.rules.at(-1).probability_threshold, 100000)
+        if (id === 8001) assert.equal(model.rules.find((rule) => rule.guaranteeId === 801).probability_mass, 0)
+        if (id === 9001) {
+            const tutorial = model.rules.find((rule) => rule.guaranteeId === 900)
+            assert.equal(tutorial.probability_mass, 0)
+            assert.equal(tutorial.probability_threshold, 0)
+        }
+    }
+})
+
+test('category probabilities need not be increasing thresholds, while overflowing total mass is rejected', () => {
+    const tables = gachaTables(new Tables(cfg.tables)),
+        catalog = new GachaCatalog(tables),
+        engine = new GachaDrawEngine(catalog, tables)
+    catalog.guarantees.set(101, { ...catalog.guarantees.get(101), probability_base: 2000 })
+    catalog.guarantees.set(103, { ...catalog.guarantees.get(103), probability_base: 1000 })
+    const model = engine.compile(catalog.configuration(1001))
+    assert.deepEqual(
+        model.rules.map((rule) => rule.probability_mass),
+        [2000, 1000, 97000],
+    )
+    assert.deepEqual(
+        model.rules.map((rule) => rule.probability_threshold),
+        [2000, 3000, 100000],
+    )
+    catalog.guarantees.set(101, { ...catalog.guarantees.get(101), probability_base: 99500 })
+    assert.throws(
+        () => engine.compile(catalog.configuration(1001)),
+        (error) => error.code === ErrorCode.GameConfig,
+    )
+})
 test('5200 publishes the explicit offline card-pool window on login and preserves it through activity refresh', () => {
     const f = fixture('gacha-time-sync')
     try {
@@ -216,12 +265,15 @@ test('a real SSR draw spends the correct ticket, transforms an owned hero, grant
         f.store.close()
     }
 })
-test('cumulative probability boundaries and four-star-or-higher guarantees preserve higher-rarity outcomes', () => {
+test('disjoint base probabilities and four-star-or-higher guarantees preserve higher-rarity outcomes', () => {
     for (const [roll, rarity] of [
         [799, 4],
         [800, 3],
         [5999, 3],
-        [6000, 2],
+        [6000, 3],
+        [6799, 3],
+        [6800, 2],
+        [99999, 2],
     ]) {
         const f = fixture('gacha-boundary-' + roll, { rng: (max) => (max === 100000 ? roll : 0) })
         try {

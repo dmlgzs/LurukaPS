@@ -2,7 +2,7 @@
   "missing_schedule": "offline_open",
   "offline_window": { "start": 0, "end": 4102444800 },
   "pool_overrides": {},
-  "probability_mode": "cumulative_thresholds",
+  "probability_mode": "category_masses",
   "aimed_ssr_policy": "selected",
   "detail_images": {},
   "receipt_limit": 64,

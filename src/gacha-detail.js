@@ -20,9 +20,8 @@ export function gachaPoolDetail(catalog, engine, tables, poolId, defaultImages =
     const candidates = new Map()
     let covered = 0
     for (const rule of model.rules.filter((rule) => rule.isRepeatable || !rule.guaranteeCount)) {
-        const threshold = Math.min(model.scale, rule.probability_base)
-        const mass = Math.max(0, threshold - covered) / model.scale
-        covered = Math.max(covered, threshold)
+        const mass = rule.probability_mass / model.scale
+        covered += rule.probability_mass
         const weights = rule.buckets.reduce((n, bucket) => n + bucket.weight, 0)
         for (const bucket of rule.buckets)
             for (const item of bucket.items) {
