@@ -93,9 +93,8 @@ test('real101 response then real10716 step2 authorizes104; historical record alo
         f.step(101, 3)
         // Existing admission may be re-synchronized after its entry predicate changes.
         assert.equal(f.trigger(104)[0].data.infos[0].step, 1)
-        const saved = f.state()
-        assert.throws(() => f.step(104, 2), /not implemented/)
-        assert.deepEqual(f.state(), saved)
+        assert.deepEqual(f.step(104, 2).find((p) => p.id === 10716).data.rewards, [])
+        assert.equal(f.state().worldEvents['100:104'].completed, true)
     } finally {
         f.store.close()
     }

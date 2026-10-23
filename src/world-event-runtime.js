@@ -276,7 +276,7 @@ export function restoreWorldEventRuntime(c) {
             event.step >= row.stepCount ||
             event.completed ||
             !liveAt(c, row, event) ||
-            !within(c, row, 100)
+            (!within(c, row, 100) && !(row.conditionID && definitions.get(row.id)?.checks.length === 0))
         )
             continue
         recordWorldEventSync(c, row, event)

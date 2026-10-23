@@ -37,14 +37,15 @@ export function registerWorldEvents(on, tables) {
         }
         return grantRewards(c.tables, c.state, rewards)
     }
-    const config = (c, id, conditionalTrigger = false) => {
-        const row = tables.find('world_event', id)
-        ensure(row && row.worldMapID === c.state.world.map_id, 'Event not in current map')
+    const config = (c, id) => {
         ensure(
-            conditionalTrigger || !row.conditionID,
-            'Event condition evaluation is not implemented',
-            ErrorCode.FunctionClosed,
+            Number.isSafeInteger(id) && id > 0 && id <= 0xffffffff,
+            'Invalid world event ID',
+            ErrorCode.InvalidArgument,
         )
+        const row = tables.find('world_event', id)
+        ensure(row, 'World event configuration is missing', ErrorCode.WorldEventConfNotFound)
+        ensure(row.worldMapID === c.state.world.map_id, 'Event not in current map', ErrorCode.InvalidArgument)
         ensure(row.stepCount >= 2, 'Invalid event step configuration', ErrorCode.GameConfig)
         return row
     }
@@ -92,12 +93,18 @@ export function registerWorldEvents(on, tables) {
         }
         return event
     }
+    const syncEvent = (c, row, event) => {
+        // Publishing10715 reauthorizes an actually accepted generation, including
+        // reconnect continuation. Do not re-check a condition that changed after admission.
+        admitWorldEvent(c, row, event)
+        c.pushBefore('CSProtoWorldEventInfo', { infos: [wire(event)] })
+    }
     on('WorldEventTrigger', (c, r) => {
         const row = tables.find('world_event', r.cfg_id)
         // The old world can keep polling nearby events while a dungeon scene is
         // loading. Acknowledge them without starting that event in the dungeon.
         if (c.state.multiCampaign && row && row.worldMapID !== c.state.world.map_id) return { infos: [] }
-        const configured = config(c, r.cfg_id, true),
+        const configured = config(c, r.cfg_id),
             event = trigger(c, configured)
         if (!worldEventAdmitted(c, configured, event)) checkWorldEventConditions(c, configured)
         admitWorldEvent(c, configured, event)
@@ -108,6 +115,12 @@ export function registerWorldEvents(on, tables) {
             key = `${row.worldMapID}:${row.id}`,
             event = c.state.worldEvents?.[key]
         ensure(event, 'Event not started')
+        if (row.conditionID)
+            ensure(
+                worldEventAdmitted(c, row, event),
+                'World event generation was not admitted',
+                ErrorCode.WorldEvCondition,
+            )
         const step = r.step
         // stepCount includes the initial step. The client reports the last
         // transition as stepCount (event 201: start + three monster waves).
@@ -117,7 +130,7 @@ export function registerWorldEvents(on, tables) {
             event.expired = false
             if (step === row.stepCount) event.step = step
             ensure(step === event.step, 'Event restart must follow cooldown')
-            c.pushBefore('CSProtoWorldEventInfo', { infos: [wire(event)] })
+            syncEvent(c, row, event)
             return { rewards: [] }
         }
         if (
@@ -159,7 +172,7 @@ export function registerWorldEvents(on, tables) {
         if (event.completed && event.step === row.stepCount - 1) event.completed = false
         if (event.completed) {
             ensure(step === event.step, 'Event restart must follow cooldown')
-            c.pushBefore('CSProtoWorldEventInfo', { infos: [wire(event)] })
+            syncEvent(c, row, event)
             return { rewards: [] }
         }
         const timedOut = row.overtime > 0 && c.now >= event.begin_time + row.overtime
@@ -186,7 +199,7 @@ export function registerWorldEvents(on, tables) {
                 event.completed = true
                 if (rewards.length) syncPlayer({ ...c, push: c.pushBefore })
             }
-            c.pushBefore('CSProtoWorldEventInfo', { infos: [wire(event)] })
+            syncEvent(c, row, event)
             return { rewards }
         }
         ensure(!timedOut, 'Event expired')
@@ -208,7 +221,7 @@ export function registerWorldEvents(on, tables) {
             event.completed = true
             if (rewards.length) syncPlayer({ ...c, push: c.pushBefore })
         }
-        c.pushBefore('CSProtoWorldEventInfo', { infos: [wire(event)] })
+        syncEvent(c, row, event)
         return { rewards }
     })
     on('MonsterSceneChange', (c, r) => {
