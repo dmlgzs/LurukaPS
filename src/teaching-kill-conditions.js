@@ -34,11 +34,20 @@ function validProof(state, row, rule) {
         run = state.storyCampaign
     return p?.instance === run.instance_id && p.map === run.map_id && p.source === rule.sourceSha256 ? p : null
 }
-export function teachingKillReady(tables, state, objectId) {
+export function teachingKillReady(tables, state, objectId, now) {
     const target = targets(tables, state).find((t) => t.row.id === objectId)
-    return target && validProof(state, target.row, target.rule)?.step === target.rule.steps.length ? target : null
+    if (!target) return null
+    const proof = validProof(state, target.row, target.rule),
+        delay = target.rule.completionDelaySeconds ?? 0
+    return proof?.step === target.rule.steps.length &&
+        (!delay ||
+            (Number.isSafeInteger(proof.completed_at) &&
+                Number.isSafeInteger(now) &&
+                now >= proof.completed_at + delay))
+        ? target
+        : null
 }
-export function teachingSceneKillReady(tables, state) {
+export function teachingSceneKillReady(tables, state, now) {
     const run = state.storyCampaign
     if (!run?.teaching_id) return false
     const rows = tables
@@ -60,7 +69,7 @@ export function teachingSceneKillReady(tables, state) {
                     const e = state.combat?.entities[((3n << 56n) | (BigInt(slot) << 32n) | BigInt(row.id)).toString()]
                     return e?.hp === 0 && e.alive_state === 1 && !e.captured && e.pack_id === Number(pack)
                 }) ||
-                    !!teachingKillReady(tables, state, row.id))
+                    !!teachingKillReady(tables, state, row.id, now))
             )
         })
     )
@@ -95,6 +104,7 @@ function observe(c, actor, event, key) {
                 source: rule.sourceSha256,
                 step: step + 1,
                 receipts: [...(prior?.receipts ?? []), key],
+                ...(rule.completionDelaySeconds && step + 1 === rule.steps.length ? { completed_at: c.now } : {}),
             },
         }
     }

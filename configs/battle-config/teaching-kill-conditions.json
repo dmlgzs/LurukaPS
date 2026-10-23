@@ -86,6 +86,56 @@
         }
       ],
       "sourceLoopCount": 2
+    },
+    {
+      "battleFsmType": 1010071,
+      "sourceGraph": "ast_fsm_battle_teach_1010071",
+      "sourceSha256": "edf2a8541c1d7ded686dec3805132f649794261986a6680f3e7a66330ffa0bcd",
+      "fsmNode": "2",
+      "steps": [
+        {
+          "kind": "skill",
+          "id": 10100704,
+          "index": 0
+        },
+        {
+          "kind": "skill",
+          "id": 10100705,
+          "index": 0
+        },
+        {
+          "kind": "skill",
+          "id": 10100712,
+          "index": 1
+        }
+      ],
+      "completionDelaySeconds": 2,
+      "sourceShape": "linear-skill-v1"
+    },
+    {
+      "battleFsmType": 1070031,
+      "sourceGraph": "ast_fsm_battle_teach_1070031",
+      "sourceSha256": "6b06cf7c2fa56a756ce06a42a152c724bbf995f09930f4503e98beb3f542f553",
+      "fsmNode": "3",
+      "steps": [
+        {
+          "kind": "skill",
+          "id": 10700310,
+          "index": 0
+        },
+        {
+          "kind": "skill",
+          "id": 10700310,
+          "index": 1
+        },
+        {
+          "kind": "skill",
+          "id": 10700310,
+          "index": 2
+        }
+      ],
+      "completionDelaySeconds": 3,
+      "sourceShape": "linear-skill-v1"
     }
   ],
   "unsupported": [
@@ -101,13 +151,11 @@
     1010031,
     1010041,
     1010061,
-    1010071,
     1010081,
     1010141,
     1030021,
     1070011,
     1070021,
-    1070031,
     1080011,
     1080021,
     1080031,
@@ -122,5 +170,5 @@
     1990031,
     1990081
   ],
-  "todo": "Compile other teaching FSM control-flow forms before accepting their client-condition kills. This schema validates network-observable triggers; UI guide completion is client-local."
+  "todo": "Compile other teaching FSM control-flow forms before accepting their client-condition kills. This schema validates network-observable triggers; UI guide completion is client-local. Additional linear-skill-v1 rules retain a trailing literal wait as server-clock completionDelaySeconds and reject intermediate timers, branches, loops, parallel waits, skill-slot-only triggers and unknown prerequisites; UI-only actions remain local."
 }

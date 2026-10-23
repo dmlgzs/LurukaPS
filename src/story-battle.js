@@ -93,7 +93,7 @@ export function registerStoryBattle(on, tables) {
                 existing.pack_id === def.pack_id
             )
                 continue
-            const teaching = teachingKillReady(tables, c.state, def.object_id)
+            const teaching = teachingKillReady(tables, c.state, def.object_id, c.now)
             const target =
                     activeStoryGroup(tables, c.state, def, world, graphs) ??
                     (teaching ? { group: teaching.group } : null),

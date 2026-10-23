@@ -302,7 +302,7 @@ export function endStoryCampaignScene(c, r) {
         if (
             run.teaching_id &&
             !storySceneDefeated(c.tables, c.state) &&
-            teachingSceneKillReady(c.tables, c.state)
+            teachingSceneKillReady(c.tables, c.state, c.now)
         ) {
             // The teaching challenge can report success before its FSM's
             // delayed StoryKillReq. ACK this verified intent, but do not grant
