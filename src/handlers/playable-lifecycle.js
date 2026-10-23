@@ -1,3 +1,4 @@
+import { prepareCampaignPlayableStart, bindCampaignPlayableStart, requireCampaignPlayableRun, acceptCampaignPlayableFinish, playableWire } from '../campaign-playable-ledger.js'
 import { ErrorCode } from '../error-codes.js'
 import fs from 'node:fs'
 import { ensure, syncPlayer } from './common.js'
@@ -24,17 +25,7 @@ export function playableSnapshot(state) {
     return {
         plays: Object.values(state.playableRuns ?? {})
             .filter((r) => r.map_id === state.world.map_id && r.status !== 3)
-            .map(
-                ({
-                    map_id,
-                    selected_step,
-                    selected_pet_group,
-                    selected_pet_guid,
-                    rewarded_steps,
-                    prior_reward_info,
-                    ...r
-                }) => r,
-            ),
+            .map(playableWire),
         finish_plays: finish.map((r) => r.play_id),
         finish: finish.map(({ play_id, score, reward_info }) => ({ play_id, score, reward_info })),
         step_flags: Object.entries(state.playableStageClaims ?? {})
@@ -196,6 +187,7 @@ export function registerPlayableLifecycle(on, tables) {
                     runs[row.parentID]?.status !== 3),
             'Playable is not in current map',
         )
+        const campaign = prepareCampaignPlayableStart(c.state, row.id)
         const previous = runs[row.id]
         const finished = c.state.playableFinishes?.[row.id]
         if (previous?.map_id === c.state.world.map_id && previous.status !== 3) return {}
@@ -231,6 +223,7 @@ export function registerPlayableLifecycle(on, tables) {
             prior_reward_info:
                 c.state.playableScoreClaims?.[row.id] ?? finished?.reward_info ?? previous?.prior_reward_info ?? 0,
         }
+        bindCampaignPlayableStart(c.state, runs[row.id], campaign)
         sync(c, finished ? { del_finish_plays: [row.id] } : {})
         return {}
     })
