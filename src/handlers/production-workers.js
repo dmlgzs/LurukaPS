@@ -51,16 +51,26 @@ export function registerProductionWorkers(on, tables) {
                 'Pet lacks required production ability',
                 ErrorCode.PetLaborNotMatch,
             )
+            let size =
+                build.build_type === 12
+                    ? tables.find('pet_home_talent', chosen.config_id)?.sizeType
+                    : tables.find('pet', chosen.config_id)?.bodyType
+            if (build.build_type === 8) {
+                // The current accessory station opens PageStation, whose filter
+                // reads pet_home_talent.sizeType, not the combat model bodyType.
+                const talent = tables.find('pet_home_talent', chosen.config_id)
+                ensure(talent, 'Pet home configuration is missing', ErrorCode.PetHomeConfNotExist)
+                size = talent.sizeType
+                ensure(
+                    Number.isSafeInteger(size) && tables.get('pet_home_size').some((row) => row.sizeType === size),
+                    'Pet home size configuration is malformed',
+                    ErrorCode.GameConfig,
+                )
+            }
             ensure(
-                String(station.petSize)
-                    .split('|')
-                    .map(Number)
-                    .includes(
-                        build.build_type === 12
-                            ? tables.find('pet_home_talent', chosen.config_id)?.sizeType
-                            : tables.find('pet', chosen.config_id)?.bodyType,
-                    ),
+                String(station.petSize).split('|').map(Number).includes(size),
                 'Pet size is not supported by this station',
+                ErrorCode.InvalidArgument,
             )
             ensure(!chosen.work_status || [1, 2, 5, 6, 7].includes(chosen.work_status), 'Pet is working elsewhere')
             ensure(!r.source_build || chosen.work_build === r.source_build, 'Pet source building does not match')
