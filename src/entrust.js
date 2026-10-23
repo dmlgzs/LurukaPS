@@ -1,3 +1,4 @@
+import { repeatDungeon, repeatEventTables, recordRepeatVictory } from './repeat-event.js'
 import { ErrorCode } from './error-codes.js'
 import { recordActiveDungeonFinish } from './daily-active.js'
 import { visibleEnemySlots } from './enemy-group-visibility.js'
@@ -25,20 +26,22 @@ export class EntrustCatalog {
 
     get(id) {
         ensure(Number.isInteger(id) && id > 0, 'Invalid entrust ID')
+        const repeat = repeatDungeon(this.tables, id)
+        const source = repeat ? repeatEventTables(this.tables) : this.tables
         const commission = this.tables.find('dungeon_entrust', id),
             material = commission ? null : this.tables.find('dungeon_material', id),
-            entrust = commission ?? (material && { ...material, groupId: material.type, taskUnlock: material.unlock })
+            entrust = commission ?? (material && { ...material, groupId: material.type, taskUnlock: material.unlock }) ?? (repeat && {id, dungeonId: id, groupId: 0, taskUnlock: repeat.dungeon.unlockCondition})
         ensure(entrust, 'Unknown entrust', ErrorCode.EntrustConfigNone)
-        const dungeon = this.tables.find('dungeon', entrust.dungeonId)
+        const dungeon = source.find('dungeon', entrust.dungeonId)
         ensure(dungeon, 'Entrust dungeon configuration unavailable', ErrorCode.DungeonConfNotExist)
         if (!this.scenes.has(id)) {
             // The box filter is the explicit dungeon-to-scene relationship.
             // Numbered [test] city labels do NOT correspond to entrust IDs.
-            const chest = this.tables
+            const chest = source
                 .get('stamina_chest_drop')
                 .find((row) => row.worldFilter === `${material ? 4 : 1}|${dungeon.id}`)
-            const city = chest && this.tables.find('world_city', chest.worldmapcityid)
-            const scene = city && this.tables.find('dungeon_scene', city.id)
+            const city = chest && source.find('world_city', chest.worldmapcityid)
+            const scene = city && source.find('dungeon_scene', city.id)
             const point =
                 city && this.tables.get('world_borthpos').find((row) => row.cityId === city.id && row.mainPoint === 1)
             // The scene table can override the dungeon row's generic victory
@@ -50,18 +53,19 @@ export class EntrustCatalog {
             )
             this.scenes.set(id, { city, scene, point, chest })
         }
-        return { entrust, dungeon, material, ...this.scenes.get(id) }
+        return { entrust, dungeon, material, repeat, ...this.scenes.get(id) }
     }
 
     victoryObjects(id) {
-        const { scene } = this.get(id)
+        const { scene, repeat } = this.get(id)
+        const source = repeat ? repeatEventTables(this.tables) : this.tables
         const [kind, spawner, , , count, ...extra] = String(scene.victoryCondition).split('#').map(Number)
         ensure(
             kind === 2500 && spawner > 0 && count > 0 && !extra.length,
             'Unsupported entrust victory condition',
             ErrorCode.GameConfig,
         )
-        const rows = this.tables.get(`worldmap_${scene.id}`).filter((row) => row.spawnerId === spawner)
+        const rows = source.get(`worldmap_${scene.id}`).filter((row) => row.spawnerId === spawner)
         ensure(rows.length === count, 'Entrust victory objects do not match configuration', ErrorCode.GameConfig)
         return rows.map((row) => {
             const group = this.tables.find('world_enemy_group', row.expandId)
@@ -75,8 +79,9 @@ export class EntrustCatalog {
 
     stages(id) {
         if (!this.stageCache.has(id)) {
-            const { scene } = this.get(id)
-            const rows = this.tables
+            const { scene, repeat } = this.get(id)
+            const source = repeat ? repeatEventTables(this.tables) : this.tables
+            const rows = source
                 .get(`worldmap_${scene.id}`)
                 .flatMap((row) => {
                     const token = String(row.expandParams ?? '')
@@ -108,8 +113,9 @@ export class EntrustCatalog {
     }
 
     chest(id) {
-        const { dungeon, material } = this.get(id)
-        const row = this.tables.get('stamina_chest_drop').find((entry) => {
+        const { dungeon, material, repeat } = this.get(id)
+        const source = repeat ? repeatEventTables(this.tables) : this.tables
+        const row = source.get('stamina_chest_drop').find((entry) => {
             const [type, target] = String(entry.worldFilter).split('|').map(Number)
             return type === (material ? 4 : 1) && target === dungeon.id
         })
@@ -162,6 +168,10 @@ export function settleEntrustVictory(tables, state, now) {
             ),
         )
         run.damage_recovered_from_hp = true
+    }
+    if (run.kind === 'repeat') {
+        recordRepeatVictory(tables, state, run)
+        return true
     }
     if (run.kind === 'material') {
         recordMaterialVictory(tables, state, run, mask)

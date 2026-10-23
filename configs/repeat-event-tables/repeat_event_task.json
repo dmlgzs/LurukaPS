@@ -1,0 +1,35 @@
+[
+  {
+    "id": 1,
+    "group": 101,
+    "sort": 1,
+    "taskReward": "10#10#10|3#402000#3",
+    "taskRewardDisplay": "10#10#10|3#402000#3",
+    "desc": "4294968832",
+    "param": 50,
+    "systemJump": 0,
+    "finishCondition": "11006#50"
+  },
+  {
+    "id": 2,
+    "group": 101,
+    "sort": 2,
+    "taskReward": "10#10#10|3#402000#3",
+    "taskRewardDisplay": "10#10#10|3#402000#3",
+    "desc": "8589936128",
+    "param": 100,
+    "systemJump": 0,
+    "finishCondition": "11006#100"
+  },
+  {
+    "id": 3,
+    "group": 101,
+    "sort": 3,
+    "taskReward": "10#10#10|3#402000#3",
+    "taskRewardDisplay": "10#10#10|3#402000#3",
+    "desc": "12884903424",
+    "param": 1,
+    "systemJump": 0,
+    "finishCondition": "12017#305#3974#1"
+  }
+]

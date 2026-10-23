@@ -78,6 +78,8 @@ import {
 } from './daily-active.js'
 import { announcementSnapshot } from './announcements.js'
 import { optimizeSyncPackets } from './sync-delta.js'
+import { registerRepeatEvent } from './handlers/repeat-event.js'
+import { repeatSnapshot } from './repeat-event.js'
 import { registerPetCatch } from './handlers/pet-catch.js'
 import { refundPendingCatchCards } from './handlers/pet-catch.js'
 import { repairCharacterCreationMarker } from './character-creation.js'
@@ -443,6 +445,7 @@ export class Game {
         on('WorldBossChestGetReq', claimBossFirstChest)
         registerDailyActive(on)
         registerPetCatch(on)
+        registerRepeatEvent(on)
         registerPetEvolution(on)
         registerPetCosmetics(on)
         registerPlayableLifecycle(on, tables)
@@ -1725,6 +1728,7 @@ export class Game {
             this.packet('CSProtoRideMountInfo', mountPayload(this.tables, state)),
             this.packet('CSProtoTeachInfoSync', { u32s: state.teachingRecords ?? [] }),
             this.packet('CSProtoEntrustInfoSync', entrustInfoSnapshot(state)),
+            this.packet('CSProtoRepeatEventSync', repeatSnapshot(state)),
             this.packet('SCProtoDungeonMaterialInfoSync', materialDungeonSnapshot(state)),
             this.packet('CSProtoEntrustStarRewardSync', entrustStarRewardSnapshot(state)),
             ...(state.entrust?.run?.map_id === state.world.map_id

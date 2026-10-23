@@ -1,3 +1,4 @@
+import { repeatSnapshot } from '../repeat-event.js'
 import { ErrorCode } from '../error-codes.js'
 import { rewardSource } from '../reward-source.js'
 import { materialDungeonSnapshot, materialDungeonUnlocked } from '../material-dungeons.js'
@@ -45,6 +46,7 @@ function unlocked(rule, state) {
 function claimEntrustChest(c, times = 1) {
     ensure(Number.isSafeInteger(times) && times > 0 && times <= 0xffffffff, 'Invalid entrust claim multiplier')
     const run = c.state.entrust?.run
+    ensure(run?.kind !== 'repeat', 'Repeat event chest settlement is not implemented', ErrorCode.FunctionClosed)
     ensure(run?.battle_complete && run.map_id === c.state.world.map_id, 'Entrust battle is not finished')
     if (run.chest_claimed) return []
     const catalog = getEntrustCatalog(c.tables),
@@ -263,6 +265,7 @@ export function syncEntrust(c, run) {
     c.pushBefore('SCProtoMultiCampaignPlayerDmgInfoSync', entrustDamageSnapshot(c.state, c.id))
     if (run.battle_complete) {
         if (run.kind === 'material') c.pushBefore('SCProtoDungeonMaterialInfoSync', materialDungeonSnapshot(c.state))
+        else if (run.kind === 'repeat') c.pushBefore('CSProtoRepeatEventSync', repeatSnapshot(c.state))
         else c.pushBefore('CSProtoEntrustInfoSync', entrustInfoSnapshot(c.state))
         c.pushBefore('CSProtoStaminaBoxSync', entrustChestSnapshot(c.tables, c.state))
     }
@@ -293,7 +296,7 @@ export function startEntrust(c, id, restart = false, kind = 'entrust') {
         catalog = getEntrustCatalog(tables)
     const config = catalog.get(id),
         active = c.state.entrust?.run
-    ensure((kind === 'material') === !!config.material, 'Dungeon entry type does not match configuration')
+    ensure((kind === 'material') === !!config.material && (kind === 'repeat') === !!config.repeat, 'Dungeon entry type does not match configuration')
     ensure(
         kind === 'material'
             ? materialDungeonUnlocked(config.entrust.taskUnlock, c.state)
@@ -313,7 +316,7 @@ export function startEntrust(c, id, restart = false, kind = 'entrust') {
         // resumes an existing run; historical stars never restore a box.
         if (entrust.records[id]) delete entrust.records[id].pending_chest
         const run = {
-            ...(kind === 'material' ? { kind: 'material' } : {}),
+            ...(kind !== 'entrust' ? { kind } : {}),
             entrust_id: id,
             dungeon_id: config.dungeon.id,
             map_id: config.scene.id,
