@@ -25,7 +25,10 @@ test('11451 materializes the actual first abyss scene and isolated FO30/31 snaps
             before.player.group_mgrs.find((x) => x.type === 1),
         )
         assert(
-            packets.findIndex((x) => x.id === 11460) < packets.findIndex((x) => x.id === 9103),
+            packets.findIndex((x) => x.id === 11460) <
+                packets.findIndex(
+                    (x) => x.id === 9103 && f.p.decode(f.p.byName.get('CSProtoWorldMapSync').rsp, x.payload).cmd === 256,
+                ),
             'Copy data precedes scene/group activation',
         )
         assert.equal(f.decode(packets, 'SCProtoAbyssDungeonInfoSync').dungeon_id, 34760)

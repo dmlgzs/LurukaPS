@@ -61,7 +61,12 @@ test('11458 requires actual room victory, loads the table-defined next scene/tea
             second.challenges[1].control,
         )
         assert.notEqual(second.challenges[0].control, second.challenges[1].control)
-        assert(packets.findIndex((x) => x.id === 11460) < packets.findIndex((x) => x.id === 9103))
+        assert(
+            packets.findIndex((x) => x.id === 11460) <
+                packets.findIndex(
+                    (x) => x.id === 9103 && f.p.decode(f.p.byName.get('CSProtoWorldMapSync').rsp, x.payload).cmd === 256,
+                ),
+        )
         assert.equal(f.state().combat.map_id, second.map_id)
         assert(Object.values(f.state().combat.entities).every((x) => x.hp === x.max_hp && x.hp > 0))
         const before = f.state().abyssRun

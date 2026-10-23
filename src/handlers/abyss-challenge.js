@@ -10,11 +10,14 @@ import { startAbyssBattle, advanceAbyssCombat } from '../abyss-battle.js'
 import { nextAbyssRoom, clearAbyssRuntime, retryAbyssRoom } from '../abyss-flow.js'
 import { abyssModeRecord } from '../abyss-run.js'
 import { finishAbyssIntro, publishAbyssIntro } from '../abyss-intro.js'
-import { publishAbyssMonsterBuffs } from '../abyss-buffs.js'
+import { publishAbyssMonsterBuffs, publishAbyssHeroMapElements } from '../abyss-buffs.js'
 
 export function publishAbyssEntry(c) {
     const run = c.state.abyssRun,
         tables = abyssTables(c.tables)
+    // Prime map elements before group7 can create a new half's heroes. The
+    // standard cmd47 map delta does not enter a scene or replace its objects.
+    publishAbyssHeroMapElements({ ...c, push: c.pushBefore })
     installAbyssFormation(c.state)
     ensureAbyssScene(c.tables, c.state, c.now)
     // The copy records must precede formation activation. FO30/31 identities

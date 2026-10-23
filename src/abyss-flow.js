@@ -5,6 +5,7 @@ import { ensure } from './handlers/common.js'
 import { heroBattleLimits, syncBattle } from './battle.js'
 import { retireTrialActors } from './trial-actors.js'
 import { abyssModeRecord } from './abyss-run.js'
+import { publishAbyssHeroMapElements } from './abyss-buffs.js'
 export function nextAbyssRoom(c) {
     const run = requireAbyssRun(c)
     if (run.phase === 'ready' && run.last_transition === 'next') return run
@@ -90,6 +91,9 @@ export function clearAbyssRuntime(c) {
         run = s.abyssRun
     if (!run) return false
     saveAbyssCheckpoint(s)
+    // Clear the map cache before restoring the ordinary formation; sending an
+    // empty all array would leave the previous client list intact.
+    publishAbyssHeroMapElements(c, true)
     const copies = new Set(run.heroes.map((x) => x.guid)),
         restored = run.previous_manager ?? { type: 7, cur_group: 0, src: 0, groups: [] },
         maps = new Set(run.rooms.map((x) => x.map_id))

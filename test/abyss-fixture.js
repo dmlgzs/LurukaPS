@@ -19,7 +19,14 @@ export function abyssFixture(name = 'abyss-challenge', file = ':memory:', resume
     }
     const decode = (packets, name) => {
         const e = p.byName.get(name)
-        return p.decode(e.rsp, packets.find((x) => x.id === e.id).payload)
+        const matches = packets.filter((x) => x.id === e.id)
+        // A map-element priming delta is separate from actual scene entry.
+        // Existing scene assertions explicitly decode the cmd49/256 payload.
+        const packet =
+            name === 'CSProtoWorldMapSync'
+                ? matches.find((x) => [49, 256].includes(p.decode(e.rsp, x.payload).cmd)) ?? matches[0]
+                : matches[0]
+        return p.decode(e.rsp, packet.payload)
     }
     const login = call('EnterGame', { open_id: name })
     if (!resume)

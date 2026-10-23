@@ -1,6 +1,7 @@
 import { ErrorCode } from '../error-codes.js'
 import { checkpointSnapshot } from '../world-checkpoints.js'
 import { clearAbyssRuntime } from '../abyss-flow.js'
+import { abyssHeroMapElements } from '../abyss-buffs.js'
 import { registerExplorationRewards } from './exploration-rewards.js'
 import { recordNpcArenaMovement } from '../npc-kibo-battle.js'
 import { expireArenaTrialTrainer } from '../npc-kibo-trainer.js'
@@ -217,6 +218,7 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
             map_id: w.map_id,
             exist: true,
             area_id: w.area_id,
+            ...(s.abyssRun?.map_id === w.map_id ? { map_ele: abyssHeroMapElements(c.tables, s.abyssRun) } : {}),
             ...(r.campaign_start ? { campaign_start: r.campaign_start } : {}),
             objs: Object.entries(s.worldObjects ?? {})
                 .filter(([key]) => key.startsWith(w.map_id + ':'))
