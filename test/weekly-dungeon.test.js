@@ -87,6 +87,65 @@ function fixture(name, store = new Store(':memory:')) {
         now: () => now,
     }
 }
+
+test('11850 weekly retries preserve quota, rewards and records while replaying the initial story and fresh boss', () => {
+    for (const claimed of [true, false]) {
+        const f = fixture('weekly-restart-' + claimed)
+        try {
+            f.edit((s) => {
+                s.player.attr_infos.attrs.find((row) => row.attr_id === 104).attr_val = claimed ? '1' : '0'
+            })
+            const origin = structuredClone(f.state().world),
+                { plan } = f.start()
+            f.call('PlayerStoryStop', { story_id: plan.story_id, op: 1 })
+            f.tick(3)
+            const count = Object.values(f.state().combat.entities).filter((enemy) => enemy.hp > 0).length
+            for (let i = 0; i < count; i++) f.kill()
+            assert.equal(f.run().battle_complete, true)
+            const chest = getEntrustCatalog(tables).chest(101, 'weekly')
+            if (claimed) f.call('StaminaBoxGet', { box_id: chest.id, times: 1 })
+            const saved = f.state(),
+                old = saved.entrust.run
+            f.tick(5)
+            const packets = f.call('MultiCampaignRestart'),
+                current = f.state()
+            assert(packets.some((packet) => packet.id === 11850))
+            assert.equal(f.run().instance_id, old.instance_id + 1)
+            assert.equal(f.run().stage_index, 1)
+            assert.equal(f.run().battle_complete, undefined)
+            assert.equal(f.run().battle_start_time, undefined)
+            assert.equal(f.run().chest_claimed, undefined)
+            assert.deepEqual(f.run().return_world, old.return_world)
+            assert.deepEqual(current.weeklyDungeonRecords, saved.weeklyDungeonRecords)
+            assert.deepEqual(current.weeklyDungeonQuota, saved.weeklyDungeonQuota)
+            assert.equal(current.player.attr_infos.attrs.find((row) => row.attr_id === 104).attr_val, '0')
+            assert.deepEqual(current.player.sbag_infos, saved.player.sbag_infos)
+            assert.deepEqual(current.player.attr_infos, saved.player.attr_infos)
+            const instance = f.run().instance_id
+            f.login()
+            const again = f.call('MultiCampaignRestart')
+            assert.equal(f.run().instance_id, instance)
+            assert(!again.some((packet) => packet.id === 9103))
+            f.call('MultiCampaignPlayerLoadFinish')
+            const nextPlan = materialStoryPlan(tables, f.run())
+            f.edit((s) => {
+                s.world.pos = { ...nextPlan.pos }
+            })
+            const intro = f.interact(nextPlan.marker_id)
+            assert(intro.some((packet) => packet.id === 11270))
+            assert.equal(f.run().battle_start_time, undefined)
+            f.call('PlayerStoryStop', { story_id: nextPlan.story_id, op: 1 })
+            const enemies = Object.values(f.state().combat.entities).filter((enemy) => enemy.hp > 0)
+            assert(enemies.length > 0 && enemies.every((enemy) => enemy.hp === enemy.max_hp))
+            assert.equal(f.state().weeklyDungeonRecords[101].success_count, 1)
+            f.call('CampaignQuit')
+            assert.equal(f.state().world.map_id, origin.map_id)
+            assert.deepEqual(f.state().world.pos, origin.pos)
+        } finally {
+            f.store.close()
+        }
+    }
+})
 test('weekly typed catalog resolves all12 configurations without colliding with commission IDs', () => {
     const c = getEntrustCatalog(tables)
     for (const row of tables.get('dungeon_weekly')) {

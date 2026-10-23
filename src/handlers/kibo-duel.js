@@ -28,7 +28,7 @@ import { petData, petGrade } from '../pets.js'
 import { ensureEntrustSceneObjects } from '../entrust.js'
 import { storyCampaignSnapshot } from '../story-campaign.js'
 import { syncStoryCampaignEnemies } from './story-campaign.js'
-import { exitEntrust, syncEntrust, startMaterialDungeon } from './entrust.js'
+import { exitEntrust, syncEntrust, startMaterialDungeon, restartMaterialDungeon } from './entrust.js'
 
 const ids = (text) =>
     String(text ?? '')
@@ -454,7 +454,12 @@ export function registerKiboDuel(on, tables, protocol) {
     const restart = (c) => {
         const run = c.state.combat?.npcDuel,
             campaign = c.state.multiCampaign
-        ensure(run && campaign, 'No active NPC arena')
+        ensure(run && campaign, 'No active NPC arena', ErrorCode.NotInMultiCampaign)
+        ensure(
+            run.map_id === c.state.world.map_id && campaign.map_id === c.state.world.map_id,
+            'NPC arena restart scene is not active',
+            ErrorCode.NotInDungeonMap,
+        )
         if (campaign.arena_status === 2 && run.restart_of !== undefined) return
         ensure(run.result && tables.find('kibo_duel', run.duel_id)?.isRechallenge, 'NPC arena cannot restart yet')
         retireNpcArenaActors(c.state)
@@ -472,6 +477,7 @@ export function registerKiboDuel(on, tables, protocol) {
         c.state.combat.npcDuel = { ...c.state.combat.npcDuel, entities_sent: true, restart_of: run.generation }
     }
     on('MultiCampaignRestart', (c) => {
+        if (['material', 'weekly'].includes(c.state.entrust?.run?.kind)) return restartMaterialDungeon(c)
         restart(c)
         return {}
     })

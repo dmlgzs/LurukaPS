@@ -419,6 +419,49 @@ export function startMaterialDungeon(c, r) {
     return startEntrust(c, (weekly[0] ?? material[0]).id, false, weekly.length ? 'weekly' : 'material')
 }
 
+export function restartMaterialDungeon(c) {
+    const run = c.state.entrust?.run
+    ensure(
+        run && ['material', 'weekly'].includes(run.kind),
+        'No active material or weekly dungeon',
+        ErrorCode.NotInMultiCampaign,
+    )
+    const positive = (value) => Number.isSafeInteger(value) && value > 0
+    ensure(
+        [run.entrust_id, run.dungeon_id, run.map_id, c.state.entrust.nextInstanceId].every(positive) &&
+            (run.instance_id === undefined ||
+                (positive(run.instance_id) && c.state.entrust.nextInstanceId > run.instance_id)) &&
+            (run.restart_of === undefined || run.restart_of === null || positive(run.restart_of)),
+        'Invalid saved dungeon restart identity',
+        ErrorCode.GameConfig,
+    )
+    const definition = c.tables.find(run.kind === 'weekly' ? 'dungeon_weekly' : 'dungeon_material', run.entrust_id)
+    ensure(definition, 'Dungeon restart configuration unavailable', ErrorCode.DungeonConfNotExist)
+    const route = getEntrustCatalog(c.tables).get(run.entrust_id, run.kind)
+    ensure(
+        (run.kind === 'weekly' ? route.weekly : route.material) &&
+            definition.dungeonId === run.dungeon_id &&
+            route.dungeon.id === run.dungeon_id &&
+            route.scene.id === run.map_id,
+        'Saved dungeon restart does not match its configured route',
+        ErrorCode.GameConfig,
+    )
+    ensure(c.state.world.map_id === run.map_id, 'Dungeon restart scene is not active', ErrorCode.NotInDungeonMap)
+    ensure([2, 3].includes(run.status), 'Dungeon restart is no longer active', ErrorCode.DungeonNotIn)
+    // A second click/retry while the freshly created encounter is still at
+    // its initial marker must not allocate another instance or cut the map.
+    if (run.restart_of !== undefined && run.status === 2 && !run.battle_start_time) return {}
+    ensure(
+        c.state.entrust.nextInstanceId < Number.MAX_SAFE_INTEGER,
+        'Dungeon restart identity exhausted',
+        ErrorCode.GameConfig,
+    )
+    const previous = run.instance_id ?? null
+    startEntrust(c, run.entrust_id, true, run.kind)
+    c.state.entrust.run.restart_of = previous
+    return {}
+}
+
 export function registerEntrust(on, tables) {
     const catalog = getEntrustCatalog(tables)
     const sync = syncEntrust

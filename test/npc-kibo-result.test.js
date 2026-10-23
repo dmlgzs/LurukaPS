@@ -7,6 +7,7 @@ import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { TaskGraphs, makeNode } from '../src/tasks.js'
 import { npcArenaStatistics } from '../src/npc-kibo-statistics.js'
+import { ErrorCode } from '../src/error-codes.js'
 const cfg = configuration(),
     tables = new Tables(cfg.tables),
     p = new Protocol(cfg.base)
@@ -111,6 +112,38 @@ function fixture() {
         close: () => store.close(),
     }
 }
+
+test('11850 NPC retries reject a stale world scene without retiring actors or changing the settlement', () => {
+    const f = fixture()
+    try {
+        f.enter(2001)
+        f.win()
+        const arena = f.state().world.map_id
+        f.store.transact(f.session.id, 0, (s) => {
+            s.world.map_id = 101
+        })
+        const saved = structuredClone(f.state())
+        assert.throws(
+            () => f.call('MultiCampaignRestart'),
+            (error) => error.code === ErrorCode.NotInDungeonMap,
+        )
+        assert.deepEqual(f.state(), saved)
+        f.store.transact(f.session.id, 0, (s) => {
+            s.world.map_id = arena
+        })
+        f.call('MultiCampaignRestart')
+        assert.equal(f.state().combat.npcDuel.generation, saved.combat.npcDuel.generation + 1)
+        f.call('MultiCampaignQuit')
+        const left = structuredClone(f.state())
+        assert.throws(
+            () => f.call('MultiCampaignRestart'),
+            (error) => error.code === ErrorCode.NotInMultiCampaign,
+        )
+        assert.deepEqual(f.state(), left)
+    } finally {
+        f.close()
+    }
+})
 
 test('arena damage/healing/kill statistics sync absolute totals, coalesce live updates, and survive result reconnect', () => {
     const f = fixture()

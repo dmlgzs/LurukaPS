@@ -73,6 +73,196 @@ function fixture(name) {
     }
 }
 
+function finishMaterial(f) {
+    f.call('MultiCampaignCreate', { dungeon_id: 31960, scene_type: 12 })
+    f.call('MultiCampaignPlayerLoadFinish')
+    const catalog = getEntrustCatalog(f.tables),
+        stages = catalog.stages(30101)
+    f.interact(stages[0].row.id)
+    f.tick(3)
+    for (const stage of stages.filter((row) => row.type === 50)) f.kill(stage.row.id)
+    assert.equal(f.state().entrust.run.battle_complete, true)
+    return { stages, chest: catalog.chest(30101) }
+}
+
+test('11850 after a paid material clear rebuilds the marker and live waves without paying or awarding again', () => {
+    const f = fixture('material-restart-paid')
+    try {
+        const origin = structuredClone(f.state().world)
+        const { stages, chest } = finishMaterial(f)
+        f.call('StaminaBoxGet', { box_id: chest.id, times: 1 })
+        const saved = f.state(),
+            old = saved.entrust.run
+        f.tick(10)
+        const packets = f.call('MultiCampaignRestart'),
+            next = f.state()
+        assert(packets.some((packet) => packet.id === 11850))
+        const sync = f.protocol.byName.get('CSProtoWorldMapSync')
+        assert(
+            packets
+                .filter((packet) => packet.id === sync.id)
+                .some((packet) => f.protocol.decode(sync.rsp, packet.payload).cmd === 49),
+        )
+        assert.equal(next.entrust.run.instance_id, old.instance_id + 1)
+        assert.equal(next.entrust.run.restart_of, old.instance_id)
+        assert.equal(next.entrust.run.stage_index, 1)
+        assert.equal(next.entrust.run.status, 2)
+        assert.equal(next.entrust.run.star, 0)
+        assert.equal(next.entrust.run.damage_total, '0')
+        assert.equal(next.entrust.run.battle_complete, undefined)
+        assert.equal(next.entrust.run.battle_start_time, undefined)
+        assert.equal(next.entrust.run.chest_claimed, undefined)
+        assert.deepEqual(next.entrust.run.return_world, old.return_world)
+        assert.deepEqual(next.materialDungeonRecords, saved.materialDungeonRecords)
+        assert.deepEqual(next.player.sbag_infos, saved.player.sbag_infos)
+        assert.deepEqual(next.ornaments, saved.ornaments)
+        assert.equal(next.player.basic_info.gold, saved.player.basic_info.gold)
+        assert.equal(
+            next.player.attr_infos.attrs.find((row) => row.attr_id === 3).attr_val,
+            saved.player.attr_infos.attrs.find((row) => row.attr_id === 3).attr_val,
+        )
+        const duplicate = f.call('MultiCampaignRestart')
+        assert.equal(f.state().entrust.run.instance_id, next.entrust.run.instance_id)
+        assert(!duplicate.some((packet) => packet.id === sync.id))
+        f.call('MultiCampaignPlayerLoadFinish')
+        f.interact(stages[0].row.id)
+        const enemies = Object.values(f.state().combat.entities).filter((enemy) => enemy.object_id === stages[1].row.id)
+        assert(enemies.length > 0)
+        assert(enemies.every((enemy) => enemy.hp === enemy.max_hp && enemy.hp > 0))
+        assert.equal(f.state().materialDungeonRecords[30101].success_count, 1)
+        f.call('MultiCampaignQuit')
+        assert.equal(f.state().world.map_id, origin.map_id)
+        assert.deepEqual(f.state().world.pos, origin.pos)
+    } finally {
+        f.store.close()
+    }
+})
+
+test('11850 can abandon an unclaimed box, while a late scene-codec failure preserves the old complete run', () => {
+    const f = fixture('material-restart-unclaimed')
+    try {
+        const { chest } = finishMaterial(f)
+        const saved = structuredClone(f.state()),
+            packet = f.game.packet
+        try {
+            f.game.packet = function (name, ...args) {
+                if (name === 'CSProtoWorldMapSync') throw Error('injected restart scene codec')
+                return packet.call(this, name, ...args)
+            }
+            assert.throws(() => f.call('MultiCampaignRestart'), /injected restart scene codec/)
+            assert.deepEqual(f.state(), saved)
+        } finally {
+            f.game.packet = packet
+        }
+        f.call('MultiCampaignRestart')
+        const next = f.state()
+        assert.equal(next.entrust.run.instance_id, saved.entrust.run.instance_id + 1)
+        assert.equal(next.entrust.run.battle_complete, undefined)
+        assert.deepEqual(next.player.sbag_infos, saved.player.sbag_infos)
+        assert.deepEqual(next.player.attr_infos, saved.player.attr_infos)
+        assert.deepEqual(next.materialDungeonRecords, saved.materialDungeonRecords)
+        assert.throws(() => f.call('StaminaBoxGet', { box_id: chest.id, times: 1 }))
+        assert.deepEqual(f.state(), next)
+    } finally {
+        f.store.close()
+    }
+})
+
+test('11850 retries of the last allocatable instance remain idempotent after the identity counter is exhausted', () => {
+    const f = fixture('material-restart-last-identity')
+    try {
+        f.call('MultiCampaignCreate', { dungeon_id: 31960, scene_type: 12 })
+        f.store.transact(f.session.id, 0, (s) => {
+            s.entrust.nextInstanceId = Number.MAX_SAFE_INTEGER - 1
+        })
+        f.call('MultiCampaignRestart')
+        assert.equal(f.state().entrust.run.instance_id, Number.MAX_SAFE_INTEGER - 1)
+        assert.equal(f.state().entrust.nextInstanceId, Number.MAX_SAFE_INTEGER)
+        const saved = structuredClone(f.state())
+        const again = f.call('MultiCampaignRestart')
+        assert(!again.some((packet) => packet.id === 9103))
+        assert.deepEqual(f.state(), saved)
+        f.call('MultiCampaignPlayerLoadFinish')
+        f.interact(getEntrustCatalog(f.tables).stages(30101)[0].row.id)
+        const active = structuredClone(f.state())
+        assert.throws(
+            () => f.call('MultiCampaignRestart'),
+            (error) => error.code === ErrorCode.GameConfig,
+        )
+        assert.deepEqual(f.state(), active)
+    } finally {
+        f.store.close()
+    }
+})
+
+test('11850 rejects missing, wrong-map, corrupt and unconfigured dungeon contexts atomically with named errors', () => {
+    const f = fixture('material-restart-invalid')
+    try {
+        let saved = structuredClone(f.state())
+        assert.throws(
+            () => f.call('MultiCampaignRestart'),
+            (error) => error.code === ErrorCode.NotInMultiCampaign,
+        )
+        assert.deepEqual(f.state(), saved)
+        f.call('MultiCampaignCreate', { dungeon_id: 31960, scene_type: 12 })
+        const initial = structuredClone(f.state())
+        for (const [mutate, code] of [
+            [
+                (s) => {
+                    s.world.map_id = 101
+                },
+                ErrorCode.NotInDungeonMap,
+            ],
+            [
+                (s) => {
+                    s.entrust.run.dungeon_id = 1
+                },
+                ErrorCode.GameConfig,
+            ],
+            [
+                (s) => {
+                    s.entrust.nextInstanceId = Number.MAX_SAFE_INTEGER
+                },
+                ErrorCode.GameConfig,
+            ],
+            [
+                (s) => {
+                    s.entrust.run.status = 5
+                },
+                ErrorCode.DungeonNotIn,
+            ],
+        ]) {
+            f.store.transact(f.session.id, 0, (s) => {
+                Object.assign(s, structuredClone(initial))
+                mutate(s)
+            })
+            saved = structuredClone(f.state())
+            assert.throws(
+                () => f.call('MultiCampaignRestart'),
+                (error) => error.code === code,
+            )
+            assert.deepEqual(f.state(), saved)
+        }
+        f.store.transact(f.session.id, 0, (s) => Object.assign(s, structuredClone(initial)))
+        const find = f.tables.find
+        try {
+            f.tables.find = function (name, id) {
+                return name === 'dungeon_material' && id === 30101 ? undefined : find.call(this, name, id)
+            }
+            saved = structuredClone(f.state())
+            assert.throws(
+                () => f.call('MultiCampaignRestart'),
+                (error) => error.code === ErrorCode.DungeonConfNotExist,
+            )
+            assert.deepEqual(f.state(), saved)
+        } finally {
+            f.tables.find = find
+        }
+    } finally {
+        f.store.close()
+    }
+})
+
 test('material mappings cover all92 current configurations and preserve explicit errors for three missing wave indices', () => {
     const f = fixture('material-catalog'),
         c = getEntrustCatalog(f.tables),
