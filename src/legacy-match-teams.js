@@ -16,6 +16,36 @@ const busy = (state) =>
     !!(state.entrust?.run || state.multiCampaign || state.storyCampaign || state.cultTrial || state.abyssRun)
 const sameTarget = (a, b) =>
     ['dungeon_id', 'scene_type', 'site_id', 'kind', 'config_id'].every((key) => a?.[key] === b?.[key])
+const targetTables = Object.freeze({
+    material: 'dungeon_material',
+    weekly: 'dungeon_weekly',
+    crisis: 'dungeon_crisiscrusade',
+})
+
+function targetDefinition(tables, target) {
+    ensure(target && Object.hasOwn(targetTables, target.kind), 'Unknown saved team target family', ErrorCode.GameConfig)
+    const row = tables.find(targetTables[target.kind], target.config_id)
+    ensure(
+        row?.dungeonId === target.dungeon_id,
+        'Saved team target no longer matches its configuration',
+        ErrorCode.GameConfig,
+    )
+    return row
+}
+function crisisUnlocked(condition, state) {
+    ensure(typeof condition === 'string', 'Crisis unlock configuration unavailable', ErrorCode.GameConfig)
+    ensure(playerId(state.player?.basic_info?.lv), 'Invalid saved crisis player level', ErrorCode.GameConfig)
+    return condition
+        .split('|')
+        .filter(Boolean)
+        .every((token) => {
+            ensure(/^\d+#\d+$/.test(token), 'Invalid crisis unlock configuration', ErrorCode.GameConfig)
+            const [kind, level] = token.split('#').map(Number)
+            ensure(playerId(level), 'Invalid crisis level condition', ErrorCode.GameConfig)
+            ensure(kind === 2004, 'Crisis unlock condition is not implemented', ErrorCode.FunctionClosed)
+            return state.player.basic_info.lv >= level
+        })
+}
 
 export function legacyMatchTarget(c, r) {
     ensure(playerId(r.dungeon_id), 'Invalid team dungeon identity', ErrorCode.ReqParamsError)
@@ -25,12 +55,23 @@ export function legacyMatchTarget(c, r) {
         'This legacy team target family is not implemented',
         ErrorCode.FunctionClosed,
     )
-    const material = c.tables.get('dungeon_material').filter((row) => row.dungeonId === r.dungeon_id)
-    const weekly = c.tables.get('dungeon_weekly').filter((row) => row.dungeonId === r.dungeon_id)
-    ensure(material.length + weekly.length > 0, 'Team dungeon configuration unavailable', ErrorCode.DungeonConfNotExist)
-    ensure(material.length + weekly.length === 1, 'Ambiguous team dungeon configuration', ErrorCode.GameConfig)
-    const definition = weekly[0] ?? material[0],
-        kind = weekly.length ? 'weekly' : 'material'
+    const candidates = Object.entries(targetTables).flatMap(([kind, table]) =>
+        c.tables
+            .get(table)
+            .filter((row) => row.dungeonId === r.dungeon_id)
+            .map((definition) => ({ kind, definition })),
+    )
+    ensure(candidates.length > 0, 'Team dungeon configuration unavailable', ErrorCode.DungeonConfNotExist)
+    ensure(candidates.length === 1, 'Ambiguous team dungeon configuration', ErrorCode.GameConfig)
+    const { kind, definition } = candidates[0]
+    ensure(playerId(definition.id), 'Invalid team target configuration identity', ErrorCode.GameConfig)
+    ensure(c.tables.find('dungeon', r.dungeon_id), 'Team dungeon definition unavailable', ErrorCode.DungeonConfNotExist)
+    if (kind === 'crisis') {
+        // Current legacy UI reads TDDungeonCrisiscrusade, not the similarly
+        // numbered material table. Admit every configured row, not an ID list.
+        ensure(crisisUnlocked(definition.taskUnlock, c.state), 'Crisis dungeon is locked', ErrorCode.EntrustUnlock)
+        return { dungeon_id: r.dungeon_id, scene_type: 12, site_id: 0, kind, config_id: definition.id }
+    }
     const entry = getEntrustCatalog(c.tables).get(definition.id, kind)
     if (kind === 'weekly') requireWeeklySystem(c)
     ensure(
@@ -132,7 +173,7 @@ export class LegacyMatchTeams {
                 playerId(room.target?.dungeon_id) &&
                 room.target.scene_type === 12 &&
                 room.target.site_id === 0 &&
-                ['material', 'weekly'].includes(room.target.kind) &&
+                Object.hasOwn(targetTables, room.target.kind) &&
                 playerId(room.target.config_id),
             'Invalid saved team room',
             ErrorCode.GameConfig,
@@ -146,15 +187,7 @@ export class LegacyMatchTeams {
             'Team membership index disagrees with room',
             ErrorCode.GameConfig,
         )
-        const definition = this.tables.find(
-            room.target.kind === 'weekly' ? 'dungeon_weekly' : 'dungeon_material',
-            room.target.config_id,
-        )
-        ensure(
-            definition?.dungeonId === room.target.dungeon_id,
-            'Saved team target no longer matches its configuration',
-            ErrorCode.GameConfig,
-        )
+        targetDefinition(this.tables, room.target)
         return room
     }
     snapshot(room, ownId, ownState) {
@@ -296,7 +329,7 @@ export class LegacyMatchTeams {
                 target.scene_type === 12 &&
                 target.site_id === 0 &&
                 playerId(target.config_id) &&
-                ['material', 'weekly'].includes(target.kind),
+                Object.hasOwn(targetTables, target.kind),
             'Invalid saved invitation target',
             ErrorCode.GameConfig,
         )
@@ -338,11 +371,8 @@ export class LegacyMatchTeams {
             ensure(sameTarget(target, room.target), 'Team target relation changed', ErrorCode.TeamTargetChanged)
         } catch (error) {
             if (error.code === ErrorCode.EntrustUnlock) {
-                const definition = this.tables.find(
-                    room.target.kind === 'weekly' ? 'dungeon_weekly' : 'dungeon_material',
-                    room.target.config_id,
-                )
-                const condition = String(room.target.kind === 'weekly' ? definition?.taskUnlock : definition?.unlock)
+                const definition = targetDefinition(this.tables, room.target)
+                const condition = String(room.target.kind === 'material' ? definition.unlock : definition.taskUnlock)
                 const levelLocked = condition.split('|').some((token) => {
                     const [kind, level] = token.split('#').map(Number)
                     return kind === 2004 && state.player.basic_info.lv < level
