@@ -22,8 +22,8 @@ function boundStory(c, r) {
         s = run?.materialStory,
         storyId = Number(text)
     ensure(
-        run && s && run.kind === 'material' && run.map_id === c.state.world.map_id,
-        'No active local material story',
+        run && s && ['material', 'weekly'].includes(run.kind) && run.map_id === c.state.world.map_id,
+        'No active local dungeon story',
         ErrorCode.DungeonNotIn,
     )
     ensure(
@@ -41,7 +41,7 @@ function boundStory(c, r) {
     const plan = materialStoryPlan(c.tables, run)
     ensure(
         plan && plan.story_id === storyId && plan.boss_id === s.boss_id,
-        'Material story vote scope changed',
+        'Dungeon story vote scope changed',
         ErrorCode.InvalidLogic,
     )
     if (s.phase !== 'done')
