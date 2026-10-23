@@ -27,6 +27,9 @@ export function prepareCampaignPlayableStart(state, playId) {
     const campaign = campaignPlayableContext(state, playId)
     if (!campaign) return null
     const run = state.playableRuns?.[playId], finish = state.playableFinishes?.[playId]
+    ensure(!run || run.campaign_instance_id !== campaign.instance_id ||
+        (Number.isSafeInteger(run.campaign_attempt_id) && run.campaign_attempt_id > 0),
+        'Campaign playable attempt is damaged; quit and re-enter', ErrorCode.InvalidLogic)
     // A legacy run without an epoch is never upgraded into authenticated success.
     if (run && run.campaign_instance_id !== campaign.instance_id) delete state.playableRuns[playId]
     if (finish && finish.campaign_instance_id !== campaign.instance_id) {
@@ -38,8 +41,10 @@ export function prepareCampaignPlayableStart(state, playId) {
 
 export function bindCampaignPlayableStart(state, run, campaign) {
     if (!campaign) return
-    campaign.next_playable_attempt = (campaign.next_playable_attempt ?? 0) + 1
-    ensure(Number.isSafeInteger(campaign.next_playable_attempt), 'Campaign playable attempt overflow', ErrorCode.GameConfig)
+    const previous = campaign.next_playable_attempt ?? 0
+    ensure(Number.isSafeInteger(previous) && previous >= 0 && previous < Number.MAX_SAFE_INTEGER,
+        'Campaign playable attempt counter is damaged or exhausted', ErrorCode.GameConfig)
+    campaign.next_playable_attempt = previous + 1
     run.campaign_instance_id = campaign.instance_id
     run.campaign_attempt_id = campaign.next_playable_attempt
 }
@@ -75,6 +80,7 @@ export function clearCampaignPlayables(state, campaign) {
     }
     return true
 }
+
 
 export function playableWire(run) {
     const { map_id, selected_step, selected_pet_group, selected_pet_guid, rewarded_steps,

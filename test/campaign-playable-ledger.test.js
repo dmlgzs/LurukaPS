@@ -80,3 +80,23 @@ test('campaign Finish requires a real current Start and completed Step, records 
   assert.throws(()=>f.call('PlayableFinish',{playId:62071}),/another campaign attempt/)
  }finally{f.store.close()}
 })
+test('same-instance Start rejects damaged attempt receipts instead of acknowledging an unrecoverable legacy run',()=>{
+ const f=fixture('campaign-start-damaged')
+ try{
+  for(const attempt of [undefined,0,-1,1.5,Number.MAX_SAFE_INTEGER+1]){
+   f.edit(s=>{s.playableRuns={62071:{play_id:62071,map_id:6226,status:1,finish_step:0,campaign_instance_id:71,campaign_attempt_id:attempt}}})
+   const before=f.state();assert.throws(()=>f.call('PlayableStart',{u32:62071}),/attempt is damaged/);assert.deepEqual(f.state(),before)
+  }
+ }finally{f.store.close()}
+})
+test('campaign Start rejects negative and exhausted attempt seeds atomically and never shrinks permanent claim masks',()=>{
+ const f=fixture('campaign-start-seed')
+ try {
+  for(const value of [-2,-1,1.5,Number.MAX_SAFE_INTEGER,Number.MAX_SAFE_INTEGER+1]){
+   f.edit(s=>{delete s.playableRuns?.[62071];s.storyCampaign.next_playable_attempt=value})
+   const before=f.state();assert.throws(()=>f.call('PlayableStart',{u32:62071}),/counter is damaged or exhausted/);assert.deepEqual(f.state(),before)
+  }
+  f.edit(s=>{s.storyCampaign.next_playable_attempt=1;s.playableScoreClaims={62071:4};s.playableFinishes={62071:{play_id:62071,map_id:6226,reward_info:2,campaign_instance_id:71,campaign_attempt_id:1}}})
+  f.call('PlayableStart',{u32:62071});assert.equal(f.state().playableScoreClaims[62071],6)
+ }finally{f.store.close()}
+})

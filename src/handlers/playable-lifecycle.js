@@ -207,7 +207,9 @@ export function registerPlayableLifecycle(on, tables) {
         if (bag.size) spend(c.state, bag, 0, c.now)
         if (costs.length) syncPlayer({ ...c, push: c.pushBefore })
         if (finished) {
-            ;(c.state.playableScoreClaims ??= {})[row.id] = finished.reward_info ?? 0
+            ;(c.state.playableScoreClaims ??= {})[row.id] = campaign
+                ? Number(BigInt(c.state.playableScoreClaims[row.id] ?? 0) | BigInt(finished.reward_info ?? 0))
+                : finished.reward_info ?? 0
             delete c.state.playableFinishes[row.id]
         }
         // Client simulator keeps children of the newly started parent, replaces other runs.
