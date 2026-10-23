@@ -1,4 +1,5 @@
 import { captureRepeatFormation } from '../repeat-formation.js'
+import { claimRepeatChest, claimRepeatFirstPass } from '../repeat-event-rewards.js'
 import { repeatSnapshot } from '../repeat-event.js'
 import { ErrorCode } from '../error-codes.js'
 import { rewardSource } from '../reward-source.js'
@@ -47,7 +48,13 @@ function unlocked(rule, state) {
 function claimEntrustChest(c, times = 1) {
     ensure(Number.isSafeInteger(times) && times > 0 && times <= 0xffffffff, 'Invalid entrust claim multiplier')
     const run = c.state.entrust?.run
-    ensure(run?.kind !== 'repeat', 'Repeat event chest settlement is not implemented', ErrorCode.FunctionClosed)
+    if (run?.kind === 'repeat') {
+        const result = claimRepeatChest(c, times)
+        c.repeatExtraRewards = result.extra
+        syncPlayer({ ...c, push: c.pushBefore })
+        syncStage(c)
+        return result.rewards
+    }
     ensure(run?.battle_complete && run.map_id === c.state.world.map_id, 'Entrust battle is not finished')
     if (run.chest_claimed) return []
     const catalog = getEntrustCatalog(c.tables),
@@ -219,7 +226,8 @@ export function completeEntrustObject(c, objectId, completing) {
         position === stages.length - 1 && entrustVictoryComplete(context.catalog, c.state, run.entrust_id),
         'Entrust battle is not finished',
     )
-    return claimEntrustChest(c)
+    const rewards = claimEntrustChest(c)
+    return [...rewards, ...(c.repeatExtraRewards ?? [])]
 }
 
 export function advanceEntrustCombat(c) {
@@ -266,7 +274,7 @@ export function syncEntrust(c, run) {
     c.pushBefore('SCProtoMultiCampaignPlayerDmgInfoSync', entrustDamageSnapshot(c.state, c.id))
     if (run.battle_complete) {
         if (run.kind === 'material') c.pushBefore('SCProtoDungeonMaterialInfoSync', materialDungeonSnapshot(c.state))
-        else if (run.kind === 'repeat') c.pushBefore('CSProtoRepeatEventSync', repeatSnapshot(c.state))
+        else if (run.kind === 'repeat') c.pushBefore('CSProtoRepeatEventSync', repeatSnapshot(c.state, c.activityCatalog, c.now))
         else c.pushBefore('CSProtoEntrustInfoSync', entrustInfoSnapshot(c.state))
         c.pushBefore('CSProtoStaminaBoxSync', entrustChestSnapshot(c.tables, c.state))
     }
@@ -276,6 +284,7 @@ export function exitEntrust(c) {
     const entrust = c.state.entrust,
         run = entrust?.run
     ensure(run, 'No active entrust', ErrorCode.EntrustNotInEntrust)
+    claimRepeatFirstPass(c)
     run.status = run.status === 3 ? 5 : 1
     run.end_time ??= c.now
     syncEntrust(c, run)
@@ -421,7 +430,10 @@ export function registerEntrust(on, tables) {
         const entrust = c.state.entrust,
             run = entrust?.run
         ensure(run && [2, 3].includes(run.status), 'No active entrust', ErrorCode.EntrustNotInEntrust)
-        if (run.status === 3) return {}
+        if (run.status === 3) {
+            claimRepeatFirstPass(c)
+            return {}
+        }
         ensure([1, 3, 4].includes(r.result), 'Invalid entrust result')
         if (r.result === 3) {
             ensureEntrustSceneObjects(tables, c.state)
@@ -446,7 +458,7 @@ export function registerEntrust(on, tables) {
         ensureEntrustSceneObjects(tables, c.state)
         return {
             reward: { rewards: claimEntrustChest(c, r.times), src: rewardSource(c.tables, 'staminaChest') },
-            extra_reward: { rewards: [], src: rewardSource(c.tables, 'staminaChest') },
+            extra_reward: { rewards: c.repeatExtraRewards ?? [], src: rewardSource(c.tables, 'staminaChest') },
         }
     })
     on('EntrustStarReward', (c, r) => {

@@ -1,0 +1,5 @@
+{
+    "freeSharePolicy": "one-free-rest-paid",
+    "playerExperiencePolicy": "existing-per-chest-share",
+    "note": "Local compatibility for a custom combined first-box multiplier: one share is free and remaining shares are paid. Native CBT3 initially chooses one; official combined first-free settlement is not captured."
+}

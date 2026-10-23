@@ -38,8 +38,20 @@ export function repeatDungeon(tables, dungeonId) {
     ensure(dungeon, 'Repeat dungeon configuration unavailable', ErrorCode.DungeonConfNotExist)
     return { level, dungeon, tables: current }
 }
-export function repeatSnapshot(state) {
-    return { finished_level_data: Object.values(state.repeatEvent?.levels ?? {}) }
+export function repeatSnapshot(state, calendar, now) {
+    return {
+        finished_level_data: Object.values(state.repeatEvent?.levels ?? {}).map((record) => ({
+            ...record,
+            mode_save_data: record.mode_save_data.map((mode) =>
+                calendar &&
+                now !== undefined &&
+                mode.bonus_reward_fetch_time !== undefined &&
+                calendar.day(mode.bonus_reward_fetch_time) !== calendar.day(now)
+                    ? { ...mode, bonus_reward_daily_count: 0 }
+                    : mode,
+            ),
+        })),
+    }
 }
 export function repeatModeRecord(state, eventId, levelId, mode) {
     return state.repeatEvent?.levels?.[eventId + ':' + levelId]?.mode_save_data?.find((row) => row.mode === mode)

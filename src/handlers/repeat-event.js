@@ -1,6 +1,7 @@
 import { repeatEntryPlan, repeatSnapshot, repeatTaskSnapshot, repeatClaimableTasks } from '../repeat-event.js'
 import { grantRewards, parseRewards } from '../rewards.js'
 import { rewardSource } from '../reward-source.js'
+import { claimRepeatFirstPass } from '../repeat-event-rewards.js'
 import { startEntrust } from './entrust.js'
 import { ensure } from './common.js'
 import { ErrorCode } from '../error-codes.js'
@@ -28,7 +29,7 @@ export function registerRepeatEvent(on) {
         const plan = repeatEntryPlan(c, request)
         const result = startEntrust(c, plan.dungeonId, false, 'repeat')
         c.state.entrust.run.repeat_event = plan
-        c.pushBefore('CSProtoRepeatEventSync', repeatSnapshot(c.state))
+        c.pushBefore('CSProtoRepeatEventSync', repeatSnapshot(c.state, c.activityCatalog, c.now))
         return result
     })
     on('RepeatEventReEnterLevelReq', (c, request) => {
@@ -41,9 +42,10 @@ export function registerRepeatEvent(on) {
             'The requested repeat challenge is not active',
             ErrorCode.RepeatEventLevelMapInvalid,
         )
+        claimRepeatFirstPass(c)
         const result = startEntrust(c, plan.dungeonId, true, 'repeat')
         c.state.entrust.run.repeat_event = plan
-        c.pushBefore('CSProtoRepeatEventSync', repeatSnapshot(c.state))
+        c.pushBefore('CSProtoRepeatEventSync', repeatSnapshot(c.state, c.activityCatalog, c.now))
         return result
     })
 }

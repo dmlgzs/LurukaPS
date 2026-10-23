@@ -79,6 +79,7 @@ import {
 import { announcementSnapshot } from './announcements.js'
 import { optimizeSyncPackets } from './sync-delta.js'
 import { registerRepeatEvent } from './handlers/repeat-event.js'
+import { claimRepeatFirstPass } from './repeat-event-rewards.js'
 import { repeatFormationBefore, validateRepeatFormation } from './repeat-formation.js'
 import { repeatSnapshot, repeatTaskSnapshot, observeRepeatStamina } from './repeat-event.js'
 import { registerPetCatch } from './handlers/pet-catch.js'
@@ -1662,6 +1663,14 @@ export class Game {
     }
     loginPackets(state, session, r, frame, id) {
         const now = this.clock()
+        const repeatRewards = []
+        claimRepeatFirstPass({
+            state,
+            tables: this.tables,
+            now,
+            randomInt: this.rng,
+            pushBefore: (name, value) => repeatRewards.push(this.packet(name, value)),
+        })
         prepareStamina(this.tables, state, now)
         pruneItemShortcuts(state, now)
         observeJourney(this.tables, state)
@@ -1732,8 +1741,9 @@ export class Game {
             this.packet('CSProtoRideMountInfo', mountPayload(this.tables, state)),
             this.packet('CSProtoTeachInfoSync', { u32s: state.teachingRecords ?? [] }),
             this.packet('CSProtoEntrustInfoSync', entrustInfoSnapshot(state)),
-            this.packet('CSProtoRepeatEventSync', repeatSnapshot(state)),
+            this.packet('CSProtoRepeatEventSync', repeatSnapshot(state, this.activities, now)),
             this.packet('CSProtoRepeatEventTaskSync', repeatTaskSnapshot(this.tables, state)),
+            ...repeatRewards,
             this.packet('SCProtoDungeonMaterialInfoSync', materialDungeonSnapshot(state)),
             this.packet('CSProtoEntrustStarRewardSync', entrustStarRewardSnapshot(state)),
             ...(state.entrust?.run?.map_id === state.world.map_id

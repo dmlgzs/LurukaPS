@@ -20,6 +20,7 @@ import { recordHeroAcquisition } from './hero-acquisition.js'
 import { grantPetSkin } from './pet-skins.js'
 import { grantPlayerTitle } from './player-titles.js'
 import { grantAppearanceReward } from './appearance-rewards.js'
+import { grantEntryHeroFavor } from './hero-favor-rewards.js'
 export function parseRewards(value, allowZero = false) {
     if (!value) return []
     return String(value)
@@ -152,6 +153,8 @@ export function grantRewards(tables, state, rewards, depth = 0, context = {}) {
                 ensure(basic[key] + itemnum <= 0x7fffffff, 'Currency overflow')
                 basic[key] += itemnum
                 syncCurrencyMirrors(state.player)
+            } else if (itemid === 4 && context.personalFavor) {
+                grantEntryHeroFavor(tables, state, itemnum, context.personalFavor)
             } else if (itemid === 50 && context.battlePassExp) {
                 const amount = context.battlePassExp(itemnum)
                 if (amount > 0) granted.push({ ...reward, itemnum: amount })
@@ -187,6 +190,19 @@ export function grantRewards(tables, state, rewards, depth = 0, context = {}) {
                     granted.push(...grantRewards(tables, state, parseRewards(next.reward), depth + 1, context))
                 }
             } else {
+                if (itemid === 4) {
+                    // TODO: migrate each legacy caller with its actual recipient
+                    // evidence. Preserve existing non-repeat reward transactions
+                    // for now; do not claim this global mirror is personal favor.
+                    console.warn(
+                        JSON.stringify({
+                            event: 'missing-favor-context',
+                            amount: itemnum,
+                            map_id: state.world?.map_id,
+                            compatibility: 'legacy-global-unallocated',
+                        }),
+                    )
+                }
                 const attrs = state.player.attr_infos.attrs
                 let a = attrs.find((x) => x.attr_id === itemid)
                 if (!a) {

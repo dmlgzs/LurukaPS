@@ -1,69 +1,14 @@
+import { repeatFixture as fixture } from './helpers/repeat-event-fixture.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { configuration } from '../src/config.js'
-import { Tables } from '../src/player.js'
-import { Protocol } from '../src/protocol.js'
-import { Store } from '../src/store.js'
-import { Game } from '../src/game.js'
 import { getEntrustCatalog } from '../src/entrust.js'
 import { repeatEventTables } from '../src/repeat-event.js'
 import { ErrorCode } from '../src/error-codes.js'
 
 const request = { activity: 10001, chapter: 101, level: 10101, mode: 1 }
-function fixture(name, filename = ':memory:') {
-    const config = configuration(),
-        tables = new Tables(config.tables),
-        protocol = new Protocol(config.base)
-    const store = new Store(filename),
-        session = {},
-        game = new Game(protocol, store, tables, { clock: () => 1800000000 })
-    let seq = 1
-    const call = (name, data = {}, who = session) => {
-        const e = protocol.byName.get('CSProto' + name)
-        return game.dispatch(who, {
-            id: e.id,
-            seq: seq++,
-            payload: e.req ? protocol.encode(e.req, data) : Buffer.alloc(0),
-        })
-    }
-    call('EnterGame', { open_id: name })
-    const state = () => store.load(session.id).state
-    if (!(state().taskRecords ?? []).some((x) => x.task_id === 106015))
-        store.transact(session.id, 0, (s) => {
-            ;(s.taskRecords ??= []).push({ task_id: 106015, count: 1 })
-            s.player.basic_info.lv = 45
-        })
-    const interact = (id) =>
-        call('WorldObjInteract', {
-            objs: [
-                {
-                    obj: {
-                        obj_id: id,
-                        complete: true,
-                        state_data: {
-                            step: state().worldObjects[state().world.map_id + ':' + id]?.state_data?.step ?? 0,
-                        },
-                    },
-                    interact_type: 2,
-                },
-            ],
-        })
-    const kill = (id) => {
-        const s = state(),
-            enemies = Object.values(s.combat.entities).filter((x) => x.object_id === id)
-        return call('BattleInfoReduce', {
-            uint64_dic: [s.player.heros_info.heros[0].guid, ...enemies.map((x) => x.uuid)],
-            battle_info: enemies.map((x, i) => ({
-                hurt_info: { from_id: '1', tar_id: String(i + 2), hp_change: -x.hp },
-            })),
-            base_time: '0',
-        })
-    }
-    return { config, tables, protocol, store, session, game, state, call, interact, kill }
-}
 
 test('all 12 real repeat levels map by their chest table and retain the marker, wave roster and final box', () => {
     const f = fixture('repeat-catalog')
@@ -108,7 +53,7 @@ test('10502 exact logged request enters 6558 with real level and no fabricated p
     }
 })
 
-test('two complete real waves create only repeat progress and leave paid chest explicitly pending', () => {
+test('two complete real waves create only repeat progress and allow the real free chest', () => {
     const f = fixture('repeat-victory')
     try {
         f.call('RepeatEventEnterLevelReq', request)
@@ -124,12 +69,9 @@ test('two complete real waves create only repeat progress and leave paid chest e
         assert.equal(f.state().repeatEvent.levels['10001:10101'].mode_save_data[0].win_count, 1)
         assert.equal(f.state().repeatEvent.levels['10001:10101'].mode_save_data[0].star_count, 3)
         assert.deepEqual(f.state().entrust.records, {})
-        const before = structuredClone(f.state())
-        assert.throws(
-            () => f.call('StaminaBoxGet', { box_id: 3001001, times: 1 }),
-            (e) => e.code === ErrorCode.FunctionClosed,
-        )
-        assert.deepEqual(f.state(), before)
+        f.call('StaminaBoxGet', { box_id: 3001001, times: 1 })
+        assert.equal(f.state().entrust.run.chest_claimed, true)
+        assert.equal(f.state().repeatEvent.levels['10001:10101'].mode_save_data[0].free_stamina_used, true)
         // A repeated client result cannot manufacture a second victory.
         f.call('EndDungeonScene', { result: 3 })
         assert.equal(f.state().repeatEvent.levels['10001:10101'].mode_save_data[0].win_count, 1)

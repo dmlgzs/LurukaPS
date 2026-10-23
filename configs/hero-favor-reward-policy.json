@@ -1,0 +1,8 @@
+{
+    "allocation": "entry-favor-roster-each-v1",
+    "scope": "repeat-type2-verified-entry",
+    "maximumLevelOverflow": "discard-with-receipt",
+    "legacyGlobalBalance": "do-not-migrate",
+    "missingContext": "warn-and-preserve-legacy-global-outside-repeat",
+    "note": "Explicit user-selected LOCAL policy: every qualified permanent owned entry hero gets the full configured amount. This is not a proven official sharing or daily-limit rule. TODO: replace from official allocation evidence; migrate other reward callers with explicit participant contexts."
+}
