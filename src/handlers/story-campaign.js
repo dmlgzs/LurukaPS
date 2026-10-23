@@ -1,3 +1,5 @@
+import { resetCampaignPlayableEntry } from '../campaign-playable-ledger.js'
+import { localCampaignSatisfied } from '../campaign-playable-route.js'
 import { registerTeaching } from './teaching.js'
 import { ErrorCode } from '../error-codes.js'
 import { visibleEnemySlots } from '../enemy-group-visibility.js'
@@ -82,6 +84,7 @@ export function enterStoryCampaignScene(c, r) {
 
 export function settleStoryCampaignScene(c) {
     const run = c.state.storyCampaign
+    if (run?.local_playable_condition) return settlePlayableCampaign(c)
     if (run?.task_ids?.length) return false // This variant is completed by its dungeon_task chain, not wave deaths.
     if (!run || run.status !== 2 || run.completed_scenes.includes(run.map_id) || c.state.combat?.map_id !== run.map_id)
         return false
@@ -216,6 +219,27 @@ export function settleStoryCampaignScene(c) {
             }))
         if (infos.length) c.push('CSProtoObjBattleInfoSync', { infos })
     }
+    return true
+}
+
+function settlePlayableCampaign(c) {
+    const run = c.state.storyCampaign
+    if (run.status !== 2 || run.map_id !== c.state.world.map_id) return false
+    const plan = storyCampaignStagePlan(c.tables, run), before = run.stage_index ?? 0
+    while ((run.stage_index ?? 0) < plan.length && campaignStageSatisfied(c.tables, c.state, plan[run.stage_index ?? 0]))
+        run.stage_index = (run.stage_index ?? 0) + 1
+    const won = localCampaignSatisfied(c.tables, c.state)
+    if (won) {
+        run.completed_scenes = [...run.scenes]
+        run.status = 3
+        run.end_time = c.now
+        creditStoryCampaign(c, run.dungeon_id)
+    }
+    if (!won && before === (run.stage_index ?? 0)) return false
+    ensureStoryCampaignScene(c.tables, c.state, c.now)
+    c.push('CSProtoCampaignInfoSync', storyCampaignSnapshot(c.state))
+    c.push('CSProtoWorldMapSync', { cmd: 47, creator_id: c.id, map_id: run.map_id,
+        map_info: { creator_id: c.id, map_id: run.map_id, objs: storyCampaignSnapshot(c.state).scene_datas[0].objs } })
     return true
 }
 
@@ -412,6 +436,11 @@ export function registerStoryCampaign(on, tables) {
             'Story dungeon task is not active',
         )
         ensure(!c.state.entrust?.run && !c.state.multiCampaign && !c.state.storyCampaign, 'Another dungeon is active')
+        if (config.localPlayableRoute) {
+            const next = c.state.nextStoryCampaignInstanceId ?? 1
+            ensure(Number.isSafeInteger(next) && next > 0 && next < Number.MAX_SAFE_INTEGER,
+                'Campaign instance counter is damaged or exhausted', ErrorCode.GameConfig)
+        }
         const w = c.state.world
         const run = (c.state.storyCampaign = {
             dungeon_id: config.dungeon.id,
@@ -424,6 +453,15 @@ export function registerStoryCampaign(on, tables) {
             task_ids: config.taskIds,
             stage_conditions: config.stageConditions,
             victory_stage_count: config.victoryStageCount,
+            ...(config.localPlayableRoute ? {
+                local_playable_condition: config.localPlayableRoute.local_condition,
+                playable_ids: config.localPlayableRoute.playable_ids,
+                opening_story: config.localPlayableRoute.opening_stories[0],
+                ending_story: config.localPlayableRoute.ending_story,
+                opening_delete_tag: config.localPlayableRoute.delete_tag,
+                playable_successes: {},
+                next_playable_attempt: 0,
+            } : {}),
             entry_tasks: config.taskIds.length
                 ? structuredClone(campaignEntryTasks(tables, c.state, config.dungeon.id))
                 : undefined,
@@ -438,6 +476,7 @@ export function registerStoryCampaign(on, tables) {
             },
         })
         run.return_world = storyCampaignReturnWorld(tables, c.state, run)
+        resetCampaignPlayableEntry(c.state, run)
         if (config.taskIds.length) {
             c.pushBefore('CSProtoTaskSync', {
                 del_tasks: config.taskIds,
@@ -464,6 +503,7 @@ export function registerStoryCampaign(on, tables) {
         c.state.nextStoryCampaignInstanceId = run.instance_id + 1
         Object.assign(w, tables.position(config.scenes[0].point))
         ensureStoryCampaignScene(tables, c.state, c.now)
+        if (run.local_playable_condition) c.pushBefore('CSProtoPlayableSync', playableSnapshot(c.state))
         c.pushBefore('CSProtoCampaignInfoSync', storyCampaignSnapshot(c.state))
         worldSync(
             { ...c, push: c.pushBefore },

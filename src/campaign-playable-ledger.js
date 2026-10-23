@@ -81,6 +81,14 @@ export function clearCampaignPlayables(state, campaign) {
     return true
 }
 
+export function resetCampaignPlayableEntry(state, campaign) {
+    if (!campaign?.local_playable_condition) return
+    for (const id of campaign.playable_ids ?? []) {
+        preserveClaims(state, id, state.playableFinishes?.[id])
+        if (state.playableRuns) delete state.playableRuns[id]
+        if (state.playableFinishes) delete state.playableFinishes[id]
+    }
+}
 
 export function playableWire(run) {
     const { map_id, selected_step, selected_pet_group, selected_pet_guid, rewarded_steps,

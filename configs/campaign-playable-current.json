@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "source": {
+    "version": "2451868",
+    "resources": [
+      {
+        "name": "rd_assets_resourcesassets_config_vstring_vstring_bytes",
+        "sha256": "0f032fbbdedc5f758fd17f08882695fb8952d6c6910a73fdf2e66f9f614e3b41",
+        "crc32": 2855464684
+      },
+      {
+        "name": "rs_assets_resourcesassets_config_newtablemmap_table_data_bytes",
+        "sha256": "032bd31939acf6b253e62364abac8bb8bdaf4077b12c5621d5b42b7f5c696d35",
+        "crc32": 2542945056
+      }
+    ],
+    "tableSha256": {
+      "dungeon": "ee69c961cb3f03a9142a00ed74f95240e5c99e136ec89045d3a9dbb53518000f",
+      "dungeon_scene": "5ad43ba764d667fa5160835443cab9dc396f21c1d6aeb9d0ac1c341d1198279a",
+      "world_blueprint": "3808c383064d822b312f13086ee037f6e81c60726c8eee9ba76a17d27418cbd0"
+    }
+  },
+  "rows": [
+    {
+      "id": 10074,
+      "current": {
+        "id": 10074,
+        "groupId": 222,
+        "dungeonGroupOrder": 1,
+        "victoryCondition": "13060#6226#0#1",
+        "failCondition": "3009#1",
+        "unlockCondition": "2004#1",
+        "enemy": "310924#1|310925#1",
+        "userExp": 50
+      },
+      "legacy": {
+        "id": 10074,
+        "groupId": 222,
+        "dungeonGroupOrder": 1,
+        "victoryCondition": "13060#0#0#0#1",
+        "failCondition": "3009#1",
+        "unlockCondition": "2004#1",
+        "enemy": "310924#1|310925#1",
+        "userExp": 50
+      }
+    }
+  ]
+}

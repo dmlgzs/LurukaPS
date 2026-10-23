@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "mode": "local_four_field_current_instance_distinct_playable",
+  "condition": 13060,
+  "shape": ["condition", "positive_scene_map", "playable_type_zero_is_any", "distinct_success_count"],
+  "scope": "current_campaign_instance_only",
+  "required_lifecycle": "Start9403 -> Step9406/status2 -> Finish9404",
+  "common_blueprint": "Config/World/Graph/Blueprint/ast_story_dungeon_ai_common.asset",
+  "entry_cost": "playable_row_cost_only",
+  "TODO": [
+    "LOCAL POLICY: the official13060 consumer is unavailable; four-field slot interpretation, zero type wildcard, distinct IDs and no cross-instance accumulation are local compatibility choices, not confirmed official rules.",
+    "LOCAL POLICY: explicit playable row cost is used;62071 row is zero. The actual Jenga UI cost override priority is not proven; do not inherit generic type16 cost.",
+    "Client packets carry no attempt nonce; an old delayed Finish after a new valid Step cannot be authenticated as belonging to the old attempt. Verify reconnect/reset timing with CBT3.",
+    "Only unique explicit map/common graph scenes with validated targets, playable rows and trial tables are supported; five-field or unknown formats remain unsupported."
+  ]
+}

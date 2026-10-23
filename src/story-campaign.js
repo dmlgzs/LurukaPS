@@ -1,3 +1,5 @@
+import { localPlayableCampaignRoute, localCampaignSatisfied } from './campaign-playable-route.js'
+import { clearCampaignPlayables } from './campaign-playable-ledger.js'
 import { teachingConfig } from './teaching.js'
 import { teachingSceneVictory } from './teaching-scene-victory.js'
 import { ErrorCode } from './error-codes.js'
@@ -90,6 +92,7 @@ export function preserveCampaignTaskTransfer(tables, state, request, point) {
 
 // Called only when leaving a campaign, never on battle/movement reports.
 export function resetCampaignTasks(tables, state, run) {
+    clearCampaignPlayables(state, run)
     if (!run.task_ids?.length) return null
     const aborted = run.status !== 3
     const graphs = new TaskGraphs(tables)
@@ -185,7 +188,9 @@ export function storyCampaignConfig(tables, groupId, difficulty) {
     )
     const savedRoute = legacyRoutes.get(dungeon.id)
     const route =
-        savedRoute?.mode === 'table_waves' || !savedRoute ? tableWaveCampaignRoute(tables, dungeon) : savedRoute
+        savedRoute?.mode === 'table_waves' || !savedRoute
+            ? tableWaveCampaignRoute(tables, dungeon) ?? localPlayableCampaignRoute(tables, dungeon)
+            : savedRoute
     ensure(taskMapping || route, 'Campaign group is not implemented', ErrorCode.InvalidProtoID)
     const graphs = taskMapping ? new TaskGraphs(tables) : null
     const transferPoints = taskIds.flatMap((id) =>
@@ -212,7 +217,7 @@ export function storyCampaignConfig(tables, groupId, difficulty) {
         )
         return { city, scene, point }
     })
-    if (!taskMapping && route.mode !== 'table_waves') {
+    if (!taskMapping && !['table_waves', 'local_playable'].includes(route.mode)) {
         ensure(
             scenes.length === route.opening_stories.length &&
                 scenes.every(({ scene }, i) =>
@@ -262,7 +267,8 @@ export function storyCampaignConfig(tables, groupId, difficulty) {
         taskMapping,
         taskIds,
         taskPoints,
-        stageConditions: ['stage_conditions', 'table_waves'].includes(route?.mode),
+        stageConditions: ['stage_conditions', 'table_waves', 'local_playable'].includes(route?.mode),
+        localPlayableRoute: route?.mode === 'local_playable' ? route : null,
         victoryStageCount: route?.victory_stage_count,
     }
 }
@@ -446,6 +452,7 @@ export function storySceneDefeated(tables, state) {
             (state.taskRecords ?? []).some((record) => record.task_id === taskId && record.count > 0)
         )
     }
+    if (run?.local_playable_condition) return localCampaignSatisfied(tables, state)
     if (!run || state.world.map_id !== run.map_id || state.combat?.map_id !== run.map_id) return false
     if (run.stage_conditions)
         return storyCampaignStagePlan(tables, run).every((rows) => campaignStageSatisfied(tables, state, rows))

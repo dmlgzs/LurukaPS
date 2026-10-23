@@ -1,3 +1,4 @@
+import { campaignPlayableStagePlan } from './campaign-playable-route.js'
 import { ErrorCode } from './error-codes.js'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -116,6 +117,7 @@ export function tableWaveCampaignRoute(tables, dungeon) {
     return route
 }
 export function storyCampaignStagePlan(tables, run) {
+    if (run.local_playable_condition) return campaignPlayableStagePlan(tables, run.map_id)
     const plan = campaignStagePlan(tables, run.map_id)
     return run.victory_stage_count ? plan.slice(0, run.victory_stage_count) : plan
 }
