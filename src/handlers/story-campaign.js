@@ -5,6 +5,7 @@ import { storyCampaignStagePlan } from '../table-wave-campaign.js'
 import { ensure } from './common.js'
 import { campaignStageSatisfied } from '../campaign-stage-plan.js'
 import { teachingSceneKillReady } from '../teaching-kill-conditions.js'
+import { teachingSceneVictory } from '../teaching-scene-victory.js'
 import { syncBattle } from '../battle.js'
 import { finishEnemyGroupRelations, pruneInactiveCampaignRelations } from './world-combat.js'
 import { inactiveCampaignEnemyGroup } from '../inactive-campaign-enemies.js'
@@ -128,7 +129,9 @@ export function settleStoryCampaignScene(c) {
         return true
     }
     const scene = c.tables.find('dungeon_scene', run.map_id)
-    const [kind, spawner, , , count] = String(scene?.victoryCondition).split('#').map(Number)
+    const [kind, spawner, , , count] = run.teaching_id
+        ? teachingSceneVictory(c.tables, scene)
+        : String(scene?.victoryCondition).split('#').map(Number)
     const waves = c.tables
         .get(`worldmap_${run.map_id}`)
         .filter((row) => row.spawnerId === spawner)
@@ -296,7 +299,11 @@ export function endStoryCampaignScene(c, r) {
     )
     ensure([1, 3, 4].includes(r.result), 'Invalid dungeon result')
     if (r.result === 3) {
-        if (run.teaching_id && !storySceneDefeated(c.tables, c.state) && teachingSceneKillReady(c.tables, c.state)) {
+        if (
+            run.teaching_id &&
+            !storySceneDefeated(c.tables, c.state) &&
+            teachingSceneKillReady(c.tables, c.state)
+        ) {
             // The teaching challenge can report success before its FSM's
             // delayed StoryKillReq. ACK this verified intent, but do not grant
             // a clear or allow the next scene until the configured kill arrives.

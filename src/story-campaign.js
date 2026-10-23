@@ -1,4 +1,5 @@
 import { teachingConfig } from './teaching.js'
+import { teachingSceneVictory } from './teaching-scene-victory.js'
 import { ErrorCode } from './error-codes.js'
 import { visibleEnemySlots } from './enemy-group-visibility.js'
 import { tableWaveCampaignRoute, storyCampaignStagePlan } from './table-wave-campaign.js'
@@ -449,7 +450,9 @@ export function storySceneDefeated(tables, state) {
     if (run.stage_conditions)
         return storyCampaignStagePlan(tables, run).every((rows) => campaignStageSatisfied(tables, state, rows))
     const scene = tables.find('dungeon_scene', run.map_id)
-    const [kind, spawner, , , count] = String(scene?.victoryCondition).split('#').map(Number)
+    const [kind, spawner, , , count] = run.teaching_id
+        ? teachingSceneVictory(tables, scene)
+        : String(scene?.victoryCondition).split('#').map(Number)
     if (kind !== 2500 || count <= 0) return false
     const groups = tables.get(`worldmap_${run.map_id}`).filter((row) => row.spawnerId === spawner)
     return (

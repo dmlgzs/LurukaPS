@@ -1,5 +1,6 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
+import { teachingSceneVictory } from './teaching-scene-victory.js'
 const caches = new WeakMap()
 const tokens = (text) =>
     String(text ?? '')
@@ -45,7 +46,7 @@ export function teachingConfig(tables, dungeon) {
     const roster = (scenes) => {
         const result = new Map()
         for (const scene of scenes) {
-            const [kind, spawner, , , count] = String(scene.victoryCondition).split('#').map(Number)
+            const [kind, spawner, , , count] = teachingSceneVictory(tables, scene)
             ensure(Number.isInteger(count) && count > 0, 'Invalid teaching scene victory rule', ErrorCode.GameConfig)
             ensure(kind === 2500, 'Teaching scene victory rule is not supported', ErrorCode.InvalidLogic)
             const rows = tables.get(`worldmap_${scene.id}`).filter((x) => x.spawnerId === spawner)

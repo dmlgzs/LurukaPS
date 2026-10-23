@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "bindings": [
+    {
+      "blueprintPath": "Config/World/Graph/Blueprint/ast_teaching_dungeon_01.asset",
+      "sourceGraph": "ast_teaching_dungeon_01",
+      "sourceSha256": "3316d718d2b80eb6576ab1a9f763b2128bffc4ce6b7891b97ecf69356e095e36",
+      "primaryConditionParameter": "finish_con_intlist",
+      "callbackNode": "59"
+    }
+  ]
+}
