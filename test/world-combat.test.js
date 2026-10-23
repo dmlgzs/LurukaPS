@@ -5,12 +5,30 @@ import { Protocol } from '../src/protocol.js'
 import { Tables } from '../src/player.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
+import { afterBattlePassBeforePush, fixtureNow } from './battle-pass-packet-fixture.js'
 const config = configuration(),
     protocol = new Protocol(config.base),
     tables = new Tables(config.tables)
+// Stay within a known season and reset period. The first ordinary request
+// publishes the complete battle-pass task state before its own reply/relay.
+const gameOptions = { clock: () => fixtureNow }
+function initialSummonReply(f, packets, battle_index) {
+    assert.deepEqual(
+        packets.map((p) => p.id),
+        [18006, 11148],
+    )
+    const replies = afterBattlePassBeforePush(packets, tables, f.state())
+    assert.deepEqual(
+        replies.map((p) => p.id),
+        [11148],
+    )
+    assert.deepEqual(Object.keys(replies[0].data).sort(), ['battle_index', 'unit_id'])
+    assert.equal(replies[0].data.battle_index, battle_index)
+    return replies[0]
+}
 function fixture() {
     const store = new Store(':memory:'),
-        game = new Game(protocol, store, tables),
+        game = new Game(protocol, store, tables, gameOptions),
         session = {}
     const call = (name, r = {}) => {
         const e = protocol.byName.get('CSProto' + name)
@@ -57,14 +75,12 @@ test('summon acknowledgement maps the client battle index to a stable server ide
                 op_time: '1000',
             }
         const first = f.call('CreateSummon', request)
-        assert.equal(first.length, 1)
-        assert.equal(first[0].id, 11148)
-        assert.equal(first[0].data.battle_index, '9007199254740993')
-        const id = first[0].data.unit_id
+        const firstReply = initialSummonReply(f, first, '9007199254740993')
+        const id = firstReply.data.unit_id
         assert.equal(BigInt(id) >> 56n, 17n)
         assert.equal(BigInt(id) & 0xffffffffn, BigInt(f.session.id))
         assert.equal(f.state().combat.summons[id].owner_id, hero.guid)
-        assert.deepEqual(f.call('CreateSummon', request), first)
+        assert.deepEqual(f.call('CreateSummon', request), [firstReply])
         assert.equal(Object.keys(f.state().combat.summons).length, 1)
         const before = f.store.load(f.session.id)
         assert.throws(() => f.call('CreateSummon', { ...request, unit_id: other.guid }))
@@ -77,7 +93,9 @@ test('summon acknowledgement maps the client battle index to a stable server ide
         assert.equal(f.state().combat.skills[id], undefined)
         assert.equal(f.state().combat.bullets['555'], undefined)
         assert.deepEqual(f.call('RemoveSummon', { unit_id: id }), [])
-        assert.equal(f.call('CreateSummon', request)[0].data.unit_id, '0')
+        assert.deepEqual(f.call('CreateSummon', request), [
+            { id: 11148, data: { unit_id: '0', battle_index: request.verify_info.battle_index } },
+        ])
     } finally {
         f.store.close()
     }
@@ -92,7 +110,10 @@ test('independent summons preserve valid client IDs and reject another account n
             summon_info: { unit_id: id, config_id: 123, summon_type: 3 },
             verify_info: { battle_index: '7' },
         }
-        assert.equal(f.call('CreateSummon', request)[0].data.unit_id, id)
+        assert.deepEqual(initialSummonReply(f, f.call('CreateSummon', request), '7'), {
+            id: 11148,
+            data: { unit_id: id, battle_index: '7' },
+        })
         const before = f.store.load(f.session.id)
         assert.throws(() =>
             f.call('CreateSummon', {
@@ -116,11 +137,11 @@ test('reconnecting permits restarted summon indices while preserving enemy HP', 
             summon_info: { config_id: 300001, summon_type: 1, skill_id: 20011 },
             verify_info: { battle_index: '4294967304' },
         }
-        const first = f.call('CreateSummon', request)[0].data.unit_id
+        const first = initialSummonReply(f, f.call('CreateSummon', request), '4294967304').data.unit_id
         f.store.transact(f.session.id, 0, (s) => {
             s.combat.entities['enemy-fixture'] = { hp: 82 }
         })
-        const game = new Game(protocol, f.store, tables),
+        const game = new Game(protocol, f.store, tables, gameOptions),
             session = {},
             enter = protocol.byName.get('CSProtoEnterGame')
         game.dispatch(session, {
@@ -138,7 +159,13 @@ test('reconnecting permits restarted summon indices while preserving enemy HP', 
                     summon_info: { config_id: 480056, summon_type: 2, skill_id: 10700161 },
                 }),
             })
-        const second = protocol.decode(protocol.byId.get(packets[0].id).rsp, packets[0].payload).unit_id
+        assert.deepEqual(
+            packets.map((p) => p.id),
+            [11148],
+        )
+        const secondReply = protocol.decode(protocol.byId.get(packets[0].id).rsp, packets[0].payload)
+        assert.equal(secondReply.battle_index, '4294967304')
+        const second = secondReply.unit_id
         assert.notEqual(second, first)
         assert.equal(f.state().combat.summons[first], undefined)
         assert.equal(f.state().combat.entities['enemy-fixture'].hp, 82)
@@ -182,8 +209,9 @@ test('logged independent skill summons allow zero config and retain owner and re
             verify_info: { battle_index: '4294967354' },
         }
         const packets = f.call('CreateSummon', request)
-        assert.equal(packets[0].data.unit_id, request.summon_info.unit_id)
-        assert.deepEqual(f.call('CreateSummon', request), packets)
+        const firstReply = initialSummonReply(f, packets, '4294967354')
+        assert.equal(firstReply.data.unit_id, request.summon_info.unit_id)
+        assert.deepEqual(f.call('CreateSummon', request), [firstReply])
         const before = f.store.load(f.session.id)
         for (const changes of [
             { skill_id: 10800213 },
@@ -229,16 +257,33 @@ test('pet presentation relays only to map peers without echo or ownership change
             beforePet = structuredClone(pet)
         for (const type of [1, 2, 0]) {
             const e = protocol.byName.get('CSProtoSwitchPetAction')
-            const game = new Game(protocol, f.store, tables)
+            const game = new Game(protocol, f.store, tables, gameOptions)
             const packets = game.dispatch(f.session, {
                 id: e.id,
                 seq: 123,
                 payload: protocol.encode(e.req, { uuid: pet.guid, type }),
             })
-            assert.equal(packets.length, 1)
-            assert.equal(packets[0].id, 11062)
-            assert.deepEqual(packets[0].audience, { kind: 'map', map: f.state().world.map_id, sender: f.session.id })
-            assert.deepEqual(protocol.decode('SwitchPetAction', packets[0].payload), { uuid: pet.guid, type })
+            assert.deepEqual(
+                packets.map((p) => p.id),
+                type === 1 ? [18006, 11062] : [11062],
+            )
+            if (type === 1) {
+                assert.equal(packets[0].audience, undefined)
+                assert.equal(packets[0].recipient, undefined)
+            }
+            const relays = afterBattlePassBeforePush(
+                packets.map((p) => ({ id: p.id, data: protocol.decode(protocol.byId.get(p.id).rsp, p.payload) })),
+                tables,
+                f.state(),
+            )
+            assert.deepEqual(
+                relays.map((p) => p.id),
+                [11062],
+            )
+            const relay = packets.at(-1)
+            assert.deepEqual(relay.audience, { kind: 'map', map: f.state().world.map_id, sender: f.session.id })
+            assert.equal(relay.recipient, undefined)
+            assert.deepEqual(protocol.decode('SwitchPetAction', relay.payload), { uuid: pet.guid, type })
             assert.equal(f.state().combat.petPresentation[pet.guid].type, type)
         }
         assert.deepEqual(f.state().pets[0], beforePet)

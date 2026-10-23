@@ -18,6 +18,7 @@ import {
     publishArenaSp,
 } from '../npc-kibo-sp.js'
 import { enemyDefinition } from '../enemy-state.js'
+import { recordTrackingDeath } from '../pet-tracking.js'
 import { recordGuidedKill } from '../task-kills.js'
 import { notifyActive } from '../daily-active.js'
 import { finishEnemyGroupRelations, pruneInactiveCampaignRelations } from './world-combat.js'
@@ -394,6 +395,7 @@ export function registerCombat(on) {
                     }
                     const died = (previous.hp ?? definition.max_hp) > 0 && hp === 0
                     if (died) deadGroups.add(id)
+                    if (died) recordTrackingDeath(c.tables, c.state, value, c.now)
                     if (died && source && source !== '0') value.final_blow_guid = source
                     const lost = Math.max(0, (previous.hp ?? definition.max_hp) - hp)
                     if (entrustRun && lost > 0 && isPlayerDamageSource(c.state, source)) {

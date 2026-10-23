@@ -7,6 +7,8 @@ import { arenaProperty } from './npc-kibo-properties.js'
 import { taskEnemyPacks } from './task-enemy-slots.js'
 import { abyssTables } from './abyss-catalog.js'
 import { abyssEnemyHpScale } from './abyss-battle-config.js'
+import { worldCondition } from './handlers/world-objects.js'
+import { trackingConditionResult } from './pet-tracking-conditions.js'
 const catalogs = new WeakMap()
 export function enemyDefinition(tables, state, uuid) {
     if (state.abyssRun?.map_id === state.world.map_id) tables = abyssTables(tables)
@@ -31,7 +33,7 @@ export function enemyDefinition(tables, state, uuid) {
         cached = { world: new WorldObjectCatalog(tables, tables.abyss_directory), graphs: new TaskGraphs(tables) }
         catalogs.set(tables, cached)
     }
-    let packId, worldRow, taskConfig, groupSize, taskGroup
+    let packId, worldRow, taskConfig, groupSize, taskGroup, livePack
     if (kind === 7) {
         for (const [key, entry] of Object.entries(state.playableEnemies ?? {})) {
             if (!key.startsWith(state.world.map_id + ':')) continue
@@ -76,8 +78,62 @@ export function enemyDefinition(tables, state, uuid) {
             }
             if (row) {
                 worldRow = row
-                const spawner = cached.world.find('world_spawner', row.spawnerId)
-                if (spawner?.objectType === 50) groupId = row.expandId
+                const record = state.worldObjects?.[state.world.map_id + ':' + object]
+                const dynamic = record?.expand_data?.dynamic_obj
+                const spawner = cached.world.find('world_spawner', dynamic?.spawner_id || row.spawnerId)
+                if (spawner?.objectType === 50) groupId = dynamic?.expand_id || row.expandId
+                // Random habitats are potential pools. Only a selected current
+                // server snapshot defines which group and pack can be fought/caught.
+                if (spawner?.objectType === 51) {
+                    const selected = record?.expand_data?.random_battle_group
+                    const random = tables.find('world_enemy_group_random', dynamic?.expand_id || row.expandId)
+                    const completed = random?.commonCondition
+                        ? trackingConditionResult(
+                              () => worldCondition(random.commonCondition, state),
+                              random.commonCondition,
+                              {
+                                  map_id: state.world.map_id,
+                                  obj_id: object,
+                                  field: 'commonCondition',
+                                  random_id: random.id,
+                              },
+                          )
+                        : false
+                    if (completed === undefined) return null
+                    const pool =
+                        completed && random.conditionCompleteEnemyGroup
+                            ? random.conditionCompleteEnemyGroup
+                            : random?.enemyGroupRandom
+                    const allowed = new Set(
+                        String(pool ?? '')
+                            .split('|')
+                            .flatMap((part) => {
+                                const entries = (part.split('#')[1] ?? '').split(',').map(Number)
+                                return entries.filter((id, index) => index % 2 === 0 && entries[index + 1] > 0)
+                            }),
+                    )
+                    const monster = selected?.monsters?.find((m, index) => (m.obj_key?.obj_index ?? index) === slot)
+                    if (
+                        allowed.has(selected?.record_group_id) &&
+                        monster &&
+                        (!selected.world_indexes || selected.world_indexes.includes(slot))
+                    )
+                        groupId = selected.record_group_id
+                }
+                const live =
+                    spawner?.objectType === 50
+                        ? record?.expand_data?.battle_group
+                        : spawner?.objectType === 51
+                          ? record?.expand_data?.random_battle_group
+                          : null
+                const monster = live?.monsters?.find((m, index) => (m.obj_key?.obj_index ?? index) === slot)
+                if (
+                    groupId &&
+                    monster?.enemy_pack &&
+                    (!live.world_indexes || live.world_indexes.includes(slot)) &&
+                    (!monster.uid || String(monster.uid) === String(uuid))
+                )
+                    livePack = monster.enemy_pack
             }
         }
         if (groupId) {
@@ -89,7 +145,7 @@ export function enemyDefinition(tables, state, uuid) {
                       .filter(Boolean)
                       .map(Number)
             groupSize = packs.length
-            packId = packs[slot]
+            packId = livePack || packs[slot]
         }
     }
     if (!packId) return null

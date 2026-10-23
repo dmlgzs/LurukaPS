@@ -169,6 +169,7 @@ import { registerWorldObjects, reconcileWorldCollectionFinalDrops } from './hand
 import { registerTransform } from './handlers/transform.js'
 import { registerWorldCombat } from './handlers/world-combat.js'
 import { registerWorldSearch } from './handlers/world-search.js'
+import { trackPet } from './pet-tracking.js'
 import { registerWorldCheckpoints } from './handlers/world-checkpoints.js'
 import { checkpointSnapshot } from './world-checkpoints.js'
 import { recoverInitialDungeonKills } from './task-kills.js'
@@ -509,6 +510,7 @@ export class Game {
         registerWorldCombat(on)
         registerTransform(on, tables, store)
         registerWorldSearch(on, tables)
+        on('TrackPetReq', trackPet)
         registerWorldCheckpoints(on, tables)
         registerAIControl(on)
         registerEcology(on, tables)
@@ -1002,6 +1004,20 @@ export class Game {
         if (e.name === 'CSProtoTitleGetList') return [reply(handler({ id: session.id, tables: this.tables }, r))]
         if (e.name === 'CSProtoWorldObjSearch')
             return this.store.read(session.id, (state) => [reply(handler({ state, tables: this.tables }, r))])
+        if (e.name === 'CSProtoTrackPetReq')
+            return this.store.read(session.id, (state) => {
+                const after = []
+                const response = handler(
+                    {
+                        state,
+                        tables: this.tables,
+                        now,
+                        push: (name, value) => after.push(this.packet(name, value, { pushSeq: frame.pushSeq })),
+                    },
+                    r,
+                )
+                return [reply(response), ...after]
+            })
         if (e.name === 'CSProtoSaveEscBackgroundInfo')
             return this.store.read(session.id, (base) => {
                 const state = { ...base },
@@ -1880,7 +1896,7 @@ export class Game {
             this.packet('CSProtoPhotoGraphTempletSync', photoTemplateSnapshot(state)),
             this.packet('CSProtoWorldMapMarkListSync', worldMarkPayload(state)),
             this.packet('CSProtoAnnouncementNotify', announcementSnapshot(this.announcementBaseUrl, now)),
-            ...friendLoginSnapshots(state).map(data => this.packet('CSProtoFriendSync', data)),
+            ...friendLoginSnapshots(state).map((data) => this.packet('CSProtoFriendSync', data)),
             this.packet('CSProtoChatEmojiSync', chatEmojiSnapshot(this.tables, state)),
             this.packet('SCProtoChatBubbleSync', chatBubbleSnapshot(this.tables, state)),
             this.packet('SCProtoChatBackgroundSync', chatBackgroundSnapshot(this.tables, state)),
