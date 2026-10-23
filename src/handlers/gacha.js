@@ -19,6 +19,10 @@ export function registerGacha(on, tables, options = {}) {
     let catalog
     const data = () => (catalog ??= new GachaCatalog(tables))
     let engine
+    const snapshot = (state) => {
+        engine ??= new GachaDrawEngine(data(), tables, options.policy)
+        return { gacha_pools: engine.view(state) }
+    }
     on('GachaDraw', (c, r) => {
         engine ??= new GachaDrawEngine(data(), tables, options.policy)
         const result = engine.draw(c, r)
@@ -183,12 +187,11 @@ export function registerGacha(on, tables, options = {}) {
             source: 'gachaUpReward',
         }),
     )
-    on('GachaData', (c) => {
-        // This is progress data, not permission to draw in a closed banner.
-        engine ??= new GachaDrawEngine(data(), tables, options.policy)
-        return { gacha_pools: engine.view(c.state) }
-    })
+    // Login and explicit refresh initialize the same client cache. Progress
+    // data is not permission to draw in a closed banner.
+    on('GachaData', (c) => snapshot(c.state))
     return {
+        snapshot,
         detail: (poolId, images = {}) => {
             engine ??= new GachaDrawEngine(data(), tables, options.policy)
             return gachaPoolDetail(data(), engine, tables, poolId, images)

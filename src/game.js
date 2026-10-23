@@ -1898,6 +1898,9 @@ export class Game {
                 : []),
             this.packet('CSProtoTaskSync', taskSnapshot(this.tables, state)),
             this.packet('CSProtoSyncCommonTimeConf', this.activities.commonTimes(now, state)),
+            // PageGacha.CheckPool reads this cache before Created requests9700.
+            // Publish after the calendar so its initial red dots see pool times.
+            this.packet('CSProtoGachaData', this.gacha.snapshot(state)),
             ...this.activities
                 .growupHistorySnapshots(state, now)
                 .map((data) => this.packet('CSProtoActivityGrowUpEndQuerySync', data)),
