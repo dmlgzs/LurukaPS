@@ -9,6 +9,12 @@ import { configTime } from '../src/shops.js'
 const config = configuration(),
     protocol = new Protocol(config.base),
     tables = new Tables(config.tables)
+function reply(packets, name) {
+    const id = protocol.byName.get('CSProto' + name).id,
+        packet = packets.find((p) => p.id === id)
+    assert.ok(packet, name + ' response must be present')
+    return packet.data
+}
 function fixture() {
     let now = configTime(tables.get('abbys_time')[0].startTime) + 1
     const store = new Store(':memory:'),
@@ -37,12 +43,18 @@ test('hero records merge by config/category and survive login without unlocking 
     try {
         const hero = f.state().player.heros_info.heros.find((h) => tables.find('char_data', h.conf_id)?.characterStory)
         const id = Number(tables.find('char_data', hero.conf_id).characterStory.split('|')[0])
-        const result = f.call('CharDataUpdateHero', { hero_id: hero.conf_id, type_id: 1, record_id: [id, id] })[0].data
+        const result = reply(
+            f.call('CharDataUpdateHero', { hero_id: hero.conf_id, type_id: 1, record_id: [id, id] }),
+            'CharDataUpdateHero',
+        )
         assert.deepEqual(result.infos[0].record_id, [id])
         assert.equal(result.hero_id, hero.conf_id)
         const again = {}
         f.send(again, 'EnterGame', { open_id: 'profile-test' })
-        assert.deepEqual(f.send(again, 'CharDataGetAll')[0].data.heros_char_data[0].infos[0].record_id, [id])
+        assert.deepEqual(
+            reply(f.send(again, 'CharDataGetAll'), 'CharDataGetAll').heros_char_data[0].infos[0].record_id,
+            [id],
+        )
         const before = f.store.load(f.session.id)
         assert.throws(() => f.call('CharDataUpdateHero', { hero_id: hero.conf_id, type_id: 1, record_id: [999] }))
         assert.deepEqual(f.store.load(f.session.id), before)
@@ -53,10 +65,10 @@ test('hero records merge by config/category and survive login without unlocking 
 test('friend recommendations show actual local profiles without private account or wallet data', () => {
     const f = fixture()
     try {
-        assert.deepEqual(f.call('FriendRecommend')[0].data.player_infos, [])
+        assert.deepEqual(reply(f.call('FriendRecommend'), 'FriendRecommend').player_infos, [])
         const other = {}
         f.send(other, 'EnterGame', { open_id: 'do-not-expose-account' })
-        const players = f.call('FriendRecommend')[0].data.player_infos
+        const players = reply(f.call('FriendRecommend'), 'FriendRecommend').player_infos
         assert.equal(players.length, 1)
         assert.equal(players[0].id, other.id)
         assert(players[0].name)
@@ -64,7 +76,7 @@ test('friend recommendations show actual local profiles without private account 
         f.store.transact(f.session.id, 0, (s) => {
             s.blockedPlayers = [other.id]
         })
-        assert.deepEqual(f.call('FriendRecommend')[0].data.player_infos, [])
+        assert.deepEqual(reply(f.call('FriendRecommend'), 'FriendRecommend').player_infos, [])
     } finally {
         f.store.close()
     }
@@ -80,33 +92,38 @@ test('abyss overview uses configured gates, season window and stored stars only'
     try {
         const first = overview(f.call('AbyssGlobalView'))
         assert.equal(first.mode, 1)
-        assert.equal(first.cur_level, 10001)
+        assert.equal(first.cur_level, 0)
         assert.equal(first.total_star, 0)
         assert.equal(first.rotation_id, 1)
         f.store.transact(f.session.id, 0, (s) => {
-            const done = {}
+            const modes = {}
             for (const m of tables.get('abbys_mode').filter((m) => m.id <= 2))
-                for (const id of m.level.split('|').map(Number)) done[id] = { completed: true, stars: 3 }
+                modes[m.id] = {
+                    levels: Object.fromEntries(m.level.split('|').map((id) => [id, { passed: true, star_num: 3 }])),
+                }
             s.abyss = {
-                cleared_levels: done,
-                inherit_notify_flag: true,
-                rotations: { 1: { levels: { 30001: { completed: true, stars: 2 } } } },
+                modes,
+                inheritNotify: true,
+                rotation: { id: 1, levels: { 30001: { passed: true, star_num: 2 } } },
             }
         })
         const rotation = overview(f.call('AbyssGlobalView', { clear_inherit_flag: true }))
         assert.equal(rotation.mode, 3)
-        assert.equal(rotation.cur_level, 30002)
+        assert.equal(rotation.cur_level, 1)
         assert.equal(rotation.total_star, 2)
         assert.equal(rotation.inherit_notify_flag, false)
         f.setTime(configTime(tables.get('abbys_time')[0].endTime))
         const endedPackets = f.call('AbyssGlobalView')
+        const dataId = protocol.byName.get('SCProtoAbyssData').id
+        const dataIndex = endedPackets.findIndex((packet) => packet.id === dataId)
         assert(
-            endedPackets.some((packet) => packet.id !== responseId),
-            'Cross-day sync precedes the query reply',
+            dataIndex >= 0 && dataIndex < endedPackets.findIndex((packet) => packet.id === responseId),
+            'The real complete mode cache is primed before the map query callback',
         )
         const ended = overview(endedPackets)
-        assert.equal(ended.rotation_id, 0)
-        assert.equal(ended.mode, 2)
+        // Match the same explicit local activity extension used by 11450/11451.
+        assert.equal(ended.rotation_id, 1)
+        assert.equal(ended.mode, 3)
     } finally {
         f.store.close()
     }

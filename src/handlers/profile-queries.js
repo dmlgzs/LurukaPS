@@ -1,6 +1,8 @@
 import { ErrorCode } from '../error-codes.js'
 import { ensure, syncPlayer } from './common.js'
-import { configTime } from '../shops.js'
+import { abyssGlobalView } from '../abyss-global-view.js'
+import { abyssTables } from '../abyss-catalog.js'
+import { abyssDataSnapshot } from '../abyss-data.js'
 import { grantRewards } from '../rewards.js'
 const fields = { 1: 'characterStory', 2: 'characterVoice', 3: 'characterPlot' }
 function charInfo(id, records) {
@@ -147,36 +149,12 @@ export function registerProfileQueries(on, tables, store) {
             .filter((p) => !(c.state.friends ?? []).includes(p.id) && !(c.state.blockedPlayers ?? []).includes(p.id)),
     }))
     on('AbyssGlobalView', (c, r) => {
-        const state = (c.state.abyss ??= { cleared_levels: {}, inherit_notify_flag: false })
-        const cleared = state.cleared_levels ?? {}
-        const modes = tables.get('abbys_mode'),
-            levels = (id) =>
-                String(modes.find((m) => m.id === id)?.level || '')
-                    .split('|')
-                    .filter(Boolean)
-                    .map(Number)
-        const newer = levels(1),
-            permanent = levels(2)
-        ensure(newer.length && permanent.length, 'Missing abyss configuration', ErrorCode.GameConfig)
-        let mode = newer.every((id) => cleared[id]?.completed) ? 2 : 1
-        const rotation = tables
-            .get('abbys_time')
-            .find((row) => c.now >= configTime(row.startTime) && c.now < configTime(row.endTime))
-        if (mode === 2 && permanent.every((id) => cleared[id]?.completed) && rotation) mode = 3
-        const available = mode === 3 ? String(rotation.level).split('|').map(Number) : mode === 2 ? permanent : newer
-        const progress = mode === 3 ? (state.rotations?.[rotation.id]?.levels ?? {}) : cleared
-        if (r.clear_inherit_flag) state.inherit_notify_flag = false
-        const stars = available.reduce(
-            (n, id) => n + Math.max(0, Math.min(tables.find('abbys_level', id)?.star ?? 3, progress[id]?.stars ?? 0)),
-            0,
-        )
-        return {
-            rotation_id: rotation?.id ?? 0,
-            rotation_mode_end_time: rotation ? configTime(rotation.endTime) : 0,
-            cur_level: available.find((id) => !progress[id]?.completed) ?? available.at(-1),
-            total_star: stars,
-            inherit_notify_flag: !!state.inherit_notify_flag,
-            mode,
-        }
+        if (r.clear_inherit_flag && c.state.abyss?.inheritNotify === true) c.state.abyss.inheritNotify = false
+        const response = abyssGlobalView(tables, c.state, c.now)
+        // The map's non-rotation branch reads cached mode records rather than
+        // response.mode. Prime the registered 11450 consumer before its callback.
+        // Local sync order; no completion, inherited star or reward is created.
+        c.pushBefore('SCProtoAbyssData', abyssDataSnapshot(abyssTables(tables), c.state, c.now))
+        return response
     })
 }
