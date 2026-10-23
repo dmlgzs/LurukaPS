@@ -1,4 +1,5 @@
 import { syncBattle } from '../battle.js'
+import { mergeHomeSettings } from '../home-settings.js'
 import { ensure, textValue, syncPlayer, hero } from './common.js'
 import { ensureAppearance, appearanceCatalog, normalizeClothes } from '../appearance.js'
 import { initializeCharacterFormation } from '../character-creation.js'
@@ -120,13 +121,12 @@ export function registerCore(on) {
         syncPlayer(c, { basic_info: c.state.player.basic_info })
         return {}
     })
-    for (const [name, field] of [
-        ['SetSetting', 'settings'],
-        ['SetHomeSetting', 'home_settings'],
-    ])
-        on(name, (c, r) => {
-            c.state.player[field] = r
-        })
+    on('SetSetting', (c, r) => {
+        c.state.player.settings = r
+    })
+    on('SetHomeSetting', (c, r) => {
+        c.state.player.home_settings = mergeHomeSettings(c.state.player.home_settings, r)
+    })
     on('SetClientCustomOptions', (c, r) => {
         // CBT3 sends individual option updates, not a complete settings snapshot.
         // Keep unrelated keys and return the saved options in PlayerData on login.
