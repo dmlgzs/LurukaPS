@@ -1,0 +1,944 @@
+{
+  "version": 1,
+  "source": [
+    {
+      "file": "work/protocol-patches-20261021/parallel-20261022/world-event-conditions-b24/evidence/tables/source.json",
+      "sha256": "a0980b23a85803a4d045fcd29db8180fcb2245599cc0336b8aaed77a9721e42b"
+    },
+    {
+      "file": "work/protocol-patches-20261021/parallel-20261022/world-event-conditions-b24/evidence/tables/world_event.json",
+      "sha256": "d1f9a0908fe3bb5b1c3eadd475db96c337311b53385c08917f360e9fde2c59bf"
+    },
+    {
+      "file": "work/protocol-patches-20261021/parallel-20261022/world-event-assets-b25/evidence/assets/extraction-manifest.json",
+      "sha256": "eb5b87359d855e8825522c3835a360683bc752e6698acdb567bf163a2374ec47"
+    },
+    {
+      "file": "work/protocol-patches-20261021/parallel-20261022/world-event-assets-b25/evidence/blueprints/extraction-manifest.json",
+      "sha256": "af8dbd3af63734355612be991dfc8b6bc02220e15541d76adae4569a6575e83a"
+    }
+  ],
+  "coverage": {
+    "events": 37,
+    "nonemptyAssets": 32,
+    "extractedAssets": 31,
+    "directBlueprintIds": 26,
+    "directBlueprintGraphs": 14,
+    "missingAssets": [
+      121
+    ],
+    "missingBlueprints": [
+      121
+    ]
+  },
+  "policy": {
+    "spatialSampling": "LOCAL: accepted server world positions; not client timer/checkCD frame equivalence",
+    "sameMapInstances": "LOCAL: server worldSync entry/teleport epoch; unreported client-only same-map instance changes are not authenticated",
+    "unreportedGraphDestroy": "LOCAL admitted server runs do not claim exact client handle membership after script-only DestroyRandomEvt",
+    "ambiguousGroup": "unsupported when current admitted same-group instances have different steps",
+    "dataAnomalies": "asset100 posList x=4388496605184 preserved from serialized Float32; no claim that all31 extracted centers are reachable",
+    "resetGroupState": "TODO: official settlement order not verified; do not clear event history or reward receipts",
+    "TODO": "Verify Dictionary slot reuse and actual client replay before resolving differing simultaneous group steps;121 assets remain unavailable"
+  },
+  "events": [
+    {
+      "id": 100,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_100",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 60,
+          "center": {
+            "x": 4388496605184,
+            "y": 129.7098388671875,
+            "z": -576.6995239257812
+          }
+        }
+      ],
+      "blueprint_id": 300019,
+      "blueprint_graph": "ast_worldEvent_egg",
+      "trigger_checks": [
+        {
+          "node": "20",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 101,
+      "map_id": 100,
+      "group": 1,
+      "condition": "",
+      "asset": "random_evt_101",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 70,
+          "center": {
+            "x": -133.68084716796875,
+            "y": 129.8326873779297,
+            "z": -577.3370361328125
+          }
+        }
+      ],
+      "blueprint_id": 300019,
+      "blueprint_graph": "ast_worldEvent_egg",
+      "trigger_checks": [
+        {
+          "node": "20",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 102,
+      "map_id": 100,
+      "group": 1,
+      "condition": "",
+      "asset": "random_evt_102",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 60,
+          "center": {
+            "x": -180.2001953125,
+            "y": 154.9600067138672,
+            "z": -721.5
+          }
+        }
+      ],
+      "blueprint_id": 300019,
+      "blueprint_graph": "ast_worldEvent_egg",
+      "trigger_checks": [
+        {
+          "node": "20",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 103,
+      "map_id": 100,
+      "group": 1,
+      "condition": "",
+      "asset": "",
+      "asset_status": "none",
+      "checks": [],
+      "blueprint_id": 300019,
+      "blueprint_graph": "ast_worldEvent_egg",
+      "trigger_checks": [
+        {
+          "node": "20",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 104,
+      "map_id": 100,
+      "group": 0,
+      "condition": "40001#1#2",
+      "asset": "",
+      "asset_status": "none",
+      "checks": [],
+      "blueprint_id": 0,
+      "blueprint_graph": null,
+      "trigger_checks": []
+    },
+    {
+      "id": 105,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "",
+      "asset_status": "none",
+      "checks": [],
+      "blueprint_id": 0,
+      "blueprint_graph": null,
+      "trigger_checks": []
+    },
+    {
+      "id": 106,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "",
+      "asset_status": "none",
+      "checks": [],
+      "blueprint_id": 0,
+      "blueprint_graph": null,
+      "trigger_checks": []
+    },
+    {
+      "id": 107,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_107",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 60,
+          "center": {
+            "x": -137.2998046875,
+            "y": 127.4000015258789,
+            "z": -438
+          }
+        }
+      ],
+      "blueprint_id": 300019,
+      "blueprint_graph": "ast_worldEvent_egg",
+      "trigger_checks": [
+        {
+          "node": "20",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 108,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_108",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 60,
+          "center": {
+            "x": -238.7998046875,
+            "y": 118,
+            "z": -413.5703125
+          }
+        }
+      ],
+      "blueprint_id": 300019,
+      "blueprint_graph": "ast_worldEvent_egg",
+      "trigger_checks": [
+        {
+          "node": "20",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 109,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_109",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 20,
+          "center": {
+            "x": -133.2998046875,
+            "y": 129.5,
+            "z": -575.5
+          }
+        }
+      ],
+      "blueprint_id": 300019,
+      "blueprint_graph": "ast_worldEvent_egg",
+      "trigger_checks": [
+        {
+          "node": "20",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 110,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_110",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 12,
+          "center": {
+            "x": -222.8000030517578,
+            "y": 131.2100067138672,
+            "z": -603.75
+          }
+        }
+      ],
+      "blueprint_id": 300400,
+      "blueprint_graph": "ast_worldEvent_npc_interact",
+      "trigger_checks": []
+    },
+    {
+      "id": 111,
+      "map_id": 100,
+      "group": 0,
+      "condition": "40003#100#100240224#1",
+      "asset": "random_evt_111",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 30,
+          "center": {
+            "x": -253.02000427246094,
+            "y": 103.24299621582031,
+            "z": -320.7300109863281
+          }
+        }
+      ],
+      "blueprint_id": 300401,
+      "blueprint_graph": "ast_worldEvent_drink_water",
+      "trigger_checks": [
+        {
+          "node": "10",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 112,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "",
+      "asset_status": "none",
+      "checks": [],
+      "blueprint_id": 300402,
+      "blueprint_graph": "ast_worldEvent_group_move",
+      "trigger_checks": [
+        {
+          "node": "19",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 113,
+      "map_id": 996,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_113",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 60,
+          "center": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
+      ],
+      "blueprint_id": 300402,
+      "blueprint_graph": "ast_worldEvent_group_move",
+      "trigger_checks": [
+        {
+          "node": "19",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 114,
+      "map_id": 996,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_114",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 60,
+          "center": {
+            "x": 50,
+            "y": 0,
+            "z": -79
+          }
+        }
+      ],
+      "blueprint_id": 300403,
+      "blueprint_graph": "ast_worldEvent_conflict",
+      "trigger_checks": [
+        {
+          "node": "43",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 115,
+      "map_id": 996,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_115",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 60,
+          "center": {
+            "x": -56,
+            "y": 0,
+            "z": -56
+          }
+        }
+      ],
+      "blueprint_id": 300404,
+      "blueprint_graph": "ast_worldEvent_group_move_template",
+      "trigger_checks": [
+        {
+          "node": "23",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 116,
+      "map_id": 996,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_116",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 60,
+          "center": {
+            "x": -56,
+            "y": 0,
+            "z": -56
+          }
+        }
+      ],
+      "blueprint_id": 300405,
+      "blueprint_graph": "ast_worldEvent_conflict_template",
+      "trigger_checks": []
+    },
+    {
+      "id": 117,
+      "map_id": 996,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_117",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 20,
+          "center": {
+            "x": -272.75,
+            "y": 159.52999877929688,
+            "z": -592.7998046875
+          }
+        }
+      ],
+      "blueprint_id": 300019,
+      "blueprint_graph": "ast_worldEvent_egg",
+      "trigger_checks": [
+        {
+          "node": "20",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 118,
+      "map_id": 996,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_118",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 60,
+          "center": {
+            "x": 50,
+            "y": 0.5019999742507935,
+            "z": -80
+          }
+        }
+      ],
+      "blueprint_id": 300408,
+      "blueprint_graph": "ast_worldEvent_conflict_goat",
+      "trigger_checks": [
+        {
+          "node": "82",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 119,
+      "map_id": 996,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_119",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 60,
+          "center": {
+            "x": 22,
+            "y": 0.5019999742507935,
+            "z": -16
+          }
+        }
+      ],
+      "blueprint_id": 300105,
+      "blueprint_graph": "ast_worldEvent_eat_vegetable",
+      "trigger_checks": [
+        {
+          "node": "46",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 120,
+      "map_id": 996,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_120",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 100,
+          "center": {
+            "x": 101.7300033569336,
+            "y": 0.5019999742507935,
+            "z": -8.279999732971191
+          }
+        }
+      ],
+      "blueprint_id": 300423,
+      "blueprint_graph": "ast_worldEvent_play_dog",
+      "trigger_checks": [
+        {
+          "node": "80",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 121,
+      "map_id": 996,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_121",
+      "asset_status": "missing",
+      "checks": [],
+      "blueprint_id": 300106,
+      "blueprint_graph": null,
+      "trigger_checks": []
+    },
+    {
+      "id": 200,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_200",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 80,
+          "center": {
+            "x": -230.89999389648438,
+            "y": 107.9000015258789,
+            "z": -378.70001220703125
+          }
+        }
+      ],
+      "blueprint_id": 300406,
+      "blueprint_graph": "ast_worldEvent_group_move_wolf",
+      "trigger_checks": [
+        {
+          "node": "22",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 201,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_201",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 80,
+          "center": {
+            "x": -212.6999969482422,
+            "y": 104.0999984741211,
+            "z": -333.20001220703125
+          }
+        }
+      ],
+      "blueprint_id": 300407,
+      "blueprint_graph": "ast_worldEvent_conflict_result_wolfchicken",
+      "trigger_checks": []
+    },
+    {
+      "id": 202,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_202",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 100,
+          "center": {
+            "x": -234.2729949951172,
+            "y": 101.11599731445312,
+            "z": -274.67401123046875
+          }
+        }
+      ],
+      "blueprint_id": 300409,
+      "blueprint_graph": "ast_worldEvent_egg_template",
+      "trigger_checks": [
+        {
+          "node": "17",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 203,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_203",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 100,
+          "center": {
+            "x": -119.10456848144531,
+            "y": 164.7659454345703,
+            "z": -700.2637329101562
+          }
+        }
+      ],
+      "blueprint_id": 300410,
+      "blueprint_graph": "ast_worldEvent_egg_template",
+      "trigger_checks": [
+        {
+          "node": "17",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 204,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_204",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 60,
+          "center": {
+            "x": -375.2099914550781,
+            "y": 104.5,
+            "z": -364.3999938964844
+          }
+        }
+      ],
+      "blueprint_id": 300431,
+      "blueprint_graph": "ast_worldEvent_eat_vegetable",
+      "trigger_checks": [
+        {
+          "node": "46",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 205,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_205",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 60,
+          "center": {
+            "x": -116.19999694824219,
+            "y": 114,
+            "z": -424.6000061035156
+          }
+        }
+      ],
+      "blueprint_id": 300432,
+      "blueprint_graph": "ast_worldEvent_eat_vegetable",
+      "trigger_checks": [
+        {
+          "node": "46",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 220,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_220",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 100,
+          "center": {
+            "x": -293.6390075683594,
+            "y": 167.18600463867188,
+            "z": 63.36000061035156
+          }
+        }
+      ],
+      "blueprint_id": 300412,
+      "blueprint_graph": "ast_worldEvent_egg_template",
+      "trigger_checks": [
+        {
+          "node": "17",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 225,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_225",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 100,
+          "center": {
+            "x": -674.5784301757812,
+            "y": 101.44017028808594,
+            "z": 166.7895965576172
+          }
+        }
+      ],
+      "blueprint_id": 300415,
+      "blueprint_graph": "ast_worldEvent_egg_template",
+      "trigger_checks": [
+        {
+          "node": "17",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 238,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_238",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 100,
+          "center": {
+            "x": 417.4349060058594,
+            "y": 211.48370361328125,
+            "z": 187.77203369140625
+          }
+        }
+      ],
+      "blueprint_id": 300418,
+      "blueprint_graph": "ast_worldEvent_egg_template",
+      "trigger_checks": [
+        {
+          "node": "17",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 240,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_240",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 100,
+          "center": {
+            "x": -12.993270874023438,
+            "y": 142.59523010253906,
+            "z": 370.70697021484375
+          }
+        }
+      ],
+      "blueprint_id": 300433,
+      "blueprint_graph": "ast_worldEvent_egg_template",
+      "trigger_checks": [
+        {
+          "node": "17",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 280,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_280",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 100,
+          "center": {
+            "x": 446.3900146484375,
+            "y": 105.27899932861328,
+            "z": -166.44000244140625
+          }
+        }
+      ],
+      "blueprint_id": 300419,
+      "blueprint_graph": "ast_worldEvent_conflict_goat",
+      "trigger_checks": [
+        {
+          "node": "82",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 290,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_290",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 100,
+          "center": {
+            "x": -506.989990234375,
+            "y": 133.6699981689453,
+            "z": -165.49000549316406
+          }
+        }
+      ],
+      "blueprint_id": 300421,
+      "blueprint_graph": "ast_worldEvent_group_move_template",
+      "trigger_checks": [
+        {
+          "node": "23",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 291,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_291",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 100,
+          "center": {
+            "x": -530.75,
+            "y": 128.5399932861328,
+            "z": -151.4600067138672
+          }
+        }
+      ],
+      "blueprint_id": 300422,
+      "blueprint_graph": "ast_worldEvent_conflict_template",
+      "trigger_checks": []
+    },
+    {
+      "id": 292,
+      "map_id": 100,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_292",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 100,
+          "center": {
+            "x": -393.5199890136719,
+            "y": 146.02000427246094,
+            "z": 38.06999969482422
+          }
+        }
+      ],
+      "blueprint_id": 300430,
+      "blueprint_graph": "ast_worldEvent_play_flower",
+      "trigger_checks": [
+        {
+          "node": "74",
+          "check_condition": false
+        }
+      ]
+    },
+    {
+      "id": 300,
+      "map_id": 101,
+      "group": 0,
+      "condition": "",
+      "asset": "random_evt_300",
+      "asset_status": "extracted",
+      "checks": [
+        {
+          "type": 1,
+          "range": 100,
+          "center": {
+            "x": 638.780029296875,
+            "y": 206.02000427246094,
+            "z": 606.6699829101562
+          }
+        }
+      ],
+      "blueprint_id": 300450,
+      "blueprint_graph": "ast_worldEvent_egg_template",
+      "trigger_checks": [
+        {
+          "node": "17",
+          "check_condition": false
+        }
+      ]
+    }
+  ]
+}

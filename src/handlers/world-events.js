@@ -4,6 +4,7 @@ import { WorldObjectCatalog } from '../world-objects.js'
 import { grantRewards } from '../rewards.js'
 import { u64, combatState, boundedSet } from '../combat-state.js'
 import { enemyDefinition } from '../enemy-state.js'
+import { admitWorldEvent, checkWorldEventConditions, worldEventAdmitted } from '../world-event-runtime.js'
 function wire(record) {
     return {
         cfg_id: record.cfg_id,
@@ -36,10 +37,14 @@ export function registerWorldEvents(on, tables) {
         }
         return grantRewards(c.tables, c.state, rewards)
     }
-    const config = (c, id) => {
+    const config = (c, id, conditionalTrigger = false) => {
         const row = tables.find('world_event', id)
         ensure(row && row.worldMapID === c.state.world.map_id, 'Event not in current map')
-        ensure(!row.conditionID, 'Event condition evaluation is not implemented', ErrorCode.FunctionClosed)
+        ensure(
+            conditionalTrigger || !row.conditionID,
+            'Event condition evaluation is not implemented',
+            ErrorCode.FunctionClosed,
+        )
         ensure(row.stepCount >= 2, 'Invalid event step configuration', ErrorCode.GameConfig)
         return row
     }
@@ -92,7 +97,11 @@ export function registerWorldEvents(on, tables) {
         // The old world can keep polling nearby events while a dungeon scene is
         // loading. Acknowledge them without starting that event in the dungeon.
         if (c.state.multiCampaign && row && row.worldMapID !== c.state.world.map_id) return { infos: [] }
-        return { infos: [wire(trigger(c, config(c, r.cfg_id)))] }
+        const configured = config(c, r.cfg_id, true),
+            event = trigger(c, configured)
+        if (!worldEventAdmitted(c, configured, event)) checkWorldEventConditions(c, configured)
+        admitWorldEvent(c, configured, event)
+        return { infos: [wire(event)] }
     })
     on('WorldEventStep', (c, r) => {
         const row = config(c, r.cfg_id),

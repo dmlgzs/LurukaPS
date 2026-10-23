@@ -8,6 +8,7 @@ import { startCultTrialBattle } from '../cult-trial.js'
 import { syncLoadedNpcArena } from './kibo-duel.js'
 import { updateNpcArenaPause } from '../npc-kibo-pause.js'
 import { changePlayerTitle, playerTitleList } from '../player-titles.js'
+import { restoreWorldEventRuntime } from '../world-event-runtime.js'
 export function registerClientState(on, store) {
     on('GamePause', (c, r) => {
         const gameTime = String(r.game_time ?? '0')
@@ -26,6 +27,7 @@ export function registerClientState(on, store) {
         endSceneTransition(c.state)
         c.state.world.client_loaded = true
         c.state.world.loaded_at = c.now
+        restoreWorldEventRuntime(c)
         syncLoadedNpcArena(c)
         if (c.state.cultTrial?.map_id === c.state.world.map_id && [2, 3, 4].includes(c.state.cultTrial.status))
             startCultTrialBattle(c)

@@ -28,6 +28,7 @@ import {
 } from '../story-campaign.js'
 import { taskSnapshot } from '../tasks.js'
 import { beginSceneTransition, isPreviousSceneMovement, endSceneTransition } from '../scene-transition.js'
+import { clearWorldEventRuntime, pruneWorldEventRuntime } from '../world-event-runtime.js'
 import { playableSnapshot } from './playable-lifecycle.js'
 import { cultTrialSnapshot } from '../cult-trial.js'
 import { exitCultTrial } from './cult-trial.js'
@@ -164,7 +165,10 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
     }
     const s = c.state,
         w = s.world
-    if ([WORLD_MAP_CMD_ENTER, 49, 19].includes(cmd)) beginSceneTransition(s, c.previousMapId, c.now, cmd)
+    if ([WORLD_MAP_CMD_ENTER, 49, 19].includes(cmd)) {
+        beginSceneTransition(s, c.previousMapId, c.now, cmd)
+        clearWorldEventRuntime(s)
+    }
     const departedEntrust = s.entrust?.run
     if (departedEntrust && departedEntrust.map_id !== w.map_id) {
         // Teleports/GM transfers may bypass CampaignQuit. Do not leave a
@@ -501,6 +505,7 @@ export function registerWorld(on) {
         w.pos = confirmed.info.pos
         w.angle = confirmed.info.angle
         if (confirmed.info.area_id !== undefined) w.area_id = confirmed.info.area_id
+        pruneWorldEventRuntime(c)
         c.push('CSProtoStateUpdateBC', { move_msg: { map_id: m.map_id, move: [confirmed] } })
     })
     on('DayWeatherSync', (c, r) => {

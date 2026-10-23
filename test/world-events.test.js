@@ -18,6 +18,7 @@ function fixture() {
         return game
             .dispatch(session, { id: e.id, seq: 1, payload: protocol.encode(e.req, r) })
             .map((p) => ({ id: p.id, data: protocol.decode(protocol.byId.get(p.id).rsp, p.payload) }))
+            .filter((p) => name !== 'WorldEventTrigger' || p.id === e.id)
     }
     call('EnterGame', { open_id: 'events' })
     store.transact(session.id, 0, (s) => {
