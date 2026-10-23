@@ -1,3 +1,4 @@
+import { recordLocalCampaignStory } from "../campaign-playable-story.js"
 import { isPreviousTrialActor } from './trial-groups.js'
 import { ensure, group } from './common.js'
 import { recordTaskBehaviour } from '../task-events.js'
@@ -71,7 +72,7 @@ export function registerClientState(on, store) {
     }))
     on('ClientBehaviourRecord', (c, r) => {
         ensure((r.args ?? []).length <= 64, 'Too many telemetry arguments')
-        if (recordTaskBehaviour(c, r)) return {}
+        if (recordLocalCampaignStory(c, r) || recordTaskBehaviour(c, r)) return {}
         const records = (c.state.clientBehaviour ??= [])
         records.push({ key: r.key ?? 0, args: r.args ?? [], time: c.now })
         if (records.length > 32) records.splice(0, records.length - 32)
