@@ -1,4 +1,5 @@
 import { ErrorCode } from './error-codes.js'
+import { GachaArtwork } from './gacha-artwork.js'
 import { chatRoutingInfo, audienceAllows } from './chat-shields.js'
 import { announcementHttpData, announcementBody } from './announcements.js'
 import { ProtocolDiagnostics } from './diagnostics.js'
@@ -49,6 +50,7 @@ function requestString(value, fallback) {
 }
 
 export async function startServer(config, logger = console) {
+    const gachaArtwork = new GachaArtwork()
     const runtime = {
         revision: sourceRevision(config.base),
         startedAt: new Date().toISOString(),
@@ -299,6 +301,7 @@ export async function startServer(config, logger = console) {
     })
     const web = http.createServer(async (req, res) => {
         const url = new URL(req.url, 'http://localhost')
+        if (gachaArtwork.respond(req, res, url.pathname)) return
         const timestamp = Math.floor(Date.now() / 1000)
         let data, api
         if (url.pathname.startsWith('/announcements/')) {
@@ -363,7 +366,8 @@ export async function startServer(config, logger = console) {
                         res.end(JSON.stringify({ code: ErrorCode.InvalidArgument, message: 'Invalid serverId' }))
                         return
                     }
-                    data = { detail: game.gacha.detail(requestBody.poolId) }
+                    const images = gachaArtwork.urls(`http://${config.publicHost}:${web.address().port}/`)
+                    data = { detail: game.gacha.detail(requestBody.poolId, images) }
                     api = 'ClientGachaPoolDetailReq'
                 } catch (error) {
                     const status = error.code === ErrorCode.InvalidArgument ? 400 : 500

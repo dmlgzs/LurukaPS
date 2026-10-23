@@ -8,6 +8,7 @@ import { gachaTables } from '../src/gacha-tables.js'
 import { gachaPoolDetail } from '../src/gacha-detail.js'
 import { startServer } from '../src/server.js'
 import { ErrorCode } from '../src/error-codes.js'
+import { GachaArtwork } from '../src/gacha-artwork.js'
 
 const config = configuration(),
     tables = gachaTables(new Tables(config.tables)),
@@ -89,7 +90,7 @@ test('the real client URL responds with CardPoolMsg data/detail and performs no 
             const body = await response.json()
             assert.equal(body.code, 0)
             assert.equal(body.api, 'ClientGachaPoolDetailReq')
-            assert.deepEqual(body.data.detail, detail(poolId))
+            assert.deepEqual(body.data.detail, detail(poolId, { detail_images: new GachaArtwork().urls(url) }))
             assert(Number.isSafeInteger(body.timestamp))
         }
         for (const body of [

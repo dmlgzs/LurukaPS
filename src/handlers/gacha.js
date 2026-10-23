@@ -189,9 +189,9 @@ export function registerGacha(on, tables, options = {}) {
         return { gacha_pools: engine.view(c.state) }
     })
     return {
-        detail: (poolId) => {
+        detail: (poolId, images = {}) => {
             engine ??= new GachaDrawEngine(data(), tables, options.policy)
-            return gachaPoolDetail(data(), engine, tables, poolId)
+            return gachaPoolDetail(data(), engine, tables, poolId, images)
         },
         commonTimes: () => {
             engine ??= new GachaDrawEngine(data(), tables, options.policy)

@@ -12,7 +12,7 @@ function name(tables, item) {
 // CardPoolMsg / CardPoolDetail use snake_case fields, not TCP Rewards.
 // This describes the configured local draw model, not an unverified official
 // consolidated probability. No account, random draw or receipt is touched.
-export function gachaPoolDetail(catalog, engine, tables, poolId) {
+export function gachaPoolDetail(catalog, engine, tables, poolId, defaultImages = {}) {
     ensure(Number.isSafeInteger(poolId) && poolId > 0 && poolId <= 0xffffffff, 'Invalid gacha detail pool')
     ensure(catalog.pools.has(poolId), 'Unknown gacha detail pool')
     const config = catalog.configuration(poolId),
@@ -54,12 +54,18 @@ export function gachaPoolDetail(catalog, engine, tables, poolId) {
             ]
         }),
     )
-    const images = engine.policy.detail_images ?? {}
+    const configuredImages = engine.policy.detail_images ?? {}
     ensure(
-        images && typeof images === 'object' && !Array.isArray(images),
+        configuredImages &&
+            typeof configuredImages === 'object' &&
+            !Array.isArray(configuredImages) &&
+            defaultImages &&
+            typeof defaultImages === 'object' &&
+            !Array.isArray(defaultImages),
         'Invalid gacha detail image map',
         ErrorCode.GameConfig,
     )
+    const images = { ...defaultImages, ...configuredImages }
     const up = [...candidates.values()].filter((row) => row.is_up && row.star >= 4)
     for (const row of up)
         if (images[identity(row.item)] !== undefined) {
@@ -109,7 +115,8 @@ export function gachaPoolDetail(catalog, engine, tables, poolId) {
         )
     return {
         // The renderer downloads these images through CDNManager.DownloadToTex.
-        // TODO: export/serve the matching UP artwork; never invent a CDN URL.
+        // HTTP supplies real local client portraits; explicit deployment URLs
+        // override individual images without changing the draw model or state.
         probability_up_target: { hidden: !up.length || up.some((row) => !images[identity(row.item)]), ...upGroups },
         detail_description: {
             hidden: false,
