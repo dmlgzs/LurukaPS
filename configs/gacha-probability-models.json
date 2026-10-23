@@ -1,0 +1,25 @@
+{
+    "schema_version": 1,
+    "basis": "user-selected-model",
+    "officially_verified": false,
+    "profiles": [
+        {
+            "id": "hero",
+            "gacha_types": [1, 9],
+            "expected_scale": 100000,
+            "expected_base_mass": 800,
+            "expected_hard_pity": 90,
+            "soft_start_after": 70,
+            "increment_mass": 200
+        },
+        {
+            "id": "soulessence",
+            "gacha_types": [2, 10],
+            "expected_scale": 100000,
+            "expected_base_mass": 1200,
+            "expected_hard_pity": 80,
+            "soft_start_after": 60,
+            "increment_mass": 1200
+        }
+    ]
+}

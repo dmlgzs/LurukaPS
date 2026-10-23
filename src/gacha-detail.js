@@ -106,6 +106,14 @@ export function gachaPoolDetail(catalog, engine, tables, poolId, defaultImages =
                     : `${rule.minimum + 1}星${rule.guaranteeType === 3 ? '及以上' : ''}`
             return `${rule.isRepeatable ? '最多' : '首次最多'}${rule.guaranteeCount}次观测保证获得${scope}。`
         })
+    if (model.probabilityModel) {
+        const rule = model.probabilityModel
+        const increase = percent(rule.increment_mass / model.scale).replace('%', '')
+        guarantees.push(
+            `连续${rule.soft_start_after}次未获得五星后，第${rule.soft_start_after + 1}次起每次增加${increase}个百分点，第${rule.hard_pity}次必得五星；获得五星后重新计数。`,
+        )
+        guarantees.push('本观测类别的卡池继承保底计数，其他观测类别独立计数。')
+    }
     if (config.selfChooseuplist)
         guarantees.push(
             engine.policy.aimed_ssr_policy === 'selected'

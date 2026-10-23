@@ -6,6 +6,7 @@ import { parseRewards } from './rewards.js'
 import { payGachaTickets } from './gacha-payment.js'
 import { configTime } from './shops.js'
 import { grantGachaAcquisition, gachaWireItem, gachaPresentationResult } from './gacha-acquisition.js'
+import { bindGachaProbabilityModel, gachaRulesForDraw } from './gacha-probabilities.js'
 
 const max64 = 0xffffffffffffffffn
 const uint = (n) => Number.isInteger(n) && n >= 0 && n <= 0xffffffff
@@ -247,7 +248,8 @@ export class GachaDrawEngine {
             if (forcedOnly) r.probability_threshold = 0
             threshold += mass
         }
-        return { rules, scale, pool }
+        const probabilityModel = bindGachaProbabilityModel(config, rules, scale, this.policy.probability_models)
+        return { rules, scale, pool, probabilityModel }
     }
     fee(config, pool, count) {
         ensure(count === 1 || count === 10, 'Invalid gacha draw count')
@@ -521,7 +523,7 @@ export class GachaDrawEngine {
         let newHero = false
         for (let i = 0; i < request.draw_count; i++) {
             const roll = random(c.randomInt, model.scale)
-            const active = model.rules.filter(
+            const active = gachaRulesForDraw(model, entry).filter(
                 (r) => r.isRepeatable || !entry.pity.find((p) => p.pity_id === r.guaranteeId).is_completed,
             )
             const winner = active.find(

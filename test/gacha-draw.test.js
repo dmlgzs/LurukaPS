@@ -194,7 +194,7 @@ test('ordinary category masses share one model with HTTP details without countin
 test('category probabilities need not be increasing thresholds, while overflowing total mass is rejected', () => {
     const tables = gachaTables(new Tables(cfg.tables)),
         catalog = new GachaCatalog(tables),
-        engine = new GachaDrawEngine(catalog, tables)
+        engine = new GachaDrawEngine(catalog, tables, { probability_models: { schema_version: 1, profiles: [] } })
     catalog.guarantees.set(101, { ...catalog.guarantees.get(101), probability_base: 2000 })
     catalog.guarantees.set(103, { ...catalog.guarantees.get(103), probability_base: 1000 })
     const model = engine.compile(catalog.configuration(1001))
