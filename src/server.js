@@ -79,11 +79,18 @@ export async function startServer(config, logger = console) {
         const socket = owners.get(id)
         return !!(socket && !socket.destroyed && sessions.get(socket)?.session.entered)
     }
+    game.legacyMatchTeams.connectionKey = (id) => {
+        const socket = owners.get(id),
+            session = socket && sessions.get(socket)?.session
+        return socket && !socket.destroyed && session?.entered ? session.token : null
+    }
     function notifyLegacyTeamPresence(id, online) {
         if (closing) return
         try {
             const room = game.legacyMatchTeams.roomFor(id)
             if (!room) return
+            for (const packet of game.legacyMatchTeams.changes.maintenance(game.clock(), room.id))
+                deliverTo(packet.recipient, packet)
             const packet = game.packet('SCProtoTeamMemOnlineNtf', {
                 scene_type: room.target.scene_type,
                 player_id: id,
@@ -533,6 +540,17 @@ export async function startServer(config, logger = console) {
         }
     }, 1000)
     productionTimer.unref()
+    // Only due proposals enter a transaction. No per-player snapshot/write is
+    // needed while idle, and timeout does not depend on another gameplay RPC.
+    const teamChangeTimer = setInterval(() => {
+        try {
+            for (const packet of game.legacyMatchTeams.changes.maintenance(game.clock()))
+                deliverTo(packet.recipient, packet)
+        } catch (error) {
+            logger.warn('Legacy team proposal maintenance: ' + error.message)
+        }
+    }, 1000)
+    teamChangeTimer.unref()
     const arenaTimer = setInterval(() => {
         for (const [socket, { session, replay }] of sessions) {
             if (!session.entered || !session.npcArenaTick || owners.get(session.id) !== socket) continue
@@ -554,6 +572,7 @@ export async function startServer(config, logger = console) {
         async close() {
             closing = true
             clearInterval(productionTimer)
+            clearInterval(teamChangeTimer)
             clearInterval(arenaTimer)
             for (const s of sockets) s.destroy()
             await Promise.all([

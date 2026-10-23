@@ -5,6 +5,7 @@ import { requireWeeklySystem, weeklyDungeonUnlocked } from './weekly-dungeons.js
 import { getEntrustCatalog } from './entrust.js'
 import invitePolicy from '../configs/legacy-match-team-policy.json' with { type: 'json' }
 import { legacyChatBans } from './chat-shields.js'
+import { LegacyTeamTargetChanges } from './legacy-team-target-change.js'
 
 const uint = (n) => Number.isSafeInteger(n) && n >= 0 && n <= 0xffffffff
 const playerId = (n) => uint(n) && n > 0
@@ -129,6 +130,7 @@ export class LegacyMatchTeams {
         this.tables = tables
         this.db = store.db
         this.isOnline = () => false
+        this.connectionKey = () => null
         this.policy = structuredClone(invitePolicy)
         this.db.exec(`
             CREATE TABLE IF NOT EXISTS legacy_match_rooms (id INTEGER PRIMARY KEY, payload TEXT NOT NULL);
@@ -189,6 +191,18 @@ export class LegacyMatchTeams {
         )
         targetDefinition(this.tables, room.target)
         return room
+    }
+    validateTarget(target) {
+        ensure(
+            target &&
+                playerId(target.dungeon_id) &&
+                playerId(target.config_id) &&
+                target.scene_type === 12 &&
+                target.site_id === 0,
+            'Invalid saved team target shape',
+            ErrorCode.GameConfig,
+        )
+        return targetDefinition(this.tables, target)
     }
     snapshot(room, ownId, ownState) {
         const members = room.members.map((member) => {
@@ -275,6 +289,7 @@ export class LegacyMatchTeams {
             else c.pushTo(recipient, name, value)
         }
         const previous = room.members.map((member) => member.id)
+        this.changes?.cancel(c, room)
         // Old offers must not authorize joining a roster/captain that changed
         // after the actual invitation. The client closes its own30s window.
         this.db.prepare('DELETE FROM legacy_match_invites WHERE room_id=? OR recipient_id=?').run(room.id, c.id)
@@ -412,6 +427,11 @@ export class LegacyMatchTeams {
         ensure(!r.is_quit, 'Legacy invitation is_quit behavior is not implemented', ErrorCode.FunctionClosed)
         const room = this.roomFor(c.id)
         ensure(room, 'Not in a legacy match team', ErrorCode.NotInMatchTeam)
+        ensure(
+            !this.changes?.hasPending(room.id, c.now),
+            'A team target proposal is pending',
+            ErrorCode.TeamWaitStateSync,
+        )
         // LOCAL permission policy until the old Lua UI/official rule is
         // confirmed. Both captain-only and ordinary-member invites are
         // supported; do not describe this default as verified official law.
@@ -519,6 +539,11 @@ export class LegacyMatchTeams {
         ensure(c.now < offer.expires_at, 'Invitation expired', ErrorCode.InviteMatchTeamExpired)
         const room = this.roomFor(offer.inviter_id)
         ensure(room && room.id === id, 'Invited team no longer exists', ErrorCode.TeamNotExists)
+        ensure(
+            !this.changes?.hasPending(room.id, c.now),
+            'A team target proposal is pending',
+            ErrorCode.TeamWaitStateSync,
+        )
         ensure(sameTarget(room.target, offer.target), 'Invited team target changed', ErrorCode.TeamTargetChanged)
         if (!accepted) {
             this.db.prepare("UPDATE legacy_match_invites SET status='declined' WHERE recipient_id=?").run(c.id)
@@ -555,11 +580,13 @@ export class LegacyMatchTeams {
     }
 }
 
-export function registerLegacyMatchTeams(on, store, tables) {
+export function registerLegacyMatchTeams(on, store, tables, encodeNotice) {
     const teams = new LegacyMatchTeams(store, tables)
+    teams.changes = new LegacyTeamTargetChanges(teams, legacyMatchTarget, encodeNotice)
     on('CreateMatchTeam', (c, r) => teams.create(c, r))
     on('LeaveMatchTeam', (c, r) => teams.leave(c, r))
     on('InviteJoin', (c, r) => teams.invite(c, r))
     on('ReplyInviteJoin', (c, r) => teams.replyInvitation(c, r))
+    on('ChangeDungeon', (c, r) => teams.changes.change(c, r))
     return teams
 }

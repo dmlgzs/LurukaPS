@@ -497,7 +497,9 @@ export class Game {
         registerChat(on, store, { runGM })
         registerChatShields(on, store)
         registerFriends(on, store)
-        this.legacyMatchTeams = registerLegacyMatchTeams(on, store, tables)
+        this.legacyMatchTeams = registerLegacyMatchTeams(on, store, tables, (name, value, recipient) =>
+            this.packet(name, value, { recipient }),
+        )
         registerShortcuts(on)
         registerPhotoTemplates(on)
         registerChatCustomization(on)

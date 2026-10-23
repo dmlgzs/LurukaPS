@@ -4,5 +4,6 @@
     "officially_verified": false,
     "invite_permission": "captain",
     "invite_timeout_game_title": "UI_TEAM_INVITATION_PLAYTIME",
-    "expected_client_window_seconds": 30
+    "expected_client_window_seconds": 30,
+    "change_window_seconds": 15
 }

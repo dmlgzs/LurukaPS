@@ -17,6 +17,8 @@ export function teamFixture({ database = ':memory:', count = 5, account = 'legac
         sessions = Array.from({ length: count }, () => ({}))
     const game = new Game(protocol, store, teamTables, { clock: () => time.now })
     game.legacyMatchTeams.isOnline = (id) => online.has(id)
+    game.legacyMatchTeams.connectionKey = (id) =>
+        sessions.find((session) => session.id === id && session.entered && online.has(id))?.token ?? null
     let sequence = 1
     const call = (index, name, value = {}) => {
         const entry = protocol.byName.get('CSProto' + name),
