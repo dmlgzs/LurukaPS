@@ -105,3 +105,66 @@ export function clearAbyssRuntime(c) {
     syncBattle(c)
     return true
 }
+export function retryAbyssRoom(c) {
+    const run = requireAbyssRun(c),
+        current = run.challenges[run.part_index],
+        ids = new Set(current.heros.map((x) => x.hero.hero_guid)),
+        priorHeroes = new Set(
+            run.challenges.slice(0, run.part_index).flatMap((x) => x.heros.map((x) => x.hero.hero_guid)),
+        )
+    ensure(
+        ['ready', 'running', 'won', 'lost'].includes(run.phase) &&
+            run.challenges.slice(0, run.part_index).every((x) => x.win),
+        'Saved abyss retry phase is invalid',
+        ErrorCode.GameConfig,
+    )
+    run.total_battle_time = run.challenges.slice(0, run.part_index).reduce((sum, x) => sum + x.battle_time, 0)
+    run.dead_hero_ids = run.dead_hero_ids.filter((id) => priorHeroes.has(id))
+    run.challenges = run.challenges.map((x, i) =>
+        i < run.part_index
+            ? x
+            : {
+                  ...x,
+                  win: false,
+                  battle_time: 0,
+                  dead_hero_num: 0,
+                  heros: x.heros.map((h) => ({
+                      ...h,
+                      hp: h.hero.hero_guid === '0' ? 0 : heroBattleLimits(run.heroAttrs[h.hero.hero_guid]).hp,
+                      pet_hp: h.hero.pet_guid === '0' ? 0 : heroBattleLimits(run.petAttrs[h.hero.pet_guid]).hp,
+                  })),
+              },
+    )
+    for (const row of c.state.player.heros_info.battle_infos)
+        if (ids.has(row.hero_id)) {
+            const max = heroBattleLimits(run.heroAttrs[row.hero_id])
+            Object.assign(row, {
+                hp: max.hp,
+                sp: max.sp,
+                alive_state: 0,
+                ...(Object.hasOwn(row, 'rescue_val') ? { rescue_val: 0 } : {}),
+            })
+        }
+    run.pet_hp = { ...run.pet_hp }
+    for (const row of run.challenges[run.part_index].heros)
+        if (row.hero.pet_guid !== '0') run.pet_hp[row.hero.pet_guid] = row.pet_hp
+    run.phase = 'ready'
+    run.retry = true
+    run.last_transition = 'retry'
+    for (const key of [
+        'wave_index',
+        'wave_objects',
+        'completed_objects',
+        'scene_objects',
+        'real_start_time',
+        'end_time',
+        'initialized_map',
+    ])
+        delete run[key]
+    run.task_tags = abyssTaskTags(c.tables, run, c.now)
+    const { point } = abyssRoute(abyssTables(c.tables), run.dungeon_id)
+    Object.assign(c.state.world, abyssTables(c.tables).position(point))
+    const mode = abyssModeRecord(c.state, run.mode, { id: run.rotation_id })
+    mode.levels[run.level_id].challenge_list = structuredClone(run.challenges)
+    return run
+}

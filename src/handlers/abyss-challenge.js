@@ -7,7 +7,7 @@ import { syncBattle } from '../battle.js'
 import { ensure } from './common.js'
 import { ErrorCode } from '../error-codes.js'
 import { startAbyssBattle, advanceAbyssCombat } from '../abyss-battle.js'
-import { nextAbyssRoom, clearAbyssRuntime } from '../abyss-flow.js'
+import { nextAbyssRoom, clearAbyssRuntime, retryAbyssRoom } from '../abyss-flow.js'
 
 export function publishAbyssEntry(c) {
     const run = c.state.abyssRun,
@@ -39,6 +39,14 @@ export function enterAbyssScene(c, r = {}) {
     return {}
 }
 export function registerAbyssChallenge(on) {
+    on('AbyssChallengeRetry', (c) => {
+        const run = retryAbyssRoom(c)
+        publishAbyssEntry(c)
+        // is_retry tears down the old client manager, so it must be a one-shot
+        // entry marker, never repeated by subsequent live wave updates.
+        run.retry = false
+        return {}
+    })
     on('AbyssChallengeQuit', (c) => {
         const run = c.state.abyssRun
         if (!run) return {}
