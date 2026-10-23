@@ -495,3 +495,56 @@ test('failed high-frequency handler changes no proof, instance exit resets it, a
         f.store.close()
     }
 })
+
+test('invalid actual teaching run IDs never authorize proofs; legacy valid flows stay intact and only a new instance recovers', () => {
+    for (const invalid of [undefined, 0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, '1', null]) {
+        const f = setup()
+        try {
+            f.store.transact(f.session.id, 0, (s) => {
+                if (invalid === undefined) delete s.storyCampaign.instance_id
+                else s.storyCampaign.instance_id = invalid
+            })
+            assert.doesNotThrow(() => f.complete())
+            assert.equal(f.proof(), undefined)
+            assert.equal(f.ready(), false)
+            assert.throws(
+                () => f.call('StoryKill', f.kills()),
+                (e) => !(e instanceof TypeError),
+            )
+            const state = structuredClone(f.state()),
+                c = { state, arena_now_ms: f.ms() },
+                op = f.rule.ops[0]
+            assert.doesNotThrow(() => observeTimedTeachingProof(c, f.actor, op, 'invalid-run-probe', f.row, f.rule))
+            assert.equal(state.combat.teachingProof?.[f.row.id], undefined)
+            f.call('CampaignQuit')
+            f.enter()
+            assert.ok(
+                Number.isSafeInteger(f.state().storyCampaign.instance_id) && f.state().storyCampaign.instance_id > 0,
+            )
+            f.complete()
+            assert.equal(f.ready(), true)
+        } finally {
+            f.store.close()
+        }
+    }
+    const legacy = config.rules.find((r) => r.sourceShape === 'linear-skill-v1'),
+        f = setup(legacy)
+    try {
+        f.complete(legacy.steps)
+        f.tick(legacy.completionDelaySeconds * 1000)
+        assert.equal(f.ready(), true, 'a genuine legacy proof keeps its successful behavior')
+        for (const invalid of [0, undefined]) {
+            f.store.transact(f.session.id, 0, (s) => {
+                if (invalid === undefined) delete s.storyCampaign.instance_id
+                else s.storyCampaign.instance_id = invalid
+            })
+            assert.equal(f.ready(), false, 'legacy complete proof must still belong to a valid actual run')
+            assert.throws(
+                () => f.call('StoryKill', f.kills()),
+                (e) => !(e instanceof TypeError),
+            )
+        }
+    } finally {
+        f.store.close()
+    }
+})

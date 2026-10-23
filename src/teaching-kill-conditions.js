@@ -10,6 +10,7 @@ function targets(tables, state) {
     const run = state.storyCampaign
     if (
         !run?.teaching_id ||
+        !validInstance(run.instance_id) ||
         run.status !== 2 ||
         run.map_id !== state.world.map_id ||
         state.combat?.map_id !== run.map_id
@@ -33,7 +34,17 @@ function targets(tables, state) {
 function validProof(state, row, rule) {
     const p = state.combat?.teachingProof?.[row.id],
         run = state.storyCampaign
-    return p?.instance === run.instance_id && p.map === run.map_id && p.source === rule.sourceSha256 ? p : null
+    return p &&
+        run &&
+        validInstance(run.instance_id) &&
+        p.instance === run.instance_id &&
+        p.map === run.map_id &&
+        p.source === rule.sourceSha256
+        ? p
+        : null
+}
+function validInstance(id) {
+    return Number.isSafeInteger(id) && id > 0
 }
 function activeTrialActor(state, actor) {
     const manager = activeFormationManager(state),
@@ -154,7 +165,13 @@ function observe(c, actor, event, key) {
 }
 export function observeTimedTeachingProof(c, actor, event, key, row, rule) {
     const ms = c.arena_now_ms
-    if (!validTime(ms) || rule.proofPolicy !== policy.id || !activeTrialActor(c.state, actor)) return
+    if (
+        !validInstance(c.state.storyCampaign?.instance_id) ||
+        !validTime(ms) ||
+        rule.proofPolicy !== policy.id ||
+        !activeTrialActor(c.state, actor)
+    )
+        return
     const prior = timedProof(c.state, row, rule)
     if (prior?.blocked || (prior && (prior.actor !== actor || ms < prior.last_event_ms))) return
     const op = prior?.op ?? 0,
