@@ -238,6 +238,7 @@ import { ensureAppearance, clothesSnapshot, heroSkinsSnapshot } from './appearan
 import { registerCollection } from './handlers/collection.js'
 import { registerWorld, repairLegacyMountState } from './handlers/world.js'
 import { registerMail } from './handlers/mail.js'
+import { registerGiftCodes } from './gift-codes.js'
 const deferredTaskProgress = new Set([
     'CSProtoTaskClientBefore',
     'CSProtoTaskClientCondAfter',
@@ -441,6 +442,7 @@ export class Game {
             syncOptimization = true,
             gachaPolicy = undefined,
             tourPolicy = undefined,
+            giftCodeConfig = undefined,
         } = {},
     ) {
         this.announcementBaseUrl = 'http://127.0.0.1:20001/'
@@ -529,6 +531,7 @@ export class Game {
         registerWorldDifficulty(on)
         registerStamina(on)
         registerMail(on)
+        registerGiftCodes(on, store, giftCodeConfig)
         registerProgression(on)
         this.noviceTasks = registerNoviceTasks(on, tables)
         registerAchievements(on)

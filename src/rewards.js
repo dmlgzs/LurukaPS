@@ -21,6 +21,7 @@ import { grantPetSkin } from './pet-skins.js'
 import { grantPlayerTitle } from './player-titles.js'
 import { grantAppearanceReward } from './appearance-rewards.js'
 import { grantEntryHeroFavor } from './hero-favor-rewards.js'
+export { validateRewardDefinitions } from './reward-definitions.js'
 export function parseRewards(value, allowZero = false) {
     if (!value) return []
     return String(value)

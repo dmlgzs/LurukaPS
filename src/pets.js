@@ -261,11 +261,13 @@ export function createPets(tables, state, configId, count, builderRuleId = 1001,
     state.petRevision = (state.petRevision || 0) + 1
     return created
 }
-export function createCustomizedPets(tables, state, customizedId, count) {
+export function customizedPetRewardDefinition(tables, customizedId) {
     const config = tables.find('pet_customized', customizedId)
     ensure(
         config &&
             tables.find('pet', config.petId) &&
+            tables.find('template_value', config.petId) &&
+            tables.find('pet_builder_rule', config.builderRule || 1001) &&
             Number.isInteger(config.level) &&
             config.level > 0 &&
             config.skillType === 0 &&
@@ -288,7 +290,7 @@ export function createCustomizedPets(tables, state, customizedId, count) {
         ErrorCode.GameConfig,
     )
     const upgrades = tables.get('pet_talent_upgrade')
-    const comprehension = attributes.map((attr_id) => {
+    const comprehensionRows = attributes.map((attr_id) => {
         const level = levels.get(attr_id),
             row = upgrades.find((x) => x.attrId === attr_id && x.level === level)
         ensure(
@@ -296,8 +298,7 @@ export function createCustomizedPets(tables, state, customizedId, count) {
             'Invalid customized pet aptitude value',
             ErrorCode.GameConfig,
         )
-        const value = row.InterA === row.InterB ? row.InterA : randomInt(row.InterA, row.InterB + 1)
-        return { attr_id, value, level, init_level: level, cur_exp: 0 }
+        return { attr_id, level, minimum: row.InterA, maximum: row.InterB }
     })
     const fixedGenes = [
         ...(config.talentDnaType === 1 ? [config.talentDna] : []),
@@ -350,6 +351,13 @@ export function createCustomizedPets(tables, state, customizedId, count) {
             'Invalid customized pet mount speed',
             ErrorCode.GameConfig,
         )
+    return { config, comprehensionRows, fixedGenes, maxGenes, labor }
+}
+export function createCustomizedPets(tables, state, customizedId, count) {
+    const { config, comprehensionRows, fixedGenes, maxGenes, labor } = customizedPetRewardDefinition(tables, customizedId)
+    const comprehension = comprehensionRows.map(({ attr_id, level, minimum, maximum }) => ({
+        attr_id, level, value: minimum === maximum ? minimum : randomInt(minimum, maximum + 1), init_level: level, cur_exp: 0,
+    }))
     const pets = createPets(tables, state, config.petId, count, config.builderRule || 1001)
     for (const pet of pets) {
         pet.customized_id = config.id
