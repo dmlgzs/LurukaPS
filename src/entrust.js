@@ -192,6 +192,35 @@ export function settleEntrustVictory(tables, state, now) {
     return true
 }
 
+export function entrustChestGivenUp(tables, run) {
+    if (run?.chest_given_up === undefined) return false
+    const receipt = run.chest_given_up
+    ensure(
+        receipt &&
+            typeof receipt === 'object' &&
+            !Array.isArray(receipt) &&
+            run.kind === 'material' &&
+            run.battle_complete === true &&
+            !run.chest_claimed &&
+            Number.isSafeInteger(run.instance_id) &&
+            run.instance_id > 0 &&
+            receipt.instance_id === run.instance_id &&
+            Number.isInteger(receipt.box_id) &&
+            receipt.box_id > 0 &&
+            receipt.box_id <= 0xffffffff &&
+            Number.isSafeInteger(receipt.at) &&
+            receipt.at >= 0,
+        'Invalid stamina chest give-up receipt',
+        ErrorCode.GameConfig,
+    )
+    ensure(
+        receipt.box_id === getEntrustCatalog(tables).chest(run.entrust_id).id,
+        'Stamina chest give-up identity mismatch',
+        ErrorCode.GameConfig,
+    )
+    return true
+}
+
 export function entrustChestSnapshot(tables, state) {
     const run = state.entrust?.run
     if (!run?.battle_complete) return { boxes: [] }
@@ -200,7 +229,8 @@ export function entrustChestSnapshot(tables, state) {
         boxes: [
             {
                 box_id: chest.id,
-                finish_time: run.chest_claimed ? 0 : (run.chest_ready_time ?? run.end_time),
+                finish_time:
+                    run.chest_claimed || entrustChestGivenUp(tables, run) ? 0 : (run.chest_ready_time ?? run.end_time),
                 map_id: run.map_id,
                 box_count: run.chest_claimed ? (run.claim_times ?? 1) : 0,
                 stage_type: run.kind === 'material' ? 4 : 1,
@@ -318,7 +348,8 @@ export function ensureEntrustSceneObjects(tables, state, now) {
         delete run.scene_objects
         // Preserve the completed wave index and victory/claim receipt. The
         // correct map has different group IDs; completed groups stay dead.
-        if (run.battle_complete && !run.chest_claimed) run.chest_ready_time = now ?? run.chest_ready_time
+        if (run.battle_complete && !run.chest_claimed && !entrustChestGivenUp(tables, run))
+            run.chest_ready_time = now ?? run.chest_ready_time
     }
     const records = (state.worldObjects ??= {})
     let changed = false
@@ -375,7 +406,8 @@ export function ensureEntrustSceneObjects(tables, state, now) {
             const finished = stage.index < run.stage_index
             const active =
                 (stage.index === run.stage_index || (stage.type === 30 && finished)) &&
-                !(materialStoryPending(run) && row.id === run.materialStory.boss_id)
+                !(materialStoryPending(run) && row.id === run.materialStory.boss_id) &&
+                !(stage.type === 30 && entrustChestGivenUp(tables, run))
             if (
                 record.active !== active ||
                 record.complete !== finished ||

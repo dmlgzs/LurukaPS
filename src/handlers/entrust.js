@@ -27,6 +27,7 @@ import {
     entrustMultiSnapshot,
     entrustMultiBaseSnapshot,
     entrustChestSnapshot,
+    entrustChestGivenUp,
     entrustDamageSnapshot,
     campaignSnapshot,
 } from '../entrust.js'
@@ -60,6 +61,7 @@ function claimEntrustChest(c, times = 1) {
         return result.rewards
     }
     ensure(run?.battle_complete && run.map_id === c.state.world.map_id, 'Entrust battle is not finished')
+    ensure(!entrustChestGivenUp(c.tables, run), 'Stamina chest was given up', ErrorCode.StaminaBoxNotExist)
     if (run.chest_claimed) return []
     const catalog = getEntrustCatalog(c.tables),
         chest = catalog.chest(run.entrust_id)
@@ -174,7 +176,7 @@ export function syncEntrustEnemyBattle(c, previousEnemyObjectId) {
         })
         c.push('SCProtoControlChangeByAddNtf', { agent_uid, cli_data: { uuid: agent_uid } })
     }
-    if (!single && run.battle_complete && !run.chest_claimed) {
+    if (!single && run.battle_complete && !run.chest_claimed && !entrustChestGivenUp(c.tables, run)) {
         const chest = getEntrustCatalog(c.tables).chest(run.entrust_id)
         c.push('SCProtoObjAppearNtf', {
             agent_uid: ((8n << 56n) | BigInt(chest.worldmapid)).toString(),
@@ -474,6 +476,56 @@ export function registerEntrust(on, tables) {
             reward: { rewards: claimEntrustChest(c, r.times), src: rewardSource(c.tables, 'staminaChest') },
             extra_reward: { rewards: c.repeatExtraRewards ?? [], src: rewardSource(c.tables, 'staminaChest') },
         }
+    })
+    on('StaminaBoxGiveUp', (c, r) => {
+        ensure(
+            Number.isInteger(r.box_id) && r.box_id > 0 && r.box_id <= 0xffffffff,
+            'Invalid stamina chest identity',
+            ErrorCode.InvalidArgument,
+        )
+        const run = c.state.entrust?.run
+        ensure(run, 'Stamina chest does not exist', ErrorCode.StaminaBoxNotExist)
+        // pageDungeonReward sends 9976 only for MaterialDungeon/WeeklyBoss.
+        // Weekly runs have no supported ledger yet; normal commission dialog
+        // cancellation uses a different local event and must not enter here.
+        ensure(run.kind === 'material', 'Unsupported stamina chest give-up mode', ErrorCode.FunctionClosed)
+        ensure(run.map_id === c.state.world.map_id, 'Not in stamina chest map', ErrorCode.NotInMap)
+        const chest = catalog.chest(run.entrust_id)
+        ensure(r.box_id === chest.id, 'Stamina chest does not exist', ErrorCode.StaminaBoxNotExist)
+        ensure(run.battle_complete && !run.chest_claimed, 'No unclaimed stamina chest', ErrorCode.StaminaBoxNotExist)
+        if (!entrustChestGivenUp(c.tables, run)) {
+            ensure(
+                Number.isSafeInteger(run.instance_id) &&
+                    run.instance_id > 0 &&
+                    Number.isSafeInteger(c.now) &&
+                    c.now >= 0,
+                'Invalid stamina chest instance',
+                ErrorCode.GameConfig,
+            )
+            ensure(
+                Number.isSafeInteger(run.chest_ready_time ?? run.end_time) &&
+                    Number.isSafeInteger(chest.time) &&
+                    chest.time > 0,
+                'Invalid stamina chest deadline',
+                ErrorCode.GameConfig,
+            )
+            ensure(
+                c.now < (run.chest_ready_time ?? run.end_time) + chest.time,
+                'Stamina chest expired',
+                ErrorCode.StaminaBoxExpired,
+            )
+            run.chest_given_up = { instance_id: run.instance_id, box_id: chest.id, at: c.now }
+            run.stage_index = catalog.stages(run.entrust_id).at(-1).index + 1
+        } else
+            ensure(
+                run.chest_given_up.box_id === chest.id,
+                'Stamina chest give-up identity mismatch',
+                ErrorCode.GameConfig,
+            )
+        // No reward path, cost, claim count or scene exit. A zero finish_time
+        // makes StaminaChestData.GetIsAlive false; refresh only this run's box.
+        syncEntrustStage(c)
+        return {}
     })
     on('EntrustStarReward', (c, r) => {
         const ids = [...new Set([r.reward_id, ...(r.reward_id_list ?? [])].filter(Boolean))]
