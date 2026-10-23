@@ -217,7 +217,7 @@ export function entrustChestGivenUp(tables, run) {
         receipt &&
             typeof receipt === 'object' &&
             !Array.isArray(receipt) &&
-            run.kind === 'material' &&
+            ['material', 'weekly'].includes(run.kind) &&
             run.battle_complete === true &&
             !run.chest_claimed &&
             Number.isSafeInteger(run.instance_id) &&

@@ -525,9 +525,13 @@ export function registerEntrust(on, tables) {
         const run = c.state.entrust?.run
         ensure(run, 'Stamina chest does not exist', ErrorCode.StaminaBoxNotExist)
         // pageDungeonReward sends 9976 only for MaterialDungeon/WeeklyBoss.
-        // Weekly runs have no supported ledger yet; normal commission dialog
-        // cancellation uses a different local event and must not enter here.
-        ensure(run.kind === 'material', 'Unsupported stamina chest give-up mode', ErrorCode.FunctionClosed)
+        // Normal commission dialog cancellation uses another local event;
+        // only the genuine material/weekly chest dialogs send this request.
+        ensure(
+            ['material', 'weekly'].includes(run.kind),
+            'Unsupported stamina chest give-up mode',
+            ErrorCode.FunctionClosed,
+        )
         ensure(run.map_id === c.state.world.map_id, 'Not in stamina chest map', ErrorCode.NotInMap)
         const chest = catalog.chest(run.entrust_id, run.kind)
         ensure(r.box_id === chest.id, 'Stamina chest does not exist', ErrorCode.StaminaBoxNotExist)
