@@ -19,7 +19,7 @@ function fixture(name,file=':memory:'){
  call('PetLock',{guid:id,lock_operate:false})
  return {id,call,edit:fn=>store.transact(session.id,0,fn),state:()=>store.load(session.id).state,close:()=>store.close(),reopen(){store.close();store=new Store(file);p=new Protocol(cfg.base);game=new Game(p,store,tables,{clock:()=>1800000000});session={};call('EnterGame',{open_id:name})}}
 }
-const reserve=(f,state)=>f.edit(s=>{s.activities={8001:{kiboTour:{next_attempt:2,runs:{1001:{attempt_id:1,tour_id:1001,pet_ids:[f.id],state,start_time:1700000000,end_time:1700003600}},receipts:{}}}};s.pets[0].tour_state=0})
+const reserve=(f,state)=>f.edit(s=>{s.activities={8001:{kiboTour:{version:1,next_attempt:2,total_times:0,runs:{1001:{attempt_id:1,tour_id:1001,pet_ids:[f.id],state,start_time:1700000000,end_time:1700003600}},receipts:{}}}};s.pets[0].tour_state=0})
 test('6512 uses real unfinished tour receipts rather than stale pet flags or activity time, and refusal is atomic',()=>{
  const f=fixture('tour-reserve-release')
  try{

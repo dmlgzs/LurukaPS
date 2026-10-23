@@ -1,3 +1,4 @@
+import { registerKiboTours } from './kibo-tours.js'
 import { ErrorCode } from '../error-codes.js'
 import { ensure } from './common.js'
 import { ActivityCatalog } from '../activities.js'
@@ -6,9 +7,10 @@ import { WorldObjectCatalog } from '../world-objects.js'
 import { spend, spendCurrency } from '../inventory.js'
 import { rewardSource } from '../reward-source.js'
 
-export function registerActivities(on, tables) {
-    const catalog = new ActivityCatalog(tables),
+export function registerActivities(on, tables, options = {}) {
+    const catalog = new ActivityCatalog(tables, options),
         drops = new WorldObjectCatalog(tables)
+    registerKiboTours(on, catalog)
     const activityTables = catalog.tables
     const publish = (c) => catalog.notify(c, true)
     const grant = (c, items) => {
@@ -33,7 +35,7 @@ export function registerActivities(on, tables) {
             }
         }
         const snapshot = catalog.snapshot(c.state, c.now)
-        c.pushBefore('CSProtoSyncCommonTimeConf', catalog.commonTimes(c.now))
+        c.pushBefore('CSProtoSyncCommonTimeConf', catalog.commonTimes(c.now, c.state))
         c.pushBefore('CSProtoActivitySync', snapshot)
         const nday = catalog.nday(c.state, c.now)
         if (nday) c.pushBefore('SCProtoNDayInfoSync', nday)

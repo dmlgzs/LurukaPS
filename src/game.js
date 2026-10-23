@@ -439,6 +439,7 @@ export class Game {
             taskEventDiagnosticsFile = null,
             syncOptimization = true,
             gachaPolicy = undefined,
+            tourPolicy = undefined,
         } = {},
     ) {
         this.announcementBaseUrl = 'http://127.0.0.1:20001/'
@@ -496,7 +497,7 @@ export class Game {
         registerChatCustomization(on)
         registerPlayableEnemies(on, tables, store)
         registerWorldEvents(on, tables)
-        this.activities = registerActivities(on, tables)
+        this.activities = registerActivities(on, tables, { tourPolicy })
         this.activities.commonTimeSources.push(() => this.gacha.commonTimes())
         registerGrowup(on, this.activities)
         registerCultTrial(on, tables, this.activities)
@@ -1859,7 +1860,7 @@ export class Game {
                 ? [this.packet('CSProtoCampaignInfoSync', storyCampaignSnapshot(state))]
                 : []),
             this.packet('CSProtoTaskSync', taskSnapshot(this.tables, state)),
-            this.packet('CSProtoSyncCommonTimeConf', this.activities.commonTimes(now)),
+            this.packet('CSProtoSyncCommonTimeConf', this.activities.commonTimes(now, state)),
             ...this.activities
                 .growupHistorySnapshots(state, now)
                 .map((data) => this.packet('CSProtoActivityGrowUpEndQuerySync', data)),

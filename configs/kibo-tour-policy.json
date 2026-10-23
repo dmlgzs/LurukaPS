@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "mode": "local_complete_lifecycle",
+  "activityBinding": "unique_type80_all_catalog_rows",
+  "durationSeconds": 3600,
+  "claimDisplayEndTime": "20991231-235959",
+  "entryCost": "no_configured_cost",
+  "totalQuotaConsumption": "reward_only",
+  "cancelConsumesQuota": false,
+  "lateSettlement": "existing_runs_only",
+  "petExperience": "client_element_match_preview",
+  "TODO": [
+    "LOCAL: official duration was not recovered. One hour is an explicitly disclosed configurable local default, not an official value.",
+    "LOCAL: current dispatch UI enumerates the whole catalogue without group filtering. Only a unique type80 activity may own that catalogue; do not derive group8 from activity8001 by division.",
+    "LOCAL: cancellation removes an unclaimed run and does not increment completed total_times. Claims increment total_times once and leave no state2 wire row, preserving both client counter consumers.",
+    "LOCAL: an account with an unclaimed trip receives a display-only extended activity end time, capped at claimDisplayEndTime. Admission always checks the original hard window; shared time IDs cannot be extended for a different activity.",
+    "XP follows the confirmed preview: nonmatching0; matchingceil(base*(1+increase/10000)). Whether the zero nonmatching preview is a client bug or official reward behavior is unconfirmed.",
+    "Missing pets in corrupted old saves must retain the trip and produce a diagnostic failure; do not silently skip XP. Future pet deletion paths must use the shared tour reservation guard.",
+    "Packets lack an attempt nonce. Delayed old cancel/reward requests cannot always be distinguished after a new trip for the same area starts; retain serial state/time validation and never claim nonce authentication."
+  ]
+}

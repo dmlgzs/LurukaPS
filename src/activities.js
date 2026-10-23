@@ -1,3 +1,4 @@
+import { KiboTourSystem } from './kibo-tours.js'
 import fs from 'node:fs'
 import { createHash } from 'node:crypto'
 import { configTime } from './shops.js'
@@ -9,7 +10,7 @@ import { GrowupSystem } from './growup.js'
 
 const policy = JSON.parse(fs.readFileSync(new URL('../configs/activity-policy.json', import.meta.url)))
 export class ActivityCatalog {
-    constructor(tables) {
+    constructor(tables, { tourPolicy } = {}) {
         this.commonTimeSources = []
         this.external = tables
         this.graphs = new TaskGraphs(tables)
@@ -17,6 +18,7 @@ export class ActivityCatalog {
         this.tables = tables
         this.growup = new GrowupSystem(tables)
         this.rows = tables.get('game_events')
+        this.tours = new KiboTourSystem(tables, this.rows, tourPolicy)
         this.rewards = tables.get('game_events_reward')
         this.resetHour = Number(tables.get('game').find((r) => r.title === 'DAILY_REFRESH_TIME')?.value ?? 4)
         this.productionTargets = new Map()
@@ -174,7 +176,7 @@ export class ActivityCatalog {
         // TODO: cumulative activity gameplay conditions require authoritative event counters.
         return null
     }
-    commonTimes(now) {
+    commonTimes(now, state = undefined) {
         const times = new Map(
             this.tables.get('common_timelimit').map((r) => [
                 r.id,
@@ -187,7 +189,7 @@ export class ActivityCatalog {
         )
         for (const row of this.rows) {
             if (!row.timelimit) continue
-            const w = this.window(row, now)
+            const w = this.tours.presentationWindow(this.window(row, now), state, row)
             times.set(row.timelimit, {
                 time_id: row.timelimit,
                 start_time: String(w.start_time),
@@ -200,10 +202,10 @@ export class ActivityCatalog {
     }
     snapshot(state, now) {
         state.activityDay = this.day(now)
-        const confs = this.rows.map((row) => this.window(row, now)),
+        const confs = this.rows.map((row) => this.tours.presentationWindow(this.window(row, now), state, row)),
             activitys = []
         for (const row of this.rows) {
-            if (!this.active(row, state, now)) continue
+            if (!this.active(row, state, now) && !(row.type === 80 && this.tours.hasRuns(state.activities?.[row.id]))) continue
             const entry = this.entry(state, row.id)
             entry.opened ||= now
             const data = {}
@@ -232,6 +234,7 @@ export class ActivityCatalog {
                 }
             } else if (row.type === 40) data.double_drop = { data: [], reset_time: String(now) }
             else if (row.type === 60) data.grow_up = this.growup.ensure(entry, row.systemId)
+            else if (row.type === 80) data.tour_group = this.tours.snapshot(entry, row, now)
             // Complex activities don't receive made-up grow-up/party/tour state.
             // Their configuration is visible; gameplay awaits its own implementation.
             const rewards = this.rewards
@@ -253,7 +256,7 @@ export class ActivityCatalog {
         return { confs, activitys }
     }
     due(state, now) {
-        return !!state.activities && state.activityDay !== this.day(now)
+        return (!!state.activities && state.activityDay !== this.day(now)) || this.tours.due(state, now)
     }
     notify(c, force = false) {
         this.syncGrowupHistory(c)
@@ -264,6 +267,11 @@ export class ActivityCatalog {
             .digest('hex')
         if (force || signature !== c.state.activitySyncSignature) {
             c.state.activitySyncSignature = signature
+            const tourTimes = JSON.stringify(activity.confs.filter(conf => this.rows.some(row => row.id === conf.activity_id && row.type === 80)))
+            if (tourTimes !== c.state.kiboTourPresentationSignature) {
+                c.state.kiboTourPresentationSignature = tourTimes
+                c.pushBefore('CSProtoSyncCommonTimeConf', this.commonTimes(c.now, c.state))
+            }
             c.pushBefore('CSProtoActivitySync', activity)
             if (nday) c.pushBefore('SCProtoNDayInfoSync', nday)
         }

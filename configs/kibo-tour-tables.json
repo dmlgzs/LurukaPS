@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "source": {
+    "version": "2451868",
+    "resources": [
+      {
+        "name": "rd_assets_resourcesassets_config_vstring_vstring_bytes",
+        "sha256": "0f032fbbdedc5f758fd17f08882695fb8952d6c6910a73fdf2e66f9f614e3b41",
+        "crc32": 2855464684
+      },
+      {
+        "name": "rs_assets_resourcesassets_config_newtablemmap_table_data_bytes",
+        "sha256": "032bd31939acf6b253e62364abac8bb8bdaf4077b12c5621d5b42b7f5c696d35",
+        "crc32": 2542945056
+      }
+    ],
+    "tableSha256": "d31b360a40c91438339e3c795893cf5a1a52270c6f1e887b5b085eb0d958652b"
+  },
+  "rows": [
+    {
+      "id": 1001,
+      "groupId": 8,
+      "name": "4299262263808",
+      "desc": "4299262264064",
+      "icon": "UI/Icon/GameEventKiboTour/tex_icon_kibotour_area_1.png",
+      "element": "1|5|3",
+      "reward": "3#502000#1|10#2#1000"
+    },
+    {
+      "id": 1002,
+      "groupId": 8,
+      "name": "4303557231104",
+      "desc": "4303557231360",
+      "icon": "UI/Icon/GameEventKiboTour/tex_icon_kibotour_area_2.png",
+      "element": "2|5|4",
+      "reward": "3#502000#1|10#2#1000"
+    },
+    {
+      "id": 1003,
+      "groupId": 8,
+      "name": "4307852198400",
+      "desc": "4307852198656",
+      "icon": "UI/Icon/GameEventKiboTour/tex_icon_kibotour_area_3.png",
+      "element": "3|1|7",
+      "reward": "3#502000#1|10#2#1000"
+    },
+    {
+      "id": 1004,
+      "groupId": 8,
+      "name": "4312147165696",
+      "desc": "4312147165952",
+      "icon": "UI/Icon/GameEventKiboTour/tex_icon_kibotour_area_4.png",
+      "element": "4|6|2",
+      "reward": "3#502000#1|10#2#1000"
+    },
+    {
+      "id": 1005,
+      "groupId": 8,
+      "name": "4316442132992",
+      "desc": "4316442133248",
+      "icon": "UI/Icon/GameEventKiboTour/tex_icon_kibotour_area_5.png",
+      "element": "5|4|7",
+      "reward": "3#502000#1|10#2#1000"
+    },
+    {
+      "id": 1006,
+      "groupId": 8,
+      "name": "4320737100288",
+      "desc": "4320737100544",
+      "icon": "UI/Icon/GameEventKiboTour/tex_icon_kibotour_area_6.png",
+      "element": "6|1|3",
+      "reward": "3#502000#1|10#2#1000"
+    },
+    {
+      "id": 1007,
+      "groupId": 8,
+      "name": "4325032067584",
+      "desc": "4325032067840",
+      "icon": "UI/Icon/GameEventKiboTour/tex_icon_kibotour_area_7.png",
+      "element": "7|6|2",
+      "reward": "3#502000#1|10#2#1000"
+    },
+    {
+      "id": 1008,
+      "groupId": 8,
+      "name": "4329327034880",
+      "desc": "4329327035136",
+      "icon": "UI/Icon/GameEventKiboTour/tex_icon_kibotour_area_8.png",
+      "element": "8",
+      "reward": "3#502000#1|10#2#1000"
+    },
+    {
+      "id": 1009,
+      "groupId": 8,
+      "name": "4333622002176",
+      "desc": "4333622002432",
+      "icon": "UI/Icon/GameEventKiboTour/tex_icon_kibotour_area_9.png",
+      "element": "9",
+      "reward": "3#502000#1|10#2#1000"
+    }
+  ]
+}
