@@ -306,7 +306,8 @@ export function startEntrust(c, id, restart = false, kind = 'entrust') {
     )
     ensure(!c.state.multiCampaign && !c.state.storyCampaign && !c.state.cultTrial, 'Another dungeon is active')
     ensure(
-        !active || (restart && active.entrust_id === id && [2, 3].includes(active.status)),
+        !active ||
+            (restart && active.entrust_id === id && (kind === 'repeat' ? [1, 2, 3, 4] : [2, 3]).includes(active.status)),
         'Another entrust is active',
     )
     const entrust = (c.state.entrust ??= { records: {}, starRewards: {}, nextInstanceId: 1 })
