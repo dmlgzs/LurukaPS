@@ -17,6 +17,7 @@ import {
 import { registerSocialWheel, prepareSocialWheel, notifySocialWheel, socialWheelSnapshot } from './social-wheel.js'
 import { ErrorCode } from './error-codes.js'
 import { registerFriends } from './handlers/friends.js'
+import { registerLegacyMatchTeams } from './legacy-match-teams.js'
 import { friendLoginSnapshots } from './friends.js'
 import { registerChatShields } from './handlers/chat-shields.js'
 import { registerShortcuts } from './handlers/shortcuts.js'
@@ -496,6 +497,7 @@ export class Game {
         registerChat(on, store, { runGM })
         registerChatShields(on, store)
         registerFriends(on, store)
+        this.legacyMatchTeams = registerLegacyMatchTeams(on, store, tables)
         registerShortcuts(on)
         registerPhotoTemplates(on)
         registerChatCustomization(on)
@@ -874,6 +876,8 @@ export class Game {
             session.entered = true
             const activeState = this.store.load(session.id).state,
                 campaign = activeState.multiCampaign
+            const team = this.legacyMatchTeams.loginSnapshot(session.id, activeState)
+            if (team) packets.push(this.packet('CSProtoMatchTeamDataSync', team))
             if (campaign?.arena_status) {
                 packets.push(this.packet('CSProtoOnlineModeChange', { mode: 9 }))
                 const { duel_id, arena_status, formation_slot, ...wire } = campaign
