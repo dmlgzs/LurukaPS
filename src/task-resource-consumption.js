@@ -1,3 +1,4 @@
+import { ensurePetNotInKiboTour } from "./kibo-tour-ledger.js"
 import { petInActiveNpcDuel } from './npc-kibo-duel.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
@@ -17,6 +18,7 @@ export function taskInstanceGuid(value) {
 const assigned = (value, guid) => String(value ?? '0') === guid
 function protectedPet(tables, state, pet) {
     const guid = String(pet.guid)
+    ensurePetNotInKiboTour(state, guid)
     ensure(!petInActiveNpcDuel(state, guid), 'Submitted pet is in the active duel roster', ErrorCode.PetInBattle)
     ensure(!pet.is_lock, 'Submitted pet is locked', ErrorCode.PetIsLock)
     ensure(
