@@ -4,6 +4,7 @@ export { addItems } from '../inventory.js'
 import { ensure, syncPlayer } from './common.js'
 import languageCodes from '../../configs/client-language-codes.json' with { type: 'json' }
 import { mailQuestionLink } from '../mail-question-links.js'
+import { selectMailRewards } from '../mail-lifetime.js'
 export function registerMail(on) {
     on('GetQuestionLink', mailQuestionLink)
     const languages = new Set(Object.values(languageCodes))
@@ -36,10 +37,7 @@ export function registerMail(on) {
         return {}
     })
     on('FetchMail', (c, r) => {
-        const selected = c.state.mail.filter(
-            (m) => (!r.u64 || r.u64 === '0' || m.guid === r.u64) && !m.fetch && (!m.effecttm || m.effecttm > c.now),
-        )
-        ensure(!r.u64 || r.u64 === '0' || selected.length, 'Mail unavailable')
+        const selected = selectMailRewards(c.state, r, c.now)
         const rewards = []
         for (const m of selected) {
             rewards.push(
