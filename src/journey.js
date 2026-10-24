@@ -5,6 +5,7 @@ import { guidedConditionValue } from './guided-conditions.js'
 import { grantRewards, parseRewards } from './rewards.js'
 import overrides from '../configs/journey-overrides.json' with { type: 'json' }
 import { rewardSource } from './reward-source.js'
+import { capturedPetVarieties } from './capture-variety.js'
 
 const models = new WeakMap()
 const integers = (text, separator = '|') =>
@@ -95,7 +96,6 @@ export function journeyModel(tables) {
     }
     // CBT3 retains twenty unreferenced target rows (including seventeen old
     // auto-reward tutorial rows). They are not active tasks or free rewards.
-    const petGroups = new Map(tables.get('pet_rank').map((row) => [row.petId, row.petGroup]))
     const compiledTabs = tabs.map((row) => ({ ...row, unlockRules: unlockRules(row.unlockCondition) }))
     const sourceTasks = new Set(),
         sourceNodes = new Map()
@@ -118,7 +118,6 @@ export function journeyModel(tables) {
         byTask,
         owner,
         byKind,
-        petGroups,
         referencedTargets: targets.filter((r) => owner.has(r.id)),
         supportedKinds: [...byKind.keys()].filter((kind) => byKind.get(kind).some((row) => row.supported)),
         sourceTaskIds: [...sourceTasks].sort((a, b) => a - b),
@@ -168,13 +167,7 @@ export function journeyValue(tables, state, row) {
             state.noviceCounters?.captures ??
             Object.values(state.petCaptureResults ?? {}).filter((r) => r.guid && r.pet_id > 0).length
         )
-    if (kind === 12046)
-        return new Set(
-            Object.values(state.petCaptureResults ?? {})
-                .filter((r) => r.guid && r.pet_id > 0)
-                .map((r) => journeyModel(tables).petGroups.get(r.pet_id))
-                .filter(Boolean),
-        ).size
+    if (kind === 12046) return capturedPetVarieties(tables, state)
     if (kind === 12229) return heroes.filter((h) => h.favorability_lv >= p[0]).length
     if (kind === 12235)
         return heroes.filter(
