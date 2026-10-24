@@ -3,9 +3,8 @@ import { ensure } from './handlers/common.js'
 import { ErrorCode } from './error-codes.js'
 
 const catalogues = new WeakMap()
-// TODO 12072: wire the actual random-world-chest completion event. Generic
-// spawner type 40 / objectType 3 also represents ordinary objects; do not turn
-// harvesting or every world reward into a random chest completion.
+// 12072 is produced only by a validated, newly completed field chest claim.
+// Generic Item(3), collection and puzzle-solved stages never supply this event.
 // All preceding filters in the current table are wildcard zeroes.
 const shapes = new Map([
     [12001, 1],

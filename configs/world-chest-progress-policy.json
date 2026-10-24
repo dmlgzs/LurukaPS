@@ -1,0 +1,10 @@
+{
+    "version": 1,
+    "fieldMapTypes": [1],
+    "chestObjectTypes": [18, 30, 32, 33, 34, 35],
+    "creditOn": "first-full-claim",
+    "historical": "confirmed-static-receipts-only",
+    "officially_verified": false,
+    "notes": "Object types are the named CBT3 EWorldObjectType chest family. Current field-map family and claim timing are local server interpretations. Do not classify generic items by model, generic reward drops, or the retained RandomChestAction page.",
+    "todo": "Verify official random-field-chest event scope and timing, including puzzle-generated and task blueprint chests. The request has no generation nonce; do not invent respawn instances or missing past receipt events."
+}

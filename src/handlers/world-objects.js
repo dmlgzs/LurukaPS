@@ -11,6 +11,7 @@ import { applyRepairVisuals } from '../world-repairs.js'
 import { randomInt } from 'node:crypto'
 import { completeEntrustObject, validateEntrustObjectInteraction, beginMaterialStoryInteraction } from './entrust.js'
 import { taskNodeCompleted } from '../tasks.js'
+import { recordWorldChestOpen } from '../world-chest-progress.js'
 // World resource prefabs do not expose their drop ID in worldmap/world_spawner.
 // These IDs match the shipped resource variants and their configured drop pools.
 const collectionFinalDrops = new Map([
@@ -223,6 +224,7 @@ export function registerWorldObjects(on, tables) {
             const puzzle = petPuzzleRule(tables, row, spawner)
             ensure(puzzle || step >= (old.state_data?.step ?? 0), 'World state cannot move backwards')
             const full = !!input.obj.complete,
+                chestClaimedBefore = !!old.claims?.complete,
                 stage = !!incoming.complete,
                 stageAdvanced = step > (old.state_data?.step ?? 0),
                 // CommonState.complete means solved; TryInteractObject separately
@@ -321,6 +323,14 @@ export function registerWorldObjects(on, tables) {
             }
             record.claims = claims
             records[key] = record
+            recordWorldChestOpen(
+                c,
+                catalog,
+                row,
+                spawner,
+                { complete: !!old.complete, claimed: chestClaimedBefore },
+                record,
+            )
             if (collectionFinalDrops.has(spawner.resourceId)) {
                 const trace = (c.state.worldObjectRewardTrace ??= [])
                 trace.push({

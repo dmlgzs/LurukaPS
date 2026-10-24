@@ -9,6 +9,7 @@ import { Store } from '../src/store.js'
 import { WorldObjectCatalog } from '../src/world-objects.js'
 import { petPuzzleRule } from '../src/pet-puzzles.js'
 import { playableSnapshot } from '../src/handlers/playable-lifecycle.js'
+import { reconcileHomeStage } from '../src/home-stage.js'
 const cfg = configuration(),
     tables = new Tables(cfg.tables),
     protocol = new Protocol(cfg.base)
@@ -28,6 +29,9 @@ function fixture() {
     store.transact(session.id, 0, (s) => {
         s.tasks = []
         s.taskRecords = tables.get('task').map((row) => ({ task_id: row.id, count: 1, time: 1 }))
+        // These imported task completions also unlock the next home layer.
+        // Settle that ordinary invariant before testing reward-free snapshots.
+        reconcileHomeStage(tables, s)
         delete s.pendingTaskStorySync
     })
     return { store, session, call, state: () => store.load(session.id).state }
