@@ -1,4 +1,6 @@
 import { beginMountActionLifecycle, endMountActionLifecycle, isExitedMountAction } from '../mount-action-lifecycle.js'
+import { recoverFallPosition, acceptFallRecoveryMovement, resetFallRecoveryScope } from '../fall-recovery.js'
+import { resetPlayerBattleRelations } from './world-combat.js'
 import { ErrorCode } from '../error-codes.js'
 import { checkpointSnapshot } from '../world-checkpoints.js'
 import { clearAbyssRuntime } from '../abyss-flow.js'
@@ -140,7 +142,7 @@ export function repairLegacyMountState(state, tables) {
     w.mount_status = 0
     return true
 }
-export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = true) {
+export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = true, options = {}) {
     if (expireArenaTrialTrainer(c.state)) {
         c.push('CSProtoTrialDatas', trialPayload(c.state))
         c.push('CSProtoSyncPlayerData', { heros_info: c.state.player.heros_info })
@@ -166,8 +168,11 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
     const s = c.state,
         w = s.world
     if ([WORLD_MAP_CMD_ENTER, 49, 19].includes(cmd)) {
-        beginSceneTransition(s, c.previousMapId, c.now, cmd)
-        clearWorldEventRuntime(s)
+        if (!options.fallRecovery) resetFallRecoveryScope(s)
+        if (!options.replay) {
+            beginSceneTransition(s, c.previousMapId, c.now, cmd)
+            clearWorldEventRuntime(s)
+        }
     }
     const departedEntrust = s.entrust?.run
     if (departedEntrust && departedEntrust.map_id !== w.map_id) {
@@ -296,6 +301,12 @@ export function registerWorld(on) {
         return {}
     })
     on('WorldMapActiveBehavior', (c, r) => {
+        if (r.type === 1) {
+            const recovery = recoverFallPosition(c)
+            resetPlayerBattleRelations(c)
+            worldSync(c, {}, 19, false, { fallRecovery: true, replay: recovery.duplicate })
+            return {}
+        }
         ensure(r.type === 3, 'Active behavior type is not implemented', ErrorCode.InvalidProtoID)
         recoverFormationHp(c)
         return {}
@@ -501,6 +512,7 @@ export function registerWorld(on) {
         }
         const confirmed = mountMove ?? heroMove
         if (!confirmed) return
+        if (!acceptFallRecoveryMovement(c, confirmed)) return
         endSceneTransition(c.state)
         w.pos = confirmed.info.pos
         w.angle = confirmed.info.angle

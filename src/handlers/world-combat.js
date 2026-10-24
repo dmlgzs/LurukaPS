@@ -1,4 +1,5 @@
 import { ensure } from './common.js'
+import { ErrorCode } from '../error-codes.js'
 import { actor } from './combat.js'
 import { u64, combatState, boundedSet } from '../combat-state.js'
 import { isRetiredTrialActor, temporaryPets } from '../trial-actors.js'
@@ -13,7 +14,7 @@ function runtime(c) {
     state.hatred ??= { objects: {}, players: {} }
     return state
 }
-function clearHatredWithDeltas(c, battle, id) {
+function clearHatredWithDeltas(c, battle, id, isPlayer = false) {
     // Clear only affected edges. A target reset may also reset its entire
     // monster group; full10808 would reset unrelated battles as well.
     const before = Object.fromEntries(
@@ -22,7 +23,7 @@ function clearHatredWithDeltas(c, battle, id) {
             Object.fromEntries(Object.entries(entries).map(([key, info]) => [key, { ...info }])),
         ]),
     )
-    const changed = clearHatred(battle, id)
+    const changed = clearHatred(battle, id, isPlayer)
     if (!changed) return false
     for (const [field, entries] of Object.entries(before))
         for (const [key, old] of Object.entries(entries)) {
@@ -36,6 +37,32 @@ function clearHatredWithDeltas(c, battle, id) {
                 })
         }
     return true
+}
+export function resetPlayerBattleRelations(c) {
+    const battle = c.state.combat
+    if (battle?.map_id !== c.state.world.map_id || !battle.hatred) return false
+    ensure(
+        typeof battle.hatred === 'object' &&
+            !Array.isArray(battle.hatred) &&
+            battle.hatred.objects &&
+            battle.hatred.players,
+        'Malformed player battle relations',
+        ErrorCode.GameConfig,
+    )
+    for (const entries of Object.values(battle.hatred)) {
+        ensure(
+            entries && typeof entries === 'object' && !Array.isArray(entries),
+            'Malformed player battle relations',
+            ErrorCode.GameConfig,
+        )
+        for (const info of Object.values(entries))
+            ensure(
+                info && Array.isArray(info.target_obj_ids) && Array.isArray(info.player_obj_ids),
+                'Malformed player battle relations',
+                ErrorCode.GameConfig,
+            )
+    }
+    return clearHatredWithDeltas(c, battle, String(c.id), true)
 }
 function clearHatred(battle, id, isPlayer = false) {
     let changed = false

@@ -1,0 +1,9 @@
+{
+    "version": 1,
+    "position": "current-scope-last-ground",
+    "fallback": "active-checkpoint-entry-main-birth",
+    "health": "preserve",
+    "officially_verified": false,
+    "notes": "Local recovery policy using accepted owned movement with client is_ground=1. It does not claim server physics validation. Without a current-session grounded record, choose a nearest eligible current-map checkpoint, then the current-map entry birth point, then that scene's configured main birth point. Do not guess global fallback coordinates, fall damage, a revive price or healing.",
+    "todo": "Verify official fall destination and damage/rounding rules in world versus dungeon. The request has no instance nonce; reported movement timestamps are replay boundaries, not authenticated client epochs."
+}
