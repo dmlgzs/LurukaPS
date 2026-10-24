@@ -6,6 +6,7 @@ import { clearFarmPetSlots } from './farm-workers.js'
 import { ensure, pet } from './common.js'
 import { clearRanchPetSlots, ranchWorkerLimit } from '../ranch.js'
 import { collectionStation, stopCollection } from '../home-collection.js'
+import { playerIsInBattle } from '../player-battle-state.js'
 
 export function clearProductionPetSlots(state, guid, now) {
     for (const build of state.home?.builds ?? [])
@@ -18,10 +19,9 @@ export function clearProductionPetSlots(state, guid, now) {
 export function registerProductionWorkers(on, tables) {
     on('PetStationed', (c, r) => {
         const home = ensureHome(tables, c.state)
-        ensure(
-            c.state.world.map_id === Number(tables.get('game').find((row) => row.title === 'HOME_ID')?.value),
-            'Production dispatch requires the home scene',
-        )
+        // HomeCenter opens production and collection management with an owned
+        // building GUID from other scenes (06029822 / 06013248). Physical
+        // HOME_ID presence is not part of either management request contract.
         // Despite its name, build_type carries PSWST_HOME_REST/HOME_WORK here.
         ensure(
             [1, 2].includes(r.build_type) && !r.sub_work_type,
@@ -35,6 +35,16 @@ export function registerProductionWorkers(on, tables) {
             build?.locate && [1, 4].includes(build.status) && station && [2, 8, 10, 12, 24].includes(build.build_type),
             'Production building is not owned or ready',
             collection ? ErrorCode.CollectBuildNotExist : ErrorCode.BuildProductConfNotFound,
+        )
+        // PageProduct.check forbids battle. Current HomeConst06006157 routes
+        // production group21 to PageProductAccessoryNew (Check060169c9 checks
+        // system8); PageHomeCollection.Check validates owned collection data.
+        // Do not copy the old page's battle rule to those separate pages.
+        // Formation locks still apply in Game.dispatch.
+        ensure(
+            collection || station.groupId === 21 || !playerIsInBattle(c.state),
+            'Production management is unavailable during battle',
+            ErrorCode.PlayerInFight,
         )
         ensure(
             !collection || r.build_type === 1,
