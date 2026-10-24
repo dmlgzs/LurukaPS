@@ -12,6 +12,7 @@ import { randomInt } from 'node:crypto'
 import { completeEntrustObject, validateEntrustObjectInteraction, beginMaterialStoryInteraction } from './entrust.js'
 import { taskNodeCompleted } from '../tasks.js'
 import { recordWorldChestOpen } from '../world-chest-progress.js'
+import { worldInteractionRange } from '../world-interaction-range.js'
 // World resource prefabs do not expose their drop ID in worldmap/world_spawner.
 // These IDs match the shipped resource variants and their configured drop pools.
 const collectionFinalDrops = new Map([
@@ -275,7 +276,7 @@ export function registerWorldObjects(on, tables) {
                     input.element_id > 0 &&
                     nearObject(input.pos) &&
                     nearObject(input.obj?.pos)
-                ensure(delta <= 5000 ** 2 || remoteStateOnly, 'Object is too far away')
+                ensure(delta <= worldInteractionRange(5000) ** 2 || remoteStateOnly, 'Object is too far away')
                 ensure(
                     worldCondition(row.appearCond, c.state) &&
                         (!row.disappearCond || !worldCondition(row.disappearCond, c.state)),

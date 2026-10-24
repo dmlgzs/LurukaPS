@@ -1,0 +1,7 @@
+{
+    "version": 1,
+    "distanceToleranceCm": 100,
+    "officiallyVerified": false,
+    "source": "User-selected local policy: allow an extra one metre for WorldObjInteract distance checks.",
+    "todo": "Confirm official server distance tolerance and scaled/custom interaction anchors against live packets."
+}

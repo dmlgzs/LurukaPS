@@ -1,6 +1,7 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { weeklyDungeonPolicy } from './weekly-dungeons.js'
+import { worldInteractionRange } from './world-interaction-range.js'
 const caches = new WeakMap()
 const fields = (text) =>
     Object.fromEntries(
@@ -213,7 +214,11 @@ export function beginMaterialStory(c, objectId) {
         ErrorCode.GameConfig,
     )
     const distance = ['x', 'y', 'z'].reduce((n, k) => n + (c.state.world.pos[k] - plan.pos[k]) ** 2, 0)
-    ensure(distance <= plan.range ** 2, 'Material story trigger is too far away', ErrorCode.InvalidArgument)
+    ensure(
+        distance <= worldInteractionRange(plan.range, { hud: true }) ** 2,
+        'Material story trigger is too far away',
+        ErrorCode.InvalidArgument,
+    )
     ensure(prepareMaterialStory(c), 'Material story is not at its configured entrance', ErrorCode.InvalidLogic)
     const story = run.materialStory
     ensure(Array.isArray(story.participants), 'Saved story participant list is invalid', ErrorCode.GameConfig)
