@@ -285,6 +285,7 @@ export function registerHeroEquipment(on, publishEquipment) {
         return { rewards, src: rewardSource(c.tables, 'ornamentSmelt') }
     })
     on('OrnamentInherit', (c, r) => {
+        requirePlayerOutOfBattle(c, 1031)
         const { current, candidate, gold } = ornamentInheritPlan(c.tables, c.state, r)
         spend(c.state, new Map(), gold, c.now)
         const previous = current.quality
