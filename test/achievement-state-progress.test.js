@@ -17,14 +17,17 @@ const decode = (f, packets) =>
 const edit = (f, fn) => f.store.transact(f.session.id, 0, fn)
 const query = (f) => f.call('ActivityGet') // ordinary transaction observes state; no fabricated completion request
 
-test('current six state-based achievements compile from real table shapes while unobserved selectors stay unsupported', () => {
+test('current state-based achievements compile from real table shapes while unobserved selectors stay unsupported', () => {
     const f = achievementFixture('achievement-state-catalog')
     try {
         const model = achievementCatalogue(f.tables),
             added = model.rows.filter((row) => achievementStateRule(model.rules.get(row.id).tokens ?? []))
-        assert.deepEqual(added.map((row) => row.id).sort(), [2010003, 2010004, 3010003, 3010004, 4020008, 4020009])
+        assert.deepEqual(
+            added.map((row) => row.id).sort(),
+            [2010003, 2010004, 3010003, 3010004, 3020014, 3020015, 3020016, 4020008, 4020009],
+        )
         assert(added.every((row) => model.rules.get(row.id).supported))
-        assert.equal(model.rows.filter((row) => model.rules.get(row.id).supported).length, 50)
+        assert.equal(model.rows.filter((row) => model.rules.get(row.id).supported).length, 53)
         for (const tokens of [
             [12046, 1, 100],
             [12046, 0, 100, 1],

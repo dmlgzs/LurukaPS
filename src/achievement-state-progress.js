@@ -1,13 +1,14 @@
 import { ensure } from './handlers/common.js'
 import { ErrorCode } from './error-codes.js'
 import { capturedPetVarieties } from './capture-variety.js'
+import { worldChestsOpened } from './world-chest-progress.js'
 
 const uint = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff
 
-// Current table shapes only. In particular selector 0 means all known caught
-// species here; an unobserved future selector must not inherit that meaning.
+// Current table shapes only. Zero-selectors use each domain's confirmed facts;
+// an unobserved future selector must not silently inherit that meaning.
 export function achievementStateRule([kind, ...args]) {
-    if (kind === 12046) return args.length === 2 && args[0] === 0 && uint(args[1]) && args[1] > 0
+    if ([12046, 12072].includes(kind)) return args.length === 2 && args[0] === 0 && uint(args[1]) && args[1] > 0
     if (kind === 13104) return args.length === 2 && args.every((value) => uint(value) && value > 0)
     if (kind === 15017) return args.length === 1 && uint(args[0]) && args[0] > 0
     return false
@@ -20,6 +21,7 @@ export function achievementStateValue(tables, state, tokens, facts) {
     if (facts.has(key)) return facts.get(key)
     let value = 0
     if (kind === 12046) value = capturedPetVarieties(tables, state)
+    else if (kind === 12072) value = worldChestsOpened(tables, state)
     else if (kind === 13104) {
         const maps = state.exploration?.map_info ?? []
         ensure(Array.isArray(maps), 'Invalid achievement exploration history', ErrorCode.GameConfig)
