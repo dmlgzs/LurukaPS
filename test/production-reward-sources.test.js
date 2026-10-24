@@ -170,3 +170,96 @@ test('6111 encoding failure rolls back output, craft progress and queue before a
         f.close()
     }
 })
+
+const cancel = (f) => f.call('ProductCancel', { guid: 1, product_guids: [1] }).find((p) => p.id === 6112).data
+test('6112 marks mixed completed output and unfinished refunds with cancellation source, without counting refunded units', () => {
+    const f = fixture()
+    try {
+        f.start()
+        f.advance(3)
+        const result = cancel(f)
+        assert.equal(result.reward.src, 38)
+        assert.equal(result.reward.rewards.find((i) => i.itemid === 350000).itemnum, 1)
+        assert.equal(result.reward.rewards.find((i) => i.itemid === 300000).itemnum, 6)
+        assert.equal(stock(f.state(), 350000), 1)
+        assert.equal(stock(f.state(), 300000), 27)
+        assert.equal(f.state().home.craftCounts[302001], 1)
+        assert.equal(f.state().dailyActive.day.counts[15011], 1)
+        const before = f.store.load(f.session.id)
+        assert.throws(
+            () => cancel(f),
+            (error) => error.code === ErrorCode.InvalidArgument,
+        )
+        assert.deepEqual(f.store.load(f.session.id), before)
+    } finally {
+        f.close()
+    }
+})
+
+test('6112 uses the same cancellation operation for entirely refunded and entirely completed batches', () => {
+    for (const seconds of [0, 9]) {
+        const f = fixture()
+        try {
+            f.start()
+            f.advance(seconds)
+            const result = cancel(f)
+            assert.equal(result.reward.src, 38)
+            assert.equal(stock(f.state(), 350000), seconds ? 3 : 0)
+            assert.equal(stock(f.state(), 300000), seconds ? 21 : 30)
+            assert.equal(f.state().home.craftCounts?.[302001] ?? 0, seconds ? 3 : 0)
+            assert.deepEqual(f.state().home.productionJobs[1], [])
+        } finally {
+            f.close()
+        }
+    }
+})
+
+test('6112 failed packet encoding rolls back refunds and completed items before one successful retry', () => {
+    const f = fixture()
+    try {
+        f.start()
+        f.advance(3)
+        const before = f.store.load(f.session.id),
+            encode = f.protocol.encode.bind(f.protocol)
+        f.protocol.encode = (name, data) => {
+            if (name.endsWith('SCProductFinish')) throw Error('injected cancellation packet failure')
+            return encode(name, data)
+        }
+        assert.throws(() => cancel(f), /injected cancellation packet failure/)
+        assert.deepEqual(f.store.load(f.session.id), before)
+        f.protocol.encode = encode
+        assert.equal(cancel(f).reward.src, 38)
+        assert.equal(stock(f.state(), 300000), 27)
+        assert.equal(stock(f.state(), 350000), 1)
+    } finally {
+        f.close()
+    }
+})
+
+test('missing cancellation source logs and does not prevent a full material refund', () => {
+    const modified = Object.create(tables)
+    modified.find = (name, id) => (name === 'reason_itemnum_change' && id === 38 ? undefined : tables.find(name, id))
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lurukaps-production-refund-source-')),
+        file = path.join(dir, 'warnings.jsonl'),
+        old = process.env.LURUKAPS_REWARD_SOURCE_LOG,
+        previous = console.warn,
+        messages = []
+    process.env.LURUKAPS_REWARD_SOURCE_LOG = file
+    console.warn = (line) => messages.push(line)
+    const f = fixture(modified)
+    try {
+        f.start()
+        assert.equal(cancel(f).reward.src, undefined)
+        assert.equal(stock(f.state(), 300000), 30)
+        assert.equal(f.state().home.craftCounts?.[302001] ?? 0, 0)
+        assert(messages.some((line) => line.includes('source_row_missing')))
+        const record = JSON.parse(fs.readFileSync(file, 'utf8').trim().split('\n').at(-1))
+        assert.equal(record.operation, 'productionCancel')
+        assert.equal(record.source_id, 38)
+    } finally {
+        f.close()
+        console.warn = previous
+        if (old === undefined) delete process.env.LURUKAPS_REWARD_SOURCE_LOG
+        else process.env.LURUKAPS_REWARD_SOURCE_LOG = old
+    }
+})

@@ -99,8 +99,10 @@ export function claimProductionStock(c, request, { cancel = false, allowEmpty = 
             ? cancel
                 ? 'accessoryProductionCancel'
                 : 'accessoryProductionFinish'
-            : !cancel && rewards.length && selected.some((job) => !['hatch', 'hatch-receipt'].includes(job.kind))
-              ? 'productionFinish'
+            : rewards.length && selected.some((job) => !['hatch', 'hatch-receipt'].includes(job.kind))
+              ? cancel
+                  ? 'productionCancel'
+                  : 'productionFinish'
               : undefined
     return {
         build: b,
