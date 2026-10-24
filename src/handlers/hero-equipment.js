@@ -294,6 +294,7 @@ export function registerHeroEquipment(on, publishEquipment) {
         return {} // Current 6035 response is ProtoNullRsp, not Rewards.
     })
     on('OrnamentGradeUp', (c, r) => {
+        requirePlayerOutOfBattle(c, 1030)
         const plan = ornamentStarPlan(c.tables, c.state, r),
             bag = new Map(),
             currency = new Map()
