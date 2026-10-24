@@ -19,6 +19,7 @@
     "ornamentSmelt": 95,
     "accessoryProductionFinish": 37,
     "accessoryProductionCancel": 38,
+    "productionFinish": 37,
     "ranchStoreHarvest": 77,
     "collectionHarvest": 68,
     "petHandbookLevelReward": 105,

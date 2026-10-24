@@ -94,16 +94,19 @@ export function claimProductionStock(c, request, { cancel = false, allowEmpty = 
         refreshProduction(c.state, c.now)
         c.state.homeRevision = (c.state.homeRevision || 0) + 1
     }
-    const accessory = selected.some((job) => job.kind === 'accessory')
+    const accessory = selected.some((job) => job.kind === 'accessory'),
+        operation = accessory
+            ? cancel
+                ? 'accessoryProductionCancel'
+                : 'accessoryProductionFinish'
+            : !cancel && rewards.length && selected.some((job) => !['hatch', 'hatch-receipt'].includes(job.kind))
+              ? 'productionFinish'
+              : undefined
     return {
         build: b,
         reward: {
             rewards,
-            ...(accessory
-                ? {
-                      src: rewardSource(c.tables, cancel ? 'accessoryProductionCancel' : 'accessoryProductionFinish'),
-                  }
-                : {}),
+            ...(operation ? { src: rewardSource(c.tables, operation) } : {}),
         },
     }
 }
