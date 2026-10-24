@@ -1,4 +1,5 @@
 import { ErrorCode } from '../error-codes.js'
+import { requirePlayerOutOfBattle } from '../player-battle-state.js'
 import { recordActiveProgress } from '../daily-active.js'
 import { ensure, syncPlayer } from './common.js'
 import { spend, spendCurrency } from '../inventory.js'
@@ -311,6 +312,7 @@ export function registerHeroEquipment(on, publishEquipment) {
         return { rewards, src: rewardSource(c.tables, 'ornamentStar') }
     })
     on('UpgradeOrnament', (c, r) => {
+        requirePlayerOutOfBattle(c, 1013)
         const item = c.state.ornaments?.find((item) => item.guid === r.u32)
         ensure(item, 'Ornament not owned', ErrorCode.OrnamentNotExist)
         const plan = nextOrnamentLevel(c.tables, item),
