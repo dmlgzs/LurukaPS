@@ -8,6 +8,7 @@ import { grantRewards } from './rewards.js'
 import { rewardSource } from './reward-source.js'
 import { claimHatch, cancelHatch } from './hatching.js'
 import { completed, refreshProduction, rescheduleJobs } from './production.js'
+import { recordProductionOutput } from './production-progress.js'
 
 export function multiplyProductionRows(rows, count) {
     return rows.map((row) => {
@@ -70,7 +71,9 @@ export function claimProductionStock(c, request, { cancel = false, allowEmpty = 
         const done = completed(job, c.now),
             available = done - job.claimed
         if (available > 0) {
-            rewards.push(...grantRewards(tables, c.state, multiplyProductionRows(job.rewards, available)))
+            const output = multiplyProductionRows(job.rewards, available)
+            rewards.push(...grantRewards(tables, c.state, output))
+            recordProductionOutput(tables, c.state, b, output)
             job.claimed += available
             claimed += available
             h.craftCounts ??= {}

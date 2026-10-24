@@ -1,0 +1,7 @@
+{
+    "version": 1,
+    "creditOn": "successful-output-claim",
+    "historical": "do-not-reinterpret-untyped-counts",
+    "officially_verified": false,
+    "TODO": "12018建筑与奖励选择器由客户端枚举、站点链和当前条件文案共同推导。现有服务端以成功领取实际产物作为计数时点；官方是否在完工时计数尚未实机证实。旧craftCounts缺建筑、配方命名空间和历史输出版本，不自动重解释；已完成成就保持单调。"
+}
