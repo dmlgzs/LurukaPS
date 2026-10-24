@@ -243,33 +243,38 @@ export function observeTeachingSkill(c, id, r) {
 }
 export function observeTeachingElement(c, e, previous) {
     if (e.op === 2 && previous?.buff?.cfg_id && e.uniqueId !== '0') {
+        const executor = previous.buff.executor_id
         observe(
             c,
-            previous.tar_id,
+            executor,
             {
                 kind: 'element',
                 id: previous.buff.cfg_id,
-                heroExecutor: previous.buff.executor_id === previous.tar_id,
+                heroExecutor: activeTrialActor(c.state, executor),
                 operation: 2,
                 retired: true,
                 recordOnly: true,
                 fresh: false,
             },
-            `e:${previous.tar_id}:${e.uniqueId}`,
+            `e:${executor}:${e.uniqueId}`,
         )
         return
     }
     if (![1, 7, 10].includes(e.op) || !e.buff?.cfg_id || e.uniqueId === '0') return
+    // CBT3 WaitElementAdd.OnElementInjected checks IElement.executor's entity
+    // type, not the entity receiving the element. Enemy-targeted effects from
+    // the active trial hero must count; enemy-applied effects must not.
+    const executor = e.buff.executor_id
     observe(
         c,
-        e.tar_id,
+        executor,
         {
             kind: 'element',
             id: e.buff.cfg_id,
-            heroExecutor: e.buff.executor_id === e.tar_id,
+            heroExecutor: activeTrialActor(c.state, executor),
             operation: e.op,
             fresh: !previous,
         },
-        `e:${e.tar_id}:${e.uniqueId}`,
+        `e:${executor}:${e.uniqueId}`,
     )
 }

@@ -43,16 +43,16 @@ function fixture() {
         call('SkillStart', request)
         return request
     }
-    const element = () =>
+    const element = (target = id, executor = id) =>
         call('BattleInfoReduce', {
-            uint64_dic: [id, '991234', '101010129'],
+            uint64_dic: [target, executor, '991234', '101010129'],
             battle_info: [
                 {
                     element_info: {
                         op: 1,
                         tar_id: '1',
-                        uniqueId: '2',
-                        buff: { cfg_id: 3, executor_id: '1', creator_id: '1' },
+                        uniqueId: '3',
+                        buff: { cfg_id: 4, executor_id: '2', creator_id: '2' },
                     },
                 },
             ],
@@ -154,6 +154,43 @@ test('already defeated ordinary teaching enemies accept the client cleanup witho
         assert.deepEqual(f.state().storyCampaign.completed_scenes, before.storyCampaign.completed_scenes)
         assert.deepEqual(f.state().storyKillReceipts, before.storyKillReceipts)
         assert.deepEqual(f.state().player.basic_info, before.player.basic_info)
+    } finally {
+        f.store.close()
+    }
+})
+
+test('Misha element condition follows its hero executor even when injected onto a training enemy', () => {
+    const f = fixture()
+    try {
+        const enemy = f.kills().guid[0]
+        f.element(enemy)
+        assert.equal(f.proof(), 1, 'WaitElementAdd checks executor entity type, not the recipient')
+        f.skill(10101005, 1)
+        f.skill(10101005, 1)
+        for (let i = 0; i < 3; i++) {
+            f.skill(10101042, 0)
+            f.skill(10101042, 1)
+        }
+        assert.equal(f.proof(), 9)
+        f.call('EndDungeonScene', { result: 3 })
+        assert.equal(f.state().storyCampaign.pending_end_scene, 6265)
+        f.call('StoryKill', f.kills())
+        assert.deepEqual(f.state().storyCampaign.completed_scenes, [6265])
+        const before = f.state()
+        f.call('StoryKill', f.kills())
+        assert.deepEqual(f.state().storyKillReceipts, before.storyKillReceipts)
+    } finally {
+        f.store.close()
+    }
+})
+
+test('an enemy applying the same element to the trial hero cannot forge the teaching proof', () => {
+    const f = fixture()
+    try {
+        f.element(f.id, f.kills().guid[0])
+        assert.equal(f.proof(), 0)
+        assert.throws(() => f.call('EndDungeonScene', { result: 3 }), /not defeated/)
+        assert.throws(() => f.call('StoryKill', f.kills()), /configured story kill/)
     } finally {
         f.store.close()
     }
