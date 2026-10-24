@@ -75,7 +75,7 @@ test('10850 local Skip sends a packed single-Yes vote, closes it and requests st
         )
         assert.equal(f.run().materialStory.phase, 'playing')
         assert.equal(f.run().battle_start_time, undefined)
-        assert.equal(f.state().worldObjects[`${plan.map_id}:${plan.boss_id}`].active, false)
+        assert.equal(f.state().worldObjects[`${plan.map_id}:${plan.boss_id}`].active, true)
         assert.deepEqual(f.state().tasks, tasks)
         f.tick(4)
         f.end()

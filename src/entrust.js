@@ -424,7 +424,6 @@ export function ensureEntrustSceneObjects(tables, state, now) {
             const finished = stage.index < run.stage_index
             const active =
                 (stage.index === run.stage_index || (stage.type === 30 && finished)) &&
-                !(materialStoryPending(run) && row.id === run.materialStory.boss_id) &&
                 !(stage.type === 30 && entrustChestGivenUp(tables, run))
             if (
                 record.active !== active ||

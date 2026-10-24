@@ -311,7 +311,10 @@ export function applyMaterialStoryVisibility(run, row, record) {
     if (!s || s.instance_id !== run.instance_id || s.map_id !== run.map_id) return false
     let active = record.active,
         complete = record.complete
-    if (row.id === s.boss_id && materialStoryPending(run)) active = false
+    // StoryTempUnitProcess recreates inactive objects as temporary worldmapId0
+    // units. Enemy groups need their real map sync component and identity.
+    // Keep the cinematic target loaded; ownership/damage/time remain gated by END.
+    if (row.id === s.boss_id && materialStoryPending(run)) active = run.stage_index === s.boss_index
     if (row.id === s.trigger_id) {
         active = s.phase === 'await_trigger'
         complete = s.phase !== 'await_trigger'

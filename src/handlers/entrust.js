@@ -184,7 +184,10 @@ export function syncEntrustEnemyBattle(c, previousEnemyObjectId) {
             obj: { obj_id: objectId, obj_type: 3 },
             lv: enemies.find((enemy) => enemy.object_id === objectId).level,
         })
-        c.push('SCProtoControlChangeByAddNtf', { agent_uid, cli_data: { uuid: agent_uid } })
+        // The intro needs a real loaded target, not an inactive story-temp group.
+        // Give the client battle ownership only after the real END callback.
+        if (!(materialStoryPending(run) && objectId === run.materialStory.boss_id))
+            c.push('SCProtoControlChangeByAddNtf', { agent_uid, cli_data: { uuid: agent_uid } })
     }
     if (!single && run.battle_complete && !run.chest_claimed && !entrustChestGivenUp(c.tables, run)) {
         const chest = getEntrustCatalog(c.tables).chest(run.entrust_id, run.kind)
@@ -658,6 +661,7 @@ export function beginMaterialStoryInteraction(c, objectId) {
     ensureEntrustSceneObjects(c.tables, c.state, c.now)
     syncEntrust({ ...c, pushBefore: c.push }, run)
     worldSync(c, {}, 19, false)
+    syncEntrustEnemyBattle(c)
     c.push('SCProtoPlayerStoryStart', materialStoryStartPayload(run.materialStory))
     return true
 }

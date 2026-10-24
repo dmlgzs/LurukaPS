@@ -115,7 +115,7 @@ test('11271 real DirectSend complete=false starts one local material story, hold
         assert.equal(entrustMultiSnapshot(run).status, 2)
         assert.equal(entrustMultiSnapshot(run).start_time, '0')
         assert.equal(f.state().world.point_id, plan.point_id)
-        assert.equal(f.state().worldObjects[`${plan.map_id}:${plan.boss_id}`].active, false)
+        assert.equal(f.state().worldObjects[`${plan.map_id}:${plan.boss_id}`].active, true)
         const stable = f.state()
         assert.equal(
             ensureEntrustSceneObjects(tables, stable, f.now()),
