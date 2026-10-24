@@ -3,6 +3,7 @@ import { ensure } from './handlers/common.js'
 import { taskNodeCompleted } from './tasks.js'
 import { NoviceTasks } from './novice-tasks.js'
 import overrides from '../configs/achievement-overrides.json' with { type: 'json' }
+import { achievementStateRule, achievementStateValue } from './achievement-state-progress.js'
 
 const catalogues = new WeakMap()
 function sharedRule(tokens) {
@@ -48,7 +49,8 @@ export function achievementCatalogue(tables) {
             ((kind === 2007 && tokens.length === 2) ||
                 (kind === 12045 && tokens.length === 3) ||
                 (kind === 2004 && tokens.length === 2) ||
-                sharedRule(tokens))
+                sharedRule(tokens) ||
+                achievementStateRule(tokens))
         rules.set(row.id, { tokens, supported, chain })
     }
     const model = { rows, byId, groups, rules, novice: new NoviceTasks(tables) }
@@ -71,13 +73,14 @@ export function achievementLedger(state) {
     return ledger
 }
 
-function observedValue(model, row, state, completedTasks) {
+function observedValue(tables, model, row, state, completedTasks, facts) {
     const rule = model.rules.get(row.id)
     if (!rule.supported) return null
     const [kind, ...p] = rule.tokens
     if (kind === 2007) return completedTasks.has(p[0]) ? 1 : 0
     if (kind === 12045) return taskNodeCompleted(state, p[0], p[1]) ? 1 : 0
     if (kind === 2004) return state.player.basic_info.lv
+    if (achievementStateRule(rule.tokens)) return achievementStateValue(tables, state, rule.tokens, facts)
     return model.novice.value(state, { finishCondition: row.finishCondition })
 }
 
@@ -86,7 +89,8 @@ export function observeAchievements(tables, state, now) {
     const model = achievementCatalogue(tables),
         ledger = achievementLedger(state),
         changed = []
-    const completedTasks = new Set((state.taskRecords ?? []).filter((row) => row.count > 0).map((row) => row.task_id))
+    const completedTasks = new Set((state.taskRecords ?? []).filter((row) => row.count > 0).map((row) => row.task_id)),
+        facts = new Map()
     for (const row of model.rows) {
         const saved = ledger.entries[row.id]
         if (saved)
@@ -101,7 +105,7 @@ export function observeAchievements(tables, state, now) {
                 ErrorCode.GameConfig,
             )
         if (saved?.finishTime) continue
-        const raw = observedValue(model, row, state, completedTasks)
+        const raw = observedValue(tables, model, row, state, completedTasks, facts)
         if (raw === null) continue
         ensure(Number.isSafeInteger(raw) && raw >= 0, 'Invalid achievement progress', ErrorCode.GameConfig)
         const value = Math.max(saved?.value ?? 0, Math.min(row.param, raw))
