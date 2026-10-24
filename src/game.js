@@ -182,6 +182,7 @@ import { registerMall } from './handlers/mall.js'
 import { registerNovicePack, prepareNovicePack, notifyNovicePack } from './novice-pack.js'
 import { registerPamiMail, preparePamiMail, pamiMailSnapshot, notifyPamiMail } from './pami-mail.js'
 import { registerCombat } from './handlers/combat.js'
+import { registerPresentation } from './handlers/presentation.js'
 import { registerClientState } from './handlers/client-state.js'
 import { registerRelease } from './handlers/release.js'
 import { releaseFields } from './release-ledger.js'
@@ -531,6 +532,7 @@ export class Game {
         registerEscBackground(on)
         registerPetBoxOrder(on)
         registerCombat(on)
+        registerPresentation(on)
         registerClientState(on, store)
         registerCollection(on)
         registerWorld(on)
@@ -1157,6 +1159,20 @@ export class Game {
             session.staminaSyncCache = { token: this.store.readCacheToken(session.id), state: snapshot }
             return packets
         }
+        if (e.name === 'CSProtoPresentationMsgs')
+            return this.store.read(session.id, (state) => {
+                const packets = []
+                handler(
+                    {
+                        id: session.id,
+                        state,
+                        tables: this.tables,
+                        broadcast: (audience, name, value) => packets.push(this.packet(name, value, { audience })),
+                    },
+                    r,
+                )
+                return packets
+            })
         if (fastCombatTelemetry.has(e.name) || fastCombatReplies.has(e.name) || e.name === 'CSProtoStateUpdate')
             return this.store.transact(
                 session.id,
