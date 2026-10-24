@@ -32,6 +32,7 @@ import { isRetiredTrialActor, temporaryHeroes, temporaryPets, activeFormationMan
 import { ensure } from './common.js'
 import { heroModules, heroBattleLimits, heroBattleConfig, petModules, pairs } from '../battle.js'
 import { u64, expandBattleReport, combatState, boundedSet } from '../combat-state.js'
+import { refreshHeroGradeElements } from '../hero-grade-elements.js'
 export function actor(c, value) {
     const id = u64(value)
     ensure(id !== '0', 'Missing combat actor')
@@ -588,6 +589,7 @@ export function registerCombat(on) {
         ensure(ids.length <= 256, 'Too many element targets')
         const selected = new Set(ids.map((id) => actor(c, id))),
             battle = combatState(c.state, c.now)
+        refreshHeroGradeElements(c, selected, battle)
         c.push('SCProtoElementInfoSync', {
             info: Object.values(battle.elements)
                 .filter((e) => selected.has(e.tar_id))

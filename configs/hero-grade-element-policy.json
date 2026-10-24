@@ -1,0 +1,10 @@
+{
+    "version": 1,
+    "transport": "10706-op10",
+    "refresh": "replace-selected-roots-on-initialize-request",
+    "uidPrefix": 62,
+    "sequenceBits": 25,
+    "officially_verified": false,
+    "notes": "11904 is emitted by online HeroEntity.Initialize. Use the current full local execution path and explicit UID deletion instead of treating grade elements as learned skills. The opaque UID namespace and refresh replacement schedule are local implementation choices.",
+    "todo": "Verify official response channel and actual Unity behavior. The request has no client entity-generation nonce; a manual duplicate refresh restarts transient root state. Only observed parent chains on selected targets can be ended. This does not restore conditional effect VM counters or undocumented/unreported descendant ownership."
+}

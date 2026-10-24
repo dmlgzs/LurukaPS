@@ -264,6 +264,7 @@ const deferredMessages = new Set([
     'CSProtoFightBreak',
     'CSProtoKiboDuelBTTreeRunning',
     'CSProtoSkillEffectDone',
+    'CSProtoRequestHeroElement',
     'CSProtoMonsterSceneChange',
     'CSProtoShieldInfo',
     'CSProtoShieldInfoDel',
@@ -1490,15 +1491,18 @@ export class Game {
                 // Pure phase/trace acknowledgments do not require a disk commit.
                 // Item actions and newly granted After rewards remain durable.
                 logDeferred: deferredTaskProgress.has(e.name),
-                persistWhen: deferredTaskProgress.has(e.name)
-                    ? (draft, base) => {
-                          if ((draft.taskItemRevision ?? 0) !== (base.taskItemRevision ?? 0)) return true
-                          // Also cover another task completed by the normal recovery pass.
-                          return Object.entries(draft.taskAfterReceipts ?? {}).some(
-                              ([key, rewards]) => !base.taskAfterReceipts?.[key] && rewards.length > 0,
-                          )
-                      }
-                    : undefined,
+                // Initialize requests also pass through common task recovery.
+                // Newly granted After items must not wait for the metadata flush.
+                persistWhen:
+                    deferredTaskProgress.has(e.name) || e.name === 'CSProtoRequestHeroElement'
+                        ? (draft, base) => {
+                              if ((draft.taskItemRevision ?? 0) !== (base.taskItemRevision ?? 0)) return true
+                              // Also cover another task completed by the normal recovery pass.
+                              return Object.entries(draft.taskAfterReceipts ?? {}).some(
+                                  ([key, rewards]) => !base.taskAfterReceipts?.[key] && rewards.length > 0,
+                              )
+                          }
+                        : undefined,
                 fork:
                     e.name === 'CSProtoBattleInfoReduce'
                         ? forkBattleReport

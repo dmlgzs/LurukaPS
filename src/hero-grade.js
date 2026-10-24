@@ -8,6 +8,18 @@ import { ErrorCode } from './error-codes.js'
 export function heroGradeRows(heroId) {
     return rows.filter((row) => row.heroId === heroId).sort((a, b) => a.grade - b.grade)
 }
+export function heroGradeElementIds(heroId) {
+    const ids = new Set()
+    for (const row of effects.filter((entry) => entry.heroId === heroId))
+        for (const id of String(row.gradeSkill || '')
+            .split('|')
+            .filter(Boolean)
+            .map(Number)) {
+            ensure(Number.isSafeInteger(id) && id > 0, 'Invalid hero grade element', ErrorCode.HeroGradeConfigInvalid)
+            ids.add(id)
+        }
+    return ids
+}
 export function heroGradeEffects(hero) {
     const configured = heroGradeRows(hero.conf_id)
     // Some non-playable trial actors have no hero_grade rows. Their other
@@ -66,7 +78,7 @@ export function heroGradeEffects(hero) {
             switches.set(from, to)
         }
     }
-    // TODO: persistent grade elements need server-created ElementInfo state;
+    // Runtime grade elements are supplied by11904's owned-element lifecycle;
     // never serialize their config keys as UnitSkillInfo skills.
     return { attrs, skills: [], elements, switches }
 }
