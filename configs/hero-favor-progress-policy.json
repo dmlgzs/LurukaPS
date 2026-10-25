@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "condition": 13007,
+    "measurement": "current-permanent-qualified-hero-level",
+    "levelParameter": 1,
+    "countParameter": 2,
+    "officiallyVerified": false,
+    "todo": [
+        "13007专用条件体尚未恢复；参数与人数性质依据common_condition的CharacterNumFavorabilityLevel、完整三条成就表和客户端个人好感字段读取推导",
+        "按永久owned且hero.favor==1的角色当前等级计数，不按编队或奖励次数；已完成成就收据沿既有单调保留",
+        "个人字段省略时按协议/CLR默认0，不从全局好感余额、角色等级或种类名推断达标",
+        "旧小GUID兼容仅沿hero-favor-ownership-policy的局部明确策略，不宣称当前客户端normal reader支持"
+    ]
+}

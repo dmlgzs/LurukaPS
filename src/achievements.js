@@ -8,6 +8,7 @@ import { productionProgressRule, productionProgressValue } from './production-pr
 import { heroRankProgressRule, heroRankProgressValue } from './hero-rank-progress.js'
 import { petStarSoulProgressRule, petStarSoulProgressValue } from './pet-star-soul-progress.js'
 import { entrustStarProgressRule, entrustStarProgressValue } from './entrust-star-progress.js'
+import { heroFavorProgressRule, heroFavorProgressValue } from './hero-favor-progress.js'
 
 const catalogues = new WeakMap()
 function sharedRule(tokens) {
@@ -56,6 +57,7 @@ export function achievementCatalogue(tables) {
                 sharedRule(tokens) ||
                 achievementStateRule(tokens) ||
                 (tokens.at(-1) === row.param && entrustStarProgressRule(tables, tokens)) ||
+                (tokens.at(-1) === row.param && heroFavorProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && petStarSoulProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && heroRankProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && productionProgressRule(tables, tokens)))
@@ -90,6 +92,7 @@ function observedValue(tables, model, row, state, completedTasks, facts) {
     if (kind === 2004) return state.player.basic_info.lv
     if (kind === 15045) return petStarSoulProgressValue(tables, state, rule.tokens, facts)
     if (kind === 12252) return entrustStarProgressValue(tables, state, rule.tokens, facts)
+    if (kind === 13007) return heroFavorProgressValue(tables, state, rule.tokens, facts)
     if (kind === 12055) return heroRankProgressValue(tables, state, rule.tokens, facts)
     if (kind === 12018) return productionProgressValue(tables, state, rule.tokens, facts)
     if (achievementStateRule(rule.tokens)) return achievementStateValue(tables, state, rule.tokens, facts)
