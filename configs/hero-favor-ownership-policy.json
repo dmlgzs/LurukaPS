@@ -1,0 +1,13 @@
+{
+    "version": 1,
+    "normalGuidType": 1,
+    "ownerBits": 32,
+    "legacyOwnedSmallIdMaximum": 4294967295,
+    "legacyCompatibilityOfficiallyVerified": false,
+    "todo": [
+        "当前客户端GetNormalHero和configId2Guid仅接纳高8位类型1且低32位owner匹配的正常角色；同conf试用不能替代永久目标",
+        "非零UInt32小GUID永久owned兼容为现有旧服本地策略，当前客户端GetNormalHero不接纳，不宣称官方兼容",
+        "先排除全部临时持有域与标志，再判断正常GUID或旧小ID；不把其它高位0大数当legacy，不按当前编队筛角色",
+        "角色好感资格读取hero.favor；主角或同名角色不按名字硬编码排除，完整系统解锁权限仍独立待证"
+    ]
+}

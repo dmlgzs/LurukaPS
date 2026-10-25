@@ -20,6 +20,7 @@ import { grantRewards, parseRewards } from '../rewards.js'
 import { worldSync, WORLD_MAP_CMD_ENTER } from './world.js'
 import { syncBattle } from '../battle.js'
 import { configTime } from '../shops.js'
+import { heroGiftRecipient } from '../hero-favor-ownership.js'
 
 function changed(c) {
     c.state.homeRevision = (c.state.homeRevision ?? 0) + 1
@@ -174,8 +175,7 @@ export function registerHomeDorm(on, tables) {
     on('SendHeroGift', (c, r) => {
         ensureHome(tables, c.state)
         refreshDormGiftDay(tables, c.state, c.now)
-        const actor = c.state.player.heros_info.heros.find((entry) => entry.conf_id === r.heroId)
-        ensure(actor, 'Gift recipient is not owned')
+        const actor = heroGiftRecipient(tables, c.state, r.heroId)
         const item = tables.find('common_item', r.item_id)
         // item_type is common_item.type (110/111), not reward resource type 3.
         ensure(item && [110, 111].includes(item.type) && r.item_type === item.type, 'Invalid hero gift category')
