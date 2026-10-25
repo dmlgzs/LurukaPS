@@ -9,6 +9,7 @@ import { ensure } from './handlers/common.js'
 import { combatState } from './combat-state.js'
 import { enemyDefinition } from './enemy-state.js'
 import { recordMaterialVictory } from './material-dungeons.js'
+import { materialBlueprintStages } from './material-blueprint-stages.js'
 import { recordWeeklyVictory } from './weekly-dungeons.js'
 import { entrustChallengeGoals } from './entrust-challenge-goals.js'
 
@@ -97,9 +98,9 @@ export class EntrustCatalog {
     stages(id, kind) {
         const key = `${kind === 'weekly' ? 'weekly' : 'legacy'}:${id}`
         if (!this.stageCache.has(key)) {
-            const { scene, repeat } = this.get(id, kind)
+            const { scene, repeat, material } = this.get(id, kind)
             const source = repeat ? repeatEventTables(this.tables) : this.tables
-            const rows = source
+            const indexed = source
                 .get(`worldmap_${scene.id}`)
                 .flatMap((row) => {
                     const token = String(row.expandParams ?? '')
@@ -116,6 +117,7 @@ export class EntrustCatalog {
                     return [{ index, type, row }]
                 })
                 .sort((a, b) => a.index - b.index)
+            const rows = material ? materialBlueprintStages(this.tables, scene, material, indexed) : indexed
             ensure(
                 rows.length >= 3 &&
                     rows[0].type === 13 &&

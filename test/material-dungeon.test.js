@@ -263,7 +263,7 @@ test('11850 rejects missing, wrong-map, corrupt and unconfigured dungeon context
     }
 })
 
-test('material mappings cover all92 current configurations and preserve explicit errors for three missing wave indices', () => {
+test('material mappings cover all92 current configurations including blueprint-derived missing wave indices', () => {
     const f = fixture('material-catalog'),
         c = getEntrustCatalog(f.tables),
         gaps = []
@@ -282,7 +282,7 @@ test('material mappings cover all92 current configurations and preserve explicit
                 gaps.push(m.id)
             }
         }
-        assert.deepEqual(gaps, [30604, 30803, 30804])
+        assert.deepEqual(gaps, [])
         const boss = c.stages(20701)
         assert.equal(boss[0].row.id, 1500013)
         assert.equal(boss[0].index, 1)
@@ -437,13 +437,33 @@ test('entry rejects locked and malformed configurations, foreign modes and activ
         }
         const gap = f.tables.find('dungeon_material', 30604)
         f.store.transact(f.session.id, 0, (s) => {
-            s.materialDungeonRecords = { 30603: { material_id: 30603, material_star: 0, success_count: 1 } }
+            s.materialDungeonRecords = {
+                30603: {
+                    material_id: 30603,
+                    difficulty_id: f.tables.find('dungeon_material', 30603).diff,
+                    material_star: 0,
+                    success_count: 1,
+                    success_time: '1799999900',
+                },
+            }
         })
         before = structuredClone(f.state())
-        assert.throws(
-            () => f.call('MultiCampaignCreate', { dungeon_id: gap.dungeonId, scene_type: 12 }),
-            (e) => e.code === ErrorCode.GameConfig,
-        )
+        // The real missing-index route is now derived from its blueprint tags.
+        // A configured victory group with its required wait tag removed remains
+        // corrupt, and must reject without consuming entry state.
+        const get = f.tables.get
+        try {
+            f.tables.get = function (name) {
+                const rows = get.call(this, name)
+                return name === 'worldmap_60064' ? rows.map((r) => (r.id === 5 ? { ...r, commonTag: '' } : r)) : rows
+            }
+            assert.throws(
+                () => f.call('MultiCampaignCreate', { dungeon_id: gap.dungeonId, scene_type: 12 }),
+                (e) => e.code === ErrorCode.GameConfig,
+            )
+        } finally {
+            f.tables.get = get
+        }
         assert.deepEqual(f.state(), before)
         f.call('MultiCampaignCreate', { dungeon_id: 31960, scene_type: 12 })
         before = structuredClone(f.state())

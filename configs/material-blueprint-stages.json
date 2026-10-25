@@ -1,0 +1,83 @@
+{
+    "version": 1,
+    "blueprintId": 300351,
+    "path": "Config/World/Graph/Blueprint/ast_multiplayer_dungeon/multiplayer_dungeon_common.asset",
+    "source": {
+        "package": "default_package",
+        "version": "2302423",
+        "bundle": "d_assets_resourcesassets_config_world_graph_blueprint_multiplayerdungeon_ast_multiplayer_dungeon_common",
+        "crc32": 148781818,
+        "bundleSha256": "ac3becc8172789fc8ff553e218fcc61a4694aa41e3c7f5b91c5e447fb417e2b0",
+        "serializedGraphSha256": "de1535af79bfe7ecaf94c33a90a7c0c22e7d4c6d77ecd762347c0e6ee8e608b0"
+    },
+    "projection": "serial-present-wait-tags-with-explicit-auto-anchors",
+    "conditions": [
+        {
+            "name": "bossTag",
+            "value": 0,
+            "getter": "65"
+        }
+    ],
+    "waits": [
+        {
+            "tag": 1,
+            "variable": "enemyTag1",
+            "waitNode": "5",
+            "createNode": "4"
+        },
+        {
+            "tag": 2,
+            "variable": "enemyTag2",
+            "waitNode": "11",
+            "createNode": "10"
+        },
+        {
+            "tag": 3,
+            "variable": "enemyTag3",
+            "waitNode": "16",
+            "createNode": "15"
+        },
+        {
+            "tag": 4,
+            "variable": "enemyTag4",
+            "waitNode": "21",
+            "createNode": "20"
+        },
+        {
+            "tag": 5,
+            "variable": "enemyTag5",
+            "waitNode": "25",
+            "createNode": "24"
+        },
+        {
+            "tag": 6,
+            "variable": "enemyTag6",
+            "waitNode": "29",
+            "createNode": "28"
+        },
+        {
+            "tag": 7,
+            "variable": "enemyTag7",
+            "waitNode": "33",
+            "createNode": "32"
+        },
+        {
+            "tag": 8,
+            "variable": "enemyTag8",
+            "waitNode": "37",
+            "createNode": "36"
+        },
+        {
+            "tag": 9,
+            "variable": "enemyTag9",
+            "waitNode": "41",
+            "createNode": "40"
+        }
+    ],
+    "terminal": {
+        "musicTag": 1000,
+        "variable": "musicIDWin",
+        "createNode": "54",
+        "finishNode": "55"
+    }
+}
