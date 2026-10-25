@@ -4,7 +4,6 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { mainEntrustFixture } from './main-entrust-clear-fixture.js'
-import { battlePassTaskModel } from '../src/battle-pass-tasks.js'
 import {
     mainEntrustClearRule,
     mainEntrustClearPeriodValue,
@@ -15,10 +14,9 @@ const counts = (f) =>
     f.read((state) => structuredClone(state.battlePass.seasons[state.battlePass.activeKey].tasks.week.counts))
 const value = (f) => counts(f)['main-entrust-clear'] ?? 0
 
-test('source-only12251 records repeated actual main wins,independent of receipts,boxes and reconstruction', () => {
+test('12251 source records repeated actual main wins,independent of receipts,boxes and reconstruction', () => {
     const f = mainEntrustFixture('main-clear-source')
     try {
-        assert.equal(battlePassTaskModel(f.tables).rows.find((row) => row.kind === 12251).supported, false)
         for (let index = 0; index < 5; index++) f.win(1)
         assert.equal(value(f), 5)
         assert.equal(

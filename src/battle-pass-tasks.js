@@ -93,6 +93,7 @@ export function battlePassTaskModel(tables) {
                 event ||
                 battlePassAbyssRule(tables, row, tokens) ||
                 (row.type === 2 && tokens.at(-1) === row.param && materialClearRule(tables, tokens)) ||
+                (row.type === 2 && tokens.at(-1) === row.param && mainEntrustClearRule(tables, tokens)) ||
                 ([15008, 15009].includes(kind) && args.length === 1 && args[0] === row.param) ||
                 (kind === 2007 && args.length === 1 && args[0] > 0) ||
                 (kind === 80003 && args.length === 2 && args[1] === row.param) ||
@@ -198,6 +199,7 @@ function value(tables, state, row, taskPeriod, now) {
     if (!row.supported) return 0
     if (row.event) return taskPeriod.counts[row.kind] ?? 0
     if (row.kind === 15010) return materialClearPeriodValue(tables, taskPeriod.counts, [row.kind, ...row.args])
+    if (row.kind === 12251) return mainEntrustClearPeriodValue(tables, taskPeriod.counts, [row.kind, ...row.args])
     if (row.kind === 15008) return state.dailyActive?.day?.active ?? 0
     if (row.kind === 15009) return state.dailyActive?.week?.active ?? 0
     if (row.kind === 13111) return battlePassAbyssValue(tables, state, row.args[0], now)
