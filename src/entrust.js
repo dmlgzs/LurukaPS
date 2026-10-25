@@ -1,4 +1,6 @@
 import { repeatDungeon, repeatEventTables, recordRepeatVictory } from './repeat-event.js'
+import { recordMainEntrustVictory } from './main-entrust-progress.js'
+import { recordBattlePassMainEntrustClear } from './battle-pass-tasks.js'
 import { applyMaterialStoryVisibility, materialStoryPending } from './multiple-material-story.js'
 import { ErrorCode } from './error-codes.js'
 import { recordActiveDungeonFinish } from './daily-active.js'
@@ -144,12 +146,18 @@ export class EntrustCatalog {
     }
 }
 
-export function settleEntrustVictory(tables, state, now, { freshMaterialVictory = false } = {}) {
+export function settleEntrustVictory(
+    tables,
+    state,
+    now,
+    { freshMaterialVictory = false, freshMainVictory = false } = {},
+) {
     const run = state.entrust?.run
     if (!run || run.battle_complete || !run.end_time || !run.battle_start_time) return false
     const catalog = getEntrustCatalog(tables)
     if (!entrustVictoryComplete(catalog, state, run.entrust_id)) return false
-    const { scene, entrust, dungeon } = catalog.get(run.entrust_id, run.kind)
+    const config = catalog.get(run.entrust_id, run.kind)
+    const { scene, entrust, dungeon } = config
     const goals = entrustChallengeGoals(tables, run, scene, dungeon)
     const elapsed = run.end_time - run.battle_start_time
     let mask = 0
@@ -195,7 +203,7 @@ export function settleEntrustVictory(tables, state, now, { freshMaterialVictory 
         return true
     }
     const old = state.entrust.records[run.entrust_id]
-    state.entrust.records[run.entrust_id] = {
+    const record = {
         ...old,
         entrust_id: run.entrust_id,
         entrust_star: Math.max(run.star, old?.entrust_star ?? 0),
@@ -205,6 +213,11 @@ export function settleEntrustVictory(tables, state, now, { freshMaterialVictory 
         entrust_start_bit: (old?.entrust_start_bit ?? 0) | mask,
         first_reward_claimed: old ? (old.first_reward_claimed ?? true) : false,
     }
+    // Keep the previous pending records map immutable when this new source or
+    // its outgoing packet fails inside the deferred combat transaction.
+    state.entrust = { ...state.entrust, records: { ...state.entrust.records, [run.entrust_id]: record } }
+    if (recordMainEntrustVictory(tables, state, run, config, now, freshMainVictory))
+        recordBattlePassMainEntrustClear(tables, state, now)
     return true
 }
 
@@ -352,7 +365,12 @@ export function entrustMultiBaseSnapshot(state, accountId) {
     }
 }
 
-export function ensureEntrustSceneObjects(tables, state, now, { freshMaterialVictory = false } = {}) {
+export function ensureEntrustSceneObjects(
+    tables,
+    state,
+    now,
+    { freshMaterialVictory = false, freshMainVictory = false } = {},
+) {
     const run = state.entrust?.run
     if (!run || state.world.map_id !== run.map_id) return false
     const config = getEntrustCatalog(tables).get(run.entrust_id, run.kind)
@@ -504,7 +522,7 @@ export function ensureEntrustSceneObjects(tables, state, now, { freshMaterialVic
             const { claims, ...object } = value
             return object
         })
-    if (settleEntrustVictory(tables, state, now, { freshMaterialVictory })) changed = true
+    if (settleEntrustVictory(tables, state, now, { freshMaterialVictory, freshMainVictory })) changed = true
     return changed
 }
 

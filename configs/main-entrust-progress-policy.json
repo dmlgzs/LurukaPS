@@ -1,0 +1,12 @@
+{
+    "version": 1,
+    "condition": 12251,
+    "scope": "configured-dungeon-entrust-group-members",
+    "unit": "one-actual-victory",
+    "repeatSameLevel": true,
+    "claimIndependent": true,
+    "oldPeriodBackfill": false,
+    "periodKey": "main-entrust-clear",
+    "officiallyVerified": false,
+    "todo": "12251专用官方后台谓词尚未恢复；按当前5次文案及无distinct/关卡selector采用可重复同关的真实新胜利一次本地规则，不从旧成绩回填周期。"
+}

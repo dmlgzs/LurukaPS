@@ -1516,7 +1516,9 @@ export class Game {
                 // Newly granted After items must not wait for the metadata flush.
                 persistWhen:
                     e.name === 'CSProtoBattleInfoReduce'
-                        ? (draft, base) => (draft.materialClearRevision ?? 0) !== (base.materialClearRevision ?? 0)
+                        ? (draft, base) =>
+                              (draft.materialClearRevision ?? 0) !== (base.materialClearRevision ?? 0) ||
+                              (draft.mainEntrustClearRevision ?? 0) !== (base.mainEntrustClearRevision ?? 0)
                         : deferredTaskProgress.has(e.name) || e.name === 'CSProtoRequestHeroElement'
                           ? (draft, base) => {
                                 if ((draft.taskItemRevision ?? 0) !== (base.taskItemRevision ?? 0)) return true
