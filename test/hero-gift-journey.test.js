@@ -24,8 +24,8 @@ test('complete12227/12228 family: actual quantities and furniture progress, chap
             rows = [12227, 12228].flatMap((k) => model.byKind.get(k))
         assert.equal(rows.length, 2)
         assert(rows.every((r) => r.supported && journeyValue(f.tables, f.state(), r) === 0))
-        assert.equal(model.targets.filter((r) => r.supported).length, 175)
-        assert.equal(model.referencedTargets.filter((r) => r.supported).length, 159)
+        assert.equal(model.targets.filter((r) => r.supported).length, 184)
+        assert.equal(model.referencedTargets.filter((r) => r.supported).length, 168)
         for (const tokens of [
             [12227, 2],
             [12228, 0],

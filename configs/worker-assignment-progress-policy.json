@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "officiallyVerified": false,
+    "membership": "current-home-hub-stationPets-owned-permanent",
+    "counting": "distinct-current-permanent-pet-per-positive-labor-capability",
+    "homeStatuses": [1, 2, 5, 6, 7],
+    "multipleJobs": "each-capability-counts-once-per-pet",
+    "history": "no-cumulative-backfill-current-membership-only",
+    "todo": [
+        "The12247 backend predicate is not recovered. Current hub membership plus all positive labor_infos is the root-authorized local policy,not verified official active-job semantics.",
+        "6552 carries no job selector; no current selected job,work_build,capacity,production timer,hunger or satiety requirement is added to the capability predicate.",
+        "Unowned members,non-home status0/3/4 andtemporary pets are not current permanent home station facts. Stale members are ignored with diagnostics,not repaired into new assignments.",
+        "Completed legitimate journey receipts remain terminal; nonterminal values are recomputed from current true membership,not counted as lifetime assignment events."
+    ]
+}

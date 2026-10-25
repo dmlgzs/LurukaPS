@@ -16,6 +16,7 @@ import { compileJourneyUnlocks, journeyReputationFacts } from './journey-unlocks
 import { petStarSoulProgressRule, petStarSoulProgressValue } from './pet-star-soul-progress.js'
 import { worldCollectionProgressRule, worldCollectionProgressValue } from './world-collection-progress.js'
 import { resourceBuildingProgressRule, resourceBuildingProgressValue } from './resource-building-progress.js'
+import { workerAssignmentProgressRule, workerAssignmentProgressValue } from './worker-assignment-progress.js'
 import { homeOrderProgressRule, homeOrderProgressValue } from './home-order-progress.js'
 import { farmHarvestProgressRule, farmHarvestProgressValue } from './farm-harvest-progress.js'
 import { heroGiftProgressFacts, heroGiftProgressRule, heroGiftProgressValue } from './hero-gift-progress.js'
@@ -51,6 +52,7 @@ function supportedShape(tokens, tables) {
     if (kind === 15045) return petStarSoulProgressRule(tables, tokens)
     if (kind === 13039) return worldCollectionProgressRule(tables, tokens)
     if (kind === 12016) return resourceBuildingProgressRule(tables, tokens)
+    if (kind === 12247) return workerAssignmentProgressRule(tables, tokens)
     if (kind === 15010) return materialClearRule(tables, tokens)
     if (kind === 15003) return homeOrderProgressRule(tables, tokens)
     if (kind === 12062) return farmHarvestProgressRule(tables, tokens)
@@ -88,10 +90,12 @@ export function journeyModel(tables) {
         row.supported =
             (direct.has(tokens[0]) ||
                 shared.has(tokens[0]) ||
-                [12018, 12055, 15045, 13039, 15003, 12227, 12228, 15072, 12062, 12016, 15010].includes(tokens[0])) &&
+                [12018, 12055, 15045, 13039, 15003, 12227, 12228, 15072, 12062, 12016, 15010, 12247].includes(
+                    tokens[0],
+                )) &&
             supportedShape(tokens, tables) &&
             (tokens[0] !== 13111 || row.targetParam === 1) &&
-            (![12018, 12055, 12072, 15045, 13039, 15003, 12227, 12228, 15072, 12062, 12016, 15010].includes(
+            (![12018, 12055, 12072, 15045, 13039, 15003, 12227, 12228, 15072, 12062, 12016, 15010, 12247].includes(
                 tokens[0],
             ) ||
                 tokens.at(-1) === row.targetParam)
@@ -222,6 +226,7 @@ export function journeyValue(tables, state, row, facts = new Map()) {
     if (kind === 15045) return petStarSoulProgressValue(tables, state, row.tokens, facts)
     if (kind === 13039) return worldCollectionProgressValue(tables, state, row.tokens, facts)
     if (kind === 12016) return resourceBuildingProgressValue(tables, state, row.tokens, facts)
+    if (kind === 12247) return workerAssignmentProgressValue(tables, state, row.tokens, facts)
     if (kind === 15010) return materialClearValue(tables, state, row.tokens, facts)
     if (kind === 15003) return homeOrderProgressValue(tables, state, row.tokens, facts)
     if (kind === 12062) return farmHarvestProgressValue(tables, state, row.tokens, facts)
@@ -367,7 +372,7 @@ export function observeJourney(tables, state, kinds) {
         const raw = journeyValue(tables, state, row, facts)
         if (raw === null) continue
         ensure(uint(raw), 'Invalid journey condition value', ErrorCode.JourneyTargetDateError)
-        const authoritativeResource = row.tokens[0] === 12016 || row.tokens[0] === 15010,
+        const authoritativeResource = [12016, 15010, 12247].includes(row.tokens[0]),
             value = authoritativeResource
                 ? Math.min(row.targetParam, raw)
                 : Math.max(saved?.value ?? 0, Math.min(row.targetParam, raw))
@@ -472,10 +477,10 @@ const dirtyKinds = [
     [/Gift/, [12227, 12228]],
     [/Task|Story/, [2007, 12045]],
     [/Hero|Soul|Ornament|Equip|Trial|Group/, [12055, 12229, 12235, 13002, 13006]],
-    [/Pet|Catch|Hatch|Egg/, [12014, 12040, 12046, 13035, 15045]],
+    [/Pet|Catch|Hatch|Egg/, [12014, 12040, 12046, 13035, 15045, 12247]],
     [
         /Home|Build|Crop|Plant|Cook|Product|Ranch|Collection|Shop|Exchange|Item|GM|Playable|Entrust|Dungeon|WorldMapExplore/,
-        [...shared, 12018, 15017, 13104, 13039, 12016, 15072, 15010],
+        [...shared, 12018, 15017, 13104, 13039, 12016, 15072, 15010, 12247],
     ],
 ]
 function sourceRevisions(state, model) {
@@ -514,8 +519,9 @@ export function notifyJourney(c, protocolName) {
         const kinds = dirtyKinds.filter(([pattern]) => pattern.test(protocolName)).flatMap(([, kinds]) => kinds)
         // Rewards and automatic settlements can change a domain under another
         // request name. Observe its real revision, not just the packet's label.
-        if (ledger.observedSources?.pet !== revisions.pet) kinds.push(12014, 12040, 12046, 13035, 15045)
-        if (ledger.observedSources?.home !== revisions.home) kinds.push(...shared, 12018, 15017, 13104, 13039, 12016)
+        if (ledger.observedSources?.pet !== revisions.pet) kinds.push(12014, 12040, 12046, 13035, 15045, 12247)
+        if (ledger.observedSources?.home !== revisions.home)
+            kinds.push(...shared, 12018, 15017, 13104, 13039, 12016, 12247)
         // Observe the authoritative aggregate, including claims under another
         // request name. Stable callbacks neither scan objects nor serialize state.
         if (ledger.observedSources?.chest !== revisions.chest) kinds.push(12072)

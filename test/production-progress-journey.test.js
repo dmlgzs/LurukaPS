@@ -39,6 +39,8 @@ function forge(f, id = 1) {
             material_id: recipe.dungeonId,
             material_star: 0,
             success_count: 1,
+            difficulty_id: f.tables.find('dungeon_material', recipe.dungeonId).diff,
+            success_time: String(f.game.clock()),
         }
         if (!s.home.builds.some((b) => b.guid === 900))
             s.home.builds.push({
@@ -62,9 +64,9 @@ test('full current12018 journey family compiles from station outputs, without re
             rows = model.referencedTargets.filter((row) => row.tokens[0] === 12018)
         assert.equal(rows.length, 15)
         assert(rows.every((row) => row.supported))
-        assert.equal(model.targets.filter((row) => row.supported).length, 175)
-        assert.equal(model.referencedTargets.filter((row) => row.supported).length, 159)
-        assert.equal(model.referencedTargets.filter((row) => !row.supported).length, 136)
+        assert.equal(model.targets.filter((row) => row.supported).length, 184)
+        assert.equal(model.referencedTargets.filter((row) => row.supported).length, 168)
+        assert.equal(model.referencedTargets.filter((row) => !row.supported).length, 127)
         assert.equal(model.owner.has(6042025), false)
         assert.equal(model.byTarget.get(6042025).supported, true)
         assert.equal(rows.filter((row) => row.tokens[3] === 0).length, 3)
