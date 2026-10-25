@@ -45,6 +45,7 @@ import { registerAchievements } from './handlers/achievements.js'
 import { registerJourney } from './handlers/journey.js'
 import { journeySnapshot, observeJourney, notifyJourney } from './journey.js'
 import { achievementSnapshot, notifyAchievements } from './achievements.js'
+import { recordLoginDay } from './login-day-progress.js'
 import { registerAbyssData } from './handlers/abyss-data.js'
 import { registerAbyssChallenge } from './handlers/abyss-challenge.js'
 import { ensureAbyssScene } from './abyss-scene.js'
@@ -878,6 +879,9 @@ export class Game {
                 const battle = []
                 recoverBossFirstClears(this.tables, state, now)
                 syncBattle({ state, tables: this.tables, push: (name, value) => battle.push(this.packet(name, value)) })
+                //5009 is the gateway-to-GS alias,not an independent player entry.
+                // Main entry packets and the source fact commit in this transaction.
+                if (e.name === 'CSProtoEnterGame') recordLoginDay(this.tables, state, now)
                 return [...this.loginPackets(state, session, r, frame, e.id), ...battle]
             })
             session.entered = true

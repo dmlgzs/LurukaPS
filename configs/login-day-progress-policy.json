@@ -1,0 +1,18 @@
+{
+    "version": 1,
+    "officiallyVerified": false,
+    "event": "successful-5001-main-entry-transaction",
+    "dayTimestamp": "canonical-server-request-accepted-time",
+    "timezoneHours": 8,
+    "resetHourSource": "game.DAILY_REFRESH_TIME",
+    "continuousProgress": "maximum-observed-consecutive-entry-days",
+    "history": "no-age-calendar-reward-or-limited-calendar-backfill",
+    "todo": [
+        "Official15048/20003 backend predicate and current-versus-maximum streak display are not recovered; maximum observed streak is the explicit local policy.",
+        "5009 is gateway-to-game-server internal reentry; retain existing snapshot behavior without creating an independent player-login event.",
+        "Count only successful5001 main entry transactions,including real reconnect5001; online rollover,ordinary activity,ticks and authentication-only1001 do not count.",
+        "No old missing login dates are reconstructed; previous legitimate achievement terminal receipts remain compatible without inventing source facts.",
+        "A valid backwards clock or changed daily boundary suspends new statistics with once-per-account diagnostics,without rejecting entry or resetting facts; explicit calendar migration remains required.",
+        "The main entry ACK/loginPackets/save are transactional; original post-transaction team/arena packets and socket delivery are outside that boundary."
+    ]
+}
