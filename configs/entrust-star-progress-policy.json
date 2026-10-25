@@ -1,0 +1,17 @@
+{
+    "version": 1,
+    "condition": 12252,
+    "starParameterIndex": 1,
+    "countParameterIndex": 2,
+    "scope": "configured-dungeon-entrust-group-members",
+    "recordField": "entrust_star",
+    "comparison": "at-least",
+    "officiallyVerified": false,
+    "authority": "按CBT3参数字段与实际成就表修正专用客户端条件体字段误用",
+    "todo": [
+        "DungeonEntrustTagStarCond.OnInit把参数1存为m_targetStarNum、参数2存为m_targetNum，但OnCheck错误地将单关星数与m_targetNum比较；不复制该不可能满足当前10/30目标的分支",
+        "当前兼容解释按参数1作为星阈值、参数2作为关数，未恢复官方后台实现，不宣称客户端错误分支已证官方意图",
+        "范围沿客户端遍历全部dungeon_entrust_group及组内关卡，不按主线文案追加筛选，不统计素材本、周本或活动重复本记录",
+        "只读每关最高entrust_star；不累计重复通关，不将跨场entrust_start_bit的OR结果凑成一次三星"
+    ]
+}

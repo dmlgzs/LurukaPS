@@ -27,7 +27,7 @@ test('current state-based achievements compile from real table shapes while unob
             [2010003, 2010004, 3010003, 3010004, 3020014, 3020015, 3020016, 4020008, 4020009],
         )
         assert(added.every((row) => model.rules.get(row.id).supported))
-        assert.equal(model.rows.filter((row) => model.rules.get(row.id).supported).length, 71)
+        assert.equal(model.rows.filter((row) => model.rules.get(row.id).supported).length, 76)
         for (const tokens of [
             [12046, 1, 100],
             [12046, 0, 100, 1],
