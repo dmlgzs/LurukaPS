@@ -1,0 +1,13 @@
+{
+    "version": 1,
+    "condition": 81000,
+    "unit": "one-actual-victory",
+    "period": "active-season-forever",
+    "zeroSelector": "only-single-enabled-normal-route",
+    "nonzeroSelectorSupported": false,
+    "claimIndependent": true,
+    "oldSeasonBackfill": false,
+    "prefix": "repeat-clear:",
+    "officiallyVerified": false,
+    "todo": "81000专用官方谓词尚未恢复；当前selector0仅在唯一enabled normal1配置上做等价本地投影，未来双模式或非0明确关闭。只记录本季真实新胜利，不从旧win_count/星数/首通或宝箱凭证回填。"
+}

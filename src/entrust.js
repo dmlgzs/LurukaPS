@@ -1,6 +1,7 @@
 import { repeatDungeon, repeatEventTables, recordRepeatVictory } from './repeat-event.js'
 import { recordMainEntrustVictory } from './main-entrust-progress.js'
-import { recordBattlePassMainEntrustClear } from './battle-pass-tasks.js'
+import { recordRepeatClear } from './repeat-event-progress.js'
+import { recordBattlePassMainEntrustClear, recordBattlePassRepeatClear } from './battle-pass-tasks.js'
 import { applyMaterialStoryVisibility, materialStoryPending } from './multiple-material-story.js'
 import { ErrorCode } from './error-codes.js'
 import { recordActiveDungeonFinish } from './daily-active.js'
@@ -152,7 +153,7 @@ export function settleEntrustVictory(
     tables,
     state,
     now,
-    { freshMaterialVictory = false, freshMainVictory = false } = {},
+    { freshMaterialVictory = false, freshMainVictory = false, freshRepeatVictory = false } = {},
 ) {
     const run = state.entrust?.run
     if (!run || run.battle_complete || !run.end_time || !run.battle_start_time) return false
@@ -194,6 +195,8 @@ export function settleEntrustVictory(
     }
     if (run.kind === 'repeat') {
         recordRepeatVictory(tables, state, run)
+        const tuple = recordRepeatClear(tables, state, run, config, now, freshRepeatVictory)
+        if (tuple) recordBattlePassRepeatClear(tables, state, tuple, now)
         return true
     }
     if (run.kind === 'material') {
@@ -371,7 +374,7 @@ export function ensureEntrustSceneObjects(
     tables,
     state,
     now,
-    { freshMaterialVictory = false, freshMainVictory = false } = {},
+    { freshMaterialVictory = false, freshMainVictory = false, freshRepeatVictory = false } = {},
 ) {
     const run = state.entrust?.run
     if (!run || state.world.map_id !== run.map_id) return false
@@ -524,7 +527,8 @@ export function ensureEntrustSceneObjects(
             const { claims, ...object } = value
             return object
         })
-    if (settleEntrustVictory(tables, state, now, { freshMaterialVictory, freshMainVictory })) changed = true
+    if (settleEntrustVictory(tables, state, now, { freshMaterialVictory, freshMainVictory, freshRepeatVictory }))
+        changed = true
     return changed
 }
 

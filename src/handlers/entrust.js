@@ -145,9 +145,9 @@ function stageContext(c) {
 export function syncEntrustStage(
     c,
     previousEnemyObjectId,
-    { freshMaterialVictory = false, freshMainVictory = false } = {},
+    { freshMaterialVictory = false, freshMainVictory = false, freshRepeatVictory = false } = {},
 ) {
-    ensureEntrustSceneObjects(c.tables, c.state, c.now, { freshMaterialVictory, freshMainVictory })
+    ensureEntrustSceneObjects(c.tables, c.state, c.now, { freshMaterialVictory, freshMainVictory, freshRepeatVictory })
     // The interaction reply completes the marker/chest locally. Publish the
     // next wave only after that reply so the client cannot apply the old
     // marker state after the new world-object snapshot.
@@ -303,7 +303,13 @@ export function advanceEntrustCombat(c, deadGroups = new Set()) {
         Array.from({ length: count }, (_, slot) =>
             ((3n << 56n) | (BigInt(slot) << 32n) | BigInt(stage.row.id)).toString(),
         ).some((uid) => deadGroups.has(uid))
-    syncEntrustStage(c, stage.row.id, { freshMaterialVictory, freshMainVictory })
+    const freshRepeatVictory =
+        run.kind === 'repeat' &&
+        stages[position + 1].type === 30 &&
+        Array.from({ length: count }, (_, slot) =>
+            ((3n << 56n) | (BigInt(slot) << 32n) | BigInt(stage.row.id)).toString(),
+        ).some((uid) => deadGroups.has(uid))
+    syncEntrustStage(c, stage.row.id, { freshMaterialVictory, freshMainVictory, freshRepeatVictory })
     return true
 }
 

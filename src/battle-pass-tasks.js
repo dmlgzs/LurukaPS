@@ -5,6 +5,7 @@ import {
     materialClearPeriodValue,
 } from './material-clear-progress.js'
 import { taskNodeCompleted } from './tasks.js'
+import { repeatClearRule, repeatClearMatches, repeatClearKey, repeatClearPeriodValue } from './repeat-event-progress.js'
 import { mainEntrustClearRule, mainEntrustClearKey, mainEntrustClearPeriodValue } from './main-entrust-progress.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
@@ -490,6 +491,46 @@ export function recordBattlePassMainEntrustClear(tables, state, now) {
     ensure(
         Number.isSafeInteger(revision) && revision >= 0 && revision < 0xffffffff,
         'Main commission task revision overflow',
+        ErrorCode.GameConfig,
+    )
+    prepared.ledger.taskRevision = revision + 1
+    return true
+}
+
+export function recordBattlePassRepeatClear(tables, state, tuple, now) {
+    if (!state.battlePass?.activeKey) return false
+    const rows = battlePassTaskModel(tables).rows.filter(
+        (row) =>
+            row.type === 3 &&
+            row.param === row.args.at(-1) &&
+            repeatClearRule(tables, [row.kind, ...row.args]) &&
+            repeatClearMatches(tables, [row.kind, ...row.args], tuple),
+    )
+    if (!rows.length) return false
+    const prepared = draft(tables, state, now)
+    if (!prepared) return false
+    const eligible = rows.filter(
+        (row) =>
+            row.teamId === prepared.season.row.taskIdForever &&
+            showReady(row, state) &&
+            (!row.showTime || DateTime(row.showTime) <= now) &&
+            (!row.endTime || now < DateTime(row.endTime)),
+    )
+    if (!eligible.length) return false
+    const target = periods(tables, prepared, now).tasks.forever
+    repeatClearPeriodValue(tables, target.counts, [eligible[0].kind, ...eligible[0].args])
+    const key = repeatClearKey(tables, tuple),
+        old = target.counts[key] === undefined ? 0 : target.counts[key]
+    ensure(
+        Number.isSafeInteger(old) && old >= 0 && old < 0xffffffff,
+        'Repeat clear season count overflow',
+        ErrorCode.GameConfig,
+    )
+    target.counts[key] = old + 1
+    const revision = prepared.ledger.taskRevision === undefined ? 0 : prepared.ledger.taskRevision
+    ensure(
+        Number.isSafeInteger(revision) && revision >= 0 && revision < 0xffffffff,
+        'Repeat clear task revision overflow',
         ErrorCode.GameConfig,
     )
     prepared.ledger.taskRevision = revision + 1
