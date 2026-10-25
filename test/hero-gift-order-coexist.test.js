@@ -12,8 +12,8 @@ test('actual6227→6610→6227 keeps order and gift sources independent and stea
             orderRows = model.byKind.get(15003),
             giftRows = [12227, 12228].flatMap((kind) => model.byKind.get(kind)),
             ordinary = f.tables.get('hero_favorability_gift')[0]
-        assert.equal(model.targets.filter((r) => r.supported).length, 155)
-        assert.equal(model.referencedTargets.filter((r) => r.supported).length, 139)
+        assert.equal(model.targets.filter((r) => r.supported).length, 157)
+        assert.equal(model.referencedTargets.filter((r) => r.supported).length, 141)
         f.complete(1)
         const orderProgress = structuredClone(f.state().homeExchange.orderProgress),
             orderTargets = orderRows.map((r) => structuredClone(f.state().journey.targets[r.id]))
