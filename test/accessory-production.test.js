@@ -43,9 +43,16 @@ function fixture(name, unlocked = true) {
         s.player.basic_info.lv = 45
         if (unlocked)
             s.materialDungeonRecords = Object.fromEntries(
-                tables
-                    .get('dungeon_material')
-                    .map((row) => [row.id, { material_id: row.id, material_star: 0, success_count: 1 }]),
+                tables.get('dungeon_material').map((row) => [
+                    row.id,
+                    {
+                        material_id: row.id,
+                        material_star: 0,
+                        success_count: 1,
+                        difficulty_id: row.diff,
+                        success_time: String(now),
+                    },
+                ]),
             )
         const needed = new Map()
         for (const row of tables.get('accessory_product'))

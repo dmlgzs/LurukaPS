@@ -182,9 +182,16 @@ test('accessory aggregate claim uses the sealed production result and publishes 
     try {
         f.edit((state) => {
             state.materialDungeonRecords = Object.fromEntries(
-                tables
-                    .get('dungeon_material')
-                    .map((r) => [r.id, { material_id: r.id, material_star: 0, success_count: 1 }]),
+                tables.get('dungeon_material').map((r) => [
+                    r.id,
+                    {
+                        material_id: r.id,
+                        material_star: 0,
+                        success_count: 1,
+                        difficulty_id: r.diff,
+                        success_time: String(f.now()),
+                    },
+                ]),
             )
             const costs = new Map()
             for (const r of tables.get('accessory_product'))
