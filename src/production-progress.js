@@ -8,6 +8,8 @@ const uint = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 0x
 const object = (value) => value && typeof value === 'object' && !Array.isArray(value)
 const catalogues = new WeakMap()
 const categoryCatalogues = new WeakMap()
+const cookingCatalogues = new WeakMap()
+const unclassifiedCookingOutputs = new WeakMap()
 ensure(
     policy.version === 1 &&
         policy.creditOn === 'successful-output-claim' &&
@@ -168,4 +170,108 @@ export function productionCategoryValue(tables, state, tokens, facts = new Map()
     ensure(Number.isSafeInteger(count) && count >= 0, 'Production category total overflow', ErrorCode.GameConfig)
     facts.set(key, count)
     return count
+}
+
+function cookingCatalogue(external) {
+    const tables = productionTables(external)
+    ensure(
+        policy.cookingVariety?.condition === 12210 &&
+            policy.cookingVariety.selector === 'WorldMapBuildType10/resource3/products_multi_quality.productGroup' &&
+            policy.cookingVariety.quality === 'all-known-qualities-per-group' &&
+            policy.cookingVariety.unknownOutputs === 'ignore-unmapped-with-once-log' &&
+            policy.cookingVariety.officiallyVerified === false,
+        'Invalid cooking variety progress policy',
+        ErrorCode.GameConfig,
+    )
+    if (cookingCatalogues.has(tables)) return cookingCatalogues.get(tables)
+    const foods = new Set(),
+        groups = new Set(),
+        outputGroups = new Map(),
+        nonCookingOutputs = new Set(),
+        recipeOutputs = new Map()
+    for (const row of tables.get('food')) {
+        ensure(row && uint(row.id) && !foods.has(row.id), 'Malformed cooking food catalogue', ErrorCode.GameConfig)
+        foods.add(row.id)
+    }
+    for (const row of tables.get('food_group')) {
+        ensure(
+            row && uint(row.id) && !groups.has(row.id),
+            'Malformed cooking food group catalogue',
+            ErrorCode.GameConfig,
+        )
+        groups.add(row.id)
+    }
+    for (const row of tables.get('products_multi_quality')) {
+        ensure(row && uint(row.productId) && row.productId > 0, 'Malformed cooking quality row', ErrorCode.GameConfig)
+        const recipe = tables.find('products', row.productId)
+        if (recipe?.type === 2 && uint(row.id) && row.id > 0 && recipe.rewardId === `3#${row.id}#1`) {
+            nonCookingOutputs.add(row.id)
+            continue
+        }
+        if (recipe?.type !== 3) continue // The same protocol also processes mill ingredients.
+        ensure(
+            uint(row.id) &&
+                row.id > 0 &&
+                foods.has(row.id) &&
+                uint(row.productGroup) &&
+                row.productGroup > 0 &&
+                groups.has(row.productGroup) &&
+                uint(row.productRarity) &&
+                !outputGroups.has(row.id) &&
+                !recipeOutputs.has(recipe.id) &&
+                recipe.rewardId === `3#${row.id}#1`,
+            'Cooking recipe output has no unique food group',
+            ErrorCode.GameConfig,
+        )
+        outputGroups.set(row.id, row.productGroup)
+        recipeOutputs.set(recipe.id, row.id)
+    }
+    for (const recipe of tables.get('products'))
+        if (recipe.type === 3 && !recipe.notReleased)
+            ensure(recipeOutputs.has(recipe.id), 'Current cooking output is not classified', ErrorCode.GameConfig)
+    ensure(outputGroups.size > 0, 'Cooking variety catalogue is empty', ErrorCode.GameConfig)
+    const result = { outputGroups, nonCookingOutputs, groups: new Set(outputGroups.values()), tables }
+    cookingCatalogues.set(tables, result)
+    return result
+}
+
+export function cookingVarietyRule(tables, tokens) {
+    return (
+        Array.isArray(tokens) &&
+        tokens.length === 2 &&
+        tokens[0] === 12210 &&
+        uint(tokens[1]) &&
+        tokens[1] > 0 &&
+        tokens[1] <= cookingCatalogue(tables).groups.size
+    )
+}
+
+// All proven modern10201 routes use an owned cooking station, including remote
+// HomeCenter access from the world. The current map never filters these facts.
+export function cookingVarietyValue(tables, state, tokens, facts = new Map()) {
+    if (!cookingVarietyRule(tables, tokens)) return null
+    const key = 'cooking-variety:food-groups'
+    if (facts.has(key)) return facts.get(key)
+    const ledger = facts.get('production:history') ?? history(state)
+    facts.set('production:history', ledger)
+    const model = cookingCatalogue(tables),
+        known = new Set()
+    for (const [selector, value] of Object.entries(ledger.counts)) {
+        const [building, resource, id] = selector.split(':').map(Number)
+        if (building !== 10 || resource !== 3 || value === 0) continue
+        const group = model.outputGroups.get(id)
+        if (group !== undefined) known.add(group)
+        else if (!model.nonCookingOutputs.has(id)) {
+            // Known mill outputs are silently outside this domain. Unmapped
+            // old/failure outputs cannot invent a group or prevent rewards/login.
+            let warned = unclassifiedCookingOutputs.get(model.tables)
+            if (!warned) unclassifiedCookingOutputs.set(model.tables, (warned = new Set()))
+            if (!warned.has(id)) {
+                warned.add(id)
+                console.warn('[cooking-variety]', JSON.stringify({ event: 'unmapped-output', itemId: id }))
+            }
+        }
+    }
+    facts.set(key, known.size)
+    return known.size
 }

@@ -9,6 +9,8 @@ import {
     productionProgressValue,
     productionCategoryRule,
     productionCategoryValue,
+    cookingVarietyRule,
+    cookingVarietyValue,
 } from './production-progress.js'
 import { heroRankProgressRule, heroRankProgressValue } from './hero-rank-progress.js'
 import { petStarSoulProgressRule, petStarSoulProgressValue } from './pet-star-soul-progress.js'
@@ -68,7 +70,8 @@ export function achievementCatalogue(tables) {
                 (tokens.at(-1) === row.param && petStarSoulProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && heroRankProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && productionProgressRule(tables, tokens)) ||
-                (tokens.at(-1) === row.param && productionCategoryRule(tables, tokens)))
+                (tokens.at(-1) === row.param && productionCategoryRule(tables, tokens)) ||
+                (tokens.at(-1) === row.param && cookingVarietyRule(tables, tokens)))
         rules.set(row.id, { tokens, supported, chain })
     }
     const model = { rows, byId, groups, rules, novice: new NoviceTasks(tables) }
@@ -104,6 +107,7 @@ function observedValue(tables, model, row, state, completedTasks, facts) {
     if (kind === 12055) return heroRankProgressValue(tables, state, rule.tokens, facts)
     if (kind === 12018) return productionProgressValue(tables, state, rule.tokens, facts)
     if (kind === 15021) return productionCategoryValue(tables, state, rule.tokens, facts)
+    if (kind === 12210) return cookingVarietyValue(tables, state, rule.tokens, facts)
     if (kind === 15022) return captureCardStockValue(tables, state, rule.tokens, facts)
     if (achievementStateRule(rule.tokens)) return achievementStateValue(tables, state, rule.tokens, facts)
     return model.novice.value(state, { finishCondition: row.finishCondition })

@@ -3,6 +3,13 @@
     "creditOn": "successful-output-claim",
     "historical": "do-not-reinterpret-untyped-counts",
     "officially_verified": false,
-    "TODO": "12018建筑与奖励选择器由客户端枚举、站点链和当前条件文案共同推导。现有服务端以成功领取实际产物作为计数时点；官方是否在完工时计数尚未实机证实。旧craftCounts缺建筑、配方命名空间和历史输出版本，不自动重解释；已完成成就保持单调。 15021同样未恢复官方专用后台体；建筑/道具分类由枚举、HomeBuildData.GetBuildType、鲜表站点链与完整三项文案推导，沿用成功领取实际产出的本地时点。快捷自动制作缺建筑归属不并入；分类读取全部当前道具，不把无当前配方的合法历史产物排除。",
-    "categorySelector": "WorldMapBuildType/common_item.type/resource3"
+    "TODO": "12018建筑与奖励选择器由客户端枚举、站点链和当前条件文案共同推导。现有服务端以成功领取实际产物作为计数时点；官方是否在完工时计数尚未实机证实。旧craftCounts缺建筑、配方命名空间和历史输出版本，不自动重解释；已完成成就保持单调。 15021同样未恢复官方专用后台体；建筑/道具分类由枚举、HomeBuildData.GetBuildType、鲜表站点链与完整三项文案推导，沿用成功领取实际产出的本地时点。快捷自动制作缺建筑归属不并入；分类读取全部当前道具，不把无当前配方的合法历史产物排除。 12210专用后台体与隐藏品质门槛未恢复；按完整三项目标文案及当前foodGroup正向分组采用任意已证合法品质按组去重的本地推导，沿成功领取时点。当前现场与世界HomeCenter远程10201均归owned cooking build，不按当前地图过滤；旧便携11012仍暂缓。未知/失败产物未有已证group时保留事实并只记一次诊断，不猜ID或补新组。 quality→products.type2已明确定义的合法磨坊加工产物静默排除；once诊断仅适用于真正未知/缺group映射的历史产物。",
+    "categorySelector": "WorldMapBuildType/common_item.type/resource3",
+    "cookingVariety": {
+        "condition": 12210,
+        "selector": "WorldMapBuildType10/resource3/products_multi_quality.productGroup",
+        "quality": "all-known-qualities-per-group",
+        "unknownOutputs": "ignore-unmapped-with-once-log",
+        "officiallyVerified": false
+    }
 }
