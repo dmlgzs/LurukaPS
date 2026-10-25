@@ -5,6 +5,7 @@ import { battlePassModel, battlePassRow, prepareBattlePass, requireBattlePass } 
 import { battlePassLevelInfo } from './battle-pass-buy-level.js'
 import { grantRewards, parseRewards } from './rewards.js'
 import { rewardSource } from './reward-source.js'
+import { battlePassAbyssRule, battlePassAbyssValue } from './battle-pass-abyss.js'
 const catalogues = new WeakMap(),
     eventShapes = new Map([
         [12001, 1],
@@ -83,6 +84,7 @@ export function battlePassTaskModel(tables) {
             const visibility = showRules(tables, row.showCondition)
             const supported =
                 event ||
+                battlePassAbyssRule(tables, row, tokens) ||
                 ([15008, 15009].includes(kind) && args.length === 1 && args[0] === row.param) ||
                 (kind === 2007 && args.length === 1 && args[0] > 0) ||
                 (kind === 80003 && args.length === 2 && args[1] === row.param) ||
@@ -101,6 +103,7 @@ export function battlePassTaskModel(tables) {
             resourceKeys = new Set(),
             taskIds = [],
             growupIds = [],
+            abyssLevelIds = [],
             nodeRules = []
         for (const row of rows) {
             for (const rule of row.showRules ?? []) if (rule[0] === 12045) nodeRules.push(rule.slice(1))
@@ -114,6 +117,7 @@ export function battlePassTaskModel(tables) {
                 const event = tables.get('game_events').find((r) => r.type === 60 && r.systemId === row.args[0])
                 if (event) growupIds.push(event.id)
             }
+            if (row.kind === 13111 && row.supported) abyssLevelIds.push(row.args[0])
         }
         catalogues.set(tables, {
             rows,
@@ -123,6 +127,7 @@ export function battlePassTaskModel(tables) {
             resourceKeys,
             taskIds,
             growupIds,
+            abyssLevelIds,
             nodeRules,
             visibilityTimes: rows
                 .flatMap((r) => [r.showTime, r.endTime])
@@ -181,11 +186,12 @@ export function prepareBattlePassTaskPeriods(tables, state, now, prepared = prep
 function period(tasks, type) {
     return tasks[['day', 'week', 'forever'][type - 1]]
 }
-function value(tables, state, row, taskPeriod) {
+function value(tables, state, row, taskPeriod, now) {
     if (!row.supported) return 0
     if (row.event) return taskPeriod.counts[row.kind] ?? 0
     if (row.kind === 15008) return state.dailyActive?.day?.active ?? 0
     if (row.kind === 15009) return state.dailyActive?.week?.active ?? 0
+    if (row.kind === 13111) return battlePassAbyssValue(tables, state, row.args[0], now)
     if (row.kind === 2007)
         return Number((state.taskRecords ?? []).some((r) => r.task_id === row.args[0] && r.count > 0))
     if (row.kind === 80003) {
@@ -212,7 +218,7 @@ export function battlePassTaskSnapshot(tables, state, now, prepared = prepareBat
                   : row.type === 2
                     ? p.weekEnd
                     : prepared.season.effectiveEnd
-        const count = Math.min(row.param, value(tables, state, row, t)),
+        const count = Math.min(row.param, value(tables, state, row, t, now)),
             status = t.claimed.includes(row.id) ? 2 : end <= now ? 3 : count >= row.param ? 1 : 0
         out[['day_task', 'week_task', 'forever_task'][row.type - 1]].push({
             task_id: row.id,
@@ -319,6 +325,7 @@ export function notifyBattlePassTasks(c) {
         ...model.growupIds.map(
             (id) => new Set((c.state.activities?.[id]?.growup?.end_data?.complete_end ?? []).map((x) => x.id)).size,
         ),
+        ...model.abyssLevelIds.map((id) => battlePassAbyssValue(c.tables, c.state, id, c.now)),
         ...[...model.resourceKeys].map((key) => c.state.battlePassResources?.[p.key]?.[key] ?? 0),
     ].join(':')
     if (source === p.ledger.observedSources) return
