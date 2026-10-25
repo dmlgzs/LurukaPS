@@ -7,6 +7,7 @@ import overrides from '../configs/journey-overrides.json' with { type: 'json' }
 import { rewardSource } from './reward-source.js'
 import { capturedPetVarieties } from './capture-variety.js'
 import { productionProgressRule, productionProgressValue } from './production-progress.js'
+import { worldChestsOpened } from './world-chest-progress.js'
 
 const models = new WeakMap()
 const integers = (text, separator = '|') =>
@@ -16,7 +17,7 @@ const integers = (text, separator = '|') =>
         .map(Number)
 const uint = (n) => Number.isSafeInteger(n) && n >= 0 && n <= 0xffffffff
 const shared = new Set([12027, 12033, 12040, 12067, 12070, 13020, 13044, 15013])
-const direct = new Set([2007, 12014, 12045, 12046, 12229, 13002, 13006, 13035, 13104, 15017])
+const direct = new Set([2007, 12014, 12045, 12046, 12072, 12229, 13002, 13006, 13035, 13104, 15017])
 function supportedShape(tokens, tables) {
     const [kind, ...p] = tokens,
         positive = (values) => values.every((v) => uint(v) && v > 0)
@@ -33,6 +34,7 @@ function supportedShape(tokens, tables) {
     if (kind === 12067) return p.length === 3 && positive(p)
     if (kind === 12070) return p.length === 2 && p[0] === 1 && p[1] > 0
     if (kind === 12018) return productionProgressRule(tables, tokens)
+    if (kind === 12072) return p.length === 2 && p[0] === 0 && uint(p[1]) && p[1] > 0
     return false
 }
 function unlockRules(text) {
@@ -71,7 +73,7 @@ export function journeyModel(tables) {
         row.supported =
             (direct.has(tokens[0]) || shared.has(tokens[0]) || tokens[0] === 12018) &&
             supportedShape(tokens, tables) &&
-            (tokens[0] !== 12018 || tokens.at(-1) === row.targetParam)
+            (![12018, 12072].includes(tokens[0]) || tokens.at(-1) === row.targetParam)
         row.guidedId = guided.get(row.condition)?.id
         byTarget.set(row.id, row)
         if (!byKind.has(tokens[0])) byKind.set(tokens[0], [])
@@ -182,6 +184,7 @@ export function journeyValue(tables, state, row) {
     if (kind === 13104) return state.exploration?.map_info?.find((r) => r.map_id === p[0])?.lv ?? 0
     if (kind === 15017) return state.home?.level ?? 0
     if (kind === 12018) return productionProgressValue(tables, state, row.tokens)
+    if (kind === 12072) return worldChestsOpened(tables, state)
     if (row.guidedId) return guidedConditionValue(row.guidedId, state)
     // Shared evaluator accepts a table row, so journey and main quest do not
     // maintain competing building / cooking / shop / stock interpretations.
@@ -401,7 +404,11 @@ const dirtyKinds = [
     ],
 ]
 function sourceRevisions(state) {
-    const sources = { pet: state.petRevision ?? 0, home: state.homeRevision ?? 0 }
+    const sources = {
+        pet: state.petRevision ?? 0,
+        home: state.homeRevision ?? 0,
+        chest: state.worldChestHistory?.total ?? 0,
+    }
     ensure(
         Object.values(sources).every((n) => Number.isSafeInteger(n) && n >= 0),
         'Invalid journey source revision',
@@ -421,10 +428,14 @@ export function notifyJourney(c, protocolName) {
         // request name. Observe its real revision, not just the packet's label.
         if (ledger.observedSources?.pet !== revisions.pet) kinds.push(12014, 12040, 12046, 13035)
         if (ledger.observedSources?.home !== revisions.home) kinds.push(...shared, 12018, 15017, 13104)
+        // Observe the authoritative aggregate, including claims under another
+        // request name. Stable callbacks neither scan objects nor serialize state.
+        if (ledger.observedSources?.chest !== revisions.chest) kinds.push(12072)
         if (!kinds.length && !/Journey/.test(protocolName)) return
         observeJourney(c.tables, c.state, /Journey|GM/.test(protocolName) ? model.supportedKinds : kinds)
     }
-    ledger.observedSources = revisions
+    // Lifetime migration may initialize the chest aggregate during evaluation.
+    ledger.observedSources = sourceRevisions(c.state)
     const facts = sourceFacts(model, c.state)
     if (ledger.sourceSignature === syncKey(ledger, facts)) return
     publishJourney(c)
