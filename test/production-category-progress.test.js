@@ -28,7 +28,7 @@ test('complete15021 family classifies all nine card IDs, preserves earlier sourc
             ],
         )
         assert(rows.every((r) => model.rules.get(r.id).supported))
-        assert.equal([...model.rules.values()].filter((r) => r.supported).length, 102)
+        assert.equal([...model.rules.values()].filter((r) => r.supported).length, 105)
         for (const tokens of [
             [15021, 6, 410, 500],
             [15021, 15, 410, 500],

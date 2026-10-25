@@ -35,7 +35,7 @@ test('all three15072 achievement rules compile by full family, unsupported selec
             ],
         )
         assert(rows.every((r) => model.rules.get(r.id).supported))
-        assert.equal([...model.rules.values()].filter((r) => r.supported).length, 102)
+        assert.equal([...model.rules.values()].filter((r) => r.supported).length, 105)
         for (const tokens of [
             [15072, 2, 1],
             [15072, 0, 0],

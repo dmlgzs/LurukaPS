@@ -14,7 +14,7 @@ test('complete15003 five-achievement family compiles without accepting unknown l
         assert.equal(goals.length, 5)
         assert(goals.every((r) => model.rules.get(r.id).supported))
         assert.equal(model.rows.length, 355)
-        assert.equal([...model.rules.values()].filter((r) => r.supported).length, 102)
+        assert.equal([...model.rules.values()].filter((r) => r.supported).length, 105)
         assert(goals.every((r) => !f.state().achievements.entries[r.id]?.finishTime))
     } finally {
         f.close()
