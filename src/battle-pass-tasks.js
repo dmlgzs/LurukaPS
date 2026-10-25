@@ -1,4 +1,9 @@
-import { materialClearRule, materialClearMatches, materialClearKey } from './material-clear-progress.js'
+import {
+    materialClearRule,
+    materialClearMatches,
+    materialClearKey,
+    materialClearPeriodValue,
+} from './material-clear-progress.js'
 import { taskNodeCompleted } from './tasks.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
@@ -86,6 +91,7 @@ export function battlePassTaskModel(tables) {
             const supported =
                 event ||
                 battlePassAbyssRule(tables, row, tokens) ||
+                (row.type === 2 && tokens.at(-1) === row.param && materialClearRule(tables, tokens)) ||
                 ([15008, 15009].includes(kind) && args.length === 1 && args[0] === row.param) ||
                 (kind === 2007 && args.length === 1 && args[0] > 0) ||
                 (kind === 80003 && args.length === 2 && args[1] === row.param) ||
@@ -190,6 +196,7 @@ function period(tasks, type) {
 function value(tables, state, row, taskPeriod, now) {
     if (!row.supported) return 0
     if (row.event) return taskPeriod.counts[row.kind] ?? 0
+    if (row.kind === 15010) return materialClearPeriodValue(tables, taskPeriod.counts, [row.kind, ...row.args])
     if (row.kind === 15008) return state.dailyActive?.day?.active ?? 0
     if (row.kind === 15009) return state.dailyActive?.week?.active ?? 0
     if (row.kind === 13111) return battlePassAbyssValue(tables, state, row.args[0], now)
@@ -434,6 +441,9 @@ export function recordBattlePassMaterialClear(tables, state, tuple, now) {
         'Typed material clear count overflow',
         ErrorCode.GameConfig,
     )
+    // Typed source integrity is checked before extending this period; old
+    // untyped scalar15010 is deliberately ignored by the dedicated reader.
+    materialClearPeriodValue(tables, target.counts, [eligible[0].kind, ...eligible[0].args])
     target.counts[key] = old + 1
     const revision = prepared.ledger.taskRevision ?? 0
     ensure(

@@ -72,7 +72,7 @@ test('battle pass weekly cap clamps day/week XP but fixed story tasks are separa
             (e) => e.code === ErrorCode.BattlePassTaskNotFinished,
         )
         assert.throws(
-            () => f.call('BattlePassGetTaskReward', { task_id: 1001203 }),
+            () => f.call('BattlePassGetTaskReward', { task_id: 1001205 }),
             (e) => e.code === ErrorCode.FunctionClosed,
         )
         assert.throws(
