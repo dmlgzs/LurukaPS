@@ -18,6 +18,13 @@ import { entrustStarProgressRule, entrustStarProgressValue } from './entrust-sta
 import { captureCardStockRule, captureCardStockValue } from './capture-card-stock.js'
 import { heroFavorProgressRule, heroFavorProgressValue } from './hero-favor-progress.js'
 import { homeOrderProgressRule, homeOrderProgressValue } from './home-order-progress.js'
+import { parseAchievementExpression } from './achievement-expression.js'
+import {
+    readingAchievementRule,
+    readingAchievementValue,
+    compileReadingConjunction,
+    readingConjunctionCounts,
+} from './reading-achievements.js'
 
 import { forgeProgressRule, forgeProgressValue } from './forge-progress.js'
 
@@ -55,12 +62,21 @@ export function achievementCatalogue(tables) {
             ErrorCode.AchievementConfFail,
         )
         byId.set(row.id, row)
-        // Compound expressions and event kinds without a trustworthy server
-        // receipt stay explicitly unsupported. Never infer completion from UI.
+        // Unknown event and compound progress contracts stay unsupported.
+        // Only separately verified leaf shapes may use the bounded parser.
         const tokens = /^\d+(#\d+)*$/.test(row.finishCondition) ? row.finishCondition.split('#').map(Number) : null
         const chain = (row.nextAchi_id ?? row.nextAchi ?? 0) !== 0 || row.firstAchi !== row.id
         const kind = tokens?.[0]
-        const supported =
+        const readingScalar =
+            !chain &&
+            !!tokens &&
+            readingAchievementRule(tables, tokens) &&
+            ((kind === 13064 && tokens.at(-1) === row.param) || (kind === 15032 && row.param === 1))
+        const readingCompound =
+            !chain && !tokens
+                ? compileReadingConjunction(tables, parseAchievementExpression(row.finishCondition), row.param)
+                : null
+        const scalarSupported =
             !chain &&
             !!tokens &&
             tokens.every(Number.isSafeInteger) &&
@@ -79,8 +95,10 @@ export function achievementCatalogue(tables) {
                 (tokens.at(-1) === row.param && productionCategoryRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && buildingPlacementRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && cookingVarietyRule(tables, tokens)) ||
-                (tokens.at(-1) === row.param && forgeProgressRule(tables, tokens)))
-        rules.set(row.id, { tokens, supported, chain })
+                (tokens.at(-1) === row.param && forgeProgressRule(tables, tokens)) ||
+                readingScalar)
+        const supported = scalarSupported || !!readingCompound
+        rules.set(row.id, { tokens, supported, chain, readingScalar, readingCompound })
     }
     const model = { rows, byId, groups, rules, novice: new NoviceTasks(tables) }
     catalogues.set(tables, model)
@@ -105,6 +123,7 @@ export function achievementLedger(state) {
 function observedValue(tables, model, row, state, completedTasks, facts) {
     const rule = model.rules.get(row.id)
     if (!rule.supported) return null
+    if (rule.readingScalar) return readingAchievementValue(tables, state, rule.tokens, facts)
     const [kind, ...p] = rule.tokens
     if (kind === 2007) return completedTasks.has(p[0]) ? 1 : 0
     if (kind === 12045) return taskNodeCompleted(state, p[0], p[1]) ? 1 : 0
@@ -144,12 +163,52 @@ export function observeAchievements(tables, state, now) {
                 'Malformed achievement receipt',
                 ErrorCode.GameConfig,
             )
+        const rule = model.rules.get(row.id)
+        if (rule.readingScalar || rule.readingCompound)
+            ensure(
+                !saved?.claimed || saved.finishTime > 0,
+                'Reading claim has no terminal receipt',
+                ErrorCode.GameConfig,
+            )
+        if (rule.readingCompound) {
+            if (saved?.leafCounts !== undefined)
+                ensure(
+                    Array.isArray(saved.leafCounts) &&
+                        saved.leafCounts.length === rule.readingCompound.leaves.length &&
+                        saved.leafCounts.every((n) => n === 0 || n === 1),
+                    'Invalid reading leaf progress shape',
+                    ErrorCode.GameConfig,
+                )
+            const leafCounts = readingConjunctionCounts(tables, state, rule.readingCompound, facts),
+                sameCounts = JSON.stringify(saved?.leafCounts) === JSON.stringify(leafCounts)
+            if (saved?.finishTime) {
+                // Preserve an existing terminal/import receipt, but never turn
+                // its scalar value into invented leaves or owned book records.
+                if (!sameCounts) {
+                    ledger.entries[row.id] = { ...saved, leafCounts }
+                    changed.push(row.id)
+                }
+                continue
+            }
+            const value = leafCounts.reduce((n, count) => n + count, 0)
+            if ((!value && !saved) || (value === saved?.value && sameCounts)) continue
+            ledger.entries[row.id] = {
+                value,
+                leafCounts,
+                finishTime: leafCounts.every((count) => count === 1) ? Math.floor(now) : 0,
+                claimed: false,
+            }
+            changed.push(row.id)
+            continue
+        }
         if (saved?.finishTime) continue
         const raw = observedValue(tables, model, row, state, completedTasks, facts)
         if (raw === null) continue
         ensure(Number.isSafeInteger(raw) && raw >= 0, 'Invalid achievement progress', ErrorCode.GameConfig)
-        const value = Math.max(saved?.value ?? 0, Math.min(row.param, raw))
-        if (!value || value === saved?.value) continue
+        const value = rule.readingScalar
+            ? Math.min(row.param, raw)
+            : Math.max(saved?.value ?? 0, Math.min(row.param, raw))
+        if ((!value && !saved) || value === saved?.value) continue
         ledger.entries[row.id] = { value, finishTime: value >= row.param ? Math.floor(now) : 0, claimed: false }
         changed.push(row.id)
     }
@@ -158,10 +217,15 @@ export function observeAchievements(tables, state, now) {
 
 function wireAchievement(model, ledger, id) {
     const saved = ledger.entries[id]
+    const rule = model.rules.get(id)
     return {
         id,
         achievement_id: id,
-        count: model.rules.get(id).supported ? [saved?.value ?? 0] : [],
+        count: rule.supported
+            ? rule.readingCompound
+                ? (saved?.leafCounts ?? rule.readingCompound.leaves.map(() => 0))
+                : [saved?.value ?? 0]
+            : [],
         finish_time: String(saved?.finishTime ?? 0),
         is_reward: saved?.claimed ?? false,
         sub_ach_id: [],

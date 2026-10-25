@@ -8,12 +8,40 @@ import { achievementCatalogue, achievementPoints } from '../src/achievements.js'
 import { ErrorCode } from '../src/error-codes.js'
 
 function completeKnownSources(f) {
-    const model = achievementCatalogue(f.tables)
+    const model = achievementCatalogue(f.tables),
+        readingIds = new Set(),
+        series = new Map(
+            f.tables.get('library_series').map((row) => [row.id, String(row.subId).split('|').map(Number)]),
+        ),
+        branchBooks = [
+            ...new Set(
+                f.tables
+                    .get('library_branch')
+                    .flatMap((row) => String(row.seriesId).split('|').map(Number))
+                    .flatMap((id) => series.get(id)),
+            ),
+        ]
     f.store.transact(f.session.id, 0, (s) => {
         s.player.basic_info.lv = 80
         for (const row of model.rows) {
-            if (!model.rules.get(row.id).supported) continue
-            const [kind, ...p] = model.rules.get(row.id).tokens
+            const rule = model.rules.get(row.id)
+            if (!rule.supported) continue
+            // Compound reading completions require each owned volume, not a
+            // scalar receipt or a fabricated leaf vector.
+            if (rule.readingCompound) {
+                for (const tokens of rule.readingCompound.leaves) readingIds.add(tokens[2])
+                continue
+            }
+            assert(Array.isArray(rule.tokens))
+            const [kind, ...p] = rule.tokens
+            if (rule.readingScalar) {
+                if (kind === 15032) readingIds.add(p[1])
+                else {
+                    assert.equal(kind, 13064)
+                    assert(branchBooks.length >= p[2])
+                    for (const id of branchBooks.slice(0, p[2])) readingIds.add(id)
+                }
+            }
             if (kind === 2007 || kind === 12045) {
                 s.taskRecords ??= []
                 if (!s.taskRecords.some((t) => t.task_id === p[0]))
@@ -23,6 +51,7 @@ function completeKnownSources(f) {
                 for (const hero of s.player.heros_info.heros) hero.hero_lv = Math.max(hero.hero_lv, p[0])
         }
     })
+    for (const bookId of readingIds) f.call('ReadHandbookGet', { book_id: bookId, get_type: 1 })
 }
 
 test('9905 uses award row ID, counts completed unclaimed achievements, and pays actual currency before ACK', () => {

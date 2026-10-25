@@ -1,0 +1,19 @@
+{
+    "version": 1,
+    "officiallyVerified": false,
+    "ownershipField": "11025 infos.book_id / readingBooks values",
+    "globalDomain": "library_branch-series-subId-distinct-union",
+    "specificBookDomain": "configured-series-subId-membership",
+    "readMarkerQualifiesOwnership": false,
+    "nonzeroAreaSelectorsSupported": false,
+    "compoundProgress": "pure-and-distinct-boolean-reading-leaves-left-to-right",
+    "unfinishedReadingProgress": "recompute-from-actual-owned-never-imported-value-or-leafCounts",
+    "legacyTerminal": "preserve-existing-finishTime-and-claimed; leafCounts-only-from-actual-owned",
+    "TODO": [
+        "Dedicated13064/15032 official backend predicates were not recovered. The default uses the current library global collection UI and owned-book reader, not an official server claim.",
+        "Keep all73 raw owned-book records. The current branch projection has57 distinct volumes; this is derived from tables, never a hardcoded limit or deletion policy.",
+        "Do not map multi-tag category values to geographic selectors. Nonzero13064 selectors remain unsupported.",
+        "11026 type1 authorization follows the existing offline blueprint trust policy; other acquisition types and official world authorization remain separate gaps.",
+        "Unknown leaves, mixed or OR progress shapes remain unsupported. Never evaluate configuration as code or infer owned books from completion records."
+    ]
+}
