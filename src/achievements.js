@@ -179,8 +179,8 @@ export function observeAchievements(tables, state, now) {
             )
         if (rule.readingScalar || rule.readingCompound)
             ensure(
-                !saved?.claimed || saved.finishTime > 0,
-                'Reading claim has no terminal receipt',
+                (!saved?.claimed || saved.finishTime > 0) && (!saved?.finishTime || saved.value === row.param),
+                'Reading claim has no complete terminal receipt',
                 ErrorCode.GameConfig,
             )
         if (rule.readingCompound) {
@@ -203,12 +203,15 @@ export function observeAchievements(tables, state, now) {
                 }
                 continue
             }
-            const value = leafCounts.reduce((n, count) => n + count, 0)
-            if ((!value && !saved) || (value === saved?.value && sameCounts)) continue
+            const value = leafCounts.reduce((n, count) => n + count, 0),
+                complete = leafCounts.every((count) => count === 1)
+            // A legacy unfinished receipt can already have the same full
+            // progress. Real owned leaves must still create its terminal time.
+            if ((!value && !saved) || (value === saved?.value && sameCounts && !complete)) continue
             ledger.entries[row.id] = {
                 value,
                 leafCounts,
-                finishTime: leafCounts.every((count) => count === 1) ? Math.floor(now) : 0,
+                finishTime: complete ? Math.floor(now) : 0,
                 claimed: false,
             }
             changed.push(row.id)
@@ -222,7 +225,8 @@ export function observeAchievements(tables, state, now) {
             rule.readingScalar || loginRule
                 ? Math.min(row.param, raw)
                 : Math.max(saved?.value ?? 0, Math.min(row.param, raw))
-        if ((!value && !saved) || (value === saved?.value && (!loginRule || value < row.param))) continue
+        if ((!value && !saved) || (value === saved?.value && (!(rule.readingScalar || loginRule) || value < row.param)))
+            continue
         ledger.entries[row.id] = { value, finishTime: value >= row.param ? Math.floor(now) : 0, claimed: false }
         changed.push(row.id)
     }
