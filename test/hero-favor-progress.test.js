@@ -18,7 +18,7 @@ test('the complete13007 family reads qualified personal levels without current f
         [4010010, 4010011, 4010012],
     )
     assert(rows.every((r) => model.rules.get(r.id).supported))
-    assert.equal([...model.rules.values()].filter((r) => r.supported).length, 105)
+    assert.equal([...model.rules.values()].filter((r) => r.supported).length, 111)
     const normal = heroData(101010, 1)
     const state = {
         player: {

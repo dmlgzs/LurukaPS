@@ -23,7 +23,7 @@ test('all15 current production achievements compile from station/reward selector
             71,
         )
         assert(rows.every((row) => model.rules.get(row.id).supported))
-        assert.equal([...model.rules.values()].filter((row) => row.supported).length, 105)
+        assert.equal([...model.rules.values()].filter((row) => row.supported).length, 111)
         f.edit((s) => {
             s.home.craftCounts = { 600029: 999, 501005: 999, 9100101: 999, 9102001: 9999 }
             s.cookCounts = { 9000101: 9999 }

@@ -19,6 +19,7 @@ import { captureCardStockRule, captureCardStockValue } from './capture-card-stoc
 import { heroFavorProgressRule, heroFavorProgressValue } from './hero-favor-progress.js'
 import { homeOrderProgressRule, homeOrderProgressValue } from './home-order-progress.js'
 import { farmHarvestProgressRule, farmHarvestProgressValue } from './farm-harvest-progress.js'
+import { loginDayProgressRule, loginDayProgressValue } from './login-day-progress.js'
 import { parseAchievementExpression } from './achievement-expression.js'
 import {
     readingAchievementRule,
@@ -86,6 +87,7 @@ export function achievementCatalogue(tables) {
                 (kind === 2004 && tokens.length === 2) ||
                 sharedRule(tokens) ||
                 achievementStateRule(tokens) ||
+                (tokens.at(-1) === row.param && loginDayProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && farmHarvestProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && homeOrderProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && captureCardStockRule(tables, tokens)) ||
@@ -142,6 +144,7 @@ function observedValue(tables, model, row, state, completedTasks, facts) {
     if (kind === 15022) return captureCardStockValue(tables, state, rule.tokens, facts)
     if (kind === 15003) return homeOrderProgressValue(tables, state, rule.tokens, facts)
     if (kind === 12005) return farmHarvestProgressValue(tables, state, rule.tokens, facts)
+    if (kind === 15048 || kind === 20003) return loginDayProgressValue(tables, state, rule.tokens, facts)
     if (achievementStateRule(rule.tokens)) return achievementStateValue(tables, state, rule.tokens, facts)
     return model.novice.value(state, { finishCondition: row.finishCondition })
 }
@@ -167,6 +170,13 @@ export function observeAchievements(tables, state, now) {
                 ErrorCode.GameConfig,
             )
         const rule = model.rules.get(row.id)
+        const loginRule = [15048, 20003].includes(rule.tokens?.[0]) && rule.supported
+        if (loginRule)
+            ensure(
+                (!saved?.claimed || saved.finishTime > 0) && (!saved?.finishTime || saved.value === row.param),
+                'Login achievement has no valid terminal receipt',
+                ErrorCode.GameConfig,
+            )
         if (rule.readingScalar || rule.readingCompound)
             ensure(
                 !saved?.claimed || saved.finishTime > 0,
@@ -208,10 +218,11 @@ export function observeAchievements(tables, state, now) {
         const raw = observedValue(tables, model, row, state, completedTasks, facts)
         if (raw === null) continue
         ensure(Number.isSafeInteger(raw) && raw >= 0, 'Invalid achievement progress', ErrorCode.GameConfig)
-        const value = rule.readingScalar
-            ? Math.min(row.param, raw)
-            : Math.max(saved?.value ?? 0, Math.min(row.param, raw))
-        if ((!value && !saved) || value === saved?.value) continue
+        const value =
+            rule.readingScalar || loginRule
+                ? Math.min(row.param, raw)
+                : Math.max(saved?.value ?? 0, Math.min(row.param, raw))
+        if ((!value && !saved) || (value === saved?.value && (!loginRule || value < row.param))) continue
         ledger.entries[row.id] = { value, finishTime: value >= row.param ? Math.floor(now) : 0, claimed: false }
         changed.push(row.id)
     }
