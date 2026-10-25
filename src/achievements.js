@@ -1,3 +1,4 @@
+import { materialClearRule, materialClearValue } from './material-clear-progress.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { taskNodeCompleted } from './tasks.js'
@@ -100,6 +101,7 @@ export function achievementCatalogue(tables) {
                 (tokens.at(-1) === row.param && buildingPlacementRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && cookingVarietyRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && forgeProgressRule(tables, tokens)) ||
+                (tokens.at(-1) === row.param && materialClearRule(tables, tokens)) ||
                 readingScalar)
         const supported = scalarSupported || !!readingCompound
         rules.set(row.id, { tokens, supported, chain, readingScalar, readingCompound })
@@ -138,6 +140,7 @@ function observedValue(tables, model, row, state, completedTasks, facts) {
     if (kind === 12055) return heroRankProgressValue(tables, state, rule.tokens, facts)
     if (kind === 12018) return productionProgressValue(tables, state, rule.tokens, facts)
     if (kind === 15072) return forgeProgressValue(tables, state, rule.tokens, facts)
+    if (kind === 15010) return materialClearValue(tables, state, rule.tokens, facts)
     if (kind === 15021) return productionCategoryValue(tables, state, rule.tokens, facts)
     if (kind === 15020 || kind === 13096) return buildingPlacementValue(tables, state, rule.tokens, facts)
     if (kind === 12210) return cookingVarietyValue(tables, state, rule.tokens, facts)
@@ -171,6 +174,13 @@ export function observeAchievements(tables, state, now) {
             )
         const rule = model.rules.get(row.id)
         const loginRule = [15048, 20003].includes(rule.tokens?.[0]) && rule.supported
+        const materialRule = rule.tokens?.[0] === 15010 && rule.supported
+        if (materialRule)
+            ensure(
+                (!saved?.claimed || saved.finishTime > 0) && (!saved?.finishTime || saved.value === row.param),
+                'Material achievement has no complete terminal receipt',
+                ErrorCode.GameConfig,
+            )
         if (loginRule)
             ensure(
                 (!saved?.claimed || saved.finishTime > 0) && (!saved?.finishTime || saved.value === row.param),
@@ -222,10 +232,13 @@ export function observeAchievements(tables, state, now) {
         if (raw === null) continue
         ensure(Number.isSafeInteger(raw) && raw >= 0, 'Invalid achievement progress', ErrorCode.GameConfig)
         const value =
-            rule.readingScalar || loginRule
+            rule.readingScalar || loginRule || materialRule
                 ? Math.min(row.param, raw)
                 : Math.max(saved?.value ?? 0, Math.min(row.param, raw))
-        if ((!value && !saved) || (value === saved?.value && (!(rule.readingScalar || loginRule) || value < row.param)))
+        if (
+            (!value && !saved) ||
+            (value === saved?.value && (!(rule.readingScalar || loginRule || materialRule) || value < row.param))
+        )
             continue
         ledger.entries[row.id] = { value, finishTime: value >= row.param ? Math.floor(now) : 0, claimed: false }
         changed.push(row.id)

@@ -26,7 +26,7 @@ test('the complete15020 and13096 families use synced owned type/group instances 
             ],
         )
         assert(rows.every((r) => model.rules.get(r.id).supported))
-        assert.equal([...model.rules.values()].filter((r) => r.supported).length, 111)
+        assert.equal([...model.rules.values()].filter((r) => r.supported).length, 120)
         const build = (guid, build_id, status = 1, build_type = 0) => ({
             guid,
             build_id,

@@ -31,7 +31,7 @@ test('all six login conditions use trusted days and nonterminal imported values 
     const f = loginDayFixture('login-achievement-contract')
     try {
         const model = achievementCatalogue(f.tables)
-        assert.equal([...model.rules.values()].filter((r) => r.supported).length, 111)
+        assert.equal([...model.rules.values()].filter((r) => r.supported).length, 120)
         assert(ids.every((id) => model.rules.get(id).supported))
         assert.equal([...model.rules.values()].filter((r) => r.readingCompound).length, 2)
         f.enter()
