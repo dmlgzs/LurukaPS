@@ -19,6 +19,8 @@ import { captureCardStockRule, captureCardStockValue } from './capture-card-stoc
 import { heroFavorProgressRule, heroFavorProgressValue } from './hero-favor-progress.js'
 import { homeOrderProgressRule, homeOrderProgressValue } from './home-order-progress.js'
 
+import { forgeProgressRule, forgeProgressValue } from './forge-progress.js'
+
 import { buildingPlacementRule, buildingPlacementValue } from './building-placement-progress.js'
 
 const catalogues = new WeakMap()
@@ -76,7 +78,8 @@ export function achievementCatalogue(tables) {
                 (tokens.at(-1) === row.param && productionProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && productionCategoryRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && buildingPlacementRule(tables, tokens)) ||
-                (tokens.at(-1) === row.param && cookingVarietyRule(tables, tokens)))
+                (tokens.at(-1) === row.param && cookingVarietyRule(tables, tokens)) ||
+                (tokens.at(-1) === row.param && forgeProgressRule(tables, tokens)))
         rules.set(row.id, { tokens, supported, chain })
     }
     const model = { rows, byId, groups, rules, novice: new NoviceTasks(tables) }
@@ -111,6 +114,7 @@ function observedValue(tables, model, row, state, completedTasks, facts) {
     if (kind === 13007) return heroFavorProgressValue(tables, state, rule.tokens, facts)
     if (kind === 12055) return heroRankProgressValue(tables, state, rule.tokens, facts)
     if (kind === 12018) return productionProgressValue(tables, state, rule.tokens, facts)
+    if (kind === 15072) return forgeProgressValue(tables, state, rule.tokens, facts)
     if (kind === 15021) return productionCategoryValue(tables, state, rule.tokens, facts)
     if (kind === 15020 || kind === 13096) return buildingPlacementValue(tables, state, rule.tokens, facts)
     if (kind === 12210) return cookingVarietyValue(tables, state, rule.tokens, facts)

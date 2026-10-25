@@ -207,8 +207,8 @@ test('unknown namespaces/recipe histories keep original awards and log once with
             other.edit((s) => {
                 s.home.productionProgress = { version: 1, counts: { '8:33:50017': 20 } }
             })
-            other.make(1, true)
             const beforeWarnings = events.length
+            other.make(1, true)
             assert.equal(value(other), 1)
             assert.equal(value(other), 1)
             assert.equal(events.length - beforeWarnings, 1)
