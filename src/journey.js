@@ -9,6 +9,7 @@ import { capturedPetVarieties } from './capture-variety.js'
 import { productionProgressRule, productionProgressValue } from './production-progress.js'
 import { worldChestsOpened } from './world-chest-progress.js'
 import { heroRankProgressRule, heroRankProgressValue } from './hero-rank-progress.js'
+import { compileJourneyUnlocks, journeyReputationFacts } from './journey-unlocks.js'
 
 const models = new WeakMap()
 const integers = (text, separator = '|') =>
@@ -38,12 +39,6 @@ function supportedShape(tokens, tables) {
     if (kind === 12055) return heroRankProgressRule(tables, tokens)
     if (kind === 12072) return p.length === 2 && p[0] === 0 && uint(p[1]) && p[1] > 0
     return false
-}
-function unlockRules(text) {
-    return String(text || '')
-        .split('|')
-        .filter(Boolean)
-        .map((part) => integers(part, '#'))
 }
 // These are domains, not per-target exceptions. Other condition kinds remain
 // represented in the full wire catalogue and in the coverage report.
@@ -94,7 +89,7 @@ export function journeyModel(tables) {
             'Invalid journey task configuration',
             ErrorCode.JourneyConfError,
         )
-        byTask.set(row.id, { ...row, ids, unlockRules: unlockRules(row.unlockCondition) })
+        byTask.set(row.id, { ...row, ids, unlockRules: compileJourneyUnlocks(tables, row.unlockCondition) })
         for (const id of ids) {
             ensure(!owner.has(id), 'Journey target has multiple owners', ErrorCode.JourneyConfError)
             owner.set(id, row.id)
@@ -102,12 +97,17 @@ export function journeyModel(tables) {
     }
     // CBT3 retains twenty unreferenced target rows (including seventeen old
     // auto-reward tutorial rows). They are not active tasks or free rewards.
-    const compiledTabs = tabs.map((row) => ({ ...row, unlockRules: unlockRules(row.unlockCondition) }))
+    const compiledTabs = tabs.map((row) => ({
+        ...row,
+        unlockRules: compileJourneyUnlocks(tables, row.unlockCondition),
+    }))
     const sourceTasks = new Set(),
         sourceNodes = new Map(),
-        sourceEntrusts = new Set()
+        sourceEntrusts = new Set(),
+        sourceReputations = new Set()
     const index = ([kind, id, node]) => {
         if (kind === 13044) sourceEntrusts.add(id)
+        if (kind === 61001) sourceReputations.add(id)
         if (kind === 2007) sourceTasks.add(id)
         if (kind === 12045) {
             sourceTasks.add(id)
@@ -135,6 +135,7 @@ export function journeyModel(tables) {
             .sort((a, b) => a[0] - b[0] || a[1] - b[1]),
         sourceNodes,
         sourceEntrustIds: [...sourceEntrusts].sort((a, b) => a - b),
+        sourceReputationIds: [...sourceReputations].sort((a, b) => a - b),
     }
     models.set(tables, model)
     return model
@@ -216,14 +217,19 @@ function sourceFacts(model, state) {
         for (const node of task.finish_nodes ?? []) if (wanted.has(node)) nodes.add(task.task_id + ':' + node)
     }
     const level = state.player.basic_info.lv,
-        entrusts = entrustFacts(model, state)
+        entrusts = entrustFacts(model, state),
+        homeLevel = state.home?.level ?? 0,
+        reputations = journeyReputationFacts(model, state)
+    ensure(uint(homeLevel), 'Malformed journey home level', ErrorCode.GameConfig)
     const key = [
         level,
+        homeLevel,
+        ...model.sourceReputationIds.map((id) => reputations.get(id)),
         ...model.sourceTaskIds.map((id) => (completed.has(id) ? 1 : 0)),
         ...model.sourceNodePairs.map(([id, node]) => (completed.has(id) || nodes.has(id + ':' + node) ? 1 : 0)),
         ...model.sourceEntrustIds.map((id) => entrusts.get(id)),
     ].join(',')
-    return { completed, nodes, entrusts, level, key }
+    return { completed, nodes, entrusts, level, homeLevel, reputations, key }
 }
 function syncKey(ledger, facts) {
     return [
@@ -249,6 +255,8 @@ function evaluation(model, state, facts = sourceFacts(model, state)) {
     const rules = (list) =>
         list.every(([kind, id, node]) => {
             if (kind === 2004) return facts.level >= id
+            if (kind === 15017) return facts.homeLevel >= id
+            if (kind === 61001) return (facts.reputations.get(id) ?? 0) >= node
             if (kind === 2007) return facts.completed.has(id)
             if (kind === 12045) return facts.completed.has(id) || facts.nodes.has(id + ':' + node)
             if (kind === 13044)
@@ -427,6 +435,7 @@ function sourceRevisions(state, model) {
         pet: state.petRevision ?? 0,
         home: state.homeRevision ?? 0,
         chest: state.worldChestHistory?.total ?? 0,
+        reputation: state.reputationRevision ?? 0,
     }
     ensure(
         Object.values(sources).every((n) => Number.isSafeInteger(n) && n >= 0),
@@ -454,6 +463,7 @@ export function notifyJourney(c, protocolName) {
         // request name. Stable callbacks neither scan objects nor serialize state.
         if (ledger.observedSources?.chest !== revisions.chest) kinds.push(12072)
         if (ledger.observedSources?.entrust !== revisions.entrust) kinds.push(13044)
+        if (ledger.observedSources?.reputation !== revisions.reputation) kinds.push(61001)
         if (!kinds.length && !/Journey/.test(protocolName)) return
         observeJourney(c.tables, c.state, /Journey|GM/.test(protocolName) ? model.supportedKinds : kinds)
     }
