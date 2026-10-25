@@ -13,8 +13,8 @@ test('all four15003 journey targets compile and actualCSFinishOrder source revis
             rows = goals(f)
         assert.equal(rows.length, 4)
         assert(rows.every((r) => r.supported && model.owner.has(r.id)))
-        assert.equal(model.targets.filter((r) => r.supported).length, 159)
-        assert.equal(model.referencedTargets.filter((r) => r.supported).length, 143)
+        assert.equal(model.targets.filter((r) => r.supported).length, 162)
+        assert.equal(model.referencedTargets.filter((r) => r.supported).length, 146)
         assert(rows.every((r) => journeyValue(f.tables, f.state(), r) === 0))
         const first = f.board().slots[0],
             packets = f.submit(first)

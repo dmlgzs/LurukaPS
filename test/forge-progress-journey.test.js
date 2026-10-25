@@ -37,9 +37,9 @@ test('full two15072 journey goals use difficultyIV actual claimed output and pre
             ],
         )
         assert(rows.every((r) => r.supported))
-        assert.equal(model.targets.filter((r) => r.supported).length, 159)
-        assert.equal(model.referencedTargets.filter((r) => r.supported).length, 143)
-        assert.equal(model.referencedTargets.filter((r) => !r.supported).length, 152)
+        assert.equal(model.targets.filter((r) => r.supported).length, 162)
+        assert.equal(model.referencedTargets.filter((r) => r.supported).length, 146)
+        assert.equal(model.referencedTargets.filter((r) => !r.supported).length, 149)
         f.make(recipe(f, 1), true)
         f.make(recipe(f, 4), false)
         assert.equal(value(f), 0)

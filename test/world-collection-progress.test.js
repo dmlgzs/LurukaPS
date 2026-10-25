@@ -15,8 +15,8 @@ test('all five13039 targets use actual configured scene IDs and33 real repairs, 
             rows = model.byKind.get(13039)
         assert.equal(rows.length, 5)
         assert(rows.every((row) => row.supported && journeyValue(f.tables, f.state(), row) === 0))
-        assert.equal(model.targets.filter((row) => row.supported).length, 159)
-        assert.equal(model.referencedTargets.filter((row) => row.supported).length, 143)
+        assert.equal(model.targets.filter((row) => row.supported).length, 162)
+        assert.equal(model.referencedTargets.filter((row) => row.supported).length, 146)
         for (const tokens of [
             [13039, 1, 0, 0, 1],
             [13039, 100, 1, 0, 1],
