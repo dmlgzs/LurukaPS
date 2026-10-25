@@ -4,6 +4,7 @@ import { ensureHome, ensureHomeFarmHouses } from './home.js'
 import { findFarmWork } from './farm-work-context.js'
 import { spend } from './inventory.js'
 import { grantRewards } from './rewards.js'
+import { recordWorkerFarmClaim } from './farm-harvest-progress.js'
 
 const seedSlots = 12 // pageHomeCropBox.refreshBoxes: boxNum = 12.
 export function farmHouse(tables, state, guid) {
@@ -97,6 +98,7 @@ export function claimFarmStorage(c, guid) {
         .filter((item) => item.itemtype === 10 && item.itemid === 1003)
         .reduce((n, item) => n + item.itemnum, 0)
     const granted = items.length ? grantRewards(c.tables, c.state, items) : []
+    if (items.length) recordWorkerFarmClaim(c.tables, c.state, house, items)
     house.auto_info.crops = []
     if (items.length) c.state.homeRevision = (c.state.homeRevision || 0) + 1
     return { reward: { rewards: granted }, home_exp: exp }
