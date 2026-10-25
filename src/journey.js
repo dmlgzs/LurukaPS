@@ -8,6 +8,7 @@ import { rewardSource } from './reward-source.js'
 import { capturedPetVarieties } from './capture-variety.js'
 import { productionProgressRule, productionProgressValue } from './production-progress.js'
 import { worldChestsOpened } from './world-chest-progress.js'
+import { heroRankProgressRule, heroRankProgressValue } from './hero-rank-progress.js'
 
 const models = new WeakMap()
 const integers = (text, separator = '|') =>
@@ -34,6 +35,7 @@ function supportedShape(tokens, tables) {
     if (kind === 12067) return p.length === 3 && positive(p)
     if (kind === 12070) return p.length === 2 && p[0] === 1 && p[1] > 0
     if (kind === 12018) return productionProgressRule(tables, tokens)
+    if (kind === 12055) return heroRankProgressRule(tables, tokens)
     if (kind === 12072) return p.length === 2 && p[0] === 0 && uint(p[1]) && p[1] > 0
     return false
 }
@@ -71,9 +73,9 @@ export function journeyModel(tables) {
         )
         row.tokens = tokens
         row.supported =
-            (direct.has(tokens[0]) || shared.has(tokens[0]) || tokens[0] === 12018) &&
+            (direct.has(tokens[0]) || shared.has(tokens[0]) || [12018, 12055].includes(tokens[0])) &&
             supportedShape(tokens, tables) &&
-            (![12018, 12072].includes(tokens[0]) || tokens.at(-1) === row.targetParam)
+            (![12018, 12055, 12072].includes(tokens[0]) || tokens.at(-1) === row.targetParam)
         row.guidedId = guided.get(row.condition)?.id
         byTarget.set(row.id, row)
         if (!byKind.has(tokens[0])) byKind.set(tokens[0], [])
@@ -102,8 +104,10 @@ export function journeyModel(tables) {
     // auto-reward tutorial rows). They are not active tasks or free rewards.
     const compiledTabs = tabs.map((row) => ({ ...row, unlockRules: unlockRules(row.unlockCondition) }))
     const sourceTasks = new Set(),
-        sourceNodes = new Map()
+        sourceNodes = new Map(),
+        sourceEntrusts = new Set()
     const index = ([kind, id, node]) => {
+        if (kind === 13044) sourceEntrusts.add(id)
         if (kind === 2007) sourceTasks.add(id)
         if (kind === 12045) {
             sourceTasks.add(id)
@@ -130,6 +134,7 @@ export function journeyModel(tables) {
             .flatMap(([id, nodes]) => [...nodes].map((node) => [id, node]))
             .sort((a, b) => a[0] - b[0] || a[1] - b[1]),
         sourceNodes,
+        sourceEntrustIds: [...sourceEntrusts].sort((a, b) => a - b),
     }
     models.set(tables, model)
     return model
@@ -183,12 +188,22 @@ export function journeyValue(tables, state, row) {
         ).length
     if (kind === 13104) return state.exploration?.map_info?.find((r) => r.map_id === p[0])?.lv ?? 0
     if (kind === 15017) return state.home?.level ?? 0
+    if (kind === 12055) return heroRankProgressValue(tables, state, row.tokens)
     if (kind === 12018) return productionProgressValue(tables, state, row.tokens)
     if (kind === 12072) return worldChestsOpened(tables, state)
     if (row.guidedId) return guidedConditionValue(row.guidedId, state)
     // Shared evaluator accepts a table row, so journey and main quest do not
     // maintain competing building / cooking / shop / stock interpretations.
     return guidedConditionValue(0, state, undefined, { condition: row.condition })
+}
+function entrustFacts(model, state) {
+    return new Map(
+        model.sourceEntrustIds.map((id) => {
+            const stars = state.entrust?.records?.[id]?.entrust_star ?? 0
+            ensure(uint(stars) && stars <= 3, 'Invalid journey commission star history', ErrorCode.GameConfig)
+            return [id, stars]
+        }),
+    )
 }
 function sourceFacts(model, state) {
     const completed = new Set()
@@ -200,13 +215,15 @@ function sourceFacts(model, state) {
         if (!wanted) continue
         for (const node of task.finish_nodes ?? []) if (wanted.has(node)) nodes.add(task.task_id + ':' + node)
     }
-    const level = state.player.basic_info.lv
+    const level = state.player.basic_info.lv,
+        entrusts = entrustFacts(model, state)
     const key = [
         level,
         ...model.sourceTaskIds.map((id) => (completed.has(id) ? 1 : 0)),
         ...model.sourceNodePairs.map(([id, node]) => (completed.has(id) || nodes.has(id + ':' + node) ? 1 : 0)),
+        ...model.sourceEntrustIds.map((id) => entrusts.get(id)),
     ].join(',')
-    return { completed, nodes, level, key }
+    return { completed, nodes, entrusts, level, key }
 }
 function syncKey(ledger, facts) {
     return [
@@ -234,6 +251,8 @@ function evaluation(model, state, facts = sourceFacts(model, state)) {
             if (kind === 2004) return facts.level >= id
             if (kind === 2007) return facts.completed.has(id)
             if (kind === 12045) return facts.completed.has(id) || facts.nodes.has(id + ':' + node)
+            if (kind === 13044)
+                return uint(id) && id > 0 && uint(node) && node > 0 && (facts.entrusts.get(id) ?? 0) >= node
             if (kind === 12096) return isComplete(id)
             if (kind === 12098) return !!ledger.tasks[id]?.claimed
             return false
@@ -303,7 +322,7 @@ export function observeJourney(tables, state, kinds) {
         }
     }
     if (changed.length) bump(ledger, 'targetRevision')
-    if (kinds === undefined) ledger.observedSources = sourceRevisions(state)
+    if (kinds === undefined) ledger.observedSources = sourceRevisions(state, model)
     return changed
 }
 export function journeyPoints(model, state) {
@@ -396,14 +415,14 @@ export function claimJourney(c, request) {
 }
 const dirtyKinds = [
     [/Task|Story/, [2007, 12045]],
-    [/Hero|Soul|Ornament|Equip|Trial|Group/, [12229, 12235, 13002, 13006]],
+    [/Hero|Soul|Ornament|Equip|Trial|Group/, [12055, 12229, 12235, 13002, 13006]],
     [/Pet|Catch|Hatch|Egg/, [12014, 12040, 12046, 13035]],
     [
         /Home|Build|Crop|Plant|Cook|Product|Ranch|Collection|Shop|Exchange|Item|GM|Playable|Entrust|Dungeon|WorldMapExplore/,
         [...shared, 12018, 15017, 13104],
     ],
 ]
-function sourceRevisions(state) {
+function sourceRevisions(state, model) {
     const sources = {
         pet: state.petRevision ?? 0,
         home: state.homeRevision ?? 0,
@@ -414,13 +433,16 @@ function sourceRevisions(state) {
         'Invalid journey source revision',
         ErrorCode.GameConfig,
     )
-    return sources
+    // These few referenced records can change during the battle-report path,
+    // where general journey observation is deferred. A later ordinary request
+    // must notice them even when its name does not match Entrust/Dungeon.
+    return { ...sources, entrust: [...entrustFacts(model, state)].map(([id, stars]) => `${id}:${stars}`).join(',') }
 }
 export function notifyJourney(c, protocolName) {
     const model = journeyModel(c.tables)
     const fresh = !c.state.journey
     const ledger = journeyLedger(c.state),
-        revisions = sourceRevisions(c.state)
+        revisions = sourceRevisions(c.state, model)
     if (fresh) observeJourney(c.tables, c.state)
     else {
         const kinds = dirtyKinds.filter(([pattern]) => pattern.test(protocolName)).flatMap(([, kinds]) => kinds)
@@ -431,11 +453,12 @@ export function notifyJourney(c, protocolName) {
         // Observe the authoritative aggregate, including claims under another
         // request name. Stable callbacks neither scan objects nor serialize state.
         if (ledger.observedSources?.chest !== revisions.chest) kinds.push(12072)
+        if (ledger.observedSources?.entrust !== revisions.entrust) kinds.push(13044)
         if (!kinds.length && !/Journey/.test(protocolName)) return
         observeJourney(c.tables, c.state, /Journey|GM/.test(protocolName) ? model.supportedKinds : kinds)
     }
     // Lifetime migration may initialize the chest aggregate during evaluation.
-    ledger.observedSources = sourceRevisions(c.state)
+    ledger.observedSources = sourceRevisions(c.state, model)
     const facts = sourceFacts(model, c.state)
     if (ledger.sourceSignature === syncKey(ledger, facts)) return
     publishJourney(c)
