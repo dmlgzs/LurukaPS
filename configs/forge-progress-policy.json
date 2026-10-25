@@ -1,0 +1,116 @@
+{
+    "version": 1,
+    "catalogue": "CBT3-2451868-accessory-v1",
+    "namespace": "accessory_product",
+    "directedOnly": true,
+    "unit": "successfully-claimed-items",
+    "creditOn": "successful-output-claim",
+    "officiallyVerified": false,
+    "selectedBy": "root-local-inference-not-new-user-choice",
+    "legacyCatalogueSha256": "5b459bb1c794672dc8224ad42ae3c15d01e1017bb81a81eb5f963d182edc3f3e",
+    "legacyRecipes": [
+        {
+            "productId": 1,
+            "difficulty": 1,
+            "group": 21,
+            "dropId": 660001
+        },
+        {
+            "productId": 2,
+            "difficulty": 3,
+            "group": 21,
+            "dropId": 660003
+        },
+        {
+            "productId": 3,
+            "difficulty": 4,
+            "group": 21,
+            "dropId": 660004
+        },
+        {
+            "productId": 4,
+            "difficulty": 1,
+            "group": 21,
+            "dropId": 660022
+        },
+        {
+            "productId": 5,
+            "difficulty": 3,
+            "group": 21,
+            "dropId": 660024
+        },
+        {
+            "productId": 6,
+            "difficulty": 4,
+            "group": 21,
+            "dropId": 660025
+        },
+        {
+            "productId": 7,
+            "difficulty": 4,
+            "group": 21,
+            "dropId": 660012
+        },
+        {
+            "productId": 8,
+            "difficulty": 4,
+            "group": 21,
+            "dropId": 660020
+        },
+        {
+            "productId": 9,
+            "difficulty": 3,
+            "group": 21,
+            "dropId": 660007
+        },
+        {
+            "productId": 10,
+            "difficulty": 4,
+            "group": 21,
+            "dropId": 660008
+        },
+        {
+            "productId": 11,
+            "difficulty": 3,
+            "group": 21,
+            "dropId": 660028
+        },
+        {
+            "productId": 12,
+            "difficulty": 4,
+            "group": 21,
+            "dropId": 660029
+        },
+        {
+            "productId": 13,
+            "difficulty": 4,
+            "group": 21,
+            "dropId": 660033
+        },
+        {
+            "productId": 14,
+            "difficulty": 4,
+            "group": 21,
+            "dropId": 660016
+        },
+        {
+            "productId": 15,
+            "difficulty": 4,
+            "group": 21,
+            "dropId": 660037
+        },
+        {
+            "productId": 16,
+            "difficulty": 3,
+            "group": 21,
+            "dropId": 660040
+        },
+        {
+            "productId": 17,
+            "difficulty": 4,
+            "group": 21,
+            "dropId": 660041
+        }
+    ],
+    "TODO": "15072专用后台谓词未恢复。当前local默认只认独立定向UI的designatedItemId>0分支并按实际领取件数；可配置directedOnly，非官方规则或用户新增选择。新job封来源，成功领取同事务写typed事实；稳定17配方旧pending有界兼容，不比较已付成本原价。旧8:33/库存不回填；未知来源保留原奖励并一次日志，损坏typed账本另作完整性错误。"
+}

@@ -9,6 +9,7 @@ import { rewardSource } from './reward-source.js'
 import { claimHatch, cancelHatch } from './hatching.js'
 import { completed, refreshProduction, rescheduleJobs } from './production.js'
 import { recordProductionOutput } from './production-progress.js'
+import { recordForgeProgressClaim } from './forge-progress.js'
 
 export function multiplyProductionRows(rows, count) {
     return rows.map((row) => {
@@ -74,6 +75,7 @@ export function claimProductionStock(c, request, { cancel = false, allowEmpty = 
             const output = multiplyProductionRows(job.rewards, available)
             rewards.push(...grantRewards(tables, c.state, output))
             recordProductionOutput(tables, c.state, b, output)
+            recordForgeProgressClaim(tables, c.state, job, output)
             job.claimed += available
             claimed += available
             h.craftCounts ??= {}

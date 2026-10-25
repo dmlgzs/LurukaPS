@@ -1,4 +1,5 @@
 import { ErrorCode } from '../error-codes.js'
+import { sealForgeProgressSource } from '../forge-progress.js'
 import { productionTables } from '../production-tables.js'
 import { productionMaterials } from '../production-materials.js'
 import { ensure, syncPlayer } from './common.js'
@@ -58,6 +59,7 @@ export function registerProduction(on, tables) {
             )
             jobs.push({
                 kind: 'accessory',
+                forgeProgressSource: sealForgeProgressSource(tables, c.state, plan.recipe, plan.target, rewards),
                 guid: next++,
                 productId: plan.recipe.id,
                 count: 1,
