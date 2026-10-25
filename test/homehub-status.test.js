@@ -37,14 +37,27 @@ function fixture() {
     }
 }
 
+function ownedMountGuid(f) {
+    const mount = f.state().pets.find((pet) => {
+        const config = tables.find('mount', pet.config_id)
+        return !pet.work_status && config && config.defaultMoveType !== 5
+    })
+    assert(mount, 'seeded owned roster must contain an actual ordinary mount from the current mount table')
+    return mount.guid
+}
+
 test('home hub station and exit persist pet status, push updates, and accept stale exit', () => {
     const f = fixture()
     try {
         const id = f.state().pets[0].guid
+        const staleExit = f.call('PetStationInHomeHub', { pet_guid: id, type: 1 })
+        // The first ordinary request also observes the existing battle-pass
+        // task snapshot; it precedes this idempotent empty acknowledgment.
         assert.deepEqual(
-            f.call('PetStationInHomeHub', { pet_guid: id, type: 1 }).map((x) => x.id),
-            [6552],
+            staleExit.map((x) => x.id),
+            [18006, 6552],
         )
+        assert(Array.isArray(staleExit[0].data.one_task))
         const stationed = f.call('PetStationInHomeHub', { pet_guid: id, type: 0 })
         assert(stationed.some((x) => x.id === 6102))
         assert(stationed.some((x) => x.id === 6517))
@@ -100,7 +113,7 @@ test('stationing a hero pet clears its ordinary formation slot and respects five
 test('mounted pet status survives map sync and normal status clears mount', () => {
     const f = fixture()
     try {
-        const id = f.state().pets[0].guid
+        const id = ownedMountGuid(f)
         const mounted = f.call('WorldMapPlayerStatus', { status: 1, arg: id, doRecord: true })
         assert.deepEqual(
             mounted.filter((x) => x.id === 9103).map((x) => x.data.cmd),
@@ -135,7 +148,7 @@ test('mounted pet status survives map sync and normal status clears mount', () =
 test('login clears only the legacy mount status that lacked a world-map broadcast', () => {
     const f = fixture()
     try {
-        const id = f.state().pets[0].guid
+        const id = ownedMountGuid(f)
         f.store.transact(f.session.id, 0, (s) => {
             s.world.status = 1
             s.world.mount = id
@@ -158,7 +171,7 @@ test('login clears only the legacy mount status that lacked a world-map broadcas
 test('remounting after local dismount ACK keeps the new mount state', () => {
     const f = fixture()
     try {
-        const id = f.state().pets[0].guid
+        const id = ownedMountGuid(f)
         f.call('WorldMapPlayerStatus', { status: 1, arg: id, doRecord: true })
         f.call('WorldMapPlayerStatus', { status: 0, arg: '0', doRecord: true })
         f.call('WorldMapPlayerStatus', { status: 1, arg: id, doRecord: true })

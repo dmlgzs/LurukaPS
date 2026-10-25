@@ -6,7 +6,6 @@ import { caressPet } from '../pet-caress.js'
 import { ensureHome, homePayload } from '../home.js'
 import { changeHomeHubPosition } from '../home-hub.js'
 import { homeTreePayload, homeTreeState, upgradeHomeTree } from '../home-tree.js'
-import { homeCondition } from '../home-grid.js'
 import { reconcileFormationPets } from '../formation-pets.js'
 import { mountPayload, repairMountSelection } from '../mounts.js'
 import { syncBattle } from '../battle.js'
@@ -15,7 +14,7 @@ import { clearProductionPetSlots } from './production-workers.js'
 import { rememberMap, worldSync, WORLD_MAP_CMD_ENTER } from './world.js'
 import { dormTopics } from '../home-dorm.js'
 import { registerRanch } from './ranch.js'
-import { clearRanchPetSlots } from '../ranch.js'
+import { clearRanchPetSlots, ranchWorkerLimit } from '../ranch.js'
 import { registerHomeExchange } from './home-exchange.js'
 
 function homeScenePosition(tables) {
@@ -79,14 +78,8 @@ export function registerHome(on, tables) {
         ensure(r.type === 0 || r.type === 1, 'Invalid home-hub pet action')
         if (r.type === 0) {
             if (station.includes(p.guid)) return {}
-            const unlocked = Math.max(
-                0,
-                ...tables
-                    .get('home_freeworkposition')
-                    .filter((row) => homeCondition(row.unlockCondition, c.state))
-                    .map((row) => row.num),
-            )
-            ensure(station.length < unlocked, 'Home-hub pet slots are full')
+            const unlocked = ranchWorkerLimit(tables, c.state, 'worker_max')
+            ensure(station.length < unlocked, 'Home-hub pet slots are full', ErrorCode.HomeHubFull)
             ensure(!p.work_status || p.work_status === 7, 'Pet is working elsewhere')
             const bound = c.state.player.heros_info.heros.filter((hero) => hero.pet_id === p.guid)
             for (const hero of bound) hero.pet_id = '0'
