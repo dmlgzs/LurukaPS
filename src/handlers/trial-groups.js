@@ -300,7 +300,7 @@ function attachTrialPets(c, tables, trial, positions, requested) {
         const guid = trialPetGuid(c.id, cfg.id)
         let pet = pets.find((p) => p.guid === guid)
         if (!pet) {
-            pet = petData(tables, cfg.petId, guid, 0)
+            pet = petData(tables, cfg.petId, guid, 0, undefined, undefined, { temporary: true })
             pet.type = 2
             pet.lv = cfg.petLevel
             pet.feature = cfg.feature || 1

@@ -108,6 +108,12 @@ test('real prologue target102056 queries catch info, consumes one card, creates 
         const created = f.state().pets.find((x) => x.guid === result.guid)
         assert(created)
         assert.equal(created.config_id, 500297)
+        assert.equal(created.satiety_val, 60)
+        assert.equal(
+            response.find((packet) => packet.id === 6517).data.pet_infos.pets.find((pet) => pet.guid === created.guid)
+                .satiety_val,
+            60,
+        )
         assert(!before.pets.some((x) => x.guid === created.guid))
         assert.equal(f.state().player.sbag_infos.items[0].itemnum, 0)
         assert.deepEqual(created.comprehension, preview)
@@ -148,6 +154,12 @@ test('real prologue target102056 queries catch info, consumes one card, creates 
             login = f.game.dispatch(who, { id: e.id, seq: 1, payload: p.encode(e.req, { open_id: 'pet-catch' }) })
         assert(p.decode(e.rsp, login.find((x) => x.id === e.id).payload).data.heros_info)
         assert(f.store.load(f.session.id).state.pets.some((x) => x.guid === created.guid))
+        assert.equal(
+            p
+                .decode('SCPetInfoSync', login.find((packet) => packet.id === 6517).payload)
+                .pet_infos.pets.find((pet) => pet.guid === created.guid).satiety_val,
+            60,
+        )
     } finally {
         f.store.close()
     }

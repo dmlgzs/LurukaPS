@@ -226,6 +226,11 @@ test('node59 trial pet102 joins temporary formation, participates in combat and 
         )
         assert.equal(state.player.group_mgrs[0].groups.find((g) => g.id === 0).control, original.heros[1].hero_id)
         assert.equal(trial.config_id, 500264)
+        assert.equal(trial.satiety_val, 10000, 'temporary trial pets retain their explicit legacy compatibility value')
+        assert(
+            state.pets.every((pet) => pet.satiety_val === 60),
+            'new permanent roster remains in the configured normal domain',
+        )
         assert.equal(trial.type, 2)
         assert.equal(BigInt(trial.guid) >> 56n, 9n)
         assert.equal((BigInt(trial.guid) >> 32n) & 0xffffffn, 102n)

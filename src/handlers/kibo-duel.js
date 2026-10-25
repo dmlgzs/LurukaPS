@@ -229,7 +229,15 @@ export function registerKiboDuel(on, tables, protocol) {
             ensure(trial, 'Trial pet configuration unavailable', ErrorCode.TrialPetNotExist)
             if (c.state.pets.some((p) => p.config_id === trial.trialPet) || c.state.kiboDuelTrialProfiles?.[id])
                 continue
-            const profile = petData(tables, trial.trialPet, arenaPetGuid(c.state, { is_trial: true, id }), 0)
+            const profile = petData(
+                tables,
+                trial.trialPet,
+                arenaPetGuid(c.state, { is_trial: true, id }),
+                0,
+                undefined,
+                undefined,
+                { temporary: true },
+            )
             profile.lv = trial.trialPetLevel
             profile.grade = petGrade(tables, profile)
             ;(c.state.kiboDuelTrialProfiles ??= {})[id] = profile

@@ -9,6 +9,7 @@ import { initialPetComprehension, repairPetComprehension } from './pet-comprehen
 import { randomMountSpeed } from './mounts.js'
 import { refreshPetCaressPeriod } from './pet-caress.js'
 import { lockedPetBoxes } from './pet-box-locks.js'
+import { initialPetSatiety } from './pet-initial-satiety.js'
 
 // The localized export corrupts pet.gradeScore. Use the numeric CBT3 table.
 const petScores = new Map(
@@ -187,7 +188,7 @@ export function ensurePetName(tables, pet, config = tables.find('pet', pet.confi
     pet.pet_name = Buffer.from(config.name, 'utf8').toString('base64')
     return true
 }
-export function petData(tables, configId, guid, box, builderRuleId = 1001, rng = randomInt) {
+export function petData(tables, configId, guid, box, builderRuleId = 1001, rng = randomInt, context = {}) {
     const config = tables.find('pet', configId)
     ensure(config && tables.find('template_value', configId), 'Missing pet configuration', ErrorCode.PetConfNotExist)
     const pet = {
@@ -207,7 +208,7 @@ export function petData(tables, configId, guid, box, builderRuleId = 1001, rng =
         is_lock: true,
         box_id: box,
         type: 1,
-        satiety_val: 10000,
+        satiety_val: initialPetSatiety(tables, configId, context),
         hero_id: '0',
         roulette_pos: 0,
     }

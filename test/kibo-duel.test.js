@@ -197,8 +197,9 @@ test('duel501 enters its table-linked arena through one-way 9510 and can leave w
             started = call('MultiCampaignCreate', { dungeon_id: 40007 })
         assert.deepEqual(
             started.map((x) => x.id),
-            [10747, 9512, 9513, 9567, 11874, 11801, 10007, 11804, 11802, 9105, 9103, 11055, 11800],
+            [10747, 9512, 9513, 9567, 11874, 11801, 10007, 11804, 11802, 9105, 9103, 9147, 11055, 11800],
         )
+        assert.deepEqual(started.find((packet) => packet.id === 9147).data.checkpoint_ids, [])
         assert.deepEqual(
             started.filter((x) => x.id === 11800).map((x) => x.data.status),
             [2],

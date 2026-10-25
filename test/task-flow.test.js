@@ -552,6 +552,7 @@ test('quest 106010 node78 grants configured customized pet before advancing', ()
             pet = state.pets.find((p) => p.customized_id === 500072)
         assert.equal(state.pets.length, before + 1)
         assert.equal(pet.config_id, 500072)
+        assert.equal(pet.satiety_val, 60)
         assert.equal(pet.can_not_release, true)
         assert.deepEqual(Object.fromEntries(pet.comprehension.map((x) => [x.attr_id, x.level])), {
             1: 7,

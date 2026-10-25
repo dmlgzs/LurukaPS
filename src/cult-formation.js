@@ -75,7 +75,7 @@ export function ensureCultFormation(tables, catalog, state, accountId) {
         const cfg = catalog.tables.find('pet_interim', id)
         ensure(cfg && tables.find('pet', cfg.petId), 'Unknown cultivation interim pet', ErrorCode.PetConfNotExist)
         const guid = ((9n << 56n) | (BigInt(id) << 32n) | BigInt(accountId)).toString(),
-            pet = petData(tables, cfg.petId, guid, 0)
+            pet = petData(tables, cfg.petId, guid, 0, undefined, undefined, { temporary: true })
         pet.type = 2
         pet.lv = cfg.petLevel
         pet.feature = cfg.feature || 1

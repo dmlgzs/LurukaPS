@@ -109,9 +109,23 @@ test('legacy hatch start and modern ProductFinish produce a unique pet after the
         assert.equal(state.pets.length, initialCount + 1)
         assert.equal(state.petEggs.length, 1)
         assert(state.pets.some((p) => p.guid === reward.guid))
+        assert.equal(state.pets.find((pet) => pet.guid === reward.guid).satiety_val, 60)
+        assert.equal(
+            p
+                .decode('SCPetInfoSync', packets.find((packet) => packet.id === 6517).payload)
+                .pet_infos.pets.find((pet) => pet.guid === reward.guid).satiety_val,
+            60,
+        )
         const repeated = call('ProductFinish', { guid: hatchGuid, product_guids: [job.guid] })
         assert.deepEqual(p.decode('SCProductFinish', repeated.find((x) => x.id === 6111).payload).reward.rewards, [])
         assert.equal(store.load(session.id).state.pets.length, initialCount + 1)
+        const login = call('EnterGame', { open_id: 'hatch' }, {})
+        assert.equal(
+            p
+                .decode('SCPetInfoSync', login.find((packet) => packet.id === 6517).payload)
+                .pet_infos.pets.find((pet) => pet.guid === reward.guid).satiety_val,
+            60,
+        )
     } finally {
         store.close()
     }

@@ -1,0 +1,11 @@
+{
+    "version": 1,
+    "initialValueKey": "PET_SATIETY_BEGINNING_VALUE",
+    "maximumValueKey": "PET_SATIETY_MAX_VALUE",
+    "existingRecords": "preserve",
+    "temporaryRecords": "preserve-legacy-value",
+    "temporaryValue": 10000,
+    "officiallyVerified": false,
+    "evidence": "Current client reads raw satietyVal; home display maximum is pet_home_talent.satietyScore. Initial60 follows current game table semantics, not an official capture response.",
+    "todo": "Verify initial satiety from official capture/reward/hatch packets. pet_egg.satietyScore=50 has unresolved meaning and no recovered newborn-satiety assignment; hatch60 remains this shared local initialization policy, not official proof. Do not infer production drain, feeding, old-record migration or replenishment."
+}
