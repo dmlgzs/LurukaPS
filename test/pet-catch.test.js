@@ -59,6 +59,15 @@ function assertCatchBattlePass(packets, f) {
     })
     assert.equal(packets.at(-1).id, 11030)
 }
+function assertHeldCardProgress(packets) {
+    const notice = packets.find((packet) => packet.id === 9900)
+    assert(notice)
+    const row = notice.data.achievements.find((entry) => entry.id === 2020026)
+    assert(row)
+    assert.deepEqual(row.count, [1])
+    assert.equal(row.finish_time, '0')
+    assert.equal(row.is_reward, false)
+}
 
 test('real prologue target102056 queries catch info, consumes one card, creates owned pet and advances objective', () => {
     const f = fixture(),
@@ -68,8 +77,9 @@ test('real prologue target102056 queries catch info, consumes one card, creates 
             query = f.call('GetCatchPetInfo', { tar_id: [target], day_weather: 2, reason: 1, pet_len_id: 0 })
         assert.deepEqual(
             query.map((x) => x.id),
-            [11031, 18006, 11030],
+            [11031, 18006, 9900, 11030],
         )
+        assertHeldCardProgress(query)
         assertCatchBattlePass(query, f)
         assert.equal(query[0].data.pets[0].uuid, target)
         assert.equal(query[0].data.pets[0].rank, 1)
@@ -238,8 +248,9 @@ test('logged mixed scan query resolves task monster and ordinary world enemy pac
         const packets = f.call('GetCatchPetInfo', { tar_id: [wild, task], day_weather: 2, reason: 1 })
         assert.deepEqual(
             packets.map((x) => x.id),
-            [11031, 18006, 11030],
+            [11031, 18006, 9900, 11030],
         )
+        assertHeldCardProgress(packets)
         assertCatchBattlePass(packets, f)
         assert.deepEqual(
             packets[0].data.pets.map((x) => x.uuid),

@@ -8,6 +8,7 @@ import { productionProgressRule, productionProgressValue } from './production-pr
 import { heroRankProgressRule, heroRankProgressValue } from './hero-rank-progress.js'
 import { petStarSoulProgressRule, petStarSoulProgressValue } from './pet-star-soul-progress.js'
 import { entrustStarProgressRule, entrustStarProgressValue } from './entrust-star-progress.js'
+import { captureCardStockRule, captureCardStockValue } from './capture-card-stock.js'
 import { heroFavorProgressRule, heroFavorProgressValue } from './hero-favor-progress.js'
 
 const catalogues = new WeakMap()
@@ -56,6 +57,7 @@ export function achievementCatalogue(tables) {
                 (kind === 2004 && tokens.length === 2) ||
                 sharedRule(tokens) ||
                 achievementStateRule(tokens) ||
+                (tokens.at(-1) === row.param && captureCardStockRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && entrustStarProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && heroFavorProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && petStarSoulProgressRule(tables, tokens)) ||
@@ -95,6 +97,7 @@ function observedValue(tables, model, row, state, completedTasks, facts) {
     if (kind === 13007) return heroFavorProgressValue(tables, state, rule.tokens, facts)
     if (kind === 12055) return heroRankProgressValue(tables, state, rule.tokens, facts)
     if (kind === 12018) return productionProgressValue(tables, state, rule.tokens, facts)
+    if (kind === 15022) return captureCardStockValue(tables, state, rule.tokens, facts)
     if (achievementStateRule(rule.tokens)) return achievementStateValue(tables, state, rule.tokens, facts)
     return model.novice.value(state, { finishCondition: row.finishCondition })
 }
