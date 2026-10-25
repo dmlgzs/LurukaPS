@@ -7,6 +7,7 @@ import { ensure } from './handlers/common.js'
 import { activityTables } from './activity-tables.js'
 import { productionTables } from './production-tables.js'
 import { GrowupSystem } from './growup.js'
+import { activityAbyssStarValue } from './activity-abyss-star.js'
 
 const policy = JSON.parse(fs.readFileSync(new URL('../configs/activity-policy.json', import.meta.url)))
 export class ActivityCatalog {
@@ -118,7 +119,9 @@ export class ActivityCatalog {
         })
     }
     condition(text, state) {
-        const [kind, a, b] = String(text).split('|').map(Number)
+        const tokens = String(text).split('|').map(Number),
+            [kind, a, b] = tokens
+        if (kind === 13123) return activityAbyssStarValue(this.external, state, tokens)
         if ([80003, 80004, 80006, 80008].includes(kind)) {
             const row = this.rows.find((x) => x.type === 60 && x.systemId === a)
             const g = row && state.activities?.[row.id]?.growup
