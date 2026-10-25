@@ -17,6 +17,7 @@ import { petStarSoulProgressRule, petStarSoulProgressValue } from './pet-star-so
 import { entrustStarProgressRule, entrustStarProgressValue } from './entrust-star-progress.js'
 import { captureCardStockRule, captureCardStockValue } from './capture-card-stock.js'
 import { heroFavorProgressRule, heroFavorProgressValue } from './hero-favor-progress.js'
+import { homeOrderProgressRule, homeOrderProgressValue } from './home-order-progress.js'
 
 import { buildingPlacementRule, buildingPlacementValue } from './building-placement-progress.js'
 
@@ -66,6 +67,7 @@ export function achievementCatalogue(tables) {
                 (kind === 2004 && tokens.length === 2) ||
                 sharedRule(tokens) ||
                 achievementStateRule(tokens) ||
+                (tokens.at(-1) === row.param && homeOrderProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && captureCardStockRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && entrustStarProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && heroFavorProgressRule(tables, tokens)) ||
@@ -113,6 +115,7 @@ function observedValue(tables, model, row, state, completedTasks, facts) {
     if (kind === 15020 || kind === 13096) return buildingPlacementValue(tables, state, rule.tokens, facts)
     if (kind === 12210) return cookingVarietyValue(tables, state, rule.tokens, facts)
     if (kind === 15022) return captureCardStockValue(tables, state, rule.tokens, facts)
+    if (kind === 15003) return homeOrderProgressValue(tables, state, rule.tokens, facts)
     if (achievementStateRule(rule.tokens)) return achievementStateValue(tables, state, rule.tokens, facts)
     return model.novice.value(state, { finishCondition: row.finishCondition })
 }

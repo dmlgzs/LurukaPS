@@ -26,7 +26,7 @@ test('complete current12252 family compiles by explicit compatibility policy and
         [5050018, 5050019],
     )
     assert(rows.every((r) => model.rules.get(r.id).supported))
-    assert.equal([...model.rules.values()].filter((r) => r.supported).length, 88)
+    assert.equal([...model.rules.values()].filter((r) => r.supported).length, 93)
     const ids = tables.get('dungeon_entrust').map((r) => r.id)
     assert.equal(ids.length, 32)
     assert.equal(value({ entrust: { records: { 1: { ...recorded(1, 2), entrust_start_bit: 7 } } } }), 0)
