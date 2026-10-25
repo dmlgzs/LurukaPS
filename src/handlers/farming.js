@@ -8,6 +8,7 @@ import { cropGrowth, ensureCropOutcome, applyWateringUpgrade } from '../crop-rew
 import { farmWorker, consumeFarmSeed, storeFarmHarvest } from '../farm-storage.js'
 import { cropFootprint, linkedCropFields } from '../crop-footprint.js'
 import { transplantCrop } from '../crop-transplant.js'
+import { recordManualFarmHarvest } from '../farm-harvest-progress.js'
 
 function homeInScene(tables, state) {
     const mapId = Number(tables.get('game').find((row) => row.title === 'HOME_ID')?.value)
@@ -66,7 +67,10 @@ function harvest(tables, c, home, build, isPet = false) {
     const house = isPet ? farmWorker(tables, c.state, build, 'harvest_pet') : null
     let granted = []
     if (house) storeFarmHarvest(house, plan.rewards)
-    else granted = grantRewards(tables, c.state, plan.rewards)
+    else {
+        granted = grantRewards(tables, c.state, plan.rewards)
+        recordManualFarmHarvest(tables, c.state, build, plan.rewards)
+    }
     clearCrop(build)
     delete home.cropOutcomes[build.guid]
     c.state.homeRevision = (c.state.homeRevision || 0) + 1

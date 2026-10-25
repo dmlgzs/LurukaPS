@@ -1,0 +1,10 @@
+{
+    "version": 1,
+    "officiallyVerified": false,
+    "manualSelector": "literal-home-building-group-type",
+    "manualCountUnit": "actually-granted-crop-product-items",
+    "farmCountUnit": "actually-granted-crop-product-items",
+    "workerCreditOn": "successful-storage-claim",
+    "history": "no-completed-history-backfill",
+    "TODO": "12005/12062专用官方后台体未恢复。按当前完整目标和产物角色采用明确本地推导：12005手动实际产物件数，GetBuildType实际group.type作literal参数，不把19归一15；source仍保留所有真实田类根数/产量。12062手动实际grant及工人实际领仓，工人入仓不再计。当前52年度生命周期可达；循环/特殊15种原缺口不冒称完成。旧仍存成熟outcome按owned田/seed/封存奖励的稳定角色映射有界兼容，旧合法type16未领仓按已证资源/产物有界计；已领库存/已删源不造。返种子/EXP静默排除，真正未知保原奖并一次日志。黄金12102的通用获取范围仍未证，消费者不接。"
+}
