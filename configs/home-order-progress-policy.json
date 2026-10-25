@@ -1,0 +1,10 @@
+{
+    "version": 1,
+    "condition": 15003,
+    "creditOn": "successful-order-submission",
+    "allOrders": "preserve-completedOrders-including-unclassified-legacy",
+    "tierHistory": "prospective-accepted-order-level-only",
+    "oldReceipts": "never-reinterpret-id-and-time-through-current-table",
+    "officiallyVerified": false,
+    "TODO": "15003专用官方后台体未恢复；按当前完整五成就/四旅程文案、客户端orderLevel档位显示及6227成功提交合同推导。一单成功一次，材料件数、刷新和重试不计。当前首选择器仅0，不猜非0语义。旧completedOrders作为全部订单的已证基线保留；旧receipt未封存level且仅保留256条，不能推断旧中高级次数。新增分档事实与奖励、receipt、日活和通知同事务；已完成/claimed终态不回退。"
+}

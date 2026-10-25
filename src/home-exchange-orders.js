@@ -7,6 +7,7 @@ import { ensureHomeExchange, exchangeClock } from './home-exchange.js'
 import { parseRewards, grantRewards } from './rewards.js'
 import { spend } from './inventory.js'
 import { rewardSource } from './reward-source.js'
+import { recordHomeOrderCompletion } from './home-order-progress.js'
 const catalogues = new WeakMap()
 export function exchangeOrderCatalogue(tables) {
     if (catalogues.has(tables)) return catalogues.get(tables)
@@ -74,14 +75,45 @@ export function orderCandidates(tables, state, level, exclude = new Set()) {
         (row) => row.orderLevel === level && !exclude.has(row.orderID) && homeCondition(row.orderUnlock, state),
     )
 }
-function allocate(exchange, slots) {
-    let next = exchange.nextOrderGuid ?? 1
-    ensure(Number.isSafeInteger(next) && next > 0, 'Invalid exchange order identity counter', ErrorCode.GameConfig)
-    next = Math.max(
-        next,
-        ...slots.map((s) => (s.guid ?? 0) + 1),
-        ...Object.keys(exchange.orderReceipts ?? {}).map((id) => Number(id) + 1),
+function rememberOrderSequence(exchange, slots) {
+    let next = exchange.nextOrderGuid === undefined ? 1 : exchange.nextOrderGuid
+    ensure(
+        Number.isSafeInteger(next) && next > 0 && next <= 0x100000000 && Array.isArray(slots),
+        'Invalid exchange order identity counter',
+        ErrorCode.GameConfig,
     )
+    const ids = new Set()
+    for (const slot of slots) {
+        const guid = slot.guid === undefined ? 0 : slot.guid
+        ensure(
+            Number.isInteger(guid) && guid >= 0 && guid <= 0xffffffff && (!guid || !ids.has(guid)),
+            'Invalid saved exchange order identity',
+            ErrorCode.GameConfig,
+        )
+        if (guid) ids.add(guid)
+        next = Math.max(next, guid + 1)
+    }
+    const receipts = exchange.orderReceipts ?? {}
+    ensure(
+        receipts && typeof receipts === 'object' && !Array.isArray(receipts),
+        'Invalid exchange order receipt identities',
+        ErrorCode.GameConfig,
+    )
+    for (const id of Object.keys(receipts)) {
+        const guid = Number(id)
+        ensure(
+            Number.isInteger(guid) && guid > 0 && guid <= 0xffffffff && String(guid) === id,
+            'Invalid exchange order receipt identity',
+            ErrorCode.GameConfig,
+        )
+        next = Math.max(next, guid + 1)
+    }
+    // UInt32+1 is only a persisted exhausted sentinel, never a wire identity.
+    exchange.nextOrderGuid = next
+    return next
+}
+function allocate(exchange, slots) {
+    const next = rememberOrderSequence(exchange, slots)
     ensure(next <= 0xffffffff, 'Exchange order identity exhausted', ErrorCode.GameConfig)
     exchange.nextOrderGuid = next + 1
     return next
@@ -91,6 +123,9 @@ export function ensureExchangeOrderBoard(c) {
         window = exchangeOrderWindow(c.tables, c.now)
     let board = exchange.board
     if (!board || board.start !== window.start || board.end !== window.end) {
+        // Preserve unsubmitted old live identities before replacing the board;
+        // a legacy missing counter must not make stale client requests reusable.
+        rememberOrderSequence(exchange, board?.slots ?? [])
         board = exchange.board = {
             start: window.start,
             end: window.end,
@@ -194,17 +229,19 @@ export function submitExchangeOrder(c, r) {
     if (exchange.orderReceipts?.[r.order_guid]) return exchangeOrderSnapshot(c.state)
     const slot = board.slots.find((s) => s.guid === r.order_guid && !s.done)
     ensure(slot, 'Exchange order was not found', ErrorCode.HomeOrderNotExists)
-    const plan = exchangeOrderPlan(c.tables, c.state, exchangeOrderCatalogue(c.tables).byId.get(slot.order_id), c.now)
+    const row = exchangeOrderCatalogue(c.tables).byId.get(slot.order_id)
+    ensure(row?.orderLevel === slot.level, 'Exchange order tier configuration changed', ErrorCode.HomeOrderConfInvalid)
+    const plan = exchangeOrderPlan(c.tables, c.state, row, c.now)
     const costs = new Map()
     for (const cost of plan.costs) costs.set(cost.itemid, (costs.get(cost.itemid) ?? 0) + cost.itemnum)
     spend(c.state, costs, 0, c.now)
     const rewards = grantRewards(c.tables, c.state, plan.rewards)
     slot.done = true
     const receipts = (exchange.orderReceipts ??= {})
-    receipts[r.order_guid] = { id: slot.order_id, time: c.now }
+    receipts[r.order_guid] = { id: slot.order_id, time: c.now, level: row.orderLevel }
     const keys = Object.keys(receipts).sort((a, b) => Number(a) - Number(b))
     for (const key of keys.slice(0, Math.max(0, keys.length - 256))) delete receipts[key]
-    exchange.completedOrders = (exchange.completedOrders ?? 0) + 1
+    recordHomeOrderCompletion(c.tables, c.state, row.orderLevel)
     recordActiveProgress(c.tables, c.state, 15003, 1, c.now)
     c.pushBefore('CSProtoSyncPlayerData', {
         basic_info: c.state.player.basic_info,
