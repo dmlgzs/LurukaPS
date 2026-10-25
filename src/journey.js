@@ -12,6 +12,7 @@ import { worldChestsOpened } from './world-chest-progress.js'
 import { heroRankProgressRule, heroRankProgressValue } from './hero-rank-progress.js'
 import { compileJourneyUnlocks, journeyReputationFacts } from './journey-unlocks.js'
 import { petStarSoulProgressRule, petStarSoulProgressValue } from './pet-star-soul-progress.js'
+import { worldCollectionProgressRule, worldCollectionProgressValue } from './world-collection-progress.js'
 
 const models = new WeakMap()
 const integers = (text, separator = '|') =>
@@ -41,6 +42,7 @@ function supportedShape(tokens, tables) {
     if (kind === 12018) return productionProgressRule(tables, tokens)
     if (kind === 12055) return heroRankProgressRule(tables, tokens)
     if (kind === 15045) return petStarSoulProgressRule(tables, tokens)
+    if (kind === 13039) return worldCollectionProgressRule(tables, tokens)
     if (kind === 12072) return p.length === 2 && p[0] === 0 && uint(p[1]) && p[1] > 0
     return false
 }
@@ -72,10 +74,10 @@ export function journeyModel(tables) {
         )
         row.tokens = tokens
         row.supported =
-            (direct.has(tokens[0]) || shared.has(tokens[0]) || [12018, 12055, 15045].includes(tokens[0])) &&
+            (direct.has(tokens[0]) || shared.has(tokens[0]) || [12018, 12055, 15045, 13039].includes(tokens[0])) &&
             supportedShape(tokens, tables) &&
             (tokens[0] !== 13111 || row.targetParam === 1) &&
-            (![12018, 12055, 12072, 15045].includes(tokens[0]) || tokens.at(-1) === row.targetParam)
+            (![12018, 12055, 12072, 15045, 13039].includes(tokens[0]) || tokens.at(-1) === row.targetParam)
         row.guidedId = guided.get(row.condition)?.id
         byTarget.set(row.id, row)
         if (!byKind.has(tokens[0])) byKind.set(tokens[0], [])
@@ -201,6 +203,7 @@ export function journeyValue(tables, state, row, facts = new Map()) {
     if (kind === 15017) return state.home?.level ?? 0
     if (kind === 12055) return heroRankProgressValue(tables, state, row.tokens)
     if (kind === 15045) return petStarSoulProgressValue(tables, state, row.tokens, facts)
+    if (kind === 13039) return worldCollectionProgressValue(tables, state, row.tokens, facts)
     if (kind === 12018) return productionProgressValue(tables, state, row.tokens)
     if (kind === 12072) return worldChestsOpened(tables, state)
     if (row.guidedId) return guidedConditionValue(row.guidedId, state)
@@ -439,7 +442,7 @@ const dirtyKinds = [
     [/Pet|Catch|Hatch|Egg/, [12014, 12040, 12046, 13035, 15045]],
     [
         /Home|Build|Crop|Plant|Cook|Product|Ranch|Collection|Shop|Exchange|Item|GM|Playable|Entrust|Dungeon|WorldMapExplore/,
-        [...shared, 12018, 15017, 13104],
+        [...shared, 12018, 15017, 13104, 13039],
     ],
 ]
 function sourceRevisions(state, model) {
@@ -474,7 +477,7 @@ export function notifyJourney(c, protocolName) {
         // Rewards and automatic settlements can change a domain under another
         // request name. Observe its real revision, not just the packet's label.
         if (ledger.observedSources?.pet !== revisions.pet) kinds.push(12014, 12040, 12046, 13035, 15045)
-        if (ledger.observedSources?.home !== revisions.home) kinds.push(...shared, 12018, 15017, 13104)
+        if (ledger.observedSources?.home !== revisions.home) kinds.push(...shared, 12018, 15017, 13104, 13039)
         // Observe the authoritative aggregate, including claims under another
         // request name. Stable callbacks neither scan objects nor serialize state.
         if (ledger.observedSources?.chest !== revisions.chest) kinds.push(12072)

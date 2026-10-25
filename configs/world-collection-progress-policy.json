@@ -1,0 +1,12 @@
+{
+    "version": 1,
+    "counting": "distinct-repaired-world-collection",
+    "location": "configured-domain-scene",
+    "officiallyVerified": false,
+    "basis": "当前13039目标文案及地图参数、客户端非空build_id修复性质、6526与6102类型55的永久采集设施身份共同推导",
+    "todo": [
+        "13039官方后台专用条件体尚未恢复；当前只支持后两个选择参数均为0的完整五项目标",
+        "只按合法collect_id和对应建筑配置读取修复状态，不把派驻、生产、领取次数或普通家园建筑当修复",
+        "非零域或类型选择、未来地图与真实客户端完成通知需独立验证，不由本地参数猜测放行"
+    ]
+}
