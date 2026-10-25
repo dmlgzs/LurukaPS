@@ -14,6 +14,7 @@ import { compileJourneyUnlocks, journeyReputationFacts } from './journey-unlocks
 import { petStarSoulProgressRule, petStarSoulProgressValue } from './pet-star-soul-progress.js'
 import { worldCollectionProgressRule, worldCollectionProgressValue } from './world-collection-progress.js'
 import { homeOrderProgressRule, homeOrderProgressValue } from './home-order-progress.js'
+import { heroGiftProgressFacts, heroGiftProgressRule, heroGiftProgressValue } from './hero-gift-progress.js'
 
 const models = new WeakMap()
 const integers = (text, separator = '|') =>
@@ -45,6 +46,7 @@ function supportedShape(tokens, tables) {
     if (kind === 15045) return petStarSoulProgressRule(tables, tokens)
     if (kind === 13039) return worldCollectionProgressRule(tables, tokens)
     if (kind === 15003) return homeOrderProgressRule(tables, tokens)
+    if ([12227, 12228].includes(kind)) return heroGiftProgressRule(tokens)
     if (kind === 12072) return p.length === 2 && p[0] === 0 && uint(p[1]) && p[1] > 0
     return false
 }
@@ -78,10 +80,11 @@ export function journeyModel(tables) {
         row.supported =
             (direct.has(tokens[0]) ||
                 shared.has(tokens[0]) ||
-                [12018, 12055, 15045, 13039, 15003].includes(tokens[0])) &&
+                [12018, 12055, 15045, 13039, 15003, 12227, 12228].includes(tokens[0])) &&
             supportedShape(tokens, tables) &&
             (tokens[0] !== 13111 || row.targetParam === 1) &&
-            (![12018, 12055, 12072, 15045, 13039, 15003].includes(tokens[0]) || tokens.at(-1) === row.targetParam)
+            (![12018, 12055, 12072, 15045, 13039, 15003, 12227, 12228].includes(tokens[0]) ||
+                tokens.at(-1) === row.targetParam)
         row.guidedId = guided.get(row.condition)?.id
         byTarget.set(row.id, row)
         if (!byKind.has(tokens[0])) byKind.set(tokens[0], [])
@@ -209,6 +212,7 @@ export function journeyValue(tables, state, row, facts = new Map()) {
     if (kind === 15045) return petStarSoulProgressValue(tables, state, row.tokens, facts)
     if (kind === 13039) return worldCollectionProgressValue(tables, state, row.tokens, facts)
     if (kind === 15003) return homeOrderProgressValue(tables, state, row.tokens, facts)
+    if ([12227, 12228].includes(kind)) return heroGiftProgressValue(state, row.tokens)
     if (kind === 12018) return productionProgressValue(tables, state, row.tokens)
     if (kind === 12072) return worldChestsOpened(tables, state)
     if (row.guidedId) return guidedConditionValue(row.guidedId, state)
@@ -442,6 +446,7 @@ export function claimJourney(c, request) {
     return { rewards, ...(rewards.length ? { src: rewardSource(c.tables, 'journeyTaskReward') } : {}) }
 }
 const dirtyKinds = [
+    [/Gift/, [12227, 12228]],
     [/Task|Story/, [2007, 12045]],
     [/Hero|Soul|Ornament|Equip|Trial|Group/, [12055, 12229, 12235, 13002, 13006]],
     [/Pet|Catch|Hatch|Egg/, [12014, 12040, 12046, 13035, 15045]],
@@ -456,6 +461,7 @@ function sourceRevisions(state, model) {
         home: state.homeRevision ?? 0,
         chest: state.worldChestHistory?.total ?? 0,
         reputation: state.reputationRevision ?? 0,
+        gift: heroGiftProgressFacts(state).revision,
         orders: state.homeExchange?.completedOrders ?? 0,
     }
     ensure(
@@ -491,6 +497,7 @@ export function notifyJourney(c, protocolName) {
         if (ledger.observedSources?.reputation !== revisions.reputation) kinds.push(61001)
         if (ledger.observedSources?.abyss !== revisions.abyss) kinds.push(13111)
         if (ledger.observedSources?.orders !== revisions.orders) kinds.push(15003)
+        if (ledger.observedSources?.gift !== revisions.gift) kinds.push(12227, 12228)
         if (!kinds.length && !/Journey/.test(protocolName)) return
         observeJourney(c.tables, c.state, /Journey|GM/.test(protocolName) ? model.supportedKinds : kinds)
     }
