@@ -1,3 +1,4 @@
+import { journeyAbyssRule, journeyAbyssValue } from './journey-abyss.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { taskNodeCompleted } from './tasks.js'
@@ -19,7 +20,7 @@ const integers = (text, separator = '|') =>
         .map(Number)
 const uint = (n) => Number.isSafeInteger(n) && n >= 0 && n <= 0xffffffff
 const shared = new Set([12027, 12033, 12040, 12067, 12070, 13020, 13044, 15013])
-const direct = new Set([2007, 12014, 12045, 12046, 12072, 12229, 13002, 13006, 13035, 13104, 15017])
+const direct = new Set([13111, 2007, 12014, 12045, 12046, 12072, 12229, 13002, 13006, 13035, 13104, 15017])
 function supportedShape(tokens, tables) {
     const [kind, ...p] = tokens,
         positive = (values) => values.every((v) => uint(v) && v > 0)
@@ -35,6 +36,7 @@ function supportedShape(tokens, tables) {
     if (kind === 12040) return p.length === 3 && p[0] > 0 && p[1] >= 0 && p[2] > 0
     if (kind === 12067) return p.length === 3 && positive(p)
     if (kind === 12070) return p.length === 2 && p[0] === 1 && p[1] > 0
+    if (kind === 13111) return journeyAbyssRule(tables, tokens)
     if (kind === 12018) return productionProgressRule(tables, tokens)
     if (kind === 12055) return heroRankProgressRule(tables, tokens)
     if (kind === 12072) return p.length === 2 && p[0] === 0 && uint(p[1]) && p[1] > 0
@@ -70,6 +72,7 @@ export function journeyModel(tables) {
         row.supported =
             (direct.has(tokens[0]) || shared.has(tokens[0]) || [12018, 12055].includes(tokens[0])) &&
             supportedShape(tokens, tables) &&
+            (tokens[0] !== 13111 || row.targetParam === 1) &&
             (![12018, 12055, 12072].includes(tokens[0]) || tokens.at(-1) === row.targetParam)
         row.guidedId = guided.get(row.condition)?.id
         byTarget.set(row.id, row)
@@ -136,6 +139,10 @@ export function journeyModel(tables) {
         sourceNodes,
         sourceEntrustIds: [...sourceEntrusts].sort((a, b) => a - b),
         sourceReputationIds: [...sourceReputations].sort((a, b) => a - b),
+        sourceAbyssIds: [
+            ...new Set(targets.filter((row) => row.supported && row.tokens[0] === 13111).map((row) => row.tokens[1])),
+        ].sort((a, b) => a - b),
+        abyssPassedValue: (state, id) => journeyAbyssValue(tables, state, id),
     }
     models.set(tables, model)
     return model
@@ -188,6 +195,7 @@ export function journeyValue(tables, state, row) {
                 ),
         ).length
     if (kind === 13104) return state.exploration?.map_info?.find((r) => r.map_id === p[0])?.lv ?? 0
+    if (kind === 13111) return journeyAbyssValue(tables, state, p[0])
     if (kind === 15017) return state.home?.level ?? 0
     if (kind === 12055) return heroRankProgressValue(tables, state, row.tokens)
     if (kind === 12018) return productionProgressValue(tables, state, row.tokens)
@@ -445,7 +453,11 @@ function sourceRevisions(state, model) {
     // These few referenced records can change during the battle-report path,
     // where general journey observation is deferred. A later ordinary request
     // must notice them even when its name does not match Entrust/Dungeon.
-    return { ...sources, entrust: [...entrustFacts(model, state)].map(([id, stars]) => `${id}:${stars}`).join(',') }
+    return {
+        ...sources,
+        entrust: [...entrustFacts(model, state)].map(([id, stars]) => `${id}:${stars}`).join(','),
+        abyss: model.sourceAbyssIds.map((id) => `${id}:${model.abyssPassedValue(state, id)}`).join(','),
+    }
 }
 export function notifyJourney(c, protocolName) {
     const model = journeyModel(c.tables)
@@ -464,6 +476,7 @@ export function notifyJourney(c, protocolName) {
         if (ledger.observedSources?.chest !== revisions.chest) kinds.push(12072)
         if (ledger.observedSources?.entrust !== revisions.entrust) kinds.push(13044)
         if (ledger.observedSources?.reputation !== revisions.reputation) kinds.push(61001)
+        if (ledger.observedSources?.abyss !== revisions.abyss) kinds.push(13111)
         if (!kinds.length && !/Journey/.test(protocolName)) return
         observeJourney(c.tables, c.state, /Journey|GM/.test(protocolName) ? model.supportedKinds : kinds)
     }

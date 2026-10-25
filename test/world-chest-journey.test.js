@@ -75,8 +75,8 @@ test('the complete current12072 journey family compiles exact wildcard shapes an
             [1, 10, 20],
         )
         assert(family.every((r) => r.supported))
-        assert.equal(model.targets.filter((r) => r.supported).length, 134)
-        assert.equal(model.referencedTargets.filter((r) => r.supported).length, 118)
+        assert.equal(model.targets.filter((r) => r.supported).length, 136)
+        assert.equal(model.referencedTargets.filter((r) => r.supported).length, 120)
         for (const condition of ['12072|1|1', '12072|0|1|2', '12072|0|2']) {
             const adapter = Object.create(f.tables)
             adapter.get = (name) =>
