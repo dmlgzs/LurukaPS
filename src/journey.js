@@ -1,3 +1,4 @@
+import { materialClearRule, materialClearValue, materialClearRevision } from './material-clear-progress.js'
 import { journeyAbyssRule, journeyAbyssValue } from './journey-abyss.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
@@ -50,6 +51,7 @@ function supportedShape(tokens, tables) {
     if (kind === 15045) return petStarSoulProgressRule(tables, tokens)
     if (kind === 13039) return worldCollectionProgressRule(tables, tokens)
     if (kind === 12016) return resourceBuildingProgressRule(tables, tokens)
+    if (kind === 15010) return materialClearRule(tables, tokens)
     if (kind === 15003) return homeOrderProgressRule(tables, tokens)
     if (kind === 12062) return farmHarvestProgressRule(tables, tokens)
     if ([12227, 12228].includes(kind)) return heroGiftProgressRule(tokens)
@@ -86,10 +88,12 @@ export function journeyModel(tables) {
         row.supported =
             (direct.has(tokens[0]) ||
                 shared.has(tokens[0]) ||
-                [12018, 12055, 15045, 13039, 15003, 12227, 12228, 15072, 12062, 12016].includes(tokens[0])) &&
+                [12018, 12055, 15045, 13039, 15003, 12227, 12228, 15072, 12062, 12016, 15010].includes(tokens[0])) &&
             supportedShape(tokens, tables) &&
             (tokens[0] !== 13111 || row.targetParam === 1) &&
-            (![12018, 12055, 12072, 15045, 13039, 15003, 12227, 12228, 15072, 12062, 12016].includes(tokens[0]) ||
+            (![12018, 12055, 12072, 15045, 13039, 15003, 12227, 12228, 15072, 12062, 12016, 15010].includes(
+                tokens[0],
+            ) ||
                 tokens.at(-1) === row.targetParam)
         row.guidedId = guided.get(row.condition)?.id
         byTarget.set(row.id, row)
@@ -218,6 +222,7 @@ export function journeyValue(tables, state, row, facts = new Map()) {
     if (kind === 15045) return petStarSoulProgressValue(tables, state, row.tokens, facts)
     if (kind === 13039) return worldCollectionProgressValue(tables, state, row.tokens, facts)
     if (kind === 12016) return resourceBuildingProgressValue(tables, state, row.tokens, facts)
+    if (kind === 15010) return materialClearValue(tables, state, row.tokens, facts)
     if (kind === 15003) return homeOrderProgressValue(tables, state, row.tokens, facts)
     if (kind === 12062) return farmHarvestProgressValue(tables, state, row.tokens, facts)
     if ([12227, 12228].includes(kind)) return heroGiftProgressValue(state, row.tokens)
@@ -352,11 +357,17 @@ export function observeJourney(tables, state, kinds) {
                 'Malformed journey target receipt',
                 ErrorCode.JourneyTargetDateError,
             )
+        if (row.tokens[0] === 15010 && saved)
+            ensure(
+                !saved.complete || saved.value === row.targetParam,
+                'Material journey has an incomplete terminal receipt',
+                ErrorCode.JourneyTargetDateError,
+            )
         if (saved?.complete || !row.supported) continue
         const raw = journeyValue(tables, state, row, facts)
         if (raw === null) continue
         ensure(uint(raw), 'Invalid journey condition value', ErrorCode.JourneyTargetDateError)
-        const authoritativeResource = row.tokens[0] === 12016,
+        const authoritativeResource = row.tokens[0] === 12016 || row.tokens[0] === 15010,
             value = authoritativeResource
                 ? Math.min(row.targetParam, raw)
                 : Math.max(saved?.value ?? 0, Math.min(row.targetParam, raw))
@@ -464,7 +475,7 @@ const dirtyKinds = [
     [/Pet|Catch|Hatch|Egg/, [12014, 12040, 12046, 13035, 15045]],
     [
         /Home|Build|Crop|Plant|Cook|Product|Ranch|Collection|Shop|Exchange|Item|GM|Playable|Entrust|Dungeon|WorldMapExplore/,
-        [...shared, 12018, 15017, 13104, 13039, 12016, 15072],
+        [...shared, 12018, 15017, 13104, 13039, 12016, 15072, 15010],
     ],
 ]
 function sourceRevisions(state, model) {
@@ -474,6 +485,7 @@ function sourceRevisions(state, model) {
         chest: state.worldChestHistory?.total ?? 0,
         reputation: state.reputationRevision ?? 0,
         forge: forgeProgressRevision(state),
+        material: materialClearRevision(state),
         gift: heroGiftProgressFacts(state).revision,
         orders: state.homeExchange?.completedOrders ?? 0,
         farmHarvest: state.home?.farmHarvestProgress === undefined ? 0 : state.home.farmHarvestProgress?.revision,
@@ -511,6 +523,7 @@ export function notifyJourney(c, protocolName) {
         if (ledger.observedSources?.reputation !== revisions.reputation) kinds.push(61001)
         if (ledger.observedSources?.abyss !== revisions.abyss) kinds.push(13111)
         if (ledger.observedSources?.forge !== revisions.forge) kinds.push(15072)
+        if (ledger.observedSources?.material !== revisions.material) kinds.push(15010)
         if (ledger.observedSources?.orders !== revisions.orders) kinds.push(15003)
         if (ledger.observedSources?.farmHarvest !== revisions.farmHarvest) kinds.push(12062)
         if (ledger.observedSources?.gift !== revisions.gift) kinds.push(12227, 12228)

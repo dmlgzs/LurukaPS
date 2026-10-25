@@ -17,8 +17,8 @@ test('complete12016 three-target family validates actual scene,area inclusion an
             rows = model.byKind.get(12016)
         assert.equal(rows.length, 3)
         assert(rows.every((r) => r.supported && journeyValue(f.tables, f.state(), r) === 0))
-        assert.equal(model.targets.filter((r) => r.supported).length, 162)
-        assert.equal(model.referencedTargets.filter((r) => r.supported).length, 146)
+        assert.equal(model.targets.filter((r) => r.supported).length, 175)
+        assert.equal(model.referencedTargets.filter((r) => r.supported).length, 159)
         for (const tokens of [
             [12016, 100, 100004, 32101, 1],
             [12016, 101, 101003, 32101, 1],

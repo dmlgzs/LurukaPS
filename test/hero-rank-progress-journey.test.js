@@ -14,8 +14,8 @@ test('all eight current rank journey targets compile and rankII means actual per
             rows = model.byKind.get(12055)
         assert.equal(rows.length, 8)
         assert(rows.every((row) => row.supported))
-        assert.equal(model.targets.filter((row) => row.supported).length, 162)
-        assert.equal(model.referencedTargets.filter((row) => row.supported).length, 146)
+        assert.equal(model.targets.filter((row) => row.supported).length, 175)
+        assert.equal(model.referencedTargets.filter((row) => row.supported).length, 159)
         const adapter = Object.create(f.tables)
         adapter.get = (name) =>
             name === 'journey_task_target'
