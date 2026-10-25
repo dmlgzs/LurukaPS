@@ -57,7 +57,7 @@ test('battle pass manufacturing weekly count is independent of the capped daily-
         f.store.close()
     }
 })
-test('battle pass weekly cap clamps day/week XP but fixed story tasks are separate; unfinished and unsupported rules never auto-complete', () => {
+test('battle pass weekly cap clamps day/week XP but fixed story tasks are separate; unfinished supported rules never auto-complete', () => {
     const f = achievementFixture('pass-task-cap')
     try {
         f.store.transact(f.session.id, 0, (s) => {
@@ -73,7 +73,7 @@ test('battle pass weekly cap clamps day/week XP but fixed story tasks are separa
         )
         assert.throws(
             () => f.call('BattlePassGetTaskReward', { task_id: 1001309 }),
-            (e) => e.code === ErrorCode.FunctionClosed,
+            (e) => e.code === ErrorCode.BattlePassTaskNotFinished,
         )
         assert.throws(
             () => f.call('BattlePassGetTaskReward', { task_id: 123 }),
