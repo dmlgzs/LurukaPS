@@ -194,6 +194,7 @@ import { retimeProduction } from './production-time.js'
 import { ranchDue, settleRanches, retimeRanches } from './ranch.js'
 import { collectionDue, settleCollections, retimeCollections } from './home-collection.js'
 import { simpleProductionDue, settleSimpleProducts, simpleProductSnapshot } from './simple-production.js'
+import { hasCaptureCardReward } from './capture-card-stock.js'
 import { registerTechnology } from './handlers/technology.js'
 import { registerBuildingPlacement } from './handlers/buildings.js'
 import { registerFarming } from './handlers/farming.js'
@@ -1729,6 +1730,16 @@ export class Game {
                 if (simpleDue) {
                     const settled = settleSimpleProducts(this.tables, state, now)
                     if (settled.changed) {
+                        // Observe actual held stock before a later catch-card
+                        // reservation can consume it. This uses the same tick
+                        // transaction; unchanged/other-category ticks do not scan.
+                        if (hasCaptureCardReward(this.tables, settled.rewards))
+                            notifyAchievements({
+                                tables: this.tables,
+                                state,
+                                now,
+                                pushBefore: (name, value) => packets.push(this.packet(name, value)),
+                            })
                         const ornamentGuids = new Set(
                             settled.rewards.filter((item) => item.itemtype === 15).map((item) => String(item.guid)),
                         )

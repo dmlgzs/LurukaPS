@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "counting": "client-capture-card-net-stock",
+    "negativeAggregate": "floor-zero",
+    "officiallyVerified": false,
+    "basis": "当前15022持有文案、common_item.type410及客户端GetAllCapturePetBall→按ID堆叠合计再扣一次债务的数量reader共同推导",
+    "todo": [
+        "未恢复15022官方后台专用条件体；当前只支持完整现行type410条件，不扩展其它物品分类",
+        "最终负合计归零是非负成就进度边界；客户端每ID原值可为负，不逐ID裁零",
+        "DebtItem实际为Int64，导入超出有符号范围拒绝；逐行校验后按客户端itemId字典后行覆盖，不按item_type筛选债务",
+        "类别以common_item表和普通背包ID判定；背包行itemtype只校验结构域，不将其它独立装备/宠物库存混入",
+        "捕捉预约已经从库存减去，不再按petCatchCards或已捕获数量额外扣除；既有完成成就保持永久回执"
+    ]
+}
