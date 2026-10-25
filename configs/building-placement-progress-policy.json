@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "source": "synced-owned-home-builds",
+    "status": "no-completion-filter-like-equivalent-client-readers",
+    "history": "observe-current-placed-state-with-monotonic-achievement-receipts",
+    "officiallyVerified": false,
+    "canonicalIntegrity": {
+        "guid": "WorldMapHomeBuild/HomeBuildData/Store-key UInt32; positive and unique owned-list rows follow server allocator, not a native rejection rule",
+        "locate": "object required by canonical server placement; exact AzurProto getter/ctor/base-ctor prove fresh omitted locate stays null, while type/group count readers themselves do not test completion",
+        "direction": "optional0-to3 follows current server validatePlacement; client Proto uint32/Populate alone does not prove this range",
+        "duplicates": "raw owned-array duplicate GUID is a local integrity error; native m_builds is a GUID-keyed dictionary rather than duplicate counting"
+    },
+    "TODO": "15020/13096专用后台体未恢复。按HomeStore实际home_builds→m_builds及按配置type/group读取GUID的等价reader推导完整当前两族，不添加status1完成谓词；当前目标建筑time均0且实际放置直接status1，没有另造施工timer。库存和storedBuilds不入当前摆放计数；只观察现存事实，已撤除的未知旧历史不补造。登录与成功普通请求同事务观察，当前放置无额外tick完成来源。"
+}

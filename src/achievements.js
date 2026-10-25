@@ -18,6 +18,8 @@ import { entrustStarProgressRule, entrustStarProgressValue } from './entrust-sta
 import { captureCardStockRule, captureCardStockValue } from './capture-card-stock.js'
 import { heroFavorProgressRule, heroFavorProgressValue } from './hero-favor-progress.js'
 
+import { buildingPlacementRule, buildingPlacementValue } from './building-placement-progress.js'
+
 const catalogues = new WeakMap()
 function sharedRule(tokens) {
     const [kind, ...p] = tokens
@@ -71,6 +73,7 @@ export function achievementCatalogue(tables) {
                 (tokens.at(-1) === row.param && heroRankProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && productionProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && productionCategoryRule(tables, tokens)) ||
+                (tokens.at(-1) === row.param && buildingPlacementRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && cookingVarietyRule(tables, tokens)))
         rules.set(row.id, { tokens, supported, chain })
     }
@@ -107,6 +110,7 @@ function observedValue(tables, model, row, state, completedTasks, facts) {
     if (kind === 12055) return heroRankProgressValue(tables, state, rule.tokens, facts)
     if (kind === 12018) return productionProgressValue(tables, state, rule.tokens, facts)
     if (kind === 15021) return productionCategoryValue(tables, state, rule.tokens, facts)
+    if (kind === 15020 || kind === 13096) return buildingPlacementValue(tables, state, rule.tokens, facts)
     if (kind === 12210) return cookingVarietyValue(tables, state, rule.tokens, facts)
     if (kind === 15022) return captureCardStockValue(tables, state, rule.tokens, facts)
     if (achievementStateRule(rule.tokens)) return achievementStateValue(tables, state, rule.tokens, facts)
