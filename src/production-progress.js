@@ -7,11 +7,13 @@ import policy from '../configs/production-progress-policy.json' with { type: 'js
 const uint = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff
 const object = (value) => value && typeof value === 'object' && !Array.isArray(value)
 const catalogues = new WeakMap()
+const categoryCatalogues = new WeakMap()
 ensure(
     policy.version === 1 &&
         policy.creditOn === 'successful-output-claim' &&
         policy.historical === 'do-not-reinterpret-untyped-counts' &&
-        policy.officially_verified === false,
+        policy.officially_verified === false &&
+        policy.categorySelector === 'WorldMapBuildType/common_item.type/resource3',
     'Invalid production progress policy',
     ErrorCode.GameConfig,
 )
@@ -115,6 +117,55 @@ export function productionProgressValue(tables, state, tokens, facts = new Map()
         if (building === type && itemtype === resource && (id === 0 || itemid === id)) count += value
     }
     ensure(Number.isSafeInteger(count) && count >= 0, 'Production progress total overflow', ErrorCode.GameConfig)
+    facts.set(key, count)
+    return count
+}
+
+// HomeProductsItemType shares the existing successful-claim ledger. The
+// building selector is WorldMapBuildType; the second selector is common_item.type.
+function categoryCatalogue(external) {
+    const tables = productionTables(external)
+    if (categoryCatalogues.has(tables)) return categoryCatalogues.get(tables)
+    const itemCategories = new Map()
+    for (const row of tables.get('common_item')) {
+        ensure(
+            uint(row.id) && row.id > 0 && uint(row.type) && !itemCategories.has(row.id),
+            'Malformed production item category configuration',
+            ErrorCode.GameConfig,
+        )
+        itemCategories.set(row.id, row.type)
+    }
+    const selectors = new Set()
+    for (const key of catalogue(tables).keys) {
+        const [building, resource, id] = key.split(':').map(Number)
+        const category = itemCategories.get(id)
+        if (resource === 3 && category > 0) selectors.add(building + ':' + category)
+    }
+    const result = { selectors, itemCategories }
+    categoryCatalogues.set(tables, result)
+    return result
+}
+
+export function productionCategoryRule(tables, tokens) {
+    if (!Array.isArray(tokens) || tokens.length !== 4 || tokens[0] !== 15021 || !tokens.every(uint)) return false
+    const [, type, category, target] = tokens
+    return type > 0 && category > 0 && target > 0 && categoryCatalogue(tables).selectors.has(type + ':' + category)
+}
+
+export function productionCategoryValue(tables, state, tokens, facts = new Map()) {
+    if (!productionCategoryRule(tables, tokens)) return null
+    const [, type, category] = tokens,
+        key = 'production-category:' + type + ':' + category
+    if (facts.has(key)) return facts.get(key)
+    const ledger = facts.get('production:history') ?? history(state)
+    facts.set('production:history', ledger)
+    const { itemCategories } = categoryCatalogue(tables)
+    let count = 0
+    for (const [selector, value] of Object.entries(ledger.counts)) {
+        const [building, resource, id] = selector.split(':').map(Number)
+        if (building === type && resource === 3 && itemCategories.get(id) === category) count += value
+    }
+    ensure(Number.isSafeInteger(count) && count >= 0, 'Production category total overflow', ErrorCode.GameConfig)
     facts.set(key, count)
     return count
 }
