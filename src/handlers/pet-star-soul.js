@@ -3,6 +3,7 @@ import { ensure } from './common.js'
 import { planPetSoulUpgrade } from '../pet-star-soul.js'
 import { petInActiveNpcDuel } from '../npc-kibo-duel.js'
 import { spend, spendCurrency } from '../inventory.js'
+import { recordPetStarSoulProgress } from '../pet-star-soul-progress.js'
 export function registerPetStarSoul(on) {
     on('KiboStarLinkSoulUpdate', (c, r) => {
         const pet = c.state.pets.find((p) => p.guid === String(r.u64))
@@ -18,6 +19,7 @@ export function registerPetStarSoul(on) {
         spend(c.state, bag, 0, c.now)
         pet.soul_link_level = plan.value
         pet.inherent_skills = plan.skills
+        recordPetStarSoulProgress(c.tables, c.state, pet)
         c.state.petRevision = (c.state.petRevision ?? 0) + 1
         return {}
     })

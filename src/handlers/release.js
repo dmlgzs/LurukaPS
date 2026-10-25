@@ -5,6 +5,7 @@ import { ensure } from './common.js'
 import { grantRewards } from '../rewards.js'
 import { petReleaseRewards, releaseBonus } from '../pet-release.js'
 import { releaseLedger } from '../release-ledger.js'
+import { initializePetStarSoulProgress } from '../pet-star-soul-progress.js'
 function unique(ids) {
     ensure(ids.length > 0 && new Set(ids.map(String)).size === ids.length, 'Invalid release selection')
 }
@@ -44,6 +45,9 @@ export function registerRelease(on, tables) {
             if (result.bonusEligible) eligible++
         }
         rewards.push(...releaseBonus(tables, 'pet', ledger, eligible))
+        // Migrate surviving trained instances before removal on a legacy
+        // account's first request; already recorded attainments remain intact.
+        initializePetStarSoulProgress(tables, c.state)
         const granted = grantRewards(tables, c.state, rewards)
         const ids = new Set(r.pet_list)
         c.state.pets = c.state.pets.filter((p) => !ids.has(p.guid))

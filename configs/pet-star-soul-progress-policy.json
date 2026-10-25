@@ -1,0 +1,13 @@
+{
+    "version": 1,
+    "counting": "ever-attained-permanent-instance",
+    "migration": "current-trained-lower-bound",
+    "officiallyVerified": false,
+    "authority": "用户明确选择：累计曾经达到要求的奇波，放生后仍计数",
+    "todo": [
+        "15045后台专用条件体未恢复；累计人数为用户授权的本地策略，不宣称官方已证",
+        "仅迁移现存且通过实际模板校验的已训练实例，无法恢复旧版本已经放生的未知历史",
+        "默认1/1不计数；临时对象不计数；合法进化保持同一UInt64实例的最高已达节点",
+        "旅程12042系统永久授权账本仍独立待证，不因角色等级或本条件达标绕过"
+    ]
+}

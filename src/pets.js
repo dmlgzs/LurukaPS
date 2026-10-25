@@ -10,6 +10,7 @@ import { randomMountSpeed } from './mounts.js'
 import { refreshPetCaressPeriod } from './pet-caress.js'
 import { lockedPetBoxes } from './pet-box-locks.js'
 import { initialPetSatiety } from './pet-initial-satiety.js'
+import { petStarSoulAllocationFloor } from './pet-star-soul-progress.js'
 
 // The localized export corrupts pet.gradeScore. Use the numeric CBT3 table.
 const petScores = new Map(
@@ -241,12 +242,18 @@ export function createPets(tables, state, configId, count, builderRuleId = 1001,
             if (!locked.has(box) && !used.has(id)) slots.push(id)
         }
     ensure(slots.length >= count, 'No free unlocked pet slot', ErrorCode.BagPetFullForAdd)
-    let sequence = state.nextPetSequence || 1
+    let sequence = state.nextPetSequence ?? 1
+    ensure(Number.isSafeInteger(sequence) && sequence > 0, 'Invalid saved pet allocation counter', ErrorCode.GameConfig)
+    sequence = Math.max(sequence, petStarSoulAllocationFloor(tables, state))
     for (const pet of state.pets) {
         const id = BigInt(pet.guid)
         if (id >> 56n === 2n) sequence = Math.max(sequence, Number(id & 0xffffffffn) + 1)
     }
-    ensure(Number.isSafeInteger(sequence) && sequence + count - 1 <= 0xffffffff, 'Pet identity space exhausted')
+    ensure(
+        Number.isSafeInteger(sequence) && sequence + count - 1 <= 0xffffffff,
+        'Pet identity space exhausted',
+        ErrorCode.GameConfig,
+    )
     const created = []
     for (let i = 0; i < count; i++) {
         const guid = ((2n << 56n) | (BigInt(configId) << 32n) | BigInt(sequence++)).toString()
