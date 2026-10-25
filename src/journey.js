@@ -11,6 +11,7 @@ import { productionProgressRule, productionProgressValue } from './production-pr
 import { worldChestsOpened } from './world-chest-progress.js'
 import { heroRankProgressRule, heroRankProgressValue } from './hero-rank-progress.js'
 import { compileJourneyUnlocks, journeyReputationFacts } from './journey-unlocks.js'
+import { petStarSoulProgressRule, petStarSoulProgressValue } from './pet-star-soul-progress.js'
 
 const models = new WeakMap()
 const integers = (text, separator = '|') =>
@@ -39,6 +40,7 @@ function supportedShape(tokens, tables) {
     if (kind === 13111) return journeyAbyssRule(tables, tokens)
     if (kind === 12018) return productionProgressRule(tables, tokens)
     if (kind === 12055) return heroRankProgressRule(tables, tokens)
+    if (kind === 15045) return petStarSoulProgressRule(tables, tokens)
     if (kind === 12072) return p.length === 2 && p[0] === 0 && uint(p[1]) && p[1] > 0
     return false
 }
@@ -70,10 +72,10 @@ export function journeyModel(tables) {
         )
         row.tokens = tokens
         row.supported =
-            (direct.has(tokens[0]) || shared.has(tokens[0]) || [12018, 12055].includes(tokens[0])) &&
+            (direct.has(tokens[0]) || shared.has(tokens[0]) || [12018, 12055, 15045].includes(tokens[0])) &&
             supportedShape(tokens, tables) &&
             (tokens[0] !== 13111 || row.targetParam === 1) &&
-            (![12018, 12055, 12072].includes(tokens[0]) || tokens.at(-1) === row.targetParam)
+            (![12018, 12055, 12072, 15045].includes(tokens[0]) || tokens.at(-1) === row.targetParam)
         row.guidedId = guided.get(row.condition)?.id
         byTarget.set(row.id, row)
         if (!byKind.has(tokens[0])) byKind.set(tokens[0], [])
@@ -169,7 +171,7 @@ function permanentPets(state) {
     const trial = new Set((state.trialGroup?.pets ?? []).map((p) => String(p.guid)))
     return (state.pets ?? []).filter((p) => !p.trail && !trial.has(String(p.guid)))
 }
-export function journeyValue(tables, state, row) {
+export function journeyValue(tables, state, row, facts = new Map()) {
     const [kind, ...p] = row.tokens,
         heroes = state.player.heros_info.heros.filter((h) => !h.trail)
     if (!row.supported) return null
@@ -198,6 +200,7 @@ export function journeyValue(tables, state, row) {
     if (kind === 13111) return journeyAbyssValue(tables, state, p[0])
     if (kind === 15017) return state.home?.level ?? 0
     if (kind === 12055) return heroRankProgressValue(tables, state, row.tokens)
+    if (kind === 15045) return petStarSoulProgressValue(tables, state, row.tokens, facts)
     if (kind === 12018) return productionProgressValue(tables, state, row.tokens)
     if (kind === 12072) return worldChestsOpened(tables, state)
     if (row.guidedId) return guidedConditionValue(row.guidedId, state)
@@ -313,7 +316,8 @@ export function taskComplete(model, state, id) {
 export function observeJourney(tables, state, kinds) {
     const model = journeyModel(tables),
         ledger = journeyLedger(state),
-        changed = []
+        changed = [],
+        facts = new Map()
     const rows = kinds ? [...new Set(kinds)].flatMap((kind) => model.byKind.get(kind) ?? []) : model.targets
     for (const row of rows) {
         const saved = ledger.targets[row.id]
@@ -328,7 +332,7 @@ export function observeJourney(tables, state, kinds) {
                 ErrorCode.JourneyTargetDateError,
             )
         if (saved?.complete || !row.supported) continue
-        const raw = journeyValue(tables, state, row)
+        const raw = journeyValue(tables, state, row, facts)
         if (raw === null) continue
         ensure(uint(raw), 'Invalid journey condition value', ErrorCode.JourneyTargetDateError)
         const value = Math.max(saved?.value ?? 0, Math.min(row.targetParam, raw))
@@ -432,7 +436,7 @@ export function claimJourney(c, request) {
 const dirtyKinds = [
     [/Task|Story/, [2007, 12045]],
     [/Hero|Soul|Ornament|Equip|Trial|Group/, [12055, 12229, 12235, 13002, 13006]],
-    [/Pet|Catch|Hatch|Egg/, [12014, 12040, 12046, 13035]],
+    [/Pet|Catch|Hatch|Egg/, [12014, 12040, 12046, 13035, 15045]],
     [
         /Home|Build|Crop|Plant|Cook|Product|Ranch|Collection|Shop|Exchange|Item|GM|Playable|Entrust|Dungeon|WorldMapExplore/,
         [...shared, 12018, 15017, 13104],
@@ -469,7 +473,7 @@ export function notifyJourney(c, protocolName) {
         const kinds = dirtyKinds.filter(([pattern]) => pattern.test(protocolName)).flatMap(([, kinds]) => kinds)
         // Rewards and automatic settlements can change a domain under another
         // request name. Observe its real revision, not just the packet's label.
-        if (ledger.observedSources?.pet !== revisions.pet) kinds.push(12014, 12040, 12046, 13035)
+        if (ledger.observedSources?.pet !== revisions.pet) kinds.push(12014, 12040, 12046, 13035, 15045)
         if (ledger.observedSources?.home !== revisions.home) kinds.push(...shared, 12018, 15017, 13104)
         // Observe the authoritative aggregate, including claims under another
         // request name. Stable callbacks neither scan objects nor serialize state.
