@@ -38,9 +38,16 @@ export function forgeFixture(name, file = ':memory:') {
                 locate: { block_id: 101, anchor: 6750239, direction: 0 },
             })
         s.materialDungeonRecords = Object.fromEntries(
-            tables
-                .get('dungeon_material')
-                .map((row) => [row.id, { material_id: row.id, material_star: 0, success_count: 1 }]),
+            tables.get('dungeon_material').map((row) => [
+                row.id,
+                {
+                    material_id: row.id,
+                    material_star: 0,
+                    success_count: 1,
+                    difficulty_id: row.diff,
+                    success_time: String(now),
+                },
+            ]),
         )
     })
     const plan = (id, directed = true, count = 1) => {
