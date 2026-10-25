@@ -8,6 +8,7 @@ import { combatState } from './combat-state.js'
 import { enemyDefinition } from './enemy-state.js'
 import { recordMaterialVictory } from './material-dungeons.js'
 import { recordWeeklyVictory } from './weekly-dungeons.js'
+import { entrustChallengeGoals } from './entrust-challenge-goals.js'
 
 const catalogs = new WeakMap()
 export function getEntrustCatalog(tables) {
@@ -148,11 +149,8 @@ export function settleEntrustVictory(tables, state, now) {
     if (!run || run.battle_complete || !run.end_time || !run.battle_start_time) return false
     const catalog = getEntrustCatalog(tables)
     if (!entrustVictoryComplete(catalog, state, run.entrust_id)) return false
-    const { scene, entrust } = catalog.get(run.entrust_id, run.kind)
-    const goals = tables
-        .get('common_challenge')
-        .filter((row) => row.group === scene.challengeGroup && row.type === 1)
-        .sort((a, b) => a.id - b.id)
+    const { scene, entrust, dungeon } = catalog.get(run.entrust_id, run.kind)
+    const goals = entrustChallengeGoals(tables, run, scene, dungeon)
     const elapsed = run.end_time - run.battle_start_time
     let mask = 0
     goals.forEach((goal, index) => {
