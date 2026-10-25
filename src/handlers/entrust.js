@@ -142,8 +142,8 @@ function stageContext(c) {
     return { run, catalog, stages: catalog.stages(run.entrust_id, run.kind) }
 }
 
-export function syncEntrustStage(c, previousEnemyObjectId) {
-    ensureEntrustSceneObjects(c.tables, c.state, c.now)
+export function syncEntrustStage(c, previousEnemyObjectId, { freshMaterialVictory = false } = {}) {
+    ensureEntrustSceneObjects(c.tables, c.state, c.now, { freshMaterialVictory })
     // The interaction reply completes the marker/chest locally. Publish the
     // next wave only after that reply so the client cannot apply the old
     // marker state after the new world-object snapshot.
@@ -259,7 +259,7 @@ export function completeEntrustObject(c, objectId, completing) {
     return [...rewards, ...(c.repeatExtraRewards ?? [])]
 }
 
-export function advanceEntrustCombat(c) {
+export function advanceEntrustCombat(c, deadGroups = new Set()) {
     const context = stageContext(c)
     if (!context || context.run.status !== 2 || materialStoryPending(context.run)) return false
     const { run, stages } = context
@@ -287,7 +287,13 @@ export function advanceEntrustCombat(c) {
     }
     run.stage_index = stages[position + 1].index
     if (stages[position + 1].type === 30) run.end_time = c.now
-    syncEntrustStage(c, stage.row.id)
+    const freshMaterialVictory =
+        run.kind === 'material' &&
+        stages[position + 1].type === 30 &&
+        Array.from({ length: count }, (_, slot) =>
+            ((3n << 56n) | (BigInt(slot) << 32n) | BigInt(stage.row.id)).toString(),
+        ).some((uid) => deadGroups.has(uid))
+    syncEntrustStage(c, stage.row.id, { freshMaterialVictory })
     return true
 }
 

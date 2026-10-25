@@ -144,7 +144,7 @@ export class EntrustCatalog {
     }
 }
 
-export function settleEntrustVictory(tables, state, now) {
+export function settleEntrustVictory(tables, state, now, { freshMaterialVictory = false } = {}) {
     const run = state.entrust?.run
     if (!run || run.battle_complete || !run.end_time || !run.battle_start_time) return false
     const catalog = getEntrustCatalog(tables)
@@ -187,7 +187,7 @@ export function settleEntrustVictory(tables, state, now) {
         return true
     }
     if (run.kind === 'material') {
-        recordMaterialVictory(tables, state, run, mask)
+        recordMaterialVictory(tables, state, run, mask, now, freshMaterialVictory)
         return true
     }
     if (run.kind === 'weekly') {
@@ -352,7 +352,7 @@ export function entrustMultiBaseSnapshot(state, accountId) {
     }
 }
 
-export function ensureEntrustSceneObjects(tables, state, now) {
+export function ensureEntrustSceneObjects(tables, state, now, { freshMaterialVictory = false } = {}) {
     const run = state.entrust?.run
     if (!run || state.world.map_id !== run.map_id) return false
     const config = getEntrustCatalog(tables).get(run.entrust_id, run.kind)
@@ -504,7 +504,7 @@ export function ensureEntrustSceneObjects(tables, state, now) {
             const { claims, ...object } = value
             return object
         })
-    if (settleEntrustVictory(tables, state, now)) changed = true
+    if (settleEntrustVictory(tables, state, now, { freshMaterialVictory })) changed = true
     return changed
 }
 

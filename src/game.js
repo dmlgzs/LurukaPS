@@ -1515,15 +1515,17 @@ export class Game {
                 // Initialize requests also pass through common task recovery.
                 // Newly granted After items must not wait for the metadata flush.
                 persistWhen:
-                    deferredTaskProgress.has(e.name) || e.name === 'CSProtoRequestHeroElement'
-                        ? (draft, base) => {
-                              if ((draft.taskItemRevision ?? 0) !== (base.taskItemRevision ?? 0)) return true
-                              // Also cover another task completed by the normal recovery pass.
-                              return Object.entries(draft.taskAfterReceipts ?? {}).some(
-                                  ([key, rewards]) => !base.taskAfterReceipts?.[key] && rewards.length > 0,
-                              )
-                          }
-                        : undefined,
+                    e.name === 'CSProtoBattleInfoReduce'
+                        ? (draft, base) => (draft.materialClearRevision ?? 0) !== (base.materialClearRevision ?? 0)
+                        : deferredTaskProgress.has(e.name) || e.name === 'CSProtoRequestHeroElement'
+                          ? (draft, base) => {
+                                if ((draft.taskItemRevision ?? 0) !== (base.taskItemRevision ?? 0)) return true
+                                // Also cover another task completed by the normal recovery pass.
+                                return Object.entries(draft.taskAfterReceipts ?? {}).some(
+                                    ([key, rewards]) => !base.taskAfterReceipts?.[key] && rewards.length > 0,
+                                )
+                            }
+                          : undefined,
                 fork:
                     e.name === 'CSProtoBattleInfoReduce'
                         ? forkBattleReport

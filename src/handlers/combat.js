@@ -575,7 +575,7 @@ export function registerCombat(on) {
         if (deadGroups.size) pruneInactiveCampaignRelations(c)
         if (deadGroups.size) advanceCultTrialCombat(c)
         advanceAbyssCombat(c)
-        advanceEntrustCombat(c)
+        advanceEntrustCombat(c, deadGroups)
         settleStoryCampaignScene(c)
         if (entrustDamageChanged && entrustRun.last_damage_sync_at !== c.now) {
             entrustRun.last_damage_sync_at = c.now

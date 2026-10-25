@@ -1,3 +1,4 @@
+import { materialClearRule, materialClearMatches, materialClearKey } from './material-clear-progress.js'
 import { taskNodeCompleted } from './tasks.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
@@ -402,3 +403,44 @@ export function claimBattlePassTask(c, r) {
 }
 
 export { grantTaskExp as grantBattlePassTaskExp }
+
+export function recordBattlePassMaterialClear(tables, state, tuple, now) {
+    if (!state.battlePass?.activeKey) return false
+    const model = battlePassTaskModel(tables),
+        rows = model.rows.filter(
+            (row) =>
+                row.kind === 15010 &&
+                materialClearRule(tables, [row.kind, ...row.args]) &&
+                materialClearMatches([row.kind, ...row.args], tuple),
+        )
+    if (!rows.length) return false
+    const prepared = draft(tables, state, now)
+    if (!prepared) return false
+    const eligible = rows.filter(
+        (row) =>
+            row.type === 2 &&
+            row.teamId === prepared.season.row.taskIdWeek &&
+            showReady(row, state) &&
+            (!row.showTime || DateTime(row.showTime) <= now) &&
+            (!row.endTime || now < DateTime(row.endTime)),
+    )
+    if (!eligible.length) return false
+    const p = periods(tables, prepared, now),
+        target = p.tasks.week,
+        key = materialClearKey(tables, tuple),
+        old = target.counts[key] ?? 0
+    ensure(
+        Number.isSafeInteger(old) && old >= 0 && old < 0xffffffff,
+        'Typed material clear count overflow',
+        ErrorCode.GameConfig,
+    )
+    target.counts[key] = old + 1
+    const revision = prepared.ledger.taskRevision ?? 0
+    ensure(
+        Number.isSafeInteger(revision) && revision >= 0 && revision < 0xffffffff,
+        'Typed material task revision overflow',
+        ErrorCode.GameConfig,
+    )
+    prepared.ledger.taskRevision = revision + 1
+    return true
+}

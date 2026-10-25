@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "officiallyVerified": false,
+    "unit": "one-actual-victory",
+    "claimIndependent": true,
+    "difficulty": "minimum",
+    "oldPeriodBackfill": false,
+    "todo": [
+        "User-selected local policy: each validated material victory counts once; skipped, single or multiple chest claims do not change the count.",
+        "Nonzero difficulty is a lower bound; tag and type use current configured classification and p4 must remain zero.",
+        "The official15010 backend predicate is not recovered. Lifetime counts use valid existing material records; period counts only record new real victories, never reconstructed from the last timestamp.",
+        "Only the existing current season/team/visibility window is eligible. Unknown selectors stay unsupported and no old completed run is backfilled into a week."
+    ]
+}

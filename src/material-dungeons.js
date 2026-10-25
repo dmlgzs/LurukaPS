@@ -1,3 +1,5 @@
+import { materialClearCatalogue, materialClearFacts, materialClearRevision } from './material-clear-progress.js'
+import { recordBattlePassMaterialClear } from './battle-pass-tasks.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 
@@ -43,7 +45,8 @@ export function materialDungeonUnlocked(rule, state) {
         })
 }
 
-export function recordMaterialVictory(tables, state, run, mask) {
+export function recordMaterialVictory(tables, state, run, mask, now, freshMaterialVictory = false) {
+    materialClearFacts(tables, state)
     const material = tables.find('dungeon_material', run.entrust_id)
     ensure(
         material?.dungeonId === run.dungeon_id,
@@ -62,5 +65,14 @@ export function recordMaterialVictory(tables, state, run, mask) {
         success_time: String(run.end_time),
         difficulty_id: material.diff,
         success_count: count,
+    }
+    const revision = materialClearRevision(state) + 1
+    ensure(revision <= 0xffffffff, 'Material clear revision overflow', ErrorCode.GameConfig)
+    state.materialClearRevision = revision
+    // Recovery can preserve lifetime records, but only a fresh actual clear
+    // belongs to the current task period. Missing legacy receipts do not count.
+    if (freshMaterialVictory && now === run.end_time) {
+        const tuple = materialClearCatalogue(tables).rows.get(material.id)
+        recordBattlePassMaterialClear(tables, state, tuple, now)
     }
 }
