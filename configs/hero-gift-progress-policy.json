@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "officiallyVerified": false,
+    "countUnit": "successfully-consumed-items",
+    "includedCommonItemTypes": [110, 111],
+    "receiptLimit": 256,
+    "historyPolicy": "new-successful-6610-only",
+    "basis": "Local inference: current gift UI sends the selected item quantity and furniture sends one item through the same6610 producer. The dedicated official12227/12228 backend predicates were not recovered.",
+    "TODO": [
+        "Confirm whether official gift count means consumed item units or accepted requests, and whether furniture contributes.",
+        "Never recover cumulative gift facts from daily counters, current gift inventory, favor levels or previously owned furniture.",
+        "Only the same retained nonzero request key can be retried without another gift. New connections have no official gift nonce; do not guess that a later equal payload is a duplicate."
+    ]
+}

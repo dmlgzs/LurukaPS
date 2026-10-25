@@ -21,6 +21,7 @@ import { worldSync, WORLD_MAP_CMD_ENTER } from './world.js'
 import { syncBattle } from '../battle.js'
 import { configTime } from '../shops.js'
 import { heroGiftRecipient } from '../hero-favor-ownership.js'
+import { replayHeroGiftRequest, recordHeroGiftProgress } from '../hero-gift-progress.js'
 
 function changed(c) {
     c.state.homeRevision = (c.state.homeRevision ?? 0) + 1
@@ -173,6 +174,8 @@ export function registerHomeDorm(on, tables) {
         }
     })
     on('SendHeroGift', (c, r) => {
+        const replay = replayHeroGiftRequest(c, r)
+        if (replay) return replay
         ensureHome(tables, c.state)
         refreshDormGiftDay(tables, c.state, c.now)
         const actor = heroGiftRecipient(tables, c.state, r.heroId)
@@ -211,11 +214,13 @@ export function registerHomeDorm(on, tables) {
             c.state.player.basic_info.hero_gift_info.gift_num += r.num
             c.state.player.basic_info.hero_gift_info.last_time = c.now
         }
+        const response = { item_id: item.id, hero_id: actor.conf_id, item_type: item.type, num: r.num }
+        recordHeroGiftProgress(c, r, response)
         c.pushBefore('CSProtoSyncPlayerData', {
             heros_info: c.state.player.heros_info,
             basic_info: c.state.player.basic_info,
         })
-        return { item_id: item.id, hero_id: actor.conf_id, item_type: item.type, num: r.num }
+        return response
     })
     on('GotFavorReward', (c, r) => {
         const actor = hero(c.state, r.u64),
