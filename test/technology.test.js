@@ -24,7 +24,9 @@ function setup() {
 test('technology query exposes roots; manual study spends shared points and updates its level condition', () => {
     const { store, session, call } = setup()
     try {
-        const info = p.decode('SCTechnologyTypeInfo', call('HomeTechnologyTypeInfo', { type: 1 })[0].payload).info
+        const replyId = p.byName.get('CSProtoHomeTechnologyTypeInfo').id
+        const reply = call('HomeTechnologyTypeInfo', { type: 1 }).find((packet) => packet.id === replyId)
+        const info = p.decode('SCTechnologyTypeInfo', reply.payload).info
         assert.equal(info.list.find((x) => x.subType === 10002).subLevel, 1)
         assert.equal(info.list.find((x) => x.subType === 10020).subLevel, 0)
         let before = store.load(session.id)

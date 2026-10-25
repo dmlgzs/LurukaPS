@@ -4,6 +4,7 @@ import { grantRewards } from './rewards.js'
 import { rewardSource } from './reward-source.js'
 import { ensureCollectionData } from './home-collection.js'
 import { worldCollectionConfiguration } from './world-collection.js'
+import { collectionDropIds } from './collection-drop.js'
 
 export function collectionClaimTargets(state, guids) {
     ensure(
@@ -62,7 +63,7 @@ function validateStock(tables, targets) {
             const drop = tables.find('home_drop', product.homeDropId)
             ensure(drop, 'Collection reward drop is missing', ErrorCode.CollectDropConfNotFound)
             ensure(
-                drop.itemType === item.item_type && Number(drop.itemId) === item.item_id,
+                drop.itemType === item.item_type && collectionDropIds(tables, drop).includes(item.item_id),
                 'Collection reward does not match its product',
                 ErrorCode.CollectProductnotMatch,
             )

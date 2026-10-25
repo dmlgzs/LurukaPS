@@ -1,6 +1,7 @@
 import { randomInt } from 'node:crypto'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
+import { collectionDropIds, collectionItemMatches, collectionPending } from './collection-drop.js'
 
 const catalogs = new WeakMap()
 const list = (value) =>
@@ -126,17 +127,15 @@ export function collectionPlan(tables, state, build) {
             'Collection product variant requires support',
             ErrorCode.FunctionClosed,
         )
+        const itemIds = collectionDropIds(tables, drop)
         ensure(
-            [3, 10, 14].includes(drop.itemType) &&
-                Number.isSafeInteger(Number(drop.itemId)) &&
-                Number(drop.itemId) > 0 &&
-                [drop.minValue, drop.maxValue, drop.rate, drop.dropTime].every(Number.isSafeInteger) &&
+            [drop.minValue, drop.maxValue, drop.rate, drop.dropTime].every(Number.isSafeInteger) &&
                 drop.minValue > 0 &&
                 drop.maxValue >= drop.minValue &&
                 drop.rate >= 0 &&
                 drop.rate <= 10000 &&
                 drop.dropTime > 0,
-            'Invalid collection drop definition',
+            `Invalid collection drop definition (product ${id}, drop ${product.homeDropId})`,
             ErrorCode.GameConfig,
         )
         let reduction = 0
@@ -150,7 +149,7 @@ export function collectionPlan(tables, state, build) {
             drop.dropTime * (1 - reduction) * (1 - speed),
         )
         ensure(Number.isFinite(seconds) && seconds > 0, 'Invalid collection production period', ErrorCode.GameConfig)
-        return { product: id, drop, seconds }
+        return { product: id, drop, itemIds, seconds }
     })
     return { station, pet, streams, slots, stack: station.collectionlatticelimit }
 }
@@ -187,13 +186,14 @@ export function collectionStorage(plan, items) {
     }
     return cells
 }
-function room(plan, items, stream) {
-    if (stream.drop.itemType === 10 && Number(stream.drop.itemId) === 1003) return 0xffffffff
+function room(plan, items, stream, itemId) {
+    if (stream.drop.itemType === 10 && itemId === 1003) return 0xffffffff
     const freeCells = Math.max(0, plan.slots - collectionStorage(plan, items))
-    const item = items.find((r) => r.source_product_id === stream.product)
+    const item = items.find((r) => collectionItemMatches(r, stream.product, stream.drop.itemType, itemId))
     const tail = item && item.item_type !== 14 ? (plan.stack - (item.item_num % plan.stack)) % plan.stack : 0
     return freeCells * (stream.drop.itemType === 14 ? 1 : plan.stack) + tail
 }
+const streamRoom = (plan, items, stream) => Math.max(...stream.itemIds.map((id) => room(plan, items, stream, id)))
 function publish(build, job) {
     const data = wire(build)
     data.pet_guid = job?.pet ?? '0'
@@ -255,7 +255,15 @@ export function retimeCollections(tables, state, now) {
             ;(state.home.collectionProduction ??= {})[build.guid] = job
             updated = true
         }
-        const resume = job.blocked && collectionStorage(plan, wire(build).items) < plan.slots
+        const resume =
+            job.blocked &&
+            (collectionStorage(plan, wire(build).items) < plan.slots ||
+                job.clocks.some((clock) => {
+                    const stream = plan.streams.find((s) => s.product === clock.product)
+                    if (!stream || clock.pending === undefined) return false
+                    const pending = collectionPending(stream, clock.pending)
+                    return pending.item_num > 0 && room(plan, wire(build).items, stream, pending.item_id) > 0
+                }))
         const clocks = []
         for (const stream of plan.streams) {
             let clock = job.clocks.find((c) => c.product === stream.product)
@@ -270,6 +278,7 @@ export function retimeCollections(tables, state, now) {
                 if (!job.blocked || resume) delete clock.remaining
                 updated = true
             }
+            collectionPending(stream, clock.pending)
             clocks.push(clock)
         }
         if (clocks.length !== job.clocks.length) updated = true
@@ -318,12 +327,20 @@ export function settleCollections(tables, state, now, rng = randomInt) {
                     clock.next > 0 &&
                     Number.isFinite(clock.seconds) &&
                     clock.seconds > 0 &&
-                    (clock.pending === undefined || (Number.isSafeInteger(clock.pending) && clock.pending >= 0)),
+                    (clock.pending === undefined ||
+                        (Number.isSafeInteger(clock.pending) && clock.pending >= 0) ||
+                        (clock.pending && typeof clock.pending === 'object' && !Array.isArray(clock.pending))),
             ),
             'Invalid saved collection clock',
             ErrorCode.GameConfig,
         )
         const streams = new Map(plan.streams.map((s) => [s.product, s]))
+        // Validate every current stream's sealed identity before producing any
+        // earlier due clock. Keep retime's existing removal of obsolete flows.
+        for (const clock of job.clocks) {
+            const stream = streams.get(clock.product)
+            if (stream) collectionPending(stream, clock.pending)
+        }
         while (!job.blocked) {
             const clock = job.clocks.reduce((best, c) => (!best || c.next < best.next ? c : best), null)
             if (!clock || clock.next > now) break
@@ -331,36 +348,54 @@ export function settleCollections(tables, state, now, rng = randomInt) {
             ensure(stream, 'Saved collection clock has no product', ErrorCode.CollectProductConfNotFound)
             const at = clock.next
             if (clock.pending === undefined) {
-                clock.pending =
+                const quantity =
                     stream.drop.rate === 10000 || (stream.drop.rate > 0 && rng(0, 10000) < stream.drop.rate)
                         ? stream.drop.minValue === stream.drop.maxValue
                             ? stream.drop.minValue
                             : rng(stream.drop.minValue, stream.drop.maxValue + 1)
                         : 0
+                if (stream.itemIds.length === 1) clock.pending = quantity
+                else {
+                    const index = quantity > 0 ? rng(0, stream.itemIds.length) : 0
+                    ensure(
+                        Number.isSafeInteger(index) && index >= 0 && index < stream.itemIds.length,
+                        'Collection candidate random source is out of range',
+                        ErrorCode.GameConfig,
+                    )
+                    clock.pending = {
+                        item_id: stream.itemIds[index],
+                        item_type: stream.drop.itemType,
+                        item_num: quantity,
+                    }
+                }
             }
-            const amount = Math.min(clock.pending, room(plan, items, stream))
+            const pending = collectionPending(stream, clock.pending)
+            const amount = Math.min(pending.item_num, room(plan, items, stream, pending.item_id))
             if (amount) {
-                let item = items.find((r) => r.source_product_id === stream.product)
+                let item = items.find((r) =>
+                    collectionItemMatches(r, stream.product, pending.item_type, pending.item_id),
+                )
                 if (!item) {
                     item = {
-                        item_id: Number(stream.drop.itemId),
-                        item_type: stream.drop.itemType,
+                        item_id: pending.item_id,
+                        item_type: pending.item_type,
                         item_num: 0,
                         source_product_id: stream.product,
                     }
                     items.push(item)
                 }
                 ensure(
-                    item.item_id === Number(stream.drop.itemId) && item.item_type === stream.drop.itemType,
+                    collectionItemMatches(item, stream.product, pending.item_type, pending.item_id),
                     'Stored collection item disagrees with its product',
                     ErrorCode.GameConfig,
                 )
                 ensure(item.item_num + amount <= 0xffffffff, 'Collection quantity overflow', ErrorCode.GameConfig)
                 item.item_num += amount
-                clock.pending -= amount
+                if (typeof clock.pending === 'number') clock.pending -= amount
+                else clock.pending.item_num -= amount
             }
             updated = true
-            if (clock.pending > 0) {
+            if (collectionPending(stream, clock.pending).item_num > 0) {
                 job.blocked = true
                 for (const c of job.clocks) c.remaining = Math.max(0, (c.next - at) / c.seconds)
             } else {
@@ -369,7 +404,9 @@ export function settleCollections(tables, state, now, rng = randomInt) {
                 if (
                     collectionStorage(plan, items) >= plan.slots &&
                     plan.streams.every(
-                        (s) => room(plan, items, s) === 0 || (s.drop.itemType === 10 && Number(s.drop.itemId) === 1003),
+                        (s) =>
+                            streamRoom(plan, items, s) === 0 ||
+                            (s.drop.itemType === 10 && s.itemIds.every((id) => id === 1003)),
                     )
                 ) {
                     job.blocked = true
