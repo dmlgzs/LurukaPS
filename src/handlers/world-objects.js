@@ -1,3 +1,4 @@
+import { recordPetPuzzleWorldCompletion } from '../pet-puzzle-progress.js'
 import { ErrorCode } from '../error-codes.js'
 import { petPuzzleRule } from '../pet-puzzles.js'
 import { registerWorldElevator } from './world-elevator.js'
@@ -324,6 +325,14 @@ export function registerWorldObjects(on, tables) {
             }
             record.claims = claims
             records[key] = record
+            recordPetPuzzleWorldCompletion(
+                c,
+                row,
+                spawner,
+                { complete: !!old.complete, claimed: chestClaimedBefore },
+                record,
+                input.ext_context,
+            )
             recordWorldChestOpen(
                 c,
                 catalog,

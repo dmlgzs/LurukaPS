@@ -1,0 +1,3287 @@
+{
+    "version": 1,
+    "officiallyVerified": false,
+    "condition": "12048#0#0#count",
+    "unit": "first-accepted-explicit-kibo-puzzle-root-completion",
+    "actorAuthority": "canonical-owned-roster-or-active-registered-temporary-pet",
+    "contextType": 1,
+    "graphs": [
+        {
+            "asset": "d_assets_resourcesassets_config_world_graph_blueprint_ast_level_pet_puzzle_area",
+            "sha256": "b3215eeab926c43a4d8a92b8a5fe6e5414c1581242bcc33d095da38a821f303a",
+            "markers": ["Azur.Gameplay.Graph.Blueprint.ResultRewardUpload"]
+        },
+        {
+            "asset": "d_assets_resourcesassets_config_world_graph_blueprint_ast_level_pet_puzzle_blowleaf_01",
+            "sha256": "8961a0458a4fc66e12ccba9acbd5c86664d485d4092cd17a455bbb07987d6aeb",
+            "markers": ["Azur.Gameplay.Graph.Blueprint.SetPlayableFinishExtraContext"]
+        },
+        {
+            "asset": "d_assets_resourcesassets_config_world_graph_blueprint_ast_level_pet_puzzle_blowleaf_02",
+            "sha256": "896a30a5425042117f88f4da08488368c189d0ca5d10f04bf2cfe00b098149e4",
+            "markers": ["Azur.Gameplay.Graph.Blueprint.SetPlayableFinishExtraContext"]
+        },
+        {
+            "asset": "d_assets_resourcesassets_config_world_graph_blueprint_ast_level_pet_puzzle_chest",
+            "sha256": "39d776b8fa25d68e17dba810787f2b6bdec7c999eba35e5d49d3b8e83be887e9",
+            "markers": ["Azur.Gameplay.Graph.Blueprint.SetPlayableFinishExtraContext"]
+        },
+        {
+            "asset": "d_assets_resourcesassets_config_world_graph_blueprint_ast_level_pet_puzzle_chest_double_01",
+            "sha256": "57c26ef296d84a3c52a06629da3f4ef5021ed35b58fb5e0656650435315d50a2",
+            "markers": [
+                "Azur.Gameplay.Graph.Blueprint.SetPlayableFinishExtraContext",
+                "Azur.Gameplay.Graph.Blueprint.SetPlayableFinishExtraContext"
+            ]
+        },
+        {
+            "asset": "d_assets_resourcesassets_config_world_graph_blueprint_ast_level_pet_puzzle_chest_double_02",
+            "sha256": "2abba44872a61c17a437cbd53e631228cc13c9263969b29b2d76d7a67b104a8b",
+            "markers": ["Azur.Gameplay.Graph.Blueprint.SetPlayableFinishExtraContext"]
+        },
+        {
+            "asset": "d_assets_resourcesassets_config_world_graph_blueprint_ast_level_pet_puzzle_chest_ground",
+            "sha256": "138b499554624b22738cfe823c512c82820adc71cba54ab01e13e92d3122fe41",
+            "markers": ["Azur.Gameplay.Graph.Blueprint.SetPlayableFinishExtraContext"]
+        },
+        {
+            "asset": "d_assets_resourcesassets_config_world_graph_blueprint_ast_level_pet_puzzle_chest_puzzleuse",
+            "sha256": "5f3f11e02b82b7c2a01c8eb6f0c0ac9f46270cd99b1aa4c31d3e2aee6a8ba711",
+            "markers": ["Azur.Gameplay.Graph.Blueprint.SetPlayableFinishExtraContext"]
+        },
+        {
+            "asset": "d_assets_resourcesassets_config_world_graph_blueprint_ast_level_pet_puzzle_spkibo",
+            "sha256": "8559f6e5275f32b1c1a82de827491d325286d4b63255a7833b268127df6df834",
+            "markers": ["Azur.Gameplay.Graph.Blueprint.ResultRewardUpload"]
+        }
+    ],
+    "worlds": [
+        {
+            "map": 100,
+            "id": 200333,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300001,
+            "spawner": 6020280,
+            "type": 161,
+            "blueprint": 300003,
+            "attribute": 6
+        },
+        {
+            "map": 100,
+            "id": 300003,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 100,
+            "id": 300004,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300006,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 100,
+            "id": 300007,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300010,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300013,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 100,
+            "id": 300020,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300021,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300026,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300027,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300029,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300030,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300032,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300037,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 100,
+            "id": 300064,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300065,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300067,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300068,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300116,
+            "spawner": 6020280,
+            "type": 161,
+            "blueprint": 300003,
+            "attribute": 6
+        },
+        {
+            "map": 100,
+            "id": 300117,
+            "spawner": 6020280,
+            "type": 161,
+            "blueprint": 300003,
+            "attribute": 6
+        },
+        {
+            "map": 100,
+            "id": 300126,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300127,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300128,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300130,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300132,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300133,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300135,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300138,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300142,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300143,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300145,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300146,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300147,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300148,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300149,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300150,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300164,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300165,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300166,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300167,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300168,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300169,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300170,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300171,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300172,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300173,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300174,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300175,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300274,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 100,
+            "id": 300276,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 100,
+            "id": 300278,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 100,
+            "id": 300316,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300317,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300318,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300319,
+            "spawner": 6020280,
+            "type": 161,
+            "blueprint": 300003,
+            "attribute": 6
+        },
+        {
+            "map": 100,
+            "id": 300320,
+            "spawner": 6020280,
+            "type": 161,
+            "blueprint": 300003,
+            "attribute": 6
+        },
+        {
+            "map": 100,
+            "id": 300321,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 100,
+            "id": 300322,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 100,
+            "id": 300323,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300325,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 100,
+            "id": 300330,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300339,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300343,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300344,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300345,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300346,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 100,
+            "id": 300347,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 100,
+            "id": 300348,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 100,
+            "id": 300350,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300351,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300352,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300354,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300355,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 100,
+            "id": 300356,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300357,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300358,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 300359,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 100,
+            "id": 300369,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300370,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 100,
+            "id": 300402,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300404,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300408,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300409,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300410,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300411,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300416,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300417,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 300418,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 800009,
+            "spawner": 6020300,
+            "type": 161,
+            "blueprint": 300005,
+            "attribute": 3
+        },
+        {
+            "map": 100,
+            "id": 1300674,
+            "spawner": 6021240,
+            "type": 162,
+            "blueprint": 300052,
+            "attribute": 7
+        },
+        {
+            "map": 100,
+            "id": 1300782,
+            "spawner": 6021240,
+            "type": 162,
+            "blueprint": 300052,
+            "attribute": 7
+        },
+        {
+            "map": 100,
+            "id": 2100056,
+            "spawner": 40300,
+            "type": 161,
+            "blueprint": 300089,
+            "attribute": 2
+        },
+        {
+            "map": 100,
+            "id": 2100062,
+            "spawner": 40300,
+            "type": 161,
+            "blueprint": 300089,
+            "attribute": 2
+        },
+        {
+            "map": 100,
+            "id": 2400001,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 2400004,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 2400005,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 2400006,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 2400013,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 2400014,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 2400021,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 2400024,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 2400025,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 100,
+            "id": 2400026,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 100,
+            "id": 2400027,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 2400031,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 2400033,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 100,
+            "id": 2400035,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 2400037,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 2400039,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 100,
+            "id": 2400040,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 2400041,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 2400046,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 2400047,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 2400049,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 2400051,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 2400052,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 2400054,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 2400055,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 100,
+            "id": 2400056,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 100,
+            "id": 2400057,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 2400062,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 100,
+            "id": 2400063,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 100,
+            "id": 2400065,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 100,
+            "id": 2400067,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 100,
+            "id": 2400068,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 100,
+            "id": 2400069,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 101,
+            "id": 300040,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 1200029,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 1200031,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 1200033,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 1200034,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 1200036,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 101,
+            "id": 1200037,
+            "spawner": 6021020,
+            "type": 161,
+            "blueprint": 300024,
+            "attribute": 6
+        },
+        {
+            "map": 101,
+            "id": 1200068,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 1200069,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 1300576,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 1300812,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 1301182,
+            "spawner": 6021100,
+            "type": 161,
+            "blueprint": 300048,
+            "attribute": 6
+        },
+        {
+            "map": 101,
+            "id": 2100057,
+            "spawner": 40300,
+            "type": 161,
+            "blueprint": 300089,
+            "attribute": 2
+        },
+        {
+            "map": 101,
+            "id": 2100059,
+            "spawner": 40300,
+            "type": 161,
+            "blueprint": 300089,
+            "attribute": 2
+        },
+        {
+            "map": 101,
+            "id": 2100089,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2100093,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 101,
+            "id": 2100094,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 101,
+            "id": 2100099,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 101,
+            "id": 2100105,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2100106,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2100107,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 101,
+            "id": 2100108,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 101,
+            "id": 2100111,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400009,
+            "spawner": 6021020,
+            "type": 161,
+            "blueprint": 300024,
+            "attribute": 6
+        },
+        {
+            "map": 101,
+            "id": 2400011,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400012,
+            "spawner": 6021020,
+            "type": 161,
+            "blueprint": 300024,
+            "attribute": 6
+        },
+        {
+            "map": 101,
+            "id": 2400014,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400015,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400016,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400017,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400018,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400019,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400020,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 101,
+            "id": 2400024,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 101,
+            "id": 2400027,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400029,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400031,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400032,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400033,
+            "spawner": 6021020,
+            "type": 161,
+            "blueprint": 300024,
+            "attribute": 6
+        },
+        {
+            "map": 101,
+            "id": 2400035,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400037,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 101,
+            "id": 2400040,
+            "spawner": 6021020,
+            "type": 161,
+            "blueprint": 300024,
+            "attribute": 6
+        },
+        {
+            "map": 101,
+            "id": 2400041,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400043,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400044,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400045,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400049,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400050,
+            "spawner": 6021020,
+            "type": 161,
+            "blueprint": 300024,
+            "attribute": 6
+        },
+        {
+            "map": 101,
+            "id": 2400052,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400054,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400055,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400057,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400058,
+            "spawner": 6021020,
+            "type": 161,
+            "blueprint": 300024,
+            "attribute": 6
+        },
+        {
+            "map": 101,
+            "id": 2400061,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400062,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400063,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400065,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400068,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400071,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400072,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400073,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400074,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400075,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400076,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400077,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400080,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400081,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400082,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400083,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400085,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400086,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400088,
+            "spawner": 6021020,
+            "type": 161,
+            "blueprint": 300024,
+            "attribute": 6
+        },
+        {
+            "map": 101,
+            "id": 2400090,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400091,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400093,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 101,
+            "id": 2400095,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 101,
+            "id": 2400096,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400097,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400099,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400101,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400102,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400104,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400105,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400106,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400107,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400108,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400109,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400110,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400111,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400112,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400114,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400115,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400116,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400118,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400119,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400120,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400121,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400122,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400123,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400124,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400125,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 101,
+            "id": 2400126,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400127,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400128,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 101,
+            "id": 2400130,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400131,
+            "spawner": 6021020,
+            "type": 161,
+            "blueprint": 300024,
+            "attribute": 6
+        },
+        {
+            "map": 101,
+            "id": 2400132,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400133,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400135,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400136,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400137,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400138,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400139,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400140,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400141,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400142,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400143,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400144,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400145,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400147,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400150,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400151,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400152,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 101,
+            "id": 2400153,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 101,
+            "id": 2400154,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400155,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400156,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 101,
+            "id": 2400157,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 101,
+            "id": 2400158,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 101,
+            "id": 2400160,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 101,
+            "id": 2400162,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400163,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        },
+        {
+            "map": 101,
+            "id": 2400164,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 101,
+            "id": 2400166,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 101,
+            "id": 2400167,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 102,
+            "id": 200026,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 102,
+            "id": 300003,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 200,
+            "id": 400001,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 200,
+            "id": 400003,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 200,
+            "id": 400007,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 200,
+            "id": 400008,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 200,
+            "id": 400017,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 200,
+            "id": 400018,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 200,
+            "id": 400103,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 200,
+            "id": 400155,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 200,
+            "id": 400174,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 900,
+            "id": 1500019,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 921,
+            "id": 300009,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 921,
+            "id": 300010,
+            "spawner": 6020280,
+            "type": 161,
+            "blueprint": 300003,
+            "attribute": 6
+        },
+        {
+            "map": 921,
+            "id": 300011,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 921,
+            "id": 300012,
+            "spawner": 6020300,
+            "type": 161,
+            "blueprint": 300005,
+            "attribute": 3
+        },
+        {
+            "map": 921,
+            "id": 300014,
+            "spawner": 6021010,
+            "type": 161,
+            "blueprint": 300021,
+            "attribute": 8
+        },
+        {
+            "map": 921,
+            "id": 300015,
+            "spawner": 6021160,
+            "type": 162,
+            "blueprint": 300022,
+            "attribute": 3
+        },
+        {
+            "map": 921,
+            "id": 300016,
+            "spawner": 6021020,
+            "type": 161,
+            "blueprint": 300024,
+            "attribute": 6
+        },
+        {
+            "map": 921,
+            "id": 300020,
+            "spawner": 6021170,
+            "type": 162,
+            "blueprint": 300028,
+            "attribute": 3
+        },
+        {
+            "map": 921,
+            "id": 300022,
+            "spawner": 6021080,
+            "type": 161,
+            "blueprint": 300030,
+            "attribute": 3
+        },
+        {
+            "map": 921,
+            "id": 300023,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 921,
+            "id": 300030,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 921,
+            "id": 300031,
+            "spawner": 6021060,
+            "type": 161,
+            "blueprint": 300040,
+            "attribute": 4
+        },
+        {
+            "map": 921,
+            "id": 300034,
+            "spawner": 6021250,
+            "type": 162,
+            "blueprint": 300043,
+            "attribute": 1
+        },
+        {
+            "map": 921,
+            "id": 300035,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 921,
+            "id": 300036,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 921,
+            "id": 300037,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 921,
+            "id": 300038,
+            "spawner": 6021290,
+            "type": 161,
+            "blueprint": 300047,
+            "attribute": 8
+        },
+        {
+            "map": 921,
+            "id": 300039,
+            "spawner": 6021100,
+            "type": 161,
+            "blueprint": 300048,
+            "attribute": 6
+        },
+        {
+            "map": 924,
+            "id": 500770,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 924,
+            "id": 500798,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 924,
+            "id": 500799,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 924,
+            "id": 500802,
+            "spawner": 6021010,
+            "type": 161,
+            "blueprint": 300021,
+            "attribute": 8
+        },
+        {
+            "map": 924,
+            "id": 500803,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 924,
+            "id": 500804,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 924,
+            "id": 500805,
+            "spawner": 6021100,
+            "type": 161,
+            "blueprint": 300048,
+            "attribute": 6
+        },
+        {
+            "map": 924,
+            "id": 500806,
+            "spawner": 6021100,
+            "type": 161,
+            "blueprint": 300048,
+            "attribute": 6
+        },
+        {
+            "map": 924,
+            "id": 500807,
+            "spawner": 6021160,
+            "type": 162,
+            "blueprint": 300022,
+            "attribute": 3
+        },
+        {
+            "map": 924,
+            "id": 500808,
+            "spawner": 6021160,
+            "type": 162,
+            "blueprint": 300022,
+            "attribute": 3
+        },
+        {
+            "map": 924,
+            "id": 500809,
+            "spawner": 6021080,
+            "type": 161,
+            "blueprint": 300030,
+            "attribute": 3
+        },
+        {
+            "map": 924,
+            "id": 500810,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 924,
+            "id": 500811,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 924,
+            "id": 500879,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 924,
+            "id": 500880,
+            "spawner": 6020280,
+            "type": 161,
+            "blueprint": 300003,
+            "attribute": 6
+        },
+        {
+            "map": 924,
+            "id": 500881,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 924,
+            "id": 500933,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 924,
+            "id": 500934,
+            "spawner": 6020280,
+            "type": 161,
+            "blueprint": 300003,
+            "attribute": 6
+        },
+        {
+            "map": 924,
+            "id": 500974,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 924,
+            "id": 500975,
+            "spawner": 6020280,
+            "type": 161,
+            "blueprint": 300003,
+            "attribute": 6
+        },
+        {
+            "map": 924,
+            "id": 500976,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 924,
+            "id": 500977,
+            "spawner": 6020300,
+            "type": 161,
+            "blueprint": 300005,
+            "attribute": 3
+        },
+        {
+            "map": 924,
+            "id": 500979,
+            "spawner": 6021010,
+            "type": 161,
+            "blueprint": 300021,
+            "attribute": 8
+        },
+        {
+            "map": 924,
+            "id": 500980,
+            "spawner": 6021160,
+            "type": 162,
+            "blueprint": 300022,
+            "attribute": 3
+        },
+        {
+            "map": 924,
+            "id": 500981,
+            "spawner": 6021020,
+            "type": 161,
+            "blueprint": 300024,
+            "attribute": 6
+        },
+        {
+            "map": 924,
+            "id": 500985,
+            "spawner": 6021170,
+            "type": 162,
+            "blueprint": 300028,
+            "attribute": 3
+        },
+        {
+            "map": 924,
+            "id": 500987,
+            "spawner": 6021080,
+            "type": 161,
+            "blueprint": 300030,
+            "attribute": 3
+        },
+        {
+            "map": 924,
+            "id": 500988,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 924,
+            "id": 500995,
+            "spawner": 6021190,
+            "type": 162,
+            "blueprint": 300039,
+            "attribute": 4
+        },
+        {
+            "map": 924,
+            "id": 500996,
+            "spawner": 6021060,
+            "type": 161,
+            "blueprint": 300040,
+            "attribute": 4
+        },
+        {
+            "map": 924,
+            "id": 500999,
+            "spawner": 6021250,
+            "type": 162,
+            "blueprint": 300043,
+            "attribute": 1
+        },
+        {
+            "map": 924,
+            "id": 501000,
+            "spawner": 6021030,
+            "type": 161,
+            "blueprint": 300044,
+            "attribute": 8
+        },
+        {
+            "map": 924,
+            "id": 501001,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 924,
+            "id": 501002,
+            "spawner": 6021090,
+            "type": 161,
+            "blueprint": 300046,
+            "attribute": 7
+        },
+        {
+            "map": 924,
+            "id": 501003,
+            "spawner": 6021290,
+            "type": 161,
+            "blueprint": 300047,
+            "attribute": 8
+        },
+        {
+            "map": 924,
+            "id": 501004,
+            "spawner": 6021100,
+            "type": 161,
+            "blueprint": 300048,
+            "attribute": 6
+        },
+        {
+            "map": 944,
+            "id": 2400001,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 944,
+            "id": 2400003,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 944,
+            "id": 2400004,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 944,
+            "id": 2400005,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 944,
+            "id": 2400006,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 944,
+            "id": 2400007,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 944,
+            "id": 2400008,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 944,
+            "id": 2400011,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 944,
+            "id": 2400012,
+            "spawner": 6021020,
+            "type": 161,
+            "blueprint": 300024,
+            "attribute": 6
+        },
+        {
+            "map": 944,
+            "id": 2400013,
+            "spawner": 6021020,
+            "type": 161,
+            "blueprint": 300024,
+            "attribute": 6
+        },
+        {
+            "map": 944,
+            "id": 2400014,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 944,
+            "id": 2400015,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 944,
+            "id": 2400018,
+            "spawner": 6021120,
+            "type": 161,
+            "blueprint": 300045,
+            "attribute": 4
+        },
+        {
+            "map": 944,
+            "id": 2400019,
+            "spawner": 6021020,
+            "type": 161,
+            "blueprint": 300024,
+            "attribute": 6
+        },
+        {
+            "map": 944,
+            "id": 2400020,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 944,
+            "id": 2400021,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 944,
+            "id": 2400022,
+            "spawner": 6021000,
+            "type": 161,
+            "blueprint": 300031,
+            "attribute": 8
+        },
+        {
+            "map": 944,
+            "id": 2400023,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 944,
+            "id": 2400024,
+            "spawner": 6020270,
+            "type": 161,
+            "blueprint": 300002,
+            "attribute": 1
+        },
+        {
+            "map": 944,
+            "id": 2400025,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 944,
+            "id": 2400026,
+            "spawner": 6021020,
+            "type": 161,
+            "blueprint": 300024,
+            "attribute": 6
+        },
+        {
+            "map": 944,
+            "id": 2400027,
+            "spawner": 6020290,
+            "type": 161,
+            "blueprint": 300004,
+            "attribute": 4
+        },
+        {
+            "map": 996,
+            "id": 2400001,
+            "spawner": 8001300,
+            "type": 161,
+            "blueprint": 363050,
+            "attribute": 4
+        }
+    ],
+    "playables": [
+        {
+            "id": 10005,
+            "canReset": 0,
+            "sourceSha256": "4aa3424e197a4484d922a1a951e3f35dea64ada6e391cf9c0c33ca74dcc86961",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10007,
+            "canReset": 0,
+            "sourceSha256": "1ebf74b76344a9e76d0fed30e88a21c898a0fdc02416ed3337ddd3503373d363",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10008,
+            "canReset": 0,
+            "sourceSha256": "342b45a305cce37de915e02847e825e455129a08ec8405bec508330463416adf",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10011,
+            "canReset": 0,
+            "sourceSha256": "e6b6b1d372af1f5d214cf552a48ace2f47b2fa5e4a351d50780d82bf3d109276",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10018,
+            "canReset": 0,
+            "sourceSha256": "73aae4485ffe5ef9c8b034d874312777be21ffc14a53ffa05088e6b53d489729",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10019,
+            "canReset": 0,
+            "sourceSha256": "d823a47bf20a4cbecb79a3fa622972f6cee43161b2e8642a70f768bb589d7d9a",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10021,
+            "canReset": 0,
+            "sourceSha256": "775866114dd2420f2296168eb0a6e64dff91da272f5b8c66035db562fd5a380f",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10022,
+            "canReset": 0,
+            "sourceSha256": "16c34632a40ae4c1ec8b7067c4958a333b9a0566b2d115519d448bcbd78fe7e6",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10025,
+            "canReset": 0,
+            "sourceSha256": "e8db6580920a47f56f28f8cceaaef62c188e1ab8ea6c78023983ea52ed3df983",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10029,
+            "canReset": 0,
+            "sourceSha256": "5393f94edfecabde28ca994deb1da17934c4142ef11bf99922151b295e33859a",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10030,
+            "canReset": 0,
+            "sourceSha256": "7dd5a802efe077597b2747b74405028a1c324eeeb526965afe38f88810c8a9a0",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10034,
+            "canReset": 0,
+            "sourceSha256": "cee5141ff24b9342c26332d487a629fb7f6c12df3386e37314d523aa00c8b69b",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10037,
+            "canReset": 0,
+            "sourceSha256": "31fab9cb6f51ee6f0c23d433a739259f2e4e378e647a4e471d814dbf7e712047",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10038,
+            "canReset": 0,
+            "sourceSha256": "08d0e10d4eaed7f9e0cf35366f8d16c11a631d214f7acc32b47cc61f025ab033",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10057,
+            "canReset": 0,
+            "sourceSha256": "0140a18093dd08ccfb19913b4c21950fb7a16884f6b0e5f859f50e4ebc14acd8",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10087,
+            "canReset": 0,
+            "sourceSha256": "5930b50faa89a88eb51dbc7b7afac6eb847988eaf24a996f83d1ff349d720372",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10088,
+            "canReset": 0,
+            "sourceSha256": "b567cf4578879a464eca7074ffc25a19de140be8a864266e590af98a04e83c8c",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10089,
+            "canReset": 0,
+            "sourceSha256": "ce49cf386390e27c3bbc9508018592e8446a016e61dc0adf318632fcef6d01ca",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10090,
+            "canReset": 0,
+            "sourceSha256": "88fe3df071dab794f945d634b37d2d0f454d2a005b09506a7412a7d719915c4a",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10092,
+            "canReset": 0,
+            "sourceSha256": "770d96793f2814d1f3f6e42ae7a64583c325755d79d6a617df4f2318c182d0c2",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 10263,
+            "canReset": 0,
+            "sourceSha256": "845577a83173edb9be6d43c17c73250869b9635f552e9716ed878b1b203cb3e6",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 20047,
+            "canReset": 0,
+            "sourceSha256": "23be853f5d9667d27ca8a9e5a787ca7bd21ac9d662c58ad2e846a7b06f60add6",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 20048,
+            "canReset": 0,
+            "sourceSha256": "58bcd99b1ffb7b92b6e7c71d40995fbffa072e9b2999194fb8c65a6612437ac2",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 20049,
+            "canReset": 0,
+            "sourceSha256": "97d53bf2feb1fcbe77700d80c9e718030dc45dbb95abe7f41a32140fecc78dd5",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 20050,
+            "canReset": 0,
+            "sourceSha256": "ddabb01cdcdb1b629ceb99f88c593012219c7b179e18bbeb69deb10302020468",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 20051,
+            "canReset": 0,
+            "sourceSha256": "2a481c88e3d113fe7bf9d90494eb7216a60d457bc81242146707af29b4ef70dd",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 20052,
+            "canReset": 0,
+            "sourceSha256": "2fc592d10fd3ff03d404dc6d12dd3043cafec68179228b24319e011a68cfe48b",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 20053,
+            "canReset": 0,
+            "sourceSha256": "54ac54242d5d1d80795fe1436b437af3a5b62d81c5db34980457dcc0e9a74d5e",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 20054,
+            "canReset": 0,
+            "sourceSha256": "df954f6fb2ad3e33fd40f66b906ba5833ee4a04256c9cd11bf9fee88813629e1",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 20055,
+            "canReset": 0,
+            "sourceSha256": "2771966f49fb97b9892a733aa286ce5a7432019559eb63832ef738fe85c3e398",
+            "bindings": [
+                {
+                    "subId": 1,
+                    "spawner": 6021050,
+                    "blueprint": 300054
+                }
+            ]
+        },
+        {
+            "id": 540,
+            "canReset": 0,
+            "sourceSha256": "1c0d7c5d65c1d144258174330de2272ebc0d2973e2639525879512e5d59d4e5e",
+            "bindings": [
+                {
+                    "subId": 3,
+                    "spawner": 6020300,
+                    "blueprint": 362044
+                }
+            ]
+        },
+        {
+            "id": 543,
+            "canReset": 0,
+            "sourceSha256": "5507596915373a6ef41d2215d97eadbbde9845ca5ff601794bce4944d044fe99",
+            "bindings": [
+                {
+                    "subId": 3,
+                    "spawner": 40417,
+                    "blueprint": 362045
+                },
+                {
+                    "subId": 2,
+                    "spawner": 6021050,
+                    "blueprint": 300034
+                }
+            ]
+        },
+        {
+            "id": 548,
+            "canReset": 0,
+            "sourceSha256": "cccec1fc12ca60aaa3fe50d8da1803f3957af7f2aae7ad3570a7da712fb7d4cb",
+            "bindings": [
+                {
+                    "subId": 3,
+                    "spawner": 40417,
+                    "blueprint": 362048
+                }
+            ]
+        }
+    ],
+    "historical": "no-backfill-from-existing-completion-or-pet-inventory",
+    "missingContext": "keep-original-rewards-no-credit-diagnostic-once",
+    "todo": [
+        "12048 dedicated backend predicate is not recovered; explicit client KiboPuzzle context and accepted simulator root completion are a local inference.",
+        "Owned roster UUID/configuration identifies an observable legitimate pet, but does not prove a live client PetEntity or recompute physical element hits. Active registered temporary/copy identities follow existing formation/map scope.",
+        "Only current 352 explicit world objects and 33 non-resettable playable roots are classified from the decoded current assets. New assets/resettable roots require a new contract.",
+        "Attribute is TDPet.element, not puzzleType. Existing completed roots without historical context are not fabricated into facts. Missing or unqualified new context does not reject an original award."
+    ]
+}
