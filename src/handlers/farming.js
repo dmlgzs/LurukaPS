@@ -9,6 +9,7 @@ import { farmWorker, consumeFarmSeed, storeFarmHarvest } from '../farm-storage.j
 import { cropFootprint, linkedCropFields } from '../crop-footprint.js'
 import { transplantCrop } from '../crop-transplant.js'
 import { recordManualFarmHarvest } from '../farm-harvest-progress.js'
+import { recordFieldReclamation } from '../field-reclamation-progress.js'
 
 function homeInScene(tables, state) {
     const mapId = Number(tables.get('game').find((row) => row.title === 'HOME_ID')?.value)
@@ -129,6 +130,7 @@ export function registerFarming(on, tables) {
             },
         }
         home.builds.push(build)
+        recordFieldReclamation(tables, c.state, build)
         c.state.homeRevision = (c.state.homeRevision || 0) + 1
         return build
     })

@@ -1,0 +1,16 @@
+{
+    "version": 1,
+    "condition": 12031,
+    "officiallyVerified": false,
+    "unit": "accepted-new-server-field-build-guid",
+    "zeroSelector": "all-recorded-field-types",
+    "existingInstanceRetry": "no-new-count",
+    "close": "preserve-cumulative-count",
+    "reopen": "count-accepted-new-guid-even-at-a-previous-location",
+    "legacyBackfill": false,
+    "todo": [
+        "The private official HomeReclamation predicate and repeated-location policy are not recovered; this is an explicit local successful-operation policy.",
+        "Existing fields, initial fixtures and current GUID maxima do not prove historic reclamation counts.",
+        "Nonzero selectors remain unsupported. Requests have no attempt nonce; an accepted new open after a close is the current authoritative operation."
+    ]
+}
