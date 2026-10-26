@@ -70,6 +70,7 @@ import { registerNoviceTasks } from './handlers/novice-tasks.js'
 import { registerPetEvolution } from './handlers/pet-evolution.js'
 import { playerCardSnapshot } from './player-card-items.js'
 import { registerActivities } from './handlers/activities.js'
+import { registerCultRank } from './handlers/cult-rank.js'
 import { registerGrowup } from './handlers/growup.js'
 import { registerCultTrial } from './handlers/cult-trial.js'
 import { cultTrialSnapshot, ensureCultTrialScene, recordCultTrialResult } from './cult-trial.js'
@@ -512,6 +513,7 @@ export class Game {
         registerPlayableEnemies(on, tables, store)
         registerWorldEvents(on, tables)
         this.activities = registerActivities(on, tables, { tourPolicy })
+        registerCultRank(on, tables, store, this.activities)
         this.activities.commonTimeSources.push(() => this.gacha.commonTimes())
         registerGrowup(on, this.activities)
         registerCultTrial(on, tables, this.activities)
@@ -1026,6 +1028,21 @@ export class Game {
         // This local notification has no player-state or task side effects.
         // Keep the existing login guard, and bypass every ordinary observer/write.
         if (e.name === 'CSProtoSetNewerFlag') return [reply(handler({ id: session.id }, r))]
+        if (e.name === 'CSProtoGetRankDetail')
+            return this.store.read(session.id, (state) => {
+                const packets = []
+                handler(
+                    {
+                        id: session.id,
+                        state,
+                        now,
+                        tables: this.tables,
+                        pushBefore: (name, value) => packets.push(this.packet(name, value)),
+                    },
+                    r,
+                )
+                return packets
+            })
         if (e.name === 'CSProtoGetQuestionLink') {
             ensure(session.entered, 'Enter game before requesting mail links', ErrorCode.HaveNotEnterGame)
             return this.store.read(session.id, (state) => [reply(handler({ state, now }, r))])
