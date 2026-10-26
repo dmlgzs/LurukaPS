@@ -10,6 +10,7 @@ import { cropFootprint, linkedCropFields } from '../crop-footprint.js'
 import { transplantCrop } from '../crop-transplant.js'
 import { recordManualFarmHarvest } from '../farm-harvest-progress.js'
 import { recordFieldReclamation } from '../field-reclamation-progress.js'
+import { refundAcquisitionContext } from '../home-currency-acquisition.js'
 
 function homeInScene(tables, state) {
     const mapId = Number(tables.get('game').find((row) => row.title === 'HOME_ID')?.value)
@@ -267,7 +268,7 @@ export function registerFarming(on, tables) {
                 return { itemtype, itemid, itemnum }
             })
         const fields = linkedCropFields(home, build)
-        const granted = rewards.length ? grantRewards(tables, c.state, rewards) : []
+        const granted = rewards.length ? grantRewards(tables, c.state, rewards, 0, refundAcquisitionContext()) : []
         for (const target of fields) clearCrop(target)
         if (home.cropOutcomes) delete home.cropOutcomes[build.guid]
         c.state.homeRevision = (c.state.homeRevision || 0) + 1
