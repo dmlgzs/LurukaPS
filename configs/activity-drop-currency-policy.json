@@ -1,0 +1,535 @@
+{
+    "version": 1,
+    "officiallyVerified": false,
+    "classification": "current-unique-repeat-parent-pt-currency",
+    "sourceType": 2,
+    "displayType": 10,
+    "balance": "player.attr_infos.act_attrs:event_id+attr_id",
+    "ordinaryGrantForActivityCurrency": false,
+    "originalDropTablesModified": false,
+    "sourceVersion": "2451868",
+    "inputSha256": {
+        "tables-drop/drop.json": "fd41938376c734b3a30e32e016c818ecd680c418639b59ae8a2947ea8dc4665f",
+        "tables/game_events.json": "4155ff75c96fad10b29e608543966aba9caa182ecb874b73cb98d04b41573da2",
+        "tables-currency/currency.json": "5aeb3b9b8191fbc985e1b0c2a4b2146dc836d79a72ceaabb621c4580db32e6a0"
+    },
+    "todo": "本地reconciliation：当前后台type2含义未恢复；只将完整鲜pool/row指纹及唯一父活动明确PT货币关联的实际掉落记入该活动余额。显示类型10不代表普通全局货币，不用preview发奖，不泛化所有2。",
+    "pools": [
+        {
+            "dropId": 1820001,
+            "eventId": 10001,
+            "currencyId": 10011,
+            "parentFields": {
+                "id": 10001,
+                "type": 100,
+                "ptCurrencyId": 10011,
+                "ptShopId": 1001,
+                "dropIds": [
+                    1800001, 1800002, 1800003, 1800004, 1800005, 1800006, 1800007, 1800008, 1800009, 1800010, 1800011,
+                    1800012, 1810001, 1810002, 1810003, 1810004, 1810005, 1810006, 1810007, 1810008, 1810009, 1810010,
+                    1810011, 1810012, 1820001, 1820002, 1820003, 1820004, 1820005, 1820006, 1820007, 1820008, 1820009,
+                    1820010, 1820011, 1820012, 1830001, 1830002, 1830003, 1830004, 1830005, 1830006, 1830007, 1830008,
+                    1830009, 1830010, 1830011, 1830012
+                ]
+            },
+            "sourcePool": [
+                {
+                    "id": 4658,
+                    "dropId": 1820001,
+                    "dropGroupId": 1,
+                    "tacticsGroup": 0,
+                    "weight": 100,
+                    "tacticsWeight": 0,
+                    "type": 2,
+                    "itemId": 10011,
+                    "minValue": 200,
+                    "maxValue": 200,
+                    "tacticsValue": 0,
+                    "allowanceValue": 0,
+                    "param": "",
+                    "splitNum": 1
+                }
+            ],
+            "sourcePoolFingerprint": "dfcf037fbbc3dafbf8c07bfe47953593252aea76a6cc93b1326558fceceb361c",
+            "sourceRowFingerprints": [
+                {
+                    "id": 4658,
+                    "fingerprint": "d998f3eca3551b2f6f2ecd411c75b72c26366d3e631e8666fef349ebd104633f"
+                }
+            ]
+        },
+        {
+            "dropId": 1820002,
+            "eventId": 10001,
+            "currencyId": 10011,
+            "parentFields": {
+                "id": 10001,
+                "type": 100,
+                "ptCurrencyId": 10011,
+                "ptShopId": 1001,
+                "dropIds": [
+                    1800001, 1800002, 1800003, 1800004, 1800005, 1800006, 1800007, 1800008, 1800009, 1800010, 1800011,
+                    1800012, 1810001, 1810002, 1810003, 1810004, 1810005, 1810006, 1810007, 1810008, 1810009, 1810010,
+                    1810011, 1810012, 1820001, 1820002, 1820003, 1820004, 1820005, 1820006, 1820007, 1820008, 1820009,
+                    1820010, 1820011, 1820012, 1830001, 1830002, 1830003, 1830004, 1830005, 1830006, 1830007, 1830008,
+                    1830009, 1830010, 1830011, 1830012
+                ]
+            },
+            "sourcePool": [
+                {
+                    "id": 4659,
+                    "dropId": 1820002,
+                    "dropGroupId": 1,
+                    "tacticsGroup": 0,
+                    "weight": 100,
+                    "tacticsWeight": 0,
+                    "type": 2,
+                    "itemId": 10011,
+                    "minValue": 200,
+                    "maxValue": 200,
+                    "tacticsValue": 0,
+                    "allowanceValue": 0,
+                    "param": "",
+                    "splitNum": 1
+                }
+            ],
+            "sourcePoolFingerprint": "dfd38076f913c9b5759097f0d3490e42967708bfc6ebac30571b7f103d084fde",
+            "sourceRowFingerprints": [
+                {
+                    "id": 4659,
+                    "fingerprint": "0df64daa68a19037528a689399c91b0d0fa89edfb0e18102345945b3f8ca68e9"
+                }
+            ]
+        },
+        {
+            "dropId": 1820003,
+            "eventId": 10001,
+            "currencyId": 10011,
+            "parentFields": {
+                "id": 10001,
+                "type": 100,
+                "ptCurrencyId": 10011,
+                "ptShopId": 1001,
+                "dropIds": [
+                    1800001, 1800002, 1800003, 1800004, 1800005, 1800006, 1800007, 1800008, 1800009, 1800010, 1800011,
+                    1800012, 1810001, 1810002, 1810003, 1810004, 1810005, 1810006, 1810007, 1810008, 1810009, 1810010,
+                    1810011, 1810012, 1820001, 1820002, 1820003, 1820004, 1820005, 1820006, 1820007, 1820008, 1820009,
+                    1820010, 1820011, 1820012, 1830001, 1830002, 1830003, 1830004, 1830005, 1830006, 1830007, 1830008,
+                    1830009, 1830010, 1830011, 1830012
+                ]
+            },
+            "sourcePool": [
+                {
+                    "id": 4660,
+                    "dropId": 1820003,
+                    "dropGroupId": 1,
+                    "tacticsGroup": 0,
+                    "weight": 100,
+                    "tacticsWeight": 0,
+                    "type": 2,
+                    "itemId": 10011,
+                    "minValue": 200,
+                    "maxValue": 200,
+                    "tacticsValue": 0,
+                    "allowanceValue": 0,
+                    "param": "",
+                    "splitNum": 1
+                }
+            ],
+            "sourcePoolFingerprint": "81b43c5867ba0125e08a9734248168c31ca2b31647b0dc2c5df7f7ba1c4e867f",
+            "sourceRowFingerprints": [
+                {
+                    "id": 4660,
+                    "fingerprint": "130e222e8cfb2b6d13bb85d6efecea65fd4bfa57152b2f68658302d3042aed49"
+                }
+            ]
+        },
+        {
+            "dropId": 1820004,
+            "eventId": 10001,
+            "currencyId": 10011,
+            "parentFields": {
+                "id": 10001,
+                "type": 100,
+                "ptCurrencyId": 10011,
+                "ptShopId": 1001,
+                "dropIds": [
+                    1800001, 1800002, 1800003, 1800004, 1800005, 1800006, 1800007, 1800008, 1800009, 1800010, 1800011,
+                    1800012, 1810001, 1810002, 1810003, 1810004, 1810005, 1810006, 1810007, 1810008, 1810009, 1810010,
+                    1810011, 1810012, 1820001, 1820002, 1820003, 1820004, 1820005, 1820006, 1820007, 1820008, 1820009,
+                    1820010, 1820011, 1820012, 1830001, 1830002, 1830003, 1830004, 1830005, 1830006, 1830007, 1830008,
+                    1830009, 1830010, 1830011, 1830012
+                ]
+            },
+            "sourcePool": [
+                {
+                    "id": 4661,
+                    "dropId": 1820004,
+                    "dropGroupId": 1,
+                    "tacticsGroup": 0,
+                    "weight": 100,
+                    "tacticsWeight": 0,
+                    "type": 2,
+                    "itemId": 10011,
+                    "minValue": 200,
+                    "maxValue": 200,
+                    "tacticsValue": 0,
+                    "allowanceValue": 0,
+                    "param": "",
+                    "splitNum": 1
+                }
+            ],
+            "sourcePoolFingerprint": "7ac1916a093f1556cdde4070dd155533b6abd05b7613d2dbed7335018d5eccde",
+            "sourceRowFingerprints": [
+                {
+                    "id": 4661,
+                    "fingerprint": "09fe11576ddc773058c84911144bc07d288eb497aa0fba04ddd37a843ecd8083"
+                }
+            ]
+        },
+        {
+            "dropId": 1820005,
+            "eventId": 10001,
+            "currencyId": 10011,
+            "parentFields": {
+                "id": 10001,
+                "type": 100,
+                "ptCurrencyId": 10011,
+                "ptShopId": 1001,
+                "dropIds": [
+                    1800001, 1800002, 1800003, 1800004, 1800005, 1800006, 1800007, 1800008, 1800009, 1800010, 1800011,
+                    1800012, 1810001, 1810002, 1810003, 1810004, 1810005, 1810006, 1810007, 1810008, 1810009, 1810010,
+                    1810011, 1810012, 1820001, 1820002, 1820003, 1820004, 1820005, 1820006, 1820007, 1820008, 1820009,
+                    1820010, 1820011, 1820012, 1830001, 1830002, 1830003, 1830004, 1830005, 1830006, 1830007, 1830008,
+                    1830009, 1830010, 1830011, 1830012
+                ]
+            },
+            "sourcePool": [
+                {
+                    "id": 4662,
+                    "dropId": 1820005,
+                    "dropGroupId": 1,
+                    "tacticsGroup": 0,
+                    "weight": 100,
+                    "tacticsWeight": 0,
+                    "type": 2,
+                    "itemId": 10011,
+                    "minValue": 200,
+                    "maxValue": 200,
+                    "tacticsValue": 0,
+                    "allowanceValue": 0,
+                    "param": "",
+                    "splitNum": 1
+                }
+            ],
+            "sourcePoolFingerprint": "3299765dc78e182cbf3a0366003ba5381a240128f0a5516535d7d806b9ce15a0",
+            "sourceRowFingerprints": [
+                {
+                    "id": 4662,
+                    "fingerprint": "3f23679d5cb7a1b578953d5d1091fbe51833c0646da9cfa5b7fd43420407048d"
+                }
+            ]
+        },
+        {
+            "dropId": 1820006,
+            "eventId": 10001,
+            "currencyId": 10011,
+            "parentFields": {
+                "id": 10001,
+                "type": 100,
+                "ptCurrencyId": 10011,
+                "ptShopId": 1001,
+                "dropIds": [
+                    1800001, 1800002, 1800003, 1800004, 1800005, 1800006, 1800007, 1800008, 1800009, 1800010, 1800011,
+                    1800012, 1810001, 1810002, 1810003, 1810004, 1810005, 1810006, 1810007, 1810008, 1810009, 1810010,
+                    1810011, 1810012, 1820001, 1820002, 1820003, 1820004, 1820005, 1820006, 1820007, 1820008, 1820009,
+                    1820010, 1820011, 1820012, 1830001, 1830002, 1830003, 1830004, 1830005, 1830006, 1830007, 1830008,
+                    1830009, 1830010, 1830011, 1830012
+                ]
+            },
+            "sourcePool": [
+                {
+                    "id": 4663,
+                    "dropId": 1820006,
+                    "dropGroupId": 1,
+                    "tacticsGroup": 0,
+                    "weight": 100,
+                    "tacticsWeight": 0,
+                    "type": 2,
+                    "itemId": 10011,
+                    "minValue": 200,
+                    "maxValue": 200,
+                    "tacticsValue": 0,
+                    "allowanceValue": 0,
+                    "param": "",
+                    "splitNum": 1
+                }
+            ],
+            "sourcePoolFingerprint": "43048d7ac2fc714ad6211da98ca1dbf7821d2509802411a540e0889bd07300f5",
+            "sourceRowFingerprints": [
+                {
+                    "id": 4663,
+                    "fingerprint": "4d326b35c43a54236e6dd8bf8b6dd0adef4bfda7e7221046af99e4ff1d15ff62"
+                }
+            ]
+        },
+        {
+            "dropId": 1820007,
+            "eventId": 10001,
+            "currencyId": 10011,
+            "parentFields": {
+                "id": 10001,
+                "type": 100,
+                "ptCurrencyId": 10011,
+                "ptShopId": 1001,
+                "dropIds": [
+                    1800001, 1800002, 1800003, 1800004, 1800005, 1800006, 1800007, 1800008, 1800009, 1800010, 1800011,
+                    1800012, 1810001, 1810002, 1810003, 1810004, 1810005, 1810006, 1810007, 1810008, 1810009, 1810010,
+                    1810011, 1810012, 1820001, 1820002, 1820003, 1820004, 1820005, 1820006, 1820007, 1820008, 1820009,
+                    1820010, 1820011, 1820012, 1830001, 1830002, 1830003, 1830004, 1830005, 1830006, 1830007, 1830008,
+                    1830009, 1830010, 1830011, 1830012
+                ]
+            },
+            "sourcePool": [
+                {
+                    "id": 4664,
+                    "dropId": 1820007,
+                    "dropGroupId": 1,
+                    "tacticsGroup": 0,
+                    "weight": 100,
+                    "tacticsWeight": 0,
+                    "type": 2,
+                    "itemId": 10011,
+                    "minValue": 200,
+                    "maxValue": 200,
+                    "tacticsValue": 0,
+                    "allowanceValue": 0,
+                    "param": "",
+                    "splitNum": 1
+                }
+            ],
+            "sourcePoolFingerprint": "94d907d84254a8323a713df46109e320db511754cccb1688c72502e43314fd51",
+            "sourceRowFingerprints": [
+                {
+                    "id": 4664,
+                    "fingerprint": "f9c405319be6bf1dbaf381f50e341c184cce070bca9532285b04b9530860c371"
+                }
+            ]
+        },
+        {
+            "dropId": 1820008,
+            "eventId": 10001,
+            "currencyId": 10011,
+            "parentFields": {
+                "id": 10001,
+                "type": 100,
+                "ptCurrencyId": 10011,
+                "ptShopId": 1001,
+                "dropIds": [
+                    1800001, 1800002, 1800003, 1800004, 1800005, 1800006, 1800007, 1800008, 1800009, 1800010, 1800011,
+                    1800012, 1810001, 1810002, 1810003, 1810004, 1810005, 1810006, 1810007, 1810008, 1810009, 1810010,
+                    1810011, 1810012, 1820001, 1820002, 1820003, 1820004, 1820005, 1820006, 1820007, 1820008, 1820009,
+                    1820010, 1820011, 1820012, 1830001, 1830002, 1830003, 1830004, 1830005, 1830006, 1830007, 1830008,
+                    1830009, 1830010, 1830011, 1830012
+                ]
+            },
+            "sourcePool": [
+                {
+                    "id": 4665,
+                    "dropId": 1820008,
+                    "dropGroupId": 1,
+                    "tacticsGroup": 0,
+                    "weight": 100,
+                    "tacticsWeight": 0,
+                    "type": 2,
+                    "itemId": 10011,
+                    "minValue": 200,
+                    "maxValue": 200,
+                    "tacticsValue": 0,
+                    "allowanceValue": 0,
+                    "param": "",
+                    "splitNum": 1
+                }
+            ],
+            "sourcePoolFingerprint": "34127c0678adcec8cc461860e3dec13731964631f76a126f52f04ef5379804c9",
+            "sourceRowFingerprints": [
+                {
+                    "id": 4665,
+                    "fingerprint": "78f5ee321fb717764da5faf50d92b7aa9b30df9e1ef597c3b7326e9be3fbc8a5"
+                }
+            ]
+        },
+        {
+            "dropId": 1820009,
+            "eventId": 10001,
+            "currencyId": 10011,
+            "parentFields": {
+                "id": 10001,
+                "type": 100,
+                "ptCurrencyId": 10011,
+                "ptShopId": 1001,
+                "dropIds": [
+                    1800001, 1800002, 1800003, 1800004, 1800005, 1800006, 1800007, 1800008, 1800009, 1800010, 1800011,
+                    1800012, 1810001, 1810002, 1810003, 1810004, 1810005, 1810006, 1810007, 1810008, 1810009, 1810010,
+                    1810011, 1810012, 1820001, 1820002, 1820003, 1820004, 1820005, 1820006, 1820007, 1820008, 1820009,
+                    1820010, 1820011, 1820012, 1830001, 1830002, 1830003, 1830004, 1830005, 1830006, 1830007, 1830008,
+                    1830009, 1830010, 1830011, 1830012
+                ]
+            },
+            "sourcePool": [
+                {
+                    "id": 4666,
+                    "dropId": 1820009,
+                    "dropGroupId": 1,
+                    "tacticsGroup": 0,
+                    "weight": 100,
+                    "tacticsWeight": 0,
+                    "type": 2,
+                    "itemId": 10011,
+                    "minValue": 200,
+                    "maxValue": 200,
+                    "tacticsValue": 0,
+                    "allowanceValue": 0,
+                    "param": "",
+                    "splitNum": 1
+                }
+            ],
+            "sourcePoolFingerprint": "30251e48c8bea3b10b5e6e8d99124b17085b468437db968664acd7a5fed3cc52",
+            "sourceRowFingerprints": [
+                {
+                    "id": 4666,
+                    "fingerprint": "1d54486167125c62489aac37614aa93fc504208eef8cd3bd5559e847ba4a11a6"
+                }
+            ]
+        },
+        {
+            "dropId": 1820010,
+            "eventId": 10001,
+            "currencyId": 10011,
+            "parentFields": {
+                "id": 10001,
+                "type": 100,
+                "ptCurrencyId": 10011,
+                "ptShopId": 1001,
+                "dropIds": [
+                    1800001, 1800002, 1800003, 1800004, 1800005, 1800006, 1800007, 1800008, 1800009, 1800010, 1800011,
+                    1800012, 1810001, 1810002, 1810003, 1810004, 1810005, 1810006, 1810007, 1810008, 1810009, 1810010,
+                    1810011, 1810012, 1820001, 1820002, 1820003, 1820004, 1820005, 1820006, 1820007, 1820008, 1820009,
+                    1820010, 1820011, 1820012, 1830001, 1830002, 1830003, 1830004, 1830005, 1830006, 1830007, 1830008,
+                    1830009, 1830010, 1830011, 1830012
+                ]
+            },
+            "sourcePool": [
+                {
+                    "id": 4667,
+                    "dropId": 1820010,
+                    "dropGroupId": 1,
+                    "tacticsGroup": 0,
+                    "weight": 100,
+                    "tacticsWeight": 0,
+                    "type": 2,
+                    "itemId": 10011,
+                    "minValue": 200,
+                    "maxValue": 200,
+                    "tacticsValue": 0,
+                    "allowanceValue": 0,
+                    "param": "",
+                    "splitNum": 1
+                }
+            ],
+            "sourcePoolFingerprint": "2fa8c52412dfbfd3184f7652fddf3d5cb3df7320a7e6131aeeb1bd1f0ab881d2",
+            "sourceRowFingerprints": [
+                {
+                    "id": 4667,
+                    "fingerprint": "b6f1a4f10bf254445d6c99b1a9519a7c129a5f40296ecb37ec1ba07244815ac3"
+                }
+            ]
+        },
+        {
+            "dropId": 1820011,
+            "eventId": 10001,
+            "currencyId": 10011,
+            "parentFields": {
+                "id": 10001,
+                "type": 100,
+                "ptCurrencyId": 10011,
+                "ptShopId": 1001,
+                "dropIds": [
+                    1800001, 1800002, 1800003, 1800004, 1800005, 1800006, 1800007, 1800008, 1800009, 1800010, 1800011,
+                    1800012, 1810001, 1810002, 1810003, 1810004, 1810005, 1810006, 1810007, 1810008, 1810009, 1810010,
+                    1810011, 1810012, 1820001, 1820002, 1820003, 1820004, 1820005, 1820006, 1820007, 1820008, 1820009,
+                    1820010, 1820011, 1820012, 1830001, 1830002, 1830003, 1830004, 1830005, 1830006, 1830007, 1830008,
+                    1830009, 1830010, 1830011, 1830012
+                ]
+            },
+            "sourcePool": [
+                {
+                    "id": 4668,
+                    "dropId": 1820011,
+                    "dropGroupId": 1,
+                    "tacticsGroup": 0,
+                    "weight": 100,
+                    "tacticsWeight": 0,
+                    "type": 2,
+                    "itemId": 10011,
+                    "minValue": 200,
+                    "maxValue": 200,
+                    "tacticsValue": 0,
+                    "allowanceValue": 0,
+                    "param": "",
+                    "splitNum": 1
+                }
+            ],
+            "sourcePoolFingerprint": "b86c6c38378c4bb81bf529a99b051109cf7a9fe2cb7dcd8cf416cc32a13868b5",
+            "sourceRowFingerprints": [
+                {
+                    "id": 4668,
+                    "fingerprint": "9fa25251f0c7b9137478753bc62d585d2682d893a3482218d75abd5cba6ff812"
+                }
+            ]
+        },
+        {
+            "dropId": 1820012,
+            "eventId": 10001,
+            "currencyId": 10011,
+            "parentFields": {
+                "id": 10001,
+                "type": 100,
+                "ptCurrencyId": 10011,
+                "ptShopId": 1001,
+                "dropIds": [
+                    1800001, 1800002, 1800003, 1800004, 1800005, 1800006, 1800007, 1800008, 1800009, 1800010, 1800011,
+                    1800012, 1810001, 1810002, 1810003, 1810004, 1810005, 1810006, 1810007, 1810008, 1810009, 1810010,
+                    1810011, 1810012, 1820001, 1820002, 1820003, 1820004, 1820005, 1820006, 1820007, 1820008, 1820009,
+                    1820010, 1820011, 1820012, 1830001, 1830002, 1830003, 1830004, 1830005, 1830006, 1830007, 1830008,
+                    1830009, 1830010, 1830011, 1830012
+                ]
+            },
+            "sourcePool": [
+                {
+                    "id": 4669,
+                    "dropId": 1820012,
+                    "dropGroupId": 1,
+                    "tacticsGroup": 0,
+                    "weight": 100,
+                    "tacticsWeight": 0,
+                    "type": 2,
+                    "itemId": 10011,
+                    "minValue": 200,
+                    "maxValue": 200,
+                    "tacticsValue": 0,
+                    "allowanceValue": 0,
+                    "param": "",
+                    "splitNum": 1
+                }
+            ],
+            "sourcePoolFingerprint": "d97ac65e94df41713390ff5e1efe8b98c53691253a16f0a5232575ffa383619a",
+            "sourceRowFingerprints": [
+                {
+                    "id": 4669,
+                    "fingerprint": "645888066892e9846c7ac372db1ab86a4427b68cf7dbf2d83da1845bf3b96c72"
+                }
+            ]
+        }
+    ]
+}

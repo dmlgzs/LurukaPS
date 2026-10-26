@@ -7,6 +7,6 @@
     "legacy": "preserve-unversioned-star-count-no-trusted-backfill",
     "wire": "project-v1-mask-only",
     "zeroSelector": "only-single-enabled-normal-route",
-    "consumerEnabled": false,
-    "TODO": "本地兼容策略：专用81002后台、跨场合并规则及旧数据格式未证；不OR补三星，不自动解释旧2或3，不启用奖励消费者。"
+    "consumerEnabled": true,
+    "TODO": "本地兼容策略：专用81002后台、跨场合并规则及旧数据格式未证；不OR补三星，不自动解释旧2或3；活动消费者仅信明确父活动下的v1事实。"
 }

@@ -6,6 +6,7 @@ import { grantRewards, parseRewards } from '../rewards.js'
 import { WorldObjectCatalog } from '../world-objects.js'
 import { spend, spendCurrency } from '../inventory.js'
 import { rewardSource } from '../reward-source.js'
+import { rollActivityRewardDrop } from '../activity-drop-currency.js'
 
 export function registerActivities(on, tables, options = {}) {
     const catalog = new ActivityCatalog(tables, options),
@@ -74,7 +75,7 @@ export function registerActivities(on, tables, options = {}) {
             const row = catalog.rewards.find((x) => x.id === id && x.groupId === r.activity_id)
             ensure(row, 'Reward does not belong to activity')
             if (!entry.claims.includes(id)) {
-                const value = catalog.condition(row.finishCondition, c.state)
+                const value = catalog.condition(row.finishCondition, c.state, r.activity_id)
                 ensure(value !== null && value >= row.para, 'Activity reward conditions not complete')
             }
             return row
@@ -83,12 +84,19 @@ export function registerActivities(on, tables, options = {}) {
         for (const row of rows) {
             if (entry.claims.includes(row.id)) continue
             // dropId is the server reward pool; rewardShow is only a display preview.
-            const items = row.dropId
-                ? String(row.dropId)
-                      .split('|')
-                      .flatMap((id) => drops.drops(Number(id), c.randomInt))
-                : parseRewards(row.reward)
-            rewards.push(...grant(c, items))
+            if (row.dropId) {
+                for (const id of String(row.dropId).split('|')) {
+                    const rolled = rollActivityRewardDrop(
+                        tables,
+                        c.state,
+                        r.activity_id,
+                        Number(id),
+                        drops,
+                        c.randomInt,
+                    )
+                    rewards.push(...grant(c, rolled.ordinary), ...rolled.activity)
+                }
+            } else rewards.push(...grant(c, parseRewards(row.reward)))
             entry.claims.push(row.id)
         }
         publish(c)

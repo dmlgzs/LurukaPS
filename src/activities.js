@@ -8,6 +8,7 @@ import { activityTables } from './activity-tables.js'
 import { productionTables } from './production-tables.js'
 import { GrowupSystem } from './growup.js'
 import { activityAbyssStarValue } from './activity-abyss-star.js'
+import { activityRepeatStarValue } from './activity-repeat-star.js'
 
 const policy = JSON.parse(fs.readFileSync(new URL('../configs/activity-policy.json', import.meta.url)))
 export class ActivityCatalog {
@@ -118,10 +119,11 @@ export class ActivityCatalog {
             sign: { count: 0, time: 0, reward_count: 0 },
         })
     }
-    condition(text, state) {
+    condition(text, state, activityId) {
         const tokens = String(text).split('|').map(Number),
             [kind, a, b] = tokens
         if (kind === 13123) return activityAbyssStarValue(this.external, state, tokens)
+        if (kind === 81002) return activityRepeatStarValue(this.external, state, tokens, activityId)
         if ([80003, 80004, 80006, 80008].includes(kind)) {
             const row = this.rows.find((x) => x.type === 60 && x.systemId === a)
             const g = row && state.activities?.[row.id]?.growup
@@ -244,7 +246,7 @@ export class ActivityCatalog {
             const rewards = this.rewards
                 .filter((x) => x.groupId === row.id)
                 .map((x) => {
-                    const value = this.condition(x.finishCondition, state),
+                    const value = this.condition(x.finishCondition, state, row.id),
                         val = value ?? 0
                     return {
                         id: x.id,

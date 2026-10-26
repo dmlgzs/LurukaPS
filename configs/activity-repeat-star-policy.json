@@ -1,0 +1,13 @@
+{
+    "version": 1,
+    "condition": 81002,
+    "enabled": true,
+    "officiallyVerified": false,
+    "unit": "distinct-configured-levels-at-highest-single-run-three-stars",
+    "requiredStarCount": 3,
+    "zeroSelector": "only-single-enabled-normal-route",
+    "sourceSchemaVersion": 1,
+    "legacyBackfill": false,
+    "loopEventsSupported": false,
+    "todo": "本地兼容：81002专用官方后台未恢复；零selector仅在当前唯一normal1路线上映射。只读取新v1最高单场三星，不累加星数或胜场、不OR旧mask、不解释未知legacy，不影响已领奖终态。"
+}

@@ -15,7 +15,7 @@ ensure(
         policy.legacy === 'preserve-unversioned-star-count-no-trusted-backfill' &&
         policy.wire === 'project-v1-mask-only' &&
         policy.zeroSelector === 'only-single-enabled-normal-route' &&
-        policy.consumerEnabled === false,
+        typeof policy.consumerEnabled === 'boolean',
     'Invalid repeat star progress policy',
     ErrorCode.GameConfig,
 )
