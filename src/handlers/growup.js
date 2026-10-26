@@ -1,7 +1,9 @@
 import { archiveGrowupData } from '../growup-archive.js'
 import { ensure } from './common.js'
 import { preparePermanent } from '../growup-permanent.js'
+import { upgradePermanent } from '../growup-permanent-upgrade.js'
 export function registerGrowup(on, catalog) {
+    on('ActivityGrowUpExcultivationReq', (c, r) => upgradePermanent(c, r, catalog))
     on('ArchiveGrowupData', (c, r) => archiveGrowupData(c, r, catalog))
     const system = catalog.growup
     const context = (c, r) => {

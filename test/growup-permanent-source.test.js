@@ -7,7 +7,7 @@ import { permanentFixture } from './growup-permanent-fixture.js'
 import { permanentModel } from '../src/growup-permanent.js'
 import { ErrorCode } from '../src/error-codes.js'
 
-test('source initialization sends distinct empty permanent caches and compiles all72 rows without unlock-all or paid endpoint', () => {
+test('source initialization sends distinct empty permanent caches and compiles all72 rows without unlocking paid perks', () => {
     const f = permanentFixture('permanent-empty')
     try {
         const packets = f.call('ActivityGet'),
@@ -25,7 +25,7 @@ test('source initialization sends distinct empty permanent caches and compiles a
         assert.equal(f.game.handlers.has(10426), false)
         assert.throws(
             () => f.call('ActivityGrowUpExcultivationReq', { activity_id: 60001, type: 1 }),
-            (e) => e.code === ErrorCode.InvalidProtoID,
+            (e) => e.code === ErrorCode.ActivityGrowUpExcultivationCondLimit,
         )
         f.start()
         assert.deepEqual(f.state().activities[60001].growupPermanent.unlocked, [])
