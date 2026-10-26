@@ -10,6 +10,7 @@ import { claimHatch, cancelHatch } from './hatching.js'
 import { completed, refreshProduction, rescheduleJobs } from './production.js'
 import { recordProductionOutput } from './production-progress.js'
 import { recordForgeProgressClaim } from './forge-progress.js'
+import { refundAcquisitionContext } from './home-currency-acquisition.js'
 
 export function multiplyProductionRows(rows, count) {
     return rows.map((row) => {
@@ -85,7 +86,15 @@ export function claimProductionStock(c, request, { cancel = false, allowEmpty = 
         if (cancel) {
             const unfinished = job.count - done
             if (unfinished > 0)
-                rewards.push(...grantRewards(tables, c.state, multiplyProductionRows(job.costs, unfinished)))
+                rewards.push(
+                    ...grantRewards(
+                        tables,
+                        c.state,
+                        multiplyProductionRows(job.costs, unfinished),
+                        0,
+                        refundAcquisitionContext(),
+                    ),
+                )
         }
     }
     ensure(
