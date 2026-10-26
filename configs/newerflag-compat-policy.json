@@ -1,0 +1,26 @@
+{
+    "version": 1,
+    "mode": "local-download-start-compatibility",
+    "selectedBy": "root-offline-compat-policy",
+    "officiallyVerified": false,
+    "protocol": 6146,
+    "fullProtocolStatus": "partial",
+    "request": "cs.CSUint32",
+    "acceptedU32": [0],
+    "omittedMeansGetterDefault": true,
+    "senderIdentity": "not-carried-on-wire-shape-only",
+    "knownSenders": [
+        "GMStartToGameDownload.MoveNext:06006a51",
+        "TaskEntityPackageDownloadComplete.CheckPackageDownload.MoveNext:0601f477"
+    ],
+    "authentication": "existing-session-id-login-guard",
+    "requiresEnteredGame": false,
+    "nonzero": "reject-FunctionClosed-and-diagnose",
+    "persistence": "none",
+    "stateMutation": "none",
+    "completion": "independent-9904-2519",
+    "TODO": [
+        "Official flag target, ownership, value meaning and persistence/readback are unresolved.",
+        "A successful empty reply only accepts the observed local download-start notification; it does not implement the full flag protocol."
+    ]
+}

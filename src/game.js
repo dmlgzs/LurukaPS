@@ -16,6 +16,7 @@ import {
 } from './esc-background.js'
 import { registerSocialWheel, prepareSocialWheel, notifySocialWheel, socialWheelSnapshot } from './social-wheel.js'
 import { ErrorCode } from './error-codes.js'
+import { registerDownloadStartCompatibility } from './handlers/download-start.js'
 import { registerFriends } from './handlers/friends.js'
 import { registerLegacyMatchTeams } from './legacy-match-teams.js'
 import { friendLoginSnapshots } from './friends.js'
@@ -493,6 +494,7 @@ export class Game {
         registerPlayableLifecycle(on, tables)
         const runGM = registerGM(on, { enabled: gmEnabled })
         registerCore(on)
+        registerDownloadStartCompatibility(on)
         this.gacha = registerGacha(on, tables, { policy: gachaPolicy })
         on('AnnounceRequest', (c) => announcementSnapshot(this.announcementBaseUrl, c.now))
         registerAIHeroes(on, tables)
@@ -1021,6 +1023,9 @@ export class Game {
         if (e.name === 'CSProtoRecycle') return [reply({})]
         const handler = this.handlers.get(e.id)
         if (!handler) throw new GameError(`Unsupported ${e.name}`, ErrorCode.InvalidProtoID)
+        // This local notification has no player-state or task side effects.
+        // Keep the existing login guard, and bypass every ordinary observer/write.
+        if (e.name === 'CSProtoSetNewerFlag') return [reply(handler({ id: session.id }, r))]
         if (e.name === 'CSProtoGetQuestionLink') {
             ensure(session.entered, 'Enter game before requesting mail links', ErrorCode.HaveNotEnterGame)
             return this.store.read(session.id, (state) => [reply(handler({ state, now }, r))])
