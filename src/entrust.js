@@ -153,7 +153,12 @@ export function settleEntrustVictory(
     tables,
     state,
     now,
-    { freshMaterialVictory = false, freshMainVictory = false, freshRepeatVictory = false } = {},
+    {
+        freshMaterialVictory = false,
+        freshMainVictory = false,
+        freshRepeatVictory = false,
+        freshActiveDungeonVictory = false,
+    } = {},
 ) {
     const run = state.entrust?.run
     if (!run || run.battle_complete || !run.end_time || !run.battle_start_time) return false
@@ -176,8 +181,9 @@ export function settleEntrustVictory(
         if (met) mask |= 1 << index
     })
     run.battle_complete = true
-    // Do not backdate legacy recovery into this day's activity period.
-    if (now === run.end_time) recordActiveDungeonFinish(tables, state, run.dungeon_id, now)
+    // A matching wall-clock second does not prove a new victory. Only the
+    // actual final-wave HP transition supplies this nonpersistent witness.
+    if (freshActiveDungeonVictory) recordActiveDungeonFinish(tables, state, run.dungeon_id, now)
     // Old completed saves never received a claimable box. Give that one
     // recovered box its configured window once, without changing clear time.
     run.chest_ready_time = run.hero_deaths === undefined ? Math.max(run.end_time, now ?? run.end_time) : run.end_time
@@ -374,7 +380,12 @@ export function ensureEntrustSceneObjects(
     tables,
     state,
     now,
-    { freshMaterialVictory = false, freshMainVictory = false, freshRepeatVictory = false } = {},
+    {
+        freshMaterialVictory = false,
+        freshMainVictory = false,
+        freshRepeatVictory = false,
+        freshActiveDungeonVictory = false,
+    } = {},
 ) {
     const run = state.entrust?.run
     if (!run || state.world.map_id !== run.map_id) return false
@@ -527,7 +538,14 @@ export function ensureEntrustSceneObjects(
             const { claims, ...object } = value
             return object
         })
-    if (settleEntrustVictory(tables, state, now, { freshMaterialVictory, freshMainVictory, freshRepeatVictory }))
+    if (
+        settleEntrustVictory(tables, state, now, {
+            freshMaterialVictory,
+            freshMainVictory,
+            freshRepeatVictory,
+            freshActiveDungeonVictory,
+        })
+    )
         changed = true
     return changed
 }

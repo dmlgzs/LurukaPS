@@ -145,9 +145,19 @@ function stageContext(c) {
 export function syncEntrustStage(
     c,
     previousEnemyObjectId,
-    { freshMaterialVictory = false, freshMainVictory = false, freshRepeatVictory = false } = {},
+    {
+        freshMaterialVictory = false,
+        freshMainVictory = false,
+        freshRepeatVictory = false,
+        freshActiveDungeonVictory = false,
+    } = {},
 ) {
-    ensureEntrustSceneObjects(c.tables, c.state, c.now, { freshMaterialVictory, freshMainVictory, freshRepeatVictory })
+    ensureEntrustSceneObjects(c.tables, c.state, c.now, {
+        freshMaterialVictory,
+        freshMainVictory,
+        freshRepeatVictory,
+        freshActiveDungeonVictory,
+    })
     // The interaction reply completes the marker/chest locally. Publish the
     // next wave only after that reply so the client cannot apply the old
     // marker state after the new world-object snapshot.
@@ -309,7 +319,20 @@ export function advanceEntrustCombat(c, deadGroups = new Set()) {
         Array.from({ length: count }, (_, slot) =>
             ((3n << 56n) | (BigInt(slot) << 32n) | BigInt(stage.row.id)).toString(),
         ).some((uid) => deadGroups.has(uid))
-    syncEntrustStage(c, stage.row.id, { freshMaterialVictory, freshMainVictory, freshRepeatVictory })
+    // All twelve current weekly routes finish directly after this boss wave.
+    // Crisis remains closed at entry; its future producer must supply its own witness.
+    const freshActiveDungeonVictory =
+        run.kind === 'weekly' &&
+        stages[position + 1].type === 30 &&
+        Array.from({ length: count }, (_, slot) =>
+            ((3n << 56n) | (BigInt(slot) << 32n) | BigInt(stage.row.id)).toString(),
+        ).some((uid) => deadGroups.has(uid))
+    syncEntrustStage(c, stage.row.id, {
+        freshMaterialVictory,
+        freshMainVictory,
+        freshRepeatVictory,
+        freshActiveDungeonVictory,
+    })
     return true
 }
 
