@@ -6,6 +6,7 @@ import { parseRewards, grantRewards } from '../rewards.js'
 import { spend, spendCurrency } from '../inventory.js'
 import { homeCondition } from '../home-grid.js'
 import { completed } from '../production.js'
+import { refundAcquisitionContext } from '../home-currency-acquisition.js'
 import {
     simpleProductSnapshot,
     settleSimpleProducts,
@@ -103,7 +104,14 @@ export function registerSimpleProduction(on, tables) {
         let refund = []
         if (job) {
             const unfinished = job.count - completed(job, c.now)
-            if (unfinished) refund = grantRewards(tables, c.state, multiplySimpleRows(job.costs, unfinished))
+            if (unfinished)
+                refund = grantRewards(
+                    tables,
+                    c.state,
+                    multiplySimpleRows(job.costs, unfinished),
+                    0,
+                    refundAcquisitionContext(),
+                )
             c.state.simpleProducts = jobs.filter((x) => x.guid !== job.guid)
             rememberClosedSimpleProduct(c.state, job.guid)
         }
