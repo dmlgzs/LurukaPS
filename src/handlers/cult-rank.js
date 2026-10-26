@@ -1,6 +1,6 @@
 import { ErrorCode } from '../error-codes.js'
 import { ensure } from './common.js'
-import { cultRankSnapshot, cultRankModel } from '../cult-rank-progress.js'
+import { cultRankModel } from '../cult-rank-progress.js'
 
 export function registerCultRank(on, tables, store, catalog) {
     on('GetRankDetail', (c, r) => {
@@ -25,7 +25,7 @@ export function registerCultRank(on, tables, store, catalog) {
             'Cultivation ranking activity is closed',
             ErrorCode.ActivityNotOpen,
         )
-        const value = cultRankSnapshot(store, tables, c.state, c.id, activity.id, c.now)
+        const value = catalog.rankFacts(c, [activity.id]).get(activity.id)
         ensure(value?.ranked, 'No trusted ranked cultivation participation', ErrorCode.ActivityDataNone)
         // The client scales this ranked-subset P by the table's 20% boundary.
         // Success zero is forbidden: it would display a false 1% on CBT3.

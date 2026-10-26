@@ -4,6 +4,8 @@ import { createHash } from 'node:crypto'
 import { configTime } from './shops.js'
 import { taskNodeCompleted, TaskGraphs, nodeConditions, asList, acceptTask, taskUnlocked } from './tasks.js'
 import { ensure } from './handlers/common.js'
+import { ErrorCode } from './error-codes.js'
+import { cultRankOwnValue } from './activity-cult-rank.js'
 import { activityTables } from './activity-tables.js'
 import { productionTables } from './production-tables.js'
 import { GrowupSystem } from './growup.js'
@@ -12,7 +14,8 @@ import { activityRepeatStarValue } from './activity-repeat-star.js'
 
 const policy = JSON.parse(fs.readFileSync(new URL('../configs/activity-policy.json', import.meta.url)))
 export class ActivityCatalog {
-    constructor(tables, { tourPolicy } = {}) {
+    constructor(tables, { tourPolicy, cultRankReader } = {}) {
+        this.cultRankReader = cultRankReader
         this.commonTimeSources = []
         this.external = tables
         this.graphs = new TaskGraphs(tables)
@@ -119,21 +122,48 @@ export class ActivityCatalog {
             sign: { count: 0, time: 0, reward_count: 0 },
         })
     }
-    condition(text, state, activityId) {
+    rankFacts(c, ids = []) {
+        if (!this.cultRankReader || !Number.isSafeInteger(c?.id) || c.id < 1) return new Map()
+        let cache = c.cultRankReadCache
+        if (
+            !cache ||
+            cache.state !== c.state ||
+            cache.id !== c.id ||
+            cache.now !== c.now ||
+            cache.revision !== (c.state.cultRankRevision ?? 0)
+        ) {
+            cache = { state: c.state, id: c.id, now: c.now, revision: c.state.cultRankRevision ?? 0, facts: new Map() }
+            c.cultRankReadCache = cache
+        }
+        for (const id of ids)
+            if (!cache.facts.has(id)) cache.facts.set(id, this.cultRankReader(c.state, c.id, id, c.now))
+        return cache.facts
+    }
+    condition(text, state, activityId, rankFacts, now) {
         const tokens = String(text).split('|').map(Number),
             [kind, a, b] = tokens
         if (kind === 13123) return activityAbyssStarValue(this.external, state, tokens)
         if (kind === 81002) return activityRepeatStarValue(this.external, state, tokens, activityId)
-        if ([80003, 80004, 80006, 80008].includes(kind)) {
+        if (kind === 80008) {
+            const row = this.rows.find((x) => x.type === 60 && x.systemId === a)
+            ensure(
+                tokens.length === 3 && row && row.id === activityId && Number.isSafeInteger(b) && b > 0 && b <= 10000,
+                'Invalid cultivation rank reward selector',
+                ErrorCode.GameConfig,
+            )
+            if (rankFacts?.has(row.id)) {
+                const fact = rankFacts.get(row.id)
+                return fact && fact.qualification > 0 && fact.qualification <= b ? b : 0
+            }
+            return now === undefined ? 0 : cultRankOwnValue(this.external, state, tokens, activityId, now)
+        }
+        if ([80003, 80004, 80006].includes(kind)) {
             const row = this.rows.find((x) => x.type === 60 && x.systemId === a)
             const g = row && state.activities?.[row.id]?.growup
             const ends = g?.end_data?.complete_end ?? []
             if (kind === 80003) return new Set(ends.map((x) => x.id)).size
             if (kind === 80004) return Number(ends.some((x) => x.id === b))
             if (kind === 80006) return Math.max(0, ...ends.map((x) => Number(x.top_rating ?? 0)))
-            // 80008 is the endless archive score, not normal cultivation score.
-            // Endless archives are not implemented; never unlock from final_wins.
-            return 0
         }
         if (kind === 2004) return state.player.basic_info.lv
         if (kind === 2007) return Number(this.taskDone(state, a))
@@ -205,7 +235,10 @@ export class ActivityCatalog {
             for (const row of source(now).data_list) times.set(row.time_id, row)
         return { data_list: [...times.values()] }
     }
-    snapshot(state, now) {
+    snapshot(state, now, context) {
+        const rankFacts = this.rankFacts(
+            context?.state === state && context.now === now ? context : { state, now, id: context?.id },
+        )
         state.activityDay = this.day(now)
         const confs = this.rows.map((row) => this.tours.presentationWindow(this.window(row, now), state, row)),
             activitys = []
@@ -246,7 +279,7 @@ export class ActivityCatalog {
             const rewards = this.rewards
                 .filter((x) => x.groupId === row.id)
                 .map((x) => {
-                    const value = this.condition(x.finishCondition, state, row.id),
+                    const value = this.condition(x.finishCondition, state, row.id, rankFacts, now),
                         val = value ?? 0
                     return {
                         id: x.id,
@@ -266,7 +299,7 @@ export class ActivityCatalog {
     }
     notify(c, force = false) {
         this.syncGrowupHistory(c)
-        const activity = this.snapshot(c.state, c.now),
+        const activity = this.snapshot(c.state, c.now, c),
             nday = this.nday(c.state, c.now)
         const signature = createHash('sha256')
             .update(JSON.stringify([activity, nday]))

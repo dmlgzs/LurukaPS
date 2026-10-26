@@ -71,6 +71,7 @@ import { registerPetEvolution } from './handlers/pet-evolution.js'
 import { playerCardSnapshot } from './player-card-items.js'
 import { registerActivities } from './handlers/activities.js'
 import { registerCultRank } from './handlers/cult-rank.js'
+import { cultRankSnapshot } from './cult-rank-progress.js'
 import { registerGrowup } from './handlers/growup.js'
 import { registerCultTrial } from './handlers/cult-trial.js'
 import { cultTrialSnapshot, ensureCultTrialScene, recordCultTrialResult } from './cult-trial.js'
@@ -512,7 +513,10 @@ export class Game {
         registerChatCustomization(on)
         registerPlayableEnemies(on, tables, store)
         registerWorldEvents(on, tables)
-        this.activities = registerActivities(on, tables, { tourPolicy })
+        this.activities = registerActivities(on, tables, {
+            tourPolicy,
+            cultRankReader: (state, id, activityId, now) => cultRankSnapshot(store, tables, state, id, activityId, now),
+        })
         registerCultRank(on, tables, store, this.activities)
         this.activities.commonTimeSources.push(() => this.gacha.commonTimes())
         registerGrowup(on, this.activities)
@@ -1716,6 +1720,7 @@ export class Game {
                     })
                 if (activityDue)
                     this.activities.notify({
+                        id,
                         state,
                         now,
                         pushBefore: (name, value) => packets.push(this.packet(name, value)),
@@ -1974,7 +1979,7 @@ export class Game {
             ...this.activities
                 .growupHistorySnapshots(state, now)
                 .map((data) => this.packet('CSProtoActivityGrowUpEndQuerySync', data)),
-            this.packet('CSProtoActivitySync', this.activities.snapshot(state, now)),
+            this.packet('CSProtoActivitySync', this.activities.snapshot(state, now, { id: session.id })),
             this.packet('CSProtoSyncArchiveGrowupData', growupArchiveSnapshot(this.activities, state)),
             ...(state.cultTrial?.map_id === state.world.map_id
                 ? [this.packet('CSProtoCampaignInfoSync', cultTrialSnapshot(state, { entering: true }))]

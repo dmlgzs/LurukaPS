@@ -35,7 +35,14 @@ export function registerActivities(on, tables, options = {}) {
                 })
             }
         }
-        const snapshot = catalog.snapshot(c.state, c.now)
+        catalog.rankFacts(c, [
+            ...new Set(
+                catalog.rewards
+                    .filter((row) => String(row.finishCondition).split('|')[0] === '80008')
+                    .map((row) => row.groupId),
+            ),
+        ])
+        const snapshot = catalog.snapshot(c.state, c.now, c)
         c.pushBefore('CSProtoSyncCommonTimeConf', catalog.commonTimes(c.now, c.state))
         c.pushBefore('CSProtoActivitySync', snapshot)
         const nday = catalog.nday(c.state, c.now)
@@ -74,12 +81,26 @@ export function registerActivities(on, tables, options = {}) {
         const rows = [...new Set(r.reward_id_list)].map((id) => {
             const row = catalog.rewards.find((x) => x.id === id && x.groupId === r.activity_id)
             ensure(row, 'Reward does not belong to activity')
-            if (!entry.claims.includes(id)) {
-                const value = catalog.condition(row.finishCondition, c.state, r.activity_id)
-                ensure(value !== null && value >= row.para, 'Activity reward conditions not complete')
-            }
             return row
         })
+        const rankFacts = catalog.rankFacts(
+            c,
+            rows.some((row) => !entry.claims.includes(row.id) && String(row.finishCondition).split('|')[0] === '80008')
+                ? [r.activity_id]
+                : [],
+        )
+        for (const row of rows) {
+            if (!entry.claims.includes(row.id)) {
+                const value = catalog.condition(row.finishCondition, c.state, r.activity_id, rankFacts, c.now)
+                ensure(
+                    value !== null && value >= row.para,
+                    'Activity reward conditions not complete',
+                    String(row.finishCondition).split('|')[0] === '80008'
+                        ? ErrorCode.ActivityRewardStateError
+                        : ErrorCode.InvalidArgument,
+                )
+            }
+        }
         const rewards = []
         for (const row of rows) {
             if (entry.claims.includes(row.id)) continue
@@ -97,6 +118,29 @@ export function registerActivities(on, tables, options = {}) {
                     rewards.push(...grant(c, rolled.ordinary), ...rolled.activity)
                 }
             } else rewards.push(...grant(c, parseRewards(row.reward)))
+            if (String(row.finishCondition).split('|')[0] === '80008') {
+                const value = rankFacts.get(r.activity_id)
+                ensure(value, 'Cultivation rank claim has no current participation', ErrorCode.ActivityDataNone)
+                ensure(
+                    entry.cultRankClaims === undefined ||
+                        (entry.cultRankClaims &&
+                            typeof entry.cultRankClaims === 'object' &&
+                            !Array.isArray(entry.cultRankClaims)),
+                    'Invalid cultivation rank claim receipts',
+                    ErrorCode.GameConfig,
+                )
+                entry.cultRankClaims = {
+                    ...entry.cultRankClaims,
+                    [row.id]: {
+                        version: 1,
+                        period_key: value.period_key,
+                        score: value.score,
+                        qualification: value.qualification,
+                        ...(value.ranked ? { rank: value.rank, count: value.count, permyriad: value.permyriad } : {}),
+                        time: c.now,
+                    },
+                }
+            }
             entry.claims.push(row.id)
         }
         publish(c)

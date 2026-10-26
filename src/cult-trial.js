@@ -370,13 +370,19 @@ export function recordCultTrialResult(tables, state, now) {
     return true
 }
 export function publishCultTrialResult(c) {
+    const rankBefore = c.state.cultRankRevision ?? 0
     if (recordCultTrialResult(c.tables, c.state, c.now)) {
-        if (c.state.cultTrial.archive_id)
+        if (c.state.cultTrial.archive_id) {
+            if ((c.state.cultRankRevision ?? 0) !== rankBefore) {
+                // A fatal report forks only combat roots. ActivitySync can advance another activity's calendar.
+                c.state.activities = structuredClone(c.state.activities)
+                c.activityCatalog.notify(c, true)
+            }
             c.push(
                 'CSProtoSyncArchiveGrowupData',
                 growupArchiveSnapshot(c.activityCatalog, c.state, [c.state.cultTrial.activity_id]),
             )
-        else {
+        } else {
             c.activityCatalog.notify({ ...c, pushBefore: c.push }, true)
             c.push(
                 'CSProtoSyncArchiveGrowupData',
