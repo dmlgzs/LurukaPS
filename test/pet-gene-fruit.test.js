@@ -72,7 +72,14 @@ test('6523 one gene fruit appends at next position, consumes one, preserves lock
             module = petModules(tables, after, p, []).modules.find((m) => m.module_type === 5)
         assert.ok(attrs.size)
         assert.ok(module.sub_modules[0].attrs.attrs.length)
-        assert.deepEqual(module.sub_modules[0].skills.skills, [])
+        // The new fruit remains numeric-only; an existing innate effect now
+        // has its independent, validated startup descriptor in the same module.
+        assert.deepEqual(
+            module.sub_modules[0].skills.skills.map((skill) => skill.skill_id),
+            p.gene_infos
+                .filter((gene) => tables.find('skill', gene.gene_id)?.skillType === 1)
+                .map((gene) => gene.gene_id),
+        )
         const effect = tables
             .find('skillsub_attrup', fruit.dnaParam)
             .attributeList.split('|')

@@ -1,0 +1,19 @@
+{
+    "version": 1,
+    "mode": "validated-effect-dna-initialization",
+    "skillType": 1,
+    "skillLogicType": 6,
+    "supportedMaximum": 8,
+    "supportedGeneLevel": 1,
+    "legacyOtherLevels": "preserve-diagnose-without-level-downgrade",
+    "wire": { "skill_lv": 1, "skill_slot": 0, "type": 0 },
+    "legacyUnknown": "preserve-raw-diagnose-and-do-not-initialize-unproven-skill",
+    "numeric": "existing-module5-attributes-only",
+    "liveSkillReplacementComplete": false,
+    "mutationProtocolsComplete": false,
+    "TODO": [
+        "10006 refreshes stored skill dictionaries and levels of existing live skills; it does not prove removal or creation of live passive IDs.",
+        "6539 and 6544 remain incomplete until generation policy and live effect replacement are implemented and verified.",
+        "Unknown legacy DNA is retained without inventing a skill or changing its gene record."
+    ]
+}

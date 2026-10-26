@@ -1,4 +1,5 @@
 import { numericGeneAttributes } from './pet-gene-numeric.js'
+import { effectGeneSkills } from './pet-dna-skills.js'
 import { petSoulAttributes } from './pet-star-soul.js'
 import { runeBonuses, ornamentAttributes, ornamentSkills } from './hero-equipment.js'
 import { temporaryHeroes, temporaryPets, activeFormationManager } from './trial-actors.js'
@@ -342,9 +343,9 @@ export function petModules(tables, state, pet, heroes) {
                                 ),
                             ),
                         },
-                        // Numerical DNA has no skillsub_logic and must not be
-                        // injected into the client's noneSlotSkills startup path.
-                        skills: { skills: [] },
+                        // Only configured effect DNA enters the client's passive
+                        // startup path. Numerical DNA remains attribute-only.
+                        skills: { skills: effectGeneSkills(tables, pet) },
                     },
                 ],
             },
