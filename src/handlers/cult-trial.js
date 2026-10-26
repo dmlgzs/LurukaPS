@@ -1,4 +1,5 @@
 import { acceptCultRankRun, nextCultRankInstance } from '../cult-rank-progress.js'
+import { commitPermanentEnding } from '../growup-permanent.js'
 import { ErrorCode } from '../error-codes.js'
 import { ensure } from './common.js'
 import { worldSync } from './world.js'
@@ -236,8 +237,10 @@ export function registerCultTrial(on, tables, catalog) {
             ErrorCode.GameConfig,
         )
         g.final_score = String(BigInt(g.final_score ?? '0') + BigInt(finalBonus))
-        if (trial.phase === 3) catalog.growup.finish(g, row.systemId, trial)
-        else {
+        if (trial.phase === 3) {
+            const completed = catalog.growup.finish(g, row.systemId, trial)
+            commitPermanentEnding(c, catalog, row, entry, completed, 'trial-completion')
+        } else {
             g.cur_stage++
             g.action_count = 0
             g.cur_cost_expedition_count = catalog.growup.config(row.systemId).expeditionCount

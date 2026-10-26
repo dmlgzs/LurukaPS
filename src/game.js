@@ -1,3 +1,4 @@
+import { pushPermanent } from './growup-permanent.js'
 import { growupArchiveSnapshot } from './growup-archive.js'
 import { notifyBattlePassTasks } from './battle-pass-tasks.js'
 import { registerBattlePass } from './handlers/battle-pass.js'
@@ -1839,6 +1840,11 @@ export class Game {
     }
     loginPackets(state, session, r, frame, id) {
         const now = this.clock()
+        const permanentSync = []
+        pushPermanent(
+            { id: session.id, state, now, pushBefore: (name, value) => permanentSync.push(this.packet(name, value)) },
+            this.activities,
+        )
         const repeatRewards = []
         claimRepeatFirstPass({
             state,
@@ -1979,6 +1985,7 @@ export class Game {
             ...this.activities
                 .growupHistorySnapshots(state, now)
                 .map((data) => this.packet('CSProtoActivityGrowUpEndQuerySync', data)),
+            ...permanentSync,
             this.packet('CSProtoActivitySync', this.activities.snapshot(state, now, { id: session.id })),
             this.packet('CSProtoSyncArchiveGrowupData', growupArchiveSnapshot(this.activities, state)),
             ...(state.cultTrial?.map_id === state.world.map_id

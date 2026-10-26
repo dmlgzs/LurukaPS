@@ -1,0 +1,17 @@
+{
+    "version": 1,
+    "officiallyVerified": false,
+    "authorizedPolicy": "用户采用B258整套推荐：真实合法成功结局登记本次伙伴，免费1级，当前行替换，下局封存生效",
+    "unlockAt": "successful-normal-ending-including-legal-sweep",
+    "defaultLevel": 1,
+    "supportedSystems": [60001],
+    "effectReduction": "latest-row-per-unlocked-type-then-sum",
+    "legacyMigration": "validated-complete-ending-snapshots-lower-bound-only",
+    "currencyIssuance": "none-existing1002-balance-or-existing-GM-only",
+    "todo": [
+        "官方永久获得、免费1级、效果归约及生效时点未恢复，本实现为用户选择的本地政策",
+        "当前1002缔缘结自然发行来源未恢复，不按结局或分数发币，不恢复10415/10416",
+        "旧完成快照只证明本地结局伙伴下界，不能证明官方邂逅或恢复已丢周目的伙伴与付费升级",
+        "新永久模块未知系统、未来效果或损坏静态模型仅诊断并保留原普通养成；不发送假永久权益，不自动填补中断期间历史"
+    ]
+}

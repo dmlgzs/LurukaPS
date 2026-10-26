@@ -1,4 +1,5 @@
 import { registerKiboTours } from './kibo-tours.js'
+import { pushPermanent } from '../growup-permanent.js'
 import { ErrorCode } from '../error-codes.js'
 import { ensure } from './common.js'
 import { ActivityCatalog } from '../activities.js'
@@ -21,6 +22,7 @@ export function registerActivities(on, tables, options = {}) {
         return rewards
     }
     on('ActivityGet', (c) => {
+        pushPermanent(c, catalog)
         // GlobalData's ending book is a separate client cache used by 80003/4/6.
         // Resend on explicit initialization even if this account synced before.
         catalog.syncGrowupHistory(c, true)

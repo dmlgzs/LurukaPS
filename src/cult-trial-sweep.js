@@ -1,3 +1,4 @@
+import { commitPermanentEnding } from './growup-permanent.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { growupArchiveSnapshot } from './growup-archive.js'
@@ -97,8 +98,10 @@ export function sweepCultTrial(c, r, catalog) {
     }
     g.final_score = String(BigInt(g.final_score ?? '0') + BigInt(bonus))
     c.state.acceptedCultTrials = { ...c.state.acceptedCultTrials, [receipt]: true }
-    if (trial.phase === 3) system.finish(g, row.systemId, trial)
-    else {
+    if (trial.phase === 3) {
+        const completed = system.finish(g, row.systemId, trial)
+        commitPermanentEnding(c, catalog, row, entry, completed, 'sweep-completion')
+    } else {
         g.cur_stage++
         g.action_count = 0
         g.cur_cost_expedition_count = system.config(row.systemId).expeditionCount
