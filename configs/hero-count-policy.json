@@ -1,0 +1,18 @@
+{
+    "version": 1,
+    "condition": 12036,
+    "zeroSelector": "current-usable-permanently-owned-hero-configurations",
+    "avatarPolicy": "merge-owned-male-and-female-variants-as-one",
+    "avatarIdsFrom": "game:AVATAR_HERO_ID_MALE+AVATAR_HERO_ID_FEMALE",
+    "ownership": "existing-normal-guid-owner-guard-with-declared-legacy-small-id-compatibility",
+    "officiallyVerified": false,
+    "userSelectedAvatarPolicy": "2026-10-26",
+    "source": "current-roster-property-not-acquisition-request-count",
+    "unfinishedProgress": "recompute-from-qualified-current-roster",
+    "validTerminalReceipts": "preserve-without-roster-or-history-backfill",
+    "todo": [
+        "Official backend selector and avatar counting are not recovered; avatar merging is the user's explicit offline policy.",
+        "Nonzero selectors remain unsupported rather than guessing a rarity or hero category.",
+        "Legacy small GUID compatibility follows the existing ownership policy, not an official migrated-ID contract."
+    ]
+}

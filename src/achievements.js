@@ -14,6 +14,7 @@ import {
     cookingVarietyValue,
 } from './production-progress.js'
 import { heroRankProgressRule, heroRankProgressValue } from './hero-rank-progress.js'
+import { heroCountProgressRule, heroCountProgressValue } from './hero-count-progress.js'
 import { petStarSoulProgressRule, petStarSoulProgressValue } from './pet-star-soul-progress.js'
 import { entrustStarProgressRule, entrustStarProgressValue } from './entrust-star-progress.js'
 import { captureCardStockRule, captureCardStockValue } from './capture-card-stock.js'
@@ -96,6 +97,7 @@ export function achievementCatalogue(tables) {
                 (tokens.at(-1) === row.param && heroFavorProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && petStarSoulProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && heroRankProgressRule(tables, tokens)) ||
+                (tokens.at(-1) === row.param && heroCountProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && productionProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && productionCategoryRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && buildingPlacementRule(tables, tokens)) ||
@@ -138,6 +140,7 @@ function observedValue(tables, model, row, state, completedTasks, facts) {
     if (kind === 12252) return entrustStarProgressValue(tables, state, rule.tokens, facts)
     if (kind === 13007) return heroFavorProgressValue(tables, state, rule.tokens, facts)
     if (kind === 12055) return heroRankProgressValue(tables, state, rule.tokens, facts)
+    if (kind === 12036) return heroCountProgressValue(tables, state, rule.tokens, facts)
     if (kind === 12018) return productionProgressValue(tables, state, rule.tokens, facts)
     if (kind === 15072) return forgeProgressValue(tables, state, rule.tokens, facts)
     if (kind === 15010) return materialClearValue(tables, state, rule.tokens, facts)
@@ -175,6 +178,14 @@ export function observeAchievements(tables, state, now) {
         const rule = model.rules.get(row.id)
         const loginRule = [15048, 20003].includes(rule.tokens?.[0]) && rule.supported
         const materialRule = rule.tokens?.[0] === 15010 && rule.supported
+        const heroCountRule = rule.tokens?.[0] === 12036 && rule.supported
+        const authoritative = rule.readingScalar || loginRule || materialRule || heroCountRule
+        if (heroCountRule)
+            ensure(
+                (!saved?.claimed || saved.finishTime > 0) && (!saved?.finishTime || saved.value === row.param),
+                'Owned hero achievement has no valid terminal receipt',
+                ErrorCode.GameConfig,
+            )
         if (materialRule)
             ensure(
                 (!saved?.claimed || saved.finishTime > 0) && (!saved?.finishTime || saved.value === row.param),
@@ -231,15 +242,8 @@ export function observeAchievements(tables, state, now) {
         const raw = observedValue(tables, model, row, state, completedTasks, facts)
         if (raw === null) continue
         ensure(Number.isSafeInteger(raw) && raw >= 0, 'Invalid achievement progress', ErrorCode.GameConfig)
-        const value =
-            rule.readingScalar || loginRule || materialRule
-                ? Math.min(row.param, raw)
-                : Math.max(saved?.value ?? 0, Math.min(row.param, raw))
-        if (
-            (!value && !saved) ||
-            (value === saved?.value && (!(rule.readingScalar || loginRule || materialRule) || value < row.param))
-        )
-            continue
+        const value = authoritative ? Math.min(row.param, raw) : Math.max(saved?.value ?? 0, Math.min(row.param, raw))
+        if ((!value && !saved) || (value === saved?.value && (!authoritative || value < row.param))) continue
         ledger.entries[row.id] = { value, finishTime: value >= row.param ? Math.floor(now) : 0, claimed: false }
         changed.push(row.id)
     }
