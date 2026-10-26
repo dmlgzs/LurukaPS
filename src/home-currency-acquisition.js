@@ -30,16 +30,21 @@ function warnOnce(state, reason) {
     const key = accountId + ':' + reason
     if (warned.has(key)) return
     warned.add(key)
-    console.warn(
-        '[home-currency-acquisition]',
-        JSON.stringify({
-            accountId,
-            reason,
-            resourceType: 10,
-            resourceId: 103,
-            action: 'preserve-normal-financial-result-no-history-inference',
-        }),
-    )
+    while (warned.size > 256) warned.delete(warned.values().next().value)
+    try {
+        console.warn(
+            '[home-currency-acquisition]',
+            JSON.stringify({
+                accountId,
+                reason,
+                resourceType: 10,
+                resourceId: 103,
+                action: 'preserve-normal-financial-result-no-history-inference',
+            }),
+        )
+    } catch {
+        // Diagnostics cannot turn an unclassified acquisition into lost money.
+    }
 }
 
 // Identity is the current transaction draft, not a saved account or a session.

@@ -4,6 +4,7 @@ import { grantReputation } from './reputation.js'
 import { grantHomeExperience } from './home-experience.js'
 import { grantDuelAreaExperience, grantDuelPetExperience } from './kibo-duel-progress.js'
 import { recordResourceAcquisition } from './item-acquisition.js'
+import { recordCreditedHomeCurrency } from './home-currency-acquisition.js'
 import { createPets, createCustomizedPets } from './pets.js'
 import { ensureHome, addHomeBuildings, refreshAutoCropShortcut } from './home.js'
 import { ensureHomeDormitories, grantDormStyle } from './home-dorm.js'
@@ -213,6 +214,7 @@ export function grantRewards(tables, state, rewards, depth = 0, context = {}) {
                 const n = BigInt(a.attr_val) + BigInt(itemnum)
                 ensure(n <= 0xffffffffffffffffn, 'Currency overflow')
                 a.attr_val = String(n)
+                if (itemid === 103) recordCreditedHomeCurrency(state, itemtype, itemid, itemnum, context)
             }
         } else ensure(false, `Unsupported reward type ${itemtype}`, ErrorCode.InvalidProtoID)
         recordBattlePassAcquisition(tables, state, itemtype, itemid, itemnum)
