@@ -31,7 +31,7 @@ test('full six-target catalogue and bounded AST support only the two proven Bool
     try {
         const model = achievementCatalogue(f.tables),
             compounds = model.rows.filter((r) => /&&|\|\|/.test(r.finishCondition))
-        assert.equal([...model.rules.values()].filter((r) => r.supported).length, 120)
+        assert.equal([...model.rules.values()].filter((r) => r.supported).length, 131)
         assert(six.every((id) => model.rules.get(id).supported))
         assert.equal(compounds.length, 13)
         assert.deepEqual(

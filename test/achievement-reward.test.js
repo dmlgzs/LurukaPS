@@ -17,8 +17,17 @@ test('login publishes all configured achievement IDs and unfinished counters wit
         const sync = f.protocol.decode('SCAchievementSync', packet.payload)
         assert.equal(sync.achievements.length, model.rows.length)
         assert.equal(sync.groups.length, model.groups.length)
-        assert(sync.achievements.every((r) => r.id === r.achievement_id && r.finish_time === '0' && !r.is_reward))
-        assert.equal(achievementPoints(f.tables, f.state()), 0)
+        for (const item of sync.achievements) {
+            const saved = f.state().achievements.entries[item.id]
+            assert.equal(item.id, item.achievement_id)
+            assert.equal(item.finish_time, String(saved?.finishTime ?? 0))
+            assert.equal(item.is_reward, false)
+        }
+        const expectedPoints = model.rows.reduce(
+            (sum, row) => sum + (f.state().achievements.entries[row.id]?.finishTime ? row.achPoint : 0),
+            0,
+        )
+        assert.equal(achievementPoints(f.tables, f.state()), expectedPoints)
         const unsupported = model.rows.find((r) => !model.rules.get(r.id).supported)
         assert.deepEqual(sync.achievements.find((r) => r.id === unsupported.id).count, [])
     } finally {
@@ -37,6 +46,7 @@ test('9902 decodes its real uint32 request, checks actual task receipts, and per
             () => f.call('AchievementReward', { u32: row.id }),
             (e) => e.code === ErrorCode.AchievementIsRunning,
         )
+        const initialPoints = achievementPoints(f.tables, f.state())
         f.completedTask(task)
         const before = structuredClone(f.state().player.sbag_infos)
         const packets = f.call('AchievementReward', { u32: row.id })
@@ -47,10 +57,10 @@ test('9902 decodes its real uint32 request, checks actual task receipts, and per
             .achievements.find((r) => r.id === row.id)
         assert.equal(item.is_reward, true)
         assert.equal(item.finish_time, '1800000000')
-        assert.equal(achievementPoints(f.tables, f.state()), row.achPoint)
+        assert.equal(achievementPoints(f.tables, f.state()), initialPoints + row.achPoint)
         assert.deepEqual(f.state().player.sbag_infos, before)
         assert.deepEqual(f.reply(f.call('AchievementReward', { u32: row.id }), 9902), { rewards: [] })
-        assert.equal(achievementPoints(f.tables, f.state()), row.achPoint)
+        assert.equal(achievementPoints(f.tables, f.state()), initialPoints + row.achPoint)
     } finally {
         f.store.close()
     }
@@ -145,11 +155,12 @@ test('real SQLite reopen and login retain completion times and claims and do not
         const row = f.tables.get('achievement').find((r) => r.finishCondition.startsWith('2007#'))
         f.completedTask(Number(row.finishCondition.split('#')[1]))
         f.call('AchievementReward', { u32: row.id })
-        const before = structuredClone(f.state().achievements)
+        const before = structuredClone(f.state().achievements),
+            points = achievementPoints(f.tables, f.state())
         f.store.close()
         f = achievementFixture('achievement-reopen', file)
         assert.deepEqual(f.state().achievements, before)
-        assert.equal(achievementPoints(f.tables, f.state()), row.achPoint)
+        assert.equal(achievementPoints(f.tables, f.state()), points)
         assert.deepEqual(f.reply(f.call('AchievementReward', { u32: row.id }), 9902), { rewards: [] })
     } finally {
         f?.store.close()

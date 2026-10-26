@@ -10,7 +10,7 @@ test('all nine15010 achievement shapes validate selectors and authoritative unfi
     const f = materialClearFixture('material-ach-contract')
     try {
         const model = achievementCatalogue(f.tables)
-        assert.equal([...model.rules.values()].filter((r) => r.supported).length, 120)
+        assert.equal([...model.rules.values()].filter((r) => r.supported).length, 131)
         assert(ids.every((id) => model.rules.get(id).supported))
         for (const bad of [
             [15010, 0, 0, 0, 0, 50],

@@ -89,7 +89,7 @@ test('all three current HaveHero targets compile; unproved selectors stay closed
         [5, 10, 20],
     )
     assert(rows.every((row) => model.rules.get(row.id).supported))
-    assert.equal(model.rows.filter((row) => model.rules.get(row.id).supported).length, 123)
+    assert.equal(model.rows.filter((row) => model.rules.get(row.id).supported).length, 131)
     assert.equal(
         rows.reduce((sum, row) => sum + row.achPoint, 0),
         17,

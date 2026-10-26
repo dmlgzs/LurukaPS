@@ -12,7 +12,7 @@ test('actual new fields and20 actual world puzzles coexist without replacing eit
     try {
         const model = achievementCatalogue(f.tables),
             catalog = new WorldObjectCatalog(f.tables)
-        assert.equal(model.rows.filter((r) => model.rules.get(r.id).supported).length, 128)
+        assert.equal(model.rows.filter((r) => model.rules.get(r.id).supported).length, 131)
         assert.equal(model.rules.get(2010005).supported, true)
         assert.equal(fieldReclamationValue(f.state(), [12031, 0, 30]), 0)
         assert.equal(petPuzzleProgressValue(f.tables, f.state(), [12048, 0, 0, 20]), 0)

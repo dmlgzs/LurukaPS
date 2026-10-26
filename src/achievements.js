@@ -22,6 +22,7 @@ import { entrustStarProgressRule, entrustStarProgressValue } from './entrust-sta
 import { captureCardStockRule, captureCardStockValue } from './capture-card-stock.js'
 import { heroFavorProgressRule, heroFavorProgressValue } from './hero-favor-progress.js'
 import { homeOrderProgressRule, homeOrderProgressValue } from './home-order-progress.js'
+import { homeCurrencyProgressRule, homeCurrencyProgressValue } from './home-currency-progress.js'
 import { farmHarvestProgressRule, farmHarvestProgressValue } from './farm-harvest-progress.js'
 import { loginDayProgressRule, loginDayProgressValue } from './login-day-progress.js'
 import { parseAchievementExpression } from './achievement-expression.js'
@@ -94,6 +95,7 @@ export function achievementCatalogue(tables) {
                 (tokens.at(-1) === row.param && loginDayProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && farmHarvestProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && homeOrderProgressRule(tables, tokens)) ||
+                (tokens.at(-1) === row.param && homeCurrencyProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && captureCardStockRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && entrustStarProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && heroFavorProgressRule(tables, tokens)) ||
@@ -155,6 +157,7 @@ function observedValue(tables, model, row, state, completedTasks, facts) {
     if (kind === 12210) return cookingVarietyValue(tables, state, rule.tokens, facts)
     if (kind === 15022) return captureCardStockValue(tables, state, rule.tokens, facts)
     if (kind === 15003) return homeOrderProgressValue(tables, state, rule.tokens, facts)
+    if (kind === 12029) return homeCurrencyProgressValue(tables, state, rule.tokens, facts)
     if (kind === 12005) return farmHarvestProgressValue(tables, state, rule.tokens, facts)
     if (kind === 15048 || kind === 20003) return loginDayProgressValue(tables, state, rule.tokens, facts)
     if (achievementStateRule(rule.tokens)) return achievementStateValue(tables, state, rule.tokens, facts)
@@ -187,8 +190,21 @@ export function observeAchievements(tables, state, now) {
         const heroCountRule = rule.tokens?.[0] === 12036 && rule.supported
         const reclamationRule = rule.tokens?.[0] === 12031 && rule.supported
         const puzzleRule = rule.tokens?.[0] === 12048 && rule.supported
+        const homeCurrencyRule = rule.tokens?.[0] === 12029 && rule.supported
         const authoritative =
-            rule.readingScalar || loginRule || materialRule || heroCountRule || reclamationRule || puzzleRule
+            rule.readingScalar ||
+            loginRule ||
+            materialRule ||
+            heroCountRule ||
+            reclamationRule ||
+            puzzleRule ||
+            homeCurrencyRule
+        if (homeCurrencyRule)
+            ensure(
+                (!saved?.claimed || saved.finishTime > 0) && (!saved?.finishTime || saved.value === row.param),
+                'Home currency achievement has no valid terminal receipt',
+                ErrorCode.GameConfig,
+            )
         if (puzzleRule)
             ensure(
                 (!saved?.claimed || saved.finishTime > 0) && (!saved?.finishTime || saved.value === row.param),

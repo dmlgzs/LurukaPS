@@ -26,7 +26,7 @@ test('complete12210 catalogue maps food groups across all known qualities and re
         )
         assert(rows.every((row) => model.rules.get(row.id).supported))
         assert.equal(model.rows.length, 355)
-        assert.equal([...model.rules.values()].filter((row) => row.supported).length, 120)
+        assert.equal([...model.rules.values()].filter((row) => row.supported).length, 131)
         assert.equal(f.current.length, 212)
         assert.equal(f.groups.size, 48)
         assert.equal(count(f), 0)

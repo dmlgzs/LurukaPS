@@ -36,7 +36,7 @@ test('complete current reclamation family is table-driven and does not promote u
             family.reduce((sum, row) => sum + row.achPoint, 0),
             7,
         )
-        assert.equal(model.rows.filter((row) => model.rules.get(row.id).supported).length, 128)
+        assert.equal(model.rows.filter((row) => model.rules.get(row.id).supported).length, 131)
         assert.equal(count(f), 0)
         for (const t of [
             [12031, 1, 30],
