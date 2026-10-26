@@ -1,4 +1,5 @@
 import { materialClearRule, materialClearValue } from './material-clear-progress.js'
+import { petPuzzleProgressRule, petPuzzleProgressValue } from './pet-puzzle-progress.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { taskNodeCompleted } from './tasks.js'
@@ -100,6 +101,7 @@ export function achievementCatalogue(tables) {
                 (tokens.at(-1) === row.param && heroRankProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && heroCountProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && fieldReclamationRule(tokens)) ||
+                (tokens.at(-1) === row.param && petPuzzleProgressRule(tokens)) ||
                 (tokens.at(-1) === row.param && productionProgressRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && productionCategoryRule(tables, tokens)) ||
                 (tokens.at(-1) === row.param && buildingPlacementRule(tables, tokens)) ||
@@ -144,6 +146,7 @@ function observedValue(tables, model, row, state, completedTasks, facts) {
     if (kind === 12055) return heroRankProgressValue(tables, state, rule.tokens, facts)
     if (kind === 12036) return heroCountProgressValue(tables, state, rule.tokens, facts)
     if (kind === 12031) return fieldReclamationValue(state, rule.tokens, facts)
+    if (kind === 12048) return petPuzzleProgressValue(tables, state, rule.tokens, facts)
     if (kind === 12018) return productionProgressValue(tables, state, rule.tokens, facts)
     if (kind === 15072) return forgeProgressValue(tables, state, rule.tokens, facts)
     if (kind === 15010) return materialClearValue(tables, state, rule.tokens, facts)
@@ -183,7 +186,15 @@ export function observeAchievements(tables, state, now) {
         const materialRule = rule.tokens?.[0] === 15010 && rule.supported
         const heroCountRule = rule.tokens?.[0] === 12036 && rule.supported
         const reclamationRule = rule.tokens?.[0] === 12031 && rule.supported
-        const authoritative = rule.readingScalar || loginRule || materialRule || heroCountRule || reclamationRule
+        const puzzleRule = rule.tokens?.[0] === 12048 && rule.supported
+        const authoritative =
+            rule.readingScalar || loginRule || materialRule || heroCountRule || reclamationRule || puzzleRule
+        if (puzzleRule)
+            ensure(
+                (!saved?.claimed || saved.finishTime > 0) && (!saved?.finishTime || saved.value === row.param),
+                'Pet puzzle achievement has no valid terminal receipt',
+                ErrorCode.GameConfig,
+            )
         if (reclamationRule)
             ensure(
                 (!saved?.claimed || saved.finishTime > 0) && (!saved?.finishTime || saved.value === row.param),
