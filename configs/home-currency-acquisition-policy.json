@@ -1,0 +1,16 @@
+{
+    "schemaVersion": 1,
+    "basis": "user-selected-all-normal-103-rewards",
+    "officiallyVerified": false,
+    "namespace": "global-player-attributes",
+    "resourceType": 10,
+    "resourceId": 103,
+    "unit": "actual-credited-normal-reward-leaves",
+    "excludedIntents": ["admin", "refund"],
+    "legacyBalanceBackfill": false,
+    "legacyOtherCountersBackfill": false,
+    "counterLimit": "uint64-saturate-with-diagnostic",
+    "unknownIntent": "preserve-reward-skip-counter-and-diagnose",
+    "unknownVersion": "preserve-reward-and-counter-skip-new-counts",
+    "todo": "Local user-selected acquisition policy; official CollectItem currency source filtering is not verified. Count no other currencies or event attribute namespaces."
+}

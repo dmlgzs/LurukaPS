@@ -3,6 +3,7 @@ import { purchaseMonthly, monthlyPayload } from '../monthly-card.js'
 import { giveAllRewards } from '../give-all.js'
 import { ensure, syncPlayer } from './common.js'
 import { grantRewards } from '../rewards.js'
+import { markAdminAcquisitionDraft } from '../home-currency-acquisition.js'
 import { heroModules, heroBattleLimits, syncBattle } from '../battle.js'
 import { rememberMap, worldSync } from './world.js'
 import { deliveryKey } from '../task-delivery.js'
@@ -229,6 +230,7 @@ export function registerGM(on, { enabled = true } = {}) {
     }
     const run = (c, commands) => {
         ensure(commands.length > 0 && commands.length <= 32, 'GM batch size must be 1..32')
+        markAdminAcquisitionDraft(c.state)
         const results = commands.map((command) => execute(c, command))
         c.push('CSProtoGMCommandsSync', { result: Buffer.from(results.join('\n')).toString('base64') })
         return {}
