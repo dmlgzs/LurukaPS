@@ -1,4 +1,5 @@
 import { settleStoryCampaignScene } from './story-campaign.js'
+import { recordPetPuzzlePlayableCompletion } from '../pet-puzzle-progress.js'
 import {
     prepareCampaignPlayableStart,
     bindCampaignPlayableStart,
@@ -365,6 +366,7 @@ export function registerPlayableLifecycle(on, tables) {
                     ? { campaign_instance_id: run.campaign_instance_id, campaign_attempt_id: run.campaign_attempt_id }
                     : {}),
             }
+            recordPetPuzzlePlayableCompletion(c, row, finished[row.id], r.ext_context)
         }
         run.status = 3
         acceptCampaignPlayableFinish(c.state, row.id, run, finished[row.id])
