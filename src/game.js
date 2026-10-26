@@ -839,7 +839,7 @@ export class Game {
                 ensureCultTrialScene(this.tables, state, now)
                 ensureAbyssScene(this.tables, state, now)
                 if (state.abyssRun?.map_id === state.world.map_id) installAbyssFormation(state)
-                recordCultTrialResult(this.tables, state)
+                recordCultTrialResult(this.tables, state, now)
                 ensureCultFormation(this.tables, this.activities, state, session.id)
                 recoverInitialDungeonKills(this.tables, state)
                 refreshTaskProgress(this.tables, state)
@@ -1524,7 +1524,8 @@ export class Game {
                         ? (draft, base) =>
                               (draft.materialClearRevision ?? 0) !== (base.materialClearRevision ?? 0) ||
                               (draft.mainEntrustClearRevision ?? 0) !== (base.mainEntrustClearRevision ?? 0) ||
-                              (draft.repeatClearRevision ?? 0) !== (base.repeatClearRevision ?? 0)
+                              (draft.repeatClearRevision ?? 0) !== (base.repeatClearRevision ?? 0) ||
+                              (draft.cultRankRevision ?? 0) !== (base.cultRankRevision ?? 0)
                         : deferredTaskProgress.has(e.name) || e.name === 'CSProtoRequestHeroElement'
                           ? (draft, base) => {
                                 if ((draft.taskItemRevision ?? 0) !== (base.taskItemRevision ?? 0)) return true

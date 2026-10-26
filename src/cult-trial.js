@@ -228,7 +228,10 @@ export function ensureCultTrialScene(tables, state, now) {
                 world.find('world_spawner', row.spawnerId)?.objectType === 30 &&
                 String(row.commonTag).split('|').includes('0')
             )
-                records[run.map_id + ':' + row.id].active = !records[run.map_id + ':' + row.id].complete
+                records[run.map_id + ':' + row.id] = {
+                    ...records[run.map_id + ':' + row.id],
+                    active: !records[run.map_id + ':' + row.id].complete,
+                }
     }
     run.scene_objects = rows.map((x) => {
         const { claims, ...wire } = records[run.map_id + ':' + x.id]
@@ -345,10 +348,10 @@ export function advanceCultTrialCombat(c) {
     return true
 }
 
-export function recordCultTrialResult(tables, state) {
+export function recordCultTrialResult(tables, state, now) {
     const run = state.cultTrial
     if (!run?.battle_complete || run.result_published) return false
-    if (run.archive_id) return recordCultArchiveResult(state)
+    if (run.archive_id) return recordCultArchiveResult(tables, state, now)
     const trial = currentTables(tables)
         .get('game_events_cul_trial')
         .find((x) => x.trialId === run.trial_id)
@@ -367,7 +370,7 @@ export function recordCultTrialResult(tables, state) {
     return true
 }
 export function publishCultTrialResult(c) {
-    if (recordCultTrialResult(c.tables, c.state)) {
+    if (recordCultTrialResult(c.tables, c.state, c.now)) {
         if (c.state.cultTrial.archive_id)
             c.push(
                 'CSProtoSyncArchiveGrowupData',

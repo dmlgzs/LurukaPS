@@ -97,6 +97,47 @@ export class Store {
         if (result?.then) throw Error('Asynchronous player query is forbidden')
         return result
     }
+    // Synchronous trusted ranking projection: no profile cap, no global flush, no borrowed writes.
+    // The caller's current draft overrides both SQL and its older pending image.
+    cultRankSnapshot(project, current) {
+        const reject = (ok, text) => {
+            if (!ok) throw Object.assign(Error(text), { code: ErrorCode.GameConfig })
+        }
+        reject(
+            typeof project === 'function' &&
+                current &&
+                Number.isSafeInteger(current.id) &&
+                current.id > 0 &&
+                current.state,
+            'Invalid cultivation rank projection',
+        )
+        const rows = this.db
+            .prepare(
+                "SELECT account_id,json_type(state,'$.cultRankProgress') AS fact_type,json_quote(json_extract(state,'$.cultRankProgress')) AS facts FROM players ORDER BY account_id",
+            )
+            .all()
+        const result = new Map()
+        for (const row of rows) {
+            const id = row.account_id
+            reject(Number.isSafeInteger(id) && id > 0, 'Invalid cultivation rank account')
+            const value =
+                id === current.id
+                    ? current.state.cultRankProgress
+                    : this.pending.has(id)
+                      ? this.pending.get(id).state.cultRankProgress
+                      : row.fact_type === null
+                        ? undefined
+                        : JSON.parse(row.facts)
+            const projected = project(value, id)
+            reject(!projected?.then, 'Asynchronous cultivation rank projection is forbidden')
+            if (projected !== null && projected !== undefined) result.set(id, projected)
+        }
+        reject(
+            rows.some((r) => r.account_id === current.id),
+            'Cultivation rank player unavailable',
+        )
+        return result
+    }
     hasFailedRequestAfter(id, messageId, sinceMs) {
         return !!this.failedRequest.get(id, messageId, sinceMs)
     }

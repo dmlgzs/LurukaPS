@@ -1,3 +1,4 @@
+import { recordCultRankResult } from './cult-rank-progress.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { GROWUP_ARCHIVE_SLOT_MAX } from './growup-archive.js'
@@ -116,7 +117,7 @@ export function cultArchiveEnemyDefinition(tables, run, definition) {
     return { ...definition, max_hp }
 }
 
-export function recordCultArchiveResult(state) {
+export function recordCultArchiveResult(tables, state, now) {
     const run = state.cultTrial
     if (!run?.archive_id || !run.battle_complete || run.result_published) return false
     state.activities = { ...state.activities }
@@ -139,6 +140,7 @@ export function recordCultArchiveResult(state) {
         BigInt(ledger.endless_max_score ?? '0') > BigInt(result.score) ? ledger.endless_max_score : result.score,
     )
     ledger.endless_max_wave = Math.max(ledger.endless_max_wave ?? 0, run.completed_waves ?? 0)
+    recordCultRankResult(tables, state, run, now)
     run.result_published = true
     return true
 }

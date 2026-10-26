@@ -1,3 +1,4 @@
+import { acceptCultRankRun, nextCultRankInstance } from '../cult-rank-progress.js'
 import { ErrorCode } from '../error-codes.js'
 import { ensure } from './common.js'
 import { worldSync } from './world.js'
@@ -113,7 +114,7 @@ export function registerCultTrial(on, tables, catalog) {
             ...(archive ? { archive_id: r.archive_id, archive: structuredClone(archive) } : {}),
             status: 2,
             start_time: c.now,
-            instance_id: c.state.nextCultTrialInstanceId ?? 1,
+            instance_id: archive ? nextCultRankInstance(c.state) : (c.state.nextCultTrialInstanceId ?? 1),
             return_world: old?.return_world ?? {
                 map_id: w.map_id,
                 point_id: w.point_id,
@@ -122,6 +123,8 @@ export function registerCultTrial(on, tables, catalog) {
                 angle: w.angle,
             },
         }
+        if (archive)
+            c.state.cultTrial.rank_acceptance = acceptCultRankRun(catalog, row, trial, c.state.cultTrial, c.now)
         c.state.nextCultTrialInstanceId = c.state.cultTrial.instance_id + 1
         if (g) g.select_trail_id = trial.trialId
         Object.assign(w, tables.position(point))

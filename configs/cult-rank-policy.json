@@ -1,0 +1,21 @@
+{
+    "version": 1,
+    "officiallyVerified": false,
+    "authorizedPolicy": "用户选择B241整套推荐本地政策：鲜表预测加排名区本服真实竞争排名",
+    "periods": [
+        {
+            "activityId": 60001,
+            "key": "local-cult-60001-v1",
+            "start": "",
+            "end": "20301231-235959"
+        }
+    ],
+    "participation": "仅新版接受的phase4保存档案试炼真实结算，包含超时及result4真实已打分；旧run/旧最大分不迁移；每账号本期最高分",
+    "ranking": "低于8000无榜，预测区按鲜表线性插值向上取整万分数；排名区同分竞争名次R=1+更高分人数，P=ceil(R*10000/N)，G=ceil(排名区边界*P/10000)",
+    "qualification": "未领看当前可信集合，已领单调保留；不采用旧rank_permyriad_max或历史最好资格",
+    "todo": [
+        "官方人口、同分、历史、周期和后台谓词未恢复；本期为显式本地活动期，并非官方赛季",
+        "当前客户端11861成功0会显示1%；无参赛/无榜只拒绝不发假0包，但错误不能清其旧缓存，UI兼容仍待后续",
+        "QuestRewardInfo使用服务器80008状态，SoulEssenceRewardInfo仍使用疑似量纲错误helper；不宣称所有UI已修复"
+    ]
+}
