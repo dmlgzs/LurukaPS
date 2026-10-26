@@ -3,6 +3,8 @@ import { ensure } from './handlers/common.js'
 import { randomInt as secureRandomInt } from 'node:crypto'
 import { assistantLevel, prepareGrowupCycle, populateGrowupEvents, growupCommonTriggers } from './growup-cycle.js'
 import { cultivationScore, growupScoreVersion } from './growup-score.js'
+import { permanentState } from './growup-permanent.js'
+import { permanentRunGuid, sealPermanentInitial, applyPermanentJoin } from './growup-initial-perks.js'
 const ids = (value) =>
     String(value ?? '')
         .split('|')
@@ -23,6 +25,7 @@ export function trainingFailureRate(afterStamina) {
 export class GrowupSystem {
     constructor(tables) {
         this.tables = tables
+        this.permanentEntries = new WeakMap()
     }
     config(id) {
         const row = this.tables.get('game_events_cul').find((x) => x.Id === id)
@@ -68,6 +71,7 @@ export class GrowupSystem {
     }
     ensure(entry, id) {
         const g = (entry.growup ??= this.fresh(id))
+        this.permanentEntries.set(g, entry)
         if (entry.growupHistoryScoreVersion !== growupScoreVersion) {
             for (const record of g.end_data.complete_end) {
                 try {
@@ -189,6 +193,7 @@ export class GrowupSystem {
                             (assistant = { assist_char_id: assistantId, bond: 0, is_bond_train: false }),
                         )
                     assistant.bond = Math.max(0, assistant.bond + points)
+                    applyPermanentJoin(this, this.permanentEntries.get(g), g, id, assistant)
                 }
             } else if (row.type === 0) {
                 continue
@@ -290,6 +295,12 @@ export class GrowupSystem {
             ensure(old.cur_starting_id === starting.startingId, 'Cultivation run already started')
             return old
         }
+        const ledger = permanentState(this, entry, id, accountId)
+        ensure(
+            chosen.every((x) => ledger?.unlocked.includes(x)),
+            'Cultivation assistant is not permanently unlocked',
+            ErrorCode.ActivityGrowUpExcultivationCondLimit,
+        )
         const g = this.fresh(id)
         g.final_wins = old.final_wins
         g.end_data = old.end_data
@@ -298,8 +309,7 @@ export class GrowupSystem {
         g.cur_starting_id = starting.startingId
         g.cur_stage = 1
         g.cur_growup_stage = 1
-        entry.nextGrowupGuid = (entry.nextGrowupGuid ?? 0) + 1
-        g.guid = String((BigInt(accountId) << 32n) | BigInt(entry.nextGrowupGuid))
+        g.guid = permanentRunGuid(entry, accountId)
         g.assist_chars = [...ids(starting.initialCharacter), ...chosen].map((assist_char_id) => ({
             assist_char_id,
             bond: 0,
@@ -313,11 +323,13 @@ export class GrowupSystem {
                     .map((x) => x.trainOption),
             ),
         ].map((train_option_id) => ({ train_option_id, train_lv: 1, train_exp: 0, assist_char_ids: [] }))
-        this.effects(g, id, starting.effect)
-        g.day_start_snapshot = { train_attrs: structuredClone(g.growup_train_attr), statuses: [] }
         entry.growup = g
-        g.cur_cost_expedition_count = this.config(id).expeditionCount
         entry.growupRuntime = { expeditionRemainingVersion: 1 }
+        this.permanentEntries.set(g, entry)
+        this.effects(g, id, starting.effect)
+        sealPermanentInitial(this, entry, id, accountId)
+        g.day_start_snapshot = { train_attrs: structuredClone(g.growup_train_attr), statuses: [] }
+        g.cur_cost_expedition_count = this.config(id).expeditionCount
         this.prepare(entry, id, randomInt)
         return g
     }

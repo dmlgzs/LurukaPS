@@ -1,5 +1,6 @@
 import { archiveGrowupData } from '../growup-archive.js'
 import { ensure } from './common.js'
+import { preparePermanent } from '../growup-permanent.js'
 export function registerGrowup(on, catalog) {
     on('ArchiveGrowupData', (c, r) => archiveGrowupData(c, r, catalog))
     const system = catalog.growup
@@ -23,6 +24,7 @@ export function registerGrowup(on, catalog) {
     }
     on('ActivityGrowUpStartSelectReq', (c, r) => {
         const { entry, row } = context(c, r)
+        preparePermanent(system, entry, row.systemId, c.id, c.now)
         const g = system.start(entry, row.systemId, r, c.id, c.randomInt)
         publish(c, row.id, g)
         return {}

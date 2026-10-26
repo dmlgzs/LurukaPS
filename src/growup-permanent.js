@@ -332,6 +332,9 @@ function fresh(owner) {
         migration: { version: 1, done: false, skipped: [] },
     }
 }
+export function permanentState(system, entry, id, owner) {
+    return checkedLedger(system, entry, id, owner)
+}
 function addReceipt(model, ledger, info, source, now) {
     const old = ledger.endings[info.run_guid]
     if (old) {
