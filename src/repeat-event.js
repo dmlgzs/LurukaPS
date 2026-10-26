@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import { WorldObjectCatalog } from './world-objects.js'
 import { ensure } from './handlers/common.js'
 import { ErrorCode } from './error-codes.js'
+import { repeatStarTrustedCount, repeatStarWireRecord, sealRepeatStarProgress } from './repeat-star-progress.js'
 
 const names = [
     'repeat_event_activity',
@@ -43,12 +44,17 @@ export function repeatSnapshot(state, calendar, now) {
         finished_level_data: Object.values(state.repeatEvent?.levels ?? {}).map((record) => ({
             ...record,
             mode_save_data: record.mode_save_data.map((mode) =>
-                calendar &&
-                now !== undefined &&
-                mode.bonus_reward_fetch_time !== undefined &&
-                calendar.day(mode.bonus_reward_fetch_time) !== calendar.day(now)
-                    ? { ...mode, bonus_reward_daily_count: 0 }
-                    : mode,
+                repeatStarWireRecord(
+                    state,
+                    record.event_id,
+                    record.level_id,
+                    calendar &&
+                        now !== undefined &&
+                        mode.bonus_reward_fetch_time !== undefined &&
+                        calendar.day(mode.bonus_reward_fetch_time) !== calendar.day(now)
+                        ? { ...mode, bonus_reward_daily_count: 0 }
+                        : mode,
+                ),
             ),
         })),
     }
@@ -84,10 +90,14 @@ export function repeatEntryPlan(c, request) {
     )
     ensure(mode === 1 || mode === 2, 'Invalid repeat event mode', ErrorCode.RepeatEventLevelInvalidMode)
     ensure(mode !== 2 || levelRow.isHardOpen === 1, 'Repeat hard mode is disabled', ErrorCode.RepeatEventLevelDisabled)
-    const previous = (row) =>
-        !row.preLevel ||
-        !row.preLevelDiff ||
-        (repeatModeRecord(c.state, activity, row.preLevel, row.preLevelDiff)?.star_count ?? 0) > 0
+    const previous = (row) => {
+        if (!row.preLevel || !row.preLevelDiff) return true
+        const saved = repeatModeRecord(c.state, activity, row.preLevel, row.preLevelDiff)
+        // Validate typed integrity before either branch. Entry preserves any
+        // legacy positive unlock while also accepting a new typed improvement.
+        const trusted = repeatStarTrustedCount(saved)
+        return (trusted ?? 0) > 0 || (saved?.star_count ?? 0) > 0
+    }
     ensure(
         previous(chapterRow) && previous(levelRow),
         'Previous repeat level is incomplete',
@@ -101,7 +111,7 @@ export function repeatEntryPlan(c, request) {
     )
     return { dungeonId, activity, chapter, level, mode }
 }
-export function recordRepeatVictory(tables, state, run) {
+export function recordRepeatVictory(tables, state, run, { freshRepeatVictory = false } = {}) {
     const route = repeatDungeon(tables, run.dungeon_id),
         data = run.repeat_event
     ensure(
@@ -139,6 +149,12 @@ export function recordRepeatVictory(tables, state, run) {
         pass_time: previous?.win_count ? Math.min(elapsed, previous.pass_time) : elapsed,
         win_count: (previous?.win_count ?? 0) + 1,
     }
+    const progress = sealRepeatStarProgress(route.tables, state, run, previous, freshRepeatVictory)
+    if (progress !== undefined) next.star_progress = progress
+    // Unversioned data may have been a scalar or a wire mask. Preserve its exact
+    // original field; only typed v1 data can affect the outgoing star mask.
+    if (previous?.star_count !== undefined) next.star_count = previous.star_count
+    else if (progress?.version === 1) next.star_count = progress.best_mask
     ensure(
         Number.isSafeInteger(next.win_count) && next.win_count <= 0xffffffff,
         'Repeat clear counter overflow',

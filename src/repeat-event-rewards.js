@@ -1,6 +1,7 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { repeatDungeon, repeatModeRecord } from './repeat-event.js'
+import { repeatStarWireRecord } from './repeat-star-progress.js'
 import { getEntrustCatalog } from './entrust.js'
 import { WorldObjectCatalog } from './world-objects.js'
 import { grantRewards, parseRewards } from './rewards.js'
@@ -34,7 +35,14 @@ function update(c, key, record, mode) {
         ...record,
         mode_save_data: record.mode_save_data.map((row) => (row.mode === mode.mode ? mode : row)),
     }
-    c.pushBefore('CSProtoRepeatEventLevelModify', { level_data: ledger.levels[key] })
+    c.pushBefore('CSProtoRepeatEventLevelModify', {
+        level_data: {
+            ...ledger.levels[key],
+            mode_save_data: ledger.levels[key].mode_save_data.map((row) =>
+                repeatStarWireRecord(c.state, record.event_id, record.level_id, row),
+            ),
+        },
+    })
 }
 function merged(rows) {
     const result = new Map()

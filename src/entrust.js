@@ -194,7 +194,7 @@ export function settleEntrustVictory(
         run.damage_recovered_from_hp = true
     }
     if (run.kind === 'repeat') {
-        recordRepeatVictory(tables, state, run)
+        recordRepeatVictory(tables, state, run, { freshRepeatVictory })
         const tuple = recordRepeatClear(tables, state, run, config, now, freshRepeatVictory)
         if (tuple) recordBattlePassRepeatClear(tables, state, tuple, now)
         return true

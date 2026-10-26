@@ -67,7 +67,12 @@ test('two complete real waves create only repeat progress and allow the real fre
         }
         assert.equal(f.state().entrust.run.battle_complete, true)
         assert.equal(f.state().repeatEvent.levels['10001:10101'].mode_save_data[0].win_count, 1)
-        assert.equal(f.state().repeatEvent.levels['10001:10101'].mode_save_data[0].star_count, 3)
+        assert.equal(f.state().repeatEvent.levels['10001:10101'].mode_save_data[0].star_count, 7)
+        assert.deepEqual(f.state().repeatEvent.levels['10001:10101'].mode_save_data[0].star_progress, {
+            version: 1,
+            best_count: 3,
+            best_mask: 7,
+        })
         assert.deepEqual(f.state().entrust.records, {})
         f.call('StaminaBoxGet', { box_id: 3001001, times: 1 })
         assert.equal(f.state().entrust.run.chest_claimed, true)
