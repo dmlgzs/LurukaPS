@@ -7,6 +7,7 @@ import { completedEnemyGroup } from '../enemy-group-completion.js'
 import { recordBossFirstClear } from '../boss-first-chests.js'
 import { inactiveCampaignEnemyGroup } from '../inactive-campaign-enemies.js'
 import { arenaNativeSummonOwner } from '../npc-kibo-unit-grade.js'
+import { requirePetModel } from '../pet-model-eligibility.js'
 function runtime(c) {
     const state = combatState(c.state, c.now)
     state.summons ??= {}
@@ -148,10 +149,9 @@ export function registerWorldCombat(on) {
         const uuid = u64(r.uuid),
             type = r.type ?? 0
         if (isRetiredTrialActor(c.state, uuid)) return
-        ensure(
-            c.state.pets.some((p) => p.guid === uuid) || temporaryPets(c.state).some((p) => p.guid === uuid),
-            'Pet not owned',
-        )
+        const owned = c.state.pets.find((pet) => pet.guid === uuid)
+        ensure(owned || temporaryPets(c.state).some((p) => p.guid === uuid), 'Pet not owned')
+        if (owned) requirePetModel(c.tables, owned)
         // Remote presentation only. Echoing this to the owner sets remoteSwitch locally.
         const battle = runtime(c)
         battle.petPresentation ??= {}
