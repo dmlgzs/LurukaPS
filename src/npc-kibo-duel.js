@@ -1,6 +1,7 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { arenaTrainer } from './npc-kibo-trainer.js'
+import { requirePetModel } from './pet-model-eligibility.js'
 
 const list = (value) =>
     String(value ?? '')
@@ -30,10 +31,9 @@ export function validateNpcDuelFormation(tables, state, duel, formation) {
             )
         } else {
             ensure(duel.levelType !== 2, 'This duel requires trial pets')
-            ensure(
-                state.pets.some((owned) => String(owned.guid) === id),
-                'Arena pet not owned',
-            )
+            const owned = state.pets.find((candidate) => String(candidate.guid) === id)
+            ensure(owned, 'Arena pet not owned')
+            requirePetModel(tables, owned)
         }
         count++
     }
