@@ -1,5 +1,6 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
+import { repairIdleHomePetModelBindings } from './pet-model-home.js'
 
 const models = new WeakMap()
 const positive = (value) => Number.isSafeInteger(value) && value > 0
@@ -100,6 +101,12 @@ export function repairPetModelBindings(tables, state) {
                 }
         }
     }
+    const homeChanged = repairIdleHomePetModelBindings(
+        tables,
+        state,
+        (table, configId) => petModelEligibility(table, configId).eligible,
+    )
+    if (homeChanged) changed = true
     if (changed) {
         state.petRevision = (state.petRevision ?? 0) + 1
         console.warn(

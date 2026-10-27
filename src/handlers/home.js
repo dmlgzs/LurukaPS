@@ -1,4 +1,5 @@
 import { ErrorCode } from '../error-codes.js'
+import { requirePetModel } from '../pet-model-eligibility.js'
 import { productionTables } from '../production-tables.js'
 import { ensure, textValue, pet } from './common.js'
 import { ensurePetName } from '../pets.js'
@@ -77,6 +78,7 @@ export function registerHome(on, tables) {
             station = (home.stationPets ??= [])
         ensure(r.type === 0 || r.type === 1, 'Invalid home-hub pet action')
         if (r.type === 0) {
+            requirePetModel(tables, p)
             if (station.includes(p.guid)) return {}
             const unlocked = ranchWorkerLimit(tables, c.state, 'worker_max')
             ensure(station.length < unlocked, 'Home-hub pet slots are full', ErrorCode.HomeHubFull)
