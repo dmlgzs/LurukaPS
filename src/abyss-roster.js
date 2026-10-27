@@ -1,6 +1,7 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { heroModules, heroBattleLimits, petModules } from './battle.js'
+import { requirePetModel } from './pet-model-eligibility.js'
 const LOW56 = (1n << 56n) - 1n
 export const abyssHeroGuid = (id) => ((30n << 56n) | (BigInt(id) & LOW56)).toString()
 export const abyssPetGuid = (id) => ((31n << 56n) | (BigInt(id) & LOW56)).toString()
@@ -149,6 +150,7 @@ export function abyssChallengeRoster(tables, state, level, request) {
             if (sourcePet !== '0') {
                 const originalPet = state.pets.find((x) => String(x.guid) === sourcePet)
                 ensure(originalPet, 'Abyss pet is not owned', ErrorCode.AbyssInvalidTroop)
+                requirePetModel(tables, originalPet)
                 ensure(!usedPets.has(sourcePet), 'Abyss pet repeated across teams', ErrorCode.AbyssPetRepeated)
                 usedPets.add(sourcePet)
                 const petGuid = abyssPetGuid(sourcePet),
