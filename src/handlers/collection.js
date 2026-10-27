@@ -69,7 +69,7 @@ export function registerCollection(on) {
         for (const info of infos) {
             if (info.hero_guid && info.hero_guid !== '0') hero(c.state, info.hero_guid)
             else ensure(!info.pet_guid || info.pet_guid === '0', 'Pet assigned to empty slot')
-            if (info.pet_guid && info.pet_guid !== '0') pet(c.state, info.pet_guid)
+            if (info.pet_guid && info.pet_guid !== '0') requirePetModel(c.tables, pet(c.state, info.pet_guid))
         }
         // Clear all selected assignments first so simultaneous pet swaps cannot
         // detach a pet that was already moved earlier in the same batch.
