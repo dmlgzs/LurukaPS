@@ -105,6 +105,7 @@ import { registerPetCatch } from './handlers/pet-catch.js'
 import { refundPendingCatchCards } from './handlers/pet-catch.js'
 import { repairCharacterCreationMarker } from './character-creation.js'
 import { reconcileFormationPets } from './formation-pets.js'
+import { repairPetModelBindings } from './pet-model-eligibility.js'
 import { syncCurrencyMirrors, restoreMissingStamina } from './currency.js'
 import { registerGacha } from './handlers/gacha.js'
 import {
@@ -862,6 +863,7 @@ export class Game {
                 restoreMissingStamina(this.tables, state)
                 repairPetProfiles(this.tables, state, now)
                 repairPetCatalog(this.tables, state)
+                repairPetModelBindings(this.tables, state)
                 repairMountSelection(this.tables, state)
                 ensureFlightUnlocked(this.tables, state, now)
                 upgradeSkillState(this.tables, state)
@@ -1840,6 +1842,7 @@ export class Game {
     }
     loginPackets(state, session, r, frame, id) {
         const now = this.clock()
+        repairPetModelBindings(this.tables, state)
         const permanentSync = []
         pushPermanent(
             { id: session.id, state, now, pushBefore: (name, value) => permanentSync.push(this.packet(name, value)) },

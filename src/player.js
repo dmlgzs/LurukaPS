@@ -1,4 +1,5 @@
 import { petData } from './pets.js'
+import { petModelEligibility } from './pet-model-eligibility.js'
 import { mainHeroConfigId } from './main-hero.js'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -68,7 +69,13 @@ export function seedPlayer(tables, id, openId) {
     if (!heroes.length) throw Error('No usable heroes in table')
     const pets = tables
         .get('pet')
-        .filter((p) => p.petStage > 0 && p.IsCatch === 1 && tables.find('template_value', p.id))
+        .filter(
+            (p) =>
+                p.petStage > 0 &&
+                p.IsCatch === 1 &&
+                tables.find('template_value', p.id) &&
+                petModelEligibility(tables, p.id).eligible,
+        )
         .map((p, i) => petData(tables, p.id, String(p.id), (Math.floor(i / 30) + 1) * 100 + (i % 30) + 1))
     const essences = tables
         .get('soulessence')

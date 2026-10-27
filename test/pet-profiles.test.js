@@ -7,8 +7,20 @@ import { initialPetComprehension } from '../src/pet-comprehension.js'
 import { Protocol } from '../src/protocol.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
+import { petModelEligibility } from '../src/pet-model-eligibility.js'
 
 const tables = new Tables(configuration().tables)
+// This fixture tracks the current seed policy; the tests below cover profile
+// generation/repair rather than the former hardcoded number of pet rows.
+const seedPetCount = tables
+    .get('pet')
+    .filter(
+        (row) =>
+            row.petStage > 0 &&
+            row.IsCatch === 1 &&
+            tables.find('template_value', row.id) &&
+            petModelEligibility(tables, row.id).eligible,
+    ).length
 
 test('builder aptitude weights respect its configured total and level-to-value ranges', () => {
     const lowest = initialPetComprehension(tables, 1001, () => 0),
@@ -45,7 +57,7 @@ test('builder aptitude weights respect its configured total and level-to-value r
 
 test('CBT3 seed and capture pets have table-backed grades and valid gene skills', () => {
     const state = seedPlayer(tables, 1, 'pet-profile')
-    assert.equal(state.pets.length, 204)
+    assert.equal(state.pets.length, seedPetCount)
     assert(state.pets.every((p) => p.grade > 0 && p.grade <= 99999))
     assert(state.pets.every((p) => p.color === 0))
     const target = state.pets.find((p) => p.config_id === 500297)
@@ -190,7 +202,7 @@ test('legacy saved pet profiles are repaired and encoded during normal login', (
             sync = packets.find((x) => x.id === 6517)
         assert(sync)
         const data = protocol.decode(protocol.byId.get(sync.id).rsp, sync.payload)
-        assert.equal(data.pet_infos.pets.length, 204)
+        assert.equal(data.pet_infos.pets.length, seedPetCount)
         assert(data.pet_infos.pets.every((p) => p.grade > 0))
         assert(data.pet_infos.pets.every((p) => p.color === 0))
         assert(

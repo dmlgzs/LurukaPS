@@ -11,6 +11,7 @@ import { refreshPetCaressPeriod } from './pet-caress.js'
 import { lockedPetBoxes } from './pet-box-locks.js'
 import { initialPetSatiety } from './pet-initial-satiety.js'
 import { petStarSoulAllocationFloor } from './pet-star-soul-progress.js'
+import { requirePetModel } from './pet-model-eligibility.js'
 
 // The localized export corrupts pet.gradeScore. Use the numeric CBT3 table.
 const petScores = new Map(
@@ -222,6 +223,7 @@ export function petData(tables, configId, guid, box, builderRuleId = 1001, rng =
     return pet
 }
 export function createPets(tables, state, configId, count, builderRuleId = 1001, rng = undefined) {
+    requirePetModel(tables, { config_id: configId })
     const boxCount = Number(tables.get('game').find((r) => r.title === 'PET_BOX_NUM')?.value),
         boxSize = Number(tables.get('game').find((r) => r.title === 'PET_BOX_LIMIT')?.value)
     ensure(
