@@ -110,7 +110,7 @@ export function registerCollection(on) {
     })
     on('SwitchWorldGroup', (c, r) => {
         const m = manager(c.state, r.type)
-        group(c.state, r.type, r.group_id)
+        checkNormalPets(c, group(c.state, r.type, r.group_id), r.type)
         m.last_group = m.cur_group
         m.cur_group = r.group_id
         syncGroups(c)
