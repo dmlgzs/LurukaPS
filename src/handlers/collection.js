@@ -6,6 +6,7 @@ import { mountPayload, repairMountSelection } from '../mounts.js'
 import { ensure, textValue, hero, pet, manager, group, syncPlayer, syncPets, syncGroupControl } from './common.js'
 import { ErrorCode } from '../error-codes.js'
 import { isHomeMap } from '../home-formation.js'
+import { requirePetModel } from '../pet-model-eligibility.js'
 export function registerCollection(on) {
     const syncFormation = (c, data) => {
         // HomePlayerUnitAdapter creates the default hero independently. Save
@@ -135,6 +136,7 @@ export function registerCollection(on) {
     on('WearPet', (c, r) => {
         const h = hero(c.state, r.hero_guid)
         const p = r.pet_guid && r.pet_guid !== '0' ? pet(c.state, r.pet_guid) : null
+        if (p) requirePetModel(c.tables, p)
         for (const x of c.state.pets) if (x.hero_id === h.guid) x.hero_id = '0'
         for (const x of c.state.player.heros_info.heros) if (p && x.pet_id === p.guid) x.pet_id = '0'
         h.pet_id = p?.guid || '0'
