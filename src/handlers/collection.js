@@ -6,8 +6,12 @@ import { mountPayload, repairMountSelection } from '../mounts.js'
 import { ensure, textValue, hero, pet, manager, group, syncPlayer, syncPets, syncGroupControl } from './common.js'
 import { ErrorCode } from '../error-codes.js'
 import { isHomeMap } from '../home-formation.js'
-import { requirePetModel } from '../pet-model-eligibility.js'
+import { requirePetModel, requireNormalFormationPetModels } from '../pet-model-eligibility.js'
 export function registerCollection(on) {
+    const checkNormalPets = (c, formation, type) => {
+        if (manager(c.state, type).type === 1 && formation.id !== 0)
+            requireNormalFormationPetModels(c.tables, c.state, formation)
+    }
     const syncFormation = (c, data) => {
         // HomePlayerUnitAdapter creates the default hero independently. Save
         // exploration teams with metadata-only src=1, not an avatar reload.
@@ -97,6 +101,7 @@ export function registerCollection(on) {
         const ids = r.group.heros.filter((x) => x.hero_id && x.hero_id !== '0').map((x) => x.hero_id)
         ensure(ids.length > 0 && new Set(ids).size === ids.length, 'Empty or duplicate heroes')
         ids.forEach((id) => hero(c.state, id))
+        checkNormalPets(c, { ...old, heros: r.group.heros }, r.type)
         old.heros = r.group.heros
         old.control = ids.includes(r.group.control) ? r.group.control : ids[0]
         reconcileFormationPets(c.state)
