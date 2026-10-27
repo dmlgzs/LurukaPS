@@ -1,4 +1,5 @@
 import { ErrorCode } from '../error-codes.js'
+import { requirePetModel } from '../pet-model-eligibility.js'
 import { ensure } from './common.js'
 import { ensureHome } from '../home.js'
 import { clearFarmPetSlots } from './farm-workers.js'
@@ -67,6 +68,7 @@ export function registerRanch(on, tables) {
             ? (ranch.product_pets.find((entry) => entry.slot === slot)?.pet_guid ?? '0')
             : ranch.harvest_pet
         if (chosen) {
+            requirePetModel(tables, chosen)
             ensure(
                 !chosen.work_status || [1, 2, 5, 6, 7].includes(chosen.work_status),
                 'Pet is working elsewhere',
