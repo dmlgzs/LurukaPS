@@ -1,4 +1,5 @@
 import { ErrorCode } from '../error-codes.js'
+import { requirePetModel } from '../pet-model-eligibility.js'
 import { ensureHome } from '../home.js'
 import { reconcileFormationPets } from '../formation-pets.js'
 import { repairMountSelection, mountPayload } from '../mounts.js'
@@ -55,6 +56,7 @@ export function registerProductionWorkers(on, tables) {
         const current = String(build.station_pet_guid ?? '0')
         const chosen = id === '0' || id === current ? null : pet(c.state, id)
         if (chosen) {
+            requirePetModel(tables, chosen)
             const labor = String(station.laborType).split('|').map(Number)
             ensure(
                 chosen.labor_infos?.some((entry) => labor.includes(entry.labor_id) && entry.labor_grade > 0),
