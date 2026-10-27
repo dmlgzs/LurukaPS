@@ -127,6 +127,7 @@ export function registerCollection(on) {
             g.heros.some((h) => h.hero_id === r.control),
             'Control not in group',
         )
+        checkNormalPets(c, g, r.type)
         g.control = r.control
         syncGroupControl(c, r.type)
         return {}
