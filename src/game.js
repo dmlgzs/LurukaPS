@@ -198,6 +198,7 @@ import { registerSimpleProduction } from './handlers/simple-production.js'
 import { refreshProduction, productionDue } from './production.js'
 import { retimeProduction } from './production-time.js'
 import { settleProductionWork, reconcileProductionWork, productionWorkDue } from './production-work.js'
+import { captureWorkFoodTaskSnapshot, recordWorkFoodTaskWitnesses } from './task-work-food-witness.js'
 import { ranchDue, settleRanches, retimeRanches } from './ranch.js'
 import { collectionDue, settleCollections, retimeCollections } from './home-collection.js'
 import { simpleProductionDue, settleSimpleProducts, simpleProductSnapshot } from './simple-production.js'
@@ -485,7 +486,12 @@ function requireProductionWorkModel(state, policy, inspectEpochs = true) {
 export class Game {
     reviewProduction(state, now, phase = 'settle', revisionBase) {
         if (!this.productionWorkPolicy) return { changed: false, homeChanged: false, petChanged: false }
-        const base = revisionBase ?? { home: state.homeRevision ?? 0, pet: state.petRevision ?? 0 },
+        const captured = captureWorkFoodTaskSnapshot(
+                state,
+                this.productionWorkPolicy,
+                () => (this.workFoodWitnessGraphs ??= new TaskGraphs(this.tables)),
+            ),
+            base = revisionBase ?? { home: state.homeRevision ?? 0, pet: state.petRevision ?? 0 },
             result = (phase === 'reconcile' ? reconcileProductionWork : settleProductionWork)(
                 this.tables,
                 state,
@@ -493,12 +499,14 @@ export class Game {
                 this.productionWorkPolicy,
             ),
             retimed = retimeProduction(this.tables, state, now),
-            projected = refreshProduction(state, now)
+            projected = refreshProduction(state, now),
+            taskWitnessChanged = recordWorkFoodTaskWitnesses(state, captured, now)
         if (result.homeChanged && (state.homeRevision ?? 0) === base.home) state.homeRevision = base.home + 1
         if (result.petChanged && (state.petRevision ?? 0) === base.pet) state.petRevision = base.pet + 1
         return {
             ...result,
-            changed: result.changed || retimed || projected,
+            changed: result.changed || retimed || projected || taskWitnessChanged,
+            taskWitnessChanged,
             homeChanged: result.homeChanged || retimed || projected || (state.homeRevision ?? 0) !== base.home,
             petChanged: result.petChanged || (state.petRevision ?? 0) !== base.pet,
         }
@@ -524,8 +532,8 @@ export class Game {
     ) {
         this.announcementBaseUrl = 'http://127.0.0.1:20001/'
         this.syncOptimization = syncOptimization
-        // Explicit review-candidate injection only. Formal policy approval and
-        // runtime configuration are separate from isolated Game verification.
+        // The runtime supplies the approved local model; isolated verification
+        // may inject the same model explicitly without changing its rules.
         this.productionWorkPolicy = productionWorkPolicy
         // Only the newest successfully entered connection may receive an idle
         // abyss settlement. The TCP layer additionally checks the socket owner.
@@ -950,8 +958,10 @@ export class Game {
                 if (state.home.dormVisit && !activeDormVisit(this.tables, state)) delete state.home.dormVisit
                 reconcileHomeBuildShortcuts(this.tables, state)
                 reconcileHomeCropShortcuts(this.tables, state)
-                if (this.productionWorkPolicy) this.reviewProduction(state, now)
-                else retimeProduction(this.tables, state, now)
+                if (this.productionWorkPolicy) {
+                    this.reviewProduction(state, now)
+                    refreshTaskProgress(this.tables, state)
+                } else retimeProduction(this.tables, state, now)
                 retimeRanches(this.tables, state, now)
                 retimeCollections(this.tables, state, now)
                 if (!this.productionWorkPolicy) refreshProduction(state, now)
@@ -1358,6 +1368,7 @@ export class Game {
                 const homeBuildIdsBefore = (state.home?.builds || []).map((b) => b.guid)
                 const homeWishIdsBefore = (state.home?.wishlist || []).map((x) => x.uid)
                 const homeRevision = state.homeRevision || 0
+                const workTaskRevision = state.taskWorkFoodWitnessRevision ?? 0
                 const eggRevision = state.eggRevision || 0
                 const ornamentRevision = state.ornamentRevision || 0
                 const cardRevision = state.playerCardRevision || 0
@@ -1441,7 +1452,9 @@ export class Game {
                     context.pushBefore('CSProtoTaskSync', taskItemSnapshot(state))
                 syncCurrencyMirrors(state.player)
                 const updatedTasks = refreshTaskProgress(this.tables, state)
-                const visibleUpdates = updatedTasks.filter(
+                const visibleUpdates = (
+                    (state.taskWorkFoodWitnessRevision ?? 0) !== workTaskRevision ? state.tasks : updatedTasks
+                ).filter(
                     (task) =>
                         taskVisibleAtLevel(this.tables, state, task) &&
                         task.task_id !== state.pendingTaskStorySync?.task_id,
@@ -1831,6 +1844,15 @@ export class Game {
                 const work = homeDue && this.productionWorkPolicy ? this.reviewProduction(state, now) : null,
                     productionChanged = work ? work.homeChanged : homeDue && refreshProduction(state, now),
                     productionPetChanged = !!work?.petChanged
+                if (work?.taskWitnessChanged) {
+                    refreshTaskProgress(this.tables, state)
+                    const tasks = state.tasks.filter(
+                        (task) =>
+                            taskVisibleAtLevel(this.tables, state, task) &&
+                            task.task_id !== state.pendingTaskStorySync?.task_id,
+                    )
+                    if (tasks.length) packets.push(this.packet('CSProtoTaskSync', { tasks }))
+                }
                 if (exchangeReady)
                     prepareHomeExchange({
                         state,

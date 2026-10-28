@@ -5,6 +5,7 @@ import { taskBranchExit } from '../task-branch-flow.js'
 import { applyTaskItemActions } from '../task-items.js'
 import { grantRewards, parseRewards } from '../rewards.js'
 import { ensure } from './common.js'
+import { clearWorkFoodTaskWitnesses } from '../task-work-food-witness.js'
 import { WorldObjectCatalog } from '../world-objects.js'
 import { advanceStoryCampaignTask } from './story-campaign.js'
 import {
@@ -90,6 +91,7 @@ export function registerTasks(register, tables) {
     })
     on('TaskAbandon', (c, r) => {
         activeTask(c.state, r.u32)
+        clearWorkFoodTaskWitnesses(c.state, r.u32)
         if (c.state.pendingTaskStorySync?.task_id === r.u32) delete c.state.pendingTaskStorySync
         c.state.tasks = c.state.tasks.filter((t) => t.task_id !== r.u32)
         sync(c, { del_tasks: [r.u32], del_trace_list: [r.u32] })
@@ -127,6 +129,7 @@ export function registerTasks(register, tables) {
         record.time = c.now
         c.state.tasks = c.state.tasks.filter((t) => t.task_id !== r.u32)
         advanceStoryCampaignTask(c, r.u32)
+        clearWorkFoodTaskWitnesses(c.state, r.u32)
         if (c.state.pendingTaskStorySync?.task_id === r.u32) delete c.state.pendingTaskStorySync
         c.push('CSProtoSyncPlayerData', c.state.player)
         sync(c, { del_tasks: [r.u32], del_trace_list: [r.u32] })
@@ -223,6 +226,13 @@ export function registerTasks(register, tables) {
     on('TaskClientBefore', (c, r) => {
         if (finished(c, r)) return {}
         const { node, config } = current(c, r)
+        // Rebuilt/rewound nodes start with client_before=false. A retransmitted
+        // Before for the same active attempt must retain its genuine witness.
+        if (!node.client_before && clearWorkFoodTaskWitnesses(c.state, r.task_id, r.node_id)) {
+            node.node_values = nodeConditions(config).map((condition, index) =>
+                conditionValue(condition, c.state, { taskId: r.task_id, nodeId: r.node_id, index }),
+            )
+        }
         applyTaskItemActions(tables, c.state, r.task_id, r.node_id, config, 'before')
         if (node.client_before) {
             sync(c, {}, true)
@@ -284,7 +294,7 @@ export function registerTasks(register, tables) {
         )
         const conditions = nodeConditions(config)
         node.node_values = conditions.map((q, index) =>
-            conditionValue(q, c.state, { taskId: r.task_id, nodeId: r.node_id, index }),
+            conditionValue(q, c.state, { taskId: r.task_id, nodeId: r.node_id, index, phase: 'after' }),
         )
         // TaskEntityCreatePlayerData.StepOver(1) reports After as soon as the
         // creation page opens. The actual PlayerCustomData request arrives later.
@@ -328,6 +338,7 @@ export function registerTasks(register, tables) {
             ErrorCode.GameConfig,
         )
         task.nodes = task.nodes.filter((n) => n.node_id !== r.node_id)
+        clearWorkFoodTaskWitnesses(c.state, r.task_id, r.node_id)
         if (!task.finish_nodes.includes(r.node_id)) task.finish_nodes.push(r.node_id)
         if (branch) (c.state.taskBranchChoices ??= {})[deliveryKey(c.state, r.task_id, r.node_id, 'branch')] = branch
         for (const id of next)

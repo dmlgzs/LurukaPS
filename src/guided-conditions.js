@@ -67,6 +67,17 @@ export function guidedRequirement(id) {
     return Number.isInteger(param) && param > 0 ? param : 1
 }
 
+// The task-step witness must bind the same cached rule that the ordinary
+// predicate executes, rather than an unrelated Tables instance or a wire ID.
+export function guidedWorkFoodRule(id) {
+    const row = conditions.get(id)
+    const parts = String(row?.condition ?? '')
+        .split('|')
+        .map(Number)
+    if (parts.length !== 2 || parts[0] !== 12211 || !Number.isSafeInteger(parts[1]) || parts[1] <= 0) return null
+    return { definition: structuredClone(row), target: guidedRequirement(id) }
+}
+
 export function guidedConditionValue(id, state, context, providedRow) {
     const row = providedRow ?? conditions.get(id)
     if (!row) return 0

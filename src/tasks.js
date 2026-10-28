@@ -7,6 +7,7 @@ import path from 'node:path'
 import { ensure } from './handlers/common.js'
 import { guidedConditionValue, guidedRequirement } from './guided-conditions.js'
 import { taskEnemyPacks } from './task-enemy-slots.js'
+import { workFoodTaskConditionValue, clearWorkFoodTaskWitnesses } from './task-work-food-witness.js'
 export const asList = (value) => (value == null ? [] : Array.isArray(value) ? value : [value])
 export class TaskGraphs {
     constructor(tables, directory = path.resolve(tables.dir, '../Config/Task')) {
@@ -112,7 +113,7 @@ export function conditionValue(condition, state, context) {
     }
     if (condition.conditionId === 2518) {
         const achievId = base.__type_TaskCondGuidedAchievementsData?.achievId
-        return guidedConditionValue(achievId, state, context)
+        return workFoodTaskConditionValue(condition, state, context, guidedConditionValue(achievId, state, context))
     }
     if (condition.conditionId === 2525) {
         const d = base.__type_TaskCondCompletePlayableData,
@@ -272,6 +273,7 @@ export function taskUnlocked(graph, state, context) {
 }
 export function acceptTask(graph, state, now) {
     const id = graph.config.id
+    clearWorkFoodTaskWitnesses(state, id)
     state.taskEpochs ??= {}
     state.taskEpochs[id] = (state.taskEpochs[id] ?? 0) + 1
     const task = {
