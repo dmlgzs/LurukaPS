@@ -1,4 +1,5 @@
 import { ErrorCode } from './error-codes.js'
+import { arenaOutcomeTime, arenaScoreOutcome } from './npc-kibo-outcome-time.js'
 import { ensure } from './handlers/common.js'
 
 const uint = (n) => Number.isSafeInteger(n) && n >= 0 && n <= 0xffffffff
@@ -7,6 +8,16 @@ const safePositive = (n) => Number.isSafeInteger(n) && n > 0
 const object = (v) => v && typeof v === 'object' && !Array.isArray(v)
 const uuid = (v) => typeof v === 'string' && /^[1-9][0-9]*$/.test(v) && BigInt(v) <= 0xffffffffffffffffn
 const numericKey = (v) => typeof v === 'string' && /^[1-9][0-9]*$/.test(v) && positive(Number(v))
+
+// Untimed legacy facts remain readable but cannot mint new qualified wins.
+function timedFact(row) {
+    return (
+        (row.acceptedAtMs === undefined && row.terminalAlreadyKnown === undefined) ||
+        (Number.isSafeInteger(row.acceptedAtMs) &&
+            row.acceptedAtMs >= 0 &&
+            typeof row.terminalAlreadyKnown === 'boolean')
+    )
+}
 
 function facts(run) {
     const saved = run.noviceEventFacts
@@ -25,7 +36,8 @@ function facts(run) {
                 positive(row.configId) &&
                 Array.isArray(row.tags) &&
                 row.tags.every(positive) &&
-                new Set(row.tags).size === row.tags.length,
+                new Set(row.tags).size === row.tags.length &&
+                timedFact(row),
             'Invalid novice NPC deployment fact',
             ErrorCode.GameConfig,
         )
@@ -35,18 +47,24 @@ function facts(run) {
                 safePositive(Number(key)) &&
                 object(row) &&
                 row.serial === Number(key) &&
-                positive(row.skillId),
+                positive(row.skillId) &&
+                timedFact(row),
             'Invalid novice NPC skill fact',
             ErrorCode.GameConfig,
         )
     return saved
 }
 
-export function recordNoviceNpcDeployment(tables, run, actor) {
+export function recordNoviceNpcDeployment(tables, run, actor, acceptedAtMs) {
     if (actor.camp !== 1) return run
     ensure(
         run.actors?.[actor.uuid] === actor && uuid(actor.uuid) && uuid(actor.source_guid) && positive(actor.config_id),
         'Invalid novice NPC deployed actor',
+        ErrorCode.GameConfig,
+    )
+    ensure(
+        Number.isSafeInteger(acceptedAtMs) && acceptedAtMs >= 0,
+        'Invalid NPC deployment acceptance time',
         ErrorCode.GameConfig,
     )
     const saved = facts(run),
@@ -78,15 +96,26 @@ export function recordNoviceNpcDeployment(tables, run, actor) {
             ...saved,
             deployments: {
                 ...saved.deployments,
-                [actor.uuid]: { uuid: actor.uuid, sourceGuid: actor.source_guid, configId: actor.config_id, tags },
+                [actor.uuid]: {
+                    uuid: actor.uuid,
+                    sourceGuid: actor.source_guid,
+                    configId: actor.config_id,
+                    tags,
+                    acceptedAtMs,
+                    terminalAlreadyKnown: !!arenaScoreOutcome(run),
+                },
             },
         },
     }
 }
 
-export function recordNoviceNpcAcceptedSkill(run, skillId, serial) {
+export function recordNoviceNpcAcceptedSkill(run, skillId, serial, acceptedAtMs) {
     ensure(
-        positive(skillId) && safePositive(serial) && run.trainer_cast_serial === serial,
+        positive(skillId) &&
+            safePositive(serial) &&
+            run.trainer_cast_serial === serial &&
+            Number.isSafeInteger(acceptedAtMs) &&
+            acceptedAtMs >= 0,
         'Invalid novice NPC accepted skill',
         ErrorCode.GameConfig,
     )
@@ -96,7 +125,16 @@ export function recordNoviceNpcAcceptedSkill(run, skillId, serial) {
         ensure(old.skillId === skillId, 'Conflicting novice NPC cast serial', ErrorCode.GameConfig)
         return run
     }
-    return { ...run, noviceEventFacts: { ...saved, casts: { ...saved.casts, [serial]: { skillId, serial } } } }
+    return {
+        ...run,
+        noviceEventFacts: {
+            ...saved,
+            casts: {
+                ...saved.casts,
+                [serial]: { skillId, serial, acceptedAtMs, terminalAlreadyKnown: !!arenaScoreOutcome(run) },
+            },
+        },
+    }
 }
 
 function ledger(state) {
@@ -150,7 +188,7 @@ export function noviceNpcEventValue(state, kind, selector, required) {
 // Local reader-equivalent policy: distinct actually deployed runtime actors
 // and accepted trainer casts qualify a new victorious run. No old match,
 // roster, recent trace or first-clear record is backfilled into these facts.
-export function recordNoviceNpcEventWin(c, duel) {
+export function recordNoviceNpcEventWin(c, duel, outcome) {
     const state = c.state,
         run = state.combat?.npcDuel
     ensure(
@@ -167,8 +205,18 @@ export function recordNoviceNpcEventWin(c, duel) {
         ErrorCode.GameConfig,
     )
     const savedFacts = facts(run),
+        timing = arenaOutcomeTime(c, outcome),
+        terminal = arenaScoreOutcome(run),
         tags = {},
         skills = {}
+    // Continuous score loss and timeout terminate before an action at that
+    // millisecond. A cast accepted before a same-ms HP death may qualify;
+    // anything observed after an already sealed terminal event cannot.
+    const qualifies = (row) =>
+        timing.known &&
+        row.terminalAlreadyKnown === false &&
+        Number.isSafeInteger(row.acceptedAtMs) &&
+        (row.acceptedAtMs < timing.atMs || (row.acceptedAtMs === timing.atMs && terminal?.source === 'death'))
     for (const row of Object.values(savedFacts.deployments)) {
         const actor = run.actors[row.uuid]
         ensure(
@@ -176,10 +224,11 @@ export function recordNoviceNpcEventWin(c, duel) {
             'Novice NPC deployment no longer matches its roster',
             ErrorCode.GameConfig,
         )
-        for (const tag of row.tags) tags[tag] = (tags[tag] ?? 0) + 1
+        if (qualifies(row)) for (const tag of row.tags) tags[tag] = (tags[tag] ?? 0) + 1
     }
-    for (const row of Object.values(savedFacts.casts)) skills[row.skillId] = (skills[row.skillId] ?? 0) + 1
-    const receipt = { version: 1, generation: run.generation, duelId: duel.id, tags, skills }
+    for (const row of Object.values(savedFacts.casts))
+        if (qualifies(row)) skills[row.skillId] = (skills[row.skillId] ?? 0) + 1
+    const receipt = { version: 1, generation: run.generation, duelId: duel.id, tags, skills, qualificationTime: timing }
     if (run.noviceEventVictoryReceipt !== undefined) {
         ensure(
             JSON.stringify(run.noviceEventVictoryReceipt) === JSON.stringify(receipt),

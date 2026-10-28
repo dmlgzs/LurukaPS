@@ -66,7 +66,7 @@ export function recordArenaTrainerSkill(c, uuid, request) {
             })),
         ],
     }
-    c.state.combat.npcDuel = recordNoviceNpcAcceptedSkill(accepted, id, serial)
+    c.state.combat.npcDuel = recordNoviceNpcAcceptedSkill(accepted, id, serial, now)
 }
 
 export function recordArenaTrainerStop(c, uuid, request) {

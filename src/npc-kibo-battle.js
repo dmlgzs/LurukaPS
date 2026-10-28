@@ -268,7 +268,7 @@ export function setArenaInFight(c, actor, move, inFight, first = false) {
         }
         run.ever_summoned = { ...run.ever_summoned, [actor.uuid]: true }
     } else delete run.in_fight[actor.uuid]
-    battle.npcDuel = inFight ? recordNoviceNpcDeployment(c.tables, run, actor) : run
+    battle.npcDuel = inFight ? recordNoviceNpcDeployment(c.tables, run, actor, arenaMillis(c)) : run
     if (!inFight) clearArenaCardControls(c, actor.uuid)
     c.pushBefore('SCProtoKiboInFightChange', {
         changes: [{ kibo_guid: actor.uuid, in_fight: inFight, pos: move.pos, angle: move.angle, is_first: first }],
