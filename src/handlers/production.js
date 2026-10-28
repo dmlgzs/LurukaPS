@@ -149,6 +149,7 @@ export function registerProduction(on, tables) {
             reportedDone: 0,
         })
         h.productionJobs[b.guid] = jobs
+        c.reconcileProductionWork?.()
         refreshProduction(c.state, c.now)
         syncPlayer(c, {
             basic_info: c.state.player.basic_info,
