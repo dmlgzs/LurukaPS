@@ -1,0 +1,21 @@
+{
+    "schemaVersion": 1,
+    "policyId": "production-work-loop-local-v2",
+    "reviewOnly": true,
+    "humanApproved": false,
+    "officiallyVerified": false,
+    "unitBudgetMultiplier": 1,
+    "scope": ["ordinary", "accessory", "cook"],
+    "eligibility": "full-unit-budget-at-new-unit-or-new-worker",
+    "feeBasis": "actual-assisted-progress",
+    "feedingDurationSeconds": 0,
+    "refillTarget": "unit-eligibility-budget",
+    "recoveryCap": "pet-home-profile",
+    "foodSelection": "largest-fitting-cap-headroom-else-smallest",
+    "foodTieBreak": ["canteen-guid", "item-id"],
+    "overflow": "whole-food-explicit-waste",
+    "insufficientFood": "pause-without-partial-food-consumption",
+    "newFoodRetroactive": false,
+    "history": "adopt-current-progress-no-backcharge",
+    "runtimeDefaultEnabled": false
+}

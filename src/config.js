@@ -14,10 +14,30 @@ function integer(name, fallback) {
     if (!Number.isInteger(v)) throw Error(`Invalid ${name}`)
     return v
 }
+export function loadProductionWorkPolicy(file, { optional = false } = {}) {
+    if (typeof file !== 'string' || !file.trim()) throw Error('Invalid production work policy file')
+    if (optional && !fs.existsSync(file)) return undefined
+    const policy = JSON.parse(fs.readFileSync(file, 'utf8'))
+    if (
+        !policy ||
+        typeof policy !== 'object' ||
+        Array.isArray(policy) ||
+        policy.reviewOnly !== false ||
+        policy.humanApproved !== true
+    )
+        throw Error('Production work runtime policy has not been approved; review drafts are not activated')
+    return policy
+}
 export function configuration() {
     const discovery = JSON.parse(fs.readFileSync(path.join(base, 'configs/discovery-cbt3.json'), 'utf8'))
+    const policyFile = environment('AZUR_PRODUCTION_WORK_POLICY_FILE'),
+        productionWorkPolicy = loadProductionWorkPolicy(
+            policyFile ?? path.join(base, 'configs/production-work-policy.json'),
+            { optional: policyFile === undefined },
+        )
     return {
         base,
+        ...(productionWorkPolicy ? { productionWorkPolicy } : {}),
         diagnosticsFile: environment('AZUR_DIAGNOSTICS_FILE') ?? path.join(base, 'data/protocol-errors.jsonl'),
         offlinePayments: environment('AZUR_OFFLINE_PAYMENTS') !== '0',
         gmEnabled: environment('AZUR_ENABLE_GM') !== '0',

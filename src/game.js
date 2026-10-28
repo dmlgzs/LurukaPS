@@ -197,6 +197,7 @@ import { registerProduction } from './handlers/production.js'
 import { registerSimpleProduction } from './handlers/simple-production.js'
 import { refreshProduction, productionDue } from './production.js'
 import { retimeProduction } from './production-time.js'
+import { settleProductionWork, reconcileProductionWork, productionWorkDue } from './production-work.js'
 import { ranchDue, settleRanches, retimeRanches } from './ranch.js'
 import { collectionDue, settleCollections, retimeCollections } from './home-collection.js'
 import { simpleProductionDue, settleSimpleProducts, simpleProductSnapshot } from './simple-production.js'
@@ -437,7 +438,71 @@ function forkFastCombat(base, name, request) {
 }
 const defaultGameClock = () => Math.floor(Date.now() / 1000)
 
+function requireProductionWorkModel(state, policy, inspectEpochs = true) {
+    const home = state.home
+    if (!home) return
+    const object = (value) => value && typeof value === 'object' && !Array.isArray(value)
+    const ledgerPresent = Object.hasOwn(home, 'productionWork')
+    if (ledgerPresent) {
+        const ledger = home.productionWork
+        ensure(
+            object(ledger) &&
+                ledger.version === 1 &&
+                object(ledger.jobs) &&
+                object(ledger.pets) &&
+                object(ledger.stats) &&
+                Number.isSafeInteger(ledger.nextEpoch) &&
+                ledger.nextEpoch > 0,
+            'Persistent production work ledger is malformed',
+            ErrorCode.GameConfig,
+        )
+    } else if (inspectEpochs) {
+        // Only the already-loaded login/tick state is inspected. An isolated
+        // epoch must not fall back to wall-clock completion without its ledger.
+        for (const jobs of Object.values(home.productionJobs ?? {})) {
+            if (!Array.isArray(jobs)) continue
+            for (const job of jobs) {
+                if (!object(job) || !Object.hasOwn(job, 'workEpoch')) continue
+                ensure(
+                    Number.isSafeInteger(job.workEpoch) && job.workEpoch > 0,
+                    'Isolated production work epoch is malformed',
+                    ErrorCode.GameConfig,
+                )
+                throw new GameError(
+                    'Persistent production work ledger is missing for its saved epoch',
+                    ErrorCode.GameConfig,
+                )
+            }
+        }
+    }
+    ensure(
+        !ledgerPresent || policy,
+        'Persistent production work requires its configured accounting model',
+        ErrorCode.GameConfig,
+    )
+}
+
 export class Game {
+    reviewProduction(state, now, phase = 'settle', revisionBase) {
+        if (!this.productionWorkPolicy) return { changed: false, homeChanged: false, petChanged: false }
+        const base = revisionBase ?? { home: state.homeRevision ?? 0, pet: state.petRevision ?? 0 },
+            result = (phase === 'reconcile' ? reconcileProductionWork : settleProductionWork)(
+                this.tables,
+                state,
+                now,
+                this.productionWorkPolicy,
+            ),
+            retimed = retimeProduction(this.tables, state, now),
+            projected = refreshProduction(state, now)
+        if (result.homeChanged && (state.homeRevision ?? 0) === base.home) state.homeRevision = base.home + 1
+        if (result.petChanged && (state.petRevision ?? 0) === base.pet) state.petRevision = base.pet + 1
+        return {
+            ...result,
+            changed: result.changed || retimed || projected,
+            homeChanged: result.homeChanged || retimed || projected || (state.homeRevision ?? 0) !== base.home,
+            petChanged: result.petChanged || (state.petRevision ?? 0) !== base.pet,
+        }
+    }
     constructor(
         protocol,
         store,
@@ -454,10 +519,14 @@ export class Game {
             gachaPolicy = undefined,
             tourPolicy = undefined,
             giftCodeConfig = undefined,
+            productionWorkPolicy = undefined,
         } = {},
     ) {
         this.announcementBaseUrl = 'http://127.0.0.1:20001/'
         this.syncOptimization = syncOptimization
+        // Explicit review-candidate injection only. Formal policy approval and
+        // runtime configuration are separate from isolated Game verification.
+        this.productionWorkPolicy = productionWorkPolicy
         // Only the newest successfully entered connection may receive an idle
         // abyss settlement. The TCP layer additionally checks the socket owner.
         this.abyssTickOwners = new Map()
@@ -765,6 +834,7 @@ export class Game {
                 return [reply({ open_id: r.open_id, pid: a.id, guid: a.id, server_token: session.token })]
             }
             const packets = this.store.transact(session.id, e.id, (state) => {
+                requireProductionWorkModel(state, this.productionWorkPolicy)
                 this.legacyMatchTeams.onLogin(session.id)
                 const previousMapId = state.world.map_id
                 delete state.world.mountActionLifecycle // A login never inherits prior-session exit authorization.
@@ -880,10 +950,11 @@ export class Game {
                 if (state.home.dormVisit && !activeDormVisit(this.tables, state)) delete state.home.dormVisit
                 reconcileHomeBuildShortcuts(this.tables, state)
                 reconcileHomeCropShortcuts(this.tables, state)
-                retimeProduction(this.tables, state, now)
+                if (this.productionWorkPolicy) this.reviewProduction(state, now)
+                else retimeProduction(this.tables, state, now)
                 retimeRanches(this.tables, state, now)
                 retimeCollections(this.tables, state, now)
-                refreshProduction(state, now)
+                if (!this.productionWorkPolicy) refreshProduction(state, now)
                 for (const [id, capture] of Object.entries(state.petCaptureResults ?? {}))
                     if (capture.map_id === state.world.map_id && state.combat?.entities?.[id]?.captured !== true)
                         retireCapturedEnemy({ state, now, pushBefore: () => {} }, id)
@@ -1015,6 +1086,7 @@ export class Game {
         ensure(session.id, 'Login required', ErrorCode.HaveNotEnterGame)
         if (e.name === 'CSProtoCreatePlayer') {
             return this.store.transact(session.id, e.id, (state) => {
+                requireProductionWorkModel(state, this.productionWorkPolicy)
                 if (r.name) state.player.basic_info.name = textValue(r.name, 15)
                 if (r.wardrobe_info) {
                     ensure([1, 2].includes(r.wardrobe_info.sex))
@@ -1243,6 +1315,12 @@ export class Game {
             e.id,
             (state, transaction) => {
                 const battleReport = e.name === 'CSProtoBattleInfoReduce'
+                // Ordinary observers also touch production. Reuse the loaded
+                // draft even after failed EnterGame. Only a missing model and
+                // absent ledger need an orphan-epoch scan; existing ledgers use
+                // a constant-time envelope check. Combat/movement stay outside.
+                if (!battleReport)
+                    requireProductionWorkModel(state, this.productionWorkPolicy, !this.productionWorkPolicy)
                 const saddlesBefore = JSON.stringify(state.mountSaddles)
                 const booksBefore = JSON.stringify(state.readingBooks ?? {})
                 const basicBefore = JSON.stringify(state.player.basic_info),
@@ -1302,6 +1380,9 @@ export class Game {
                     broadcast: (audience, name, value) => pushes.push(this.packet(name, value, { audience })),
                     pushBefore: (name, value) => emit(before, name, value),
                     push: (name, value) => emit(pushes, name, value, { pushSeq: frame.pushSeq }),
+                    reconcileProductionWork: this.productionWorkPolicy
+                        ? () => this.reviewProduction(state, now, 'reconcile', { home: homeRevision, pet: petRevision })
+                        : undefined,
                 }
                 if (!battleReport) {
                     prepareStamina(this.tables, state, now)
@@ -1309,8 +1390,12 @@ export class Game {
                     settleRanches(this.tables, state, now, this.rng)
                     settleCollections(this.tables, state, now, this.rng)
                     prepareHomeExchange(context, { historyNotice: e.name !== 'CSProtoCSHistoryReport' })
-                    retimeProduction(this.tables, state, now)
-                    refreshProduction(state, now)
+                    if (this.productionWorkPolicy)
+                        this.reviewProduction(state, now, 'settle', { home: homeRevision, pet: petRevision })
+                    else {
+                        retimeProduction(this.tables, state, now)
+                        refreshProduction(state, now)
+                    }
                 }
                 // Older servers persisted the selected pet and final step, then rejected
                 // PlayableFinish. The client keeps requesting Start while that run remains
@@ -1344,7 +1429,10 @@ export class Game {
                 if (!battleReport) this.noviceTasks.notify(context)
                 if ((state.playerCardRevision || 0) !== cardRevision)
                     context.pushBefore('CSProtoStandPlatesBagInfo', playerCardSnapshot(this.tables, state))
-                if (!battleReport && retimeProduction(this.tables, state, now)) refreshProduction(state, now)
+                if (!battleReport) {
+                    if (this.productionWorkPolicy) context.reconcileProductionWork()
+                    else if (retimeProduction(this.tables, state, now)) refreshProduction(state, now)
+                }
                 if (!battleReport) retimeRanches(this.tables, state, now)
                 if (!battleReport) retimeCollections(this.tables, state, now)
                 if (e.name === 'CSProtoPlayerCustomData') this.finishPendingCharacterTask(context)
@@ -1631,8 +1719,11 @@ export class Game {
         const now = this.clock(),
             arenaNowMs = this.arenaTime(now),
             exact = arenaNowMs / 1000,
-            current = this.store.load(id).state,
-            homeDue = productionDue(current, now),
+            current = this.store.load(id).state
+        requireProductionWorkModel(current, this.productionWorkPolicy)
+        const homeDue =
+                productionDue(current, now) ||
+                (this.productionWorkPolicy && productionWorkDue(this.tables, current, now, this.productionWorkPolicy)),
             ranchReady = ranchDue(current, now),
             collectionReady = collectionDue(current, now),
             exchangeReady = homeExchangeDue(this.tables, current, now),
@@ -1737,7 +1828,9 @@ export class Game {
                         }),
                     )
                 }
-                const productionChanged = homeDue && refreshProduction(state, now)
+                const work = homeDue && this.productionWorkPolicy ? this.reviewProduction(state, now) : null,
+                    productionChanged = work ? work.homeChanged : homeDue && refreshProduction(state, now),
+                    productionPetChanged = !!work?.petChanged
                 if (exchangeReady)
                     prepareHomeExchange({
                         state,
@@ -1748,7 +1841,7 @@ export class Game {
                     })
                 const ranchChanged = ranchReady && settleRanches(this.tables, state, now, this.rng)
                 const collectionChanged = collectionReady && settleCollections(this.tables, state, now, this.rng)
-                if (productionChanged || ranchChanged || collectionChanged) {
+                if (productionChanged || productionPetChanged || ranchChanged || collectionChanged) {
                     if ((state.eggRevision || 0) !== eggRevision)
                         packets.push(
                             this.packet('CSProtoPetEggInfoSync', {
@@ -1756,7 +1849,8 @@ export class Game {
                                 egg_infos: { eggs: state.petEggs || [] },
                             }),
                         )
-                    packets.push(this.packet('CSProtoHomeSync', homePayload(this.tables, state)))
+                    if (productionChanged || ranchChanged || collectionChanged)
+                        packets.push(this.packet('CSProtoHomeSync', homePayload(this.tables, state)))
                     if ((state.petRevision || 0) !== petRevision)
                         packets.push(
                             this.packet('CSProtoPetInfoSync', {

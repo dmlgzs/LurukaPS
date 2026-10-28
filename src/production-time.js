@@ -116,6 +116,7 @@ export function retimeProduction(tables, state, now) {
     for (const build of state.home?.builds ?? []) {
         const jobs = state.home.productionJobs?.[build.guid] ?? []
         const updates = jobs.map((job) => {
+            if (job.workEpoch !== undefined) return job.seconds
             if (now >= job.start + job.count * job.seconds) return job.seconds
             if (job.kind === 'hatch') {
                 const egg = state.petEggs?.find((e) => e.guid === job.eggGuid)
@@ -137,6 +138,10 @@ export function retimeProduction(tables, state, now) {
         for (let i = 0; i < jobs.length; i++) {
             const job = jobs[i],
                 seconds = updates[i]
+            if (job.workEpoch !== undefined) {
+                end = Math.max(end, job.workProjection?.total_finish_time ?? now)
+                continue
+            }
             if (now >= job.start + job.count * job.seconds) continue
             if (job.start <= now) {
                 const progress = (now - job.start) / job.seconds

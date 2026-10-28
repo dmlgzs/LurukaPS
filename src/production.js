@@ -1,4 +1,19 @@
+import { ErrorCode } from './error-codes.js'
+import { ensure } from './handlers/common.js'
+
 export function completed(job, now) {
+    if (job.workEpoch !== undefined) {
+        ensure(
+            Number.isSafeInteger(job.workEpoch) &&
+                job.workEpoch > 0 &&
+                Number.isSafeInteger(job.workCompleted) &&
+                job.workCompleted >= 0 &&
+                job.workCompleted <= job.count,
+            'Invalid managed production progress',
+            ErrorCode.GameConfig,
+        )
+        return job.workCompleted
+    }
     return Math.min(job.count, Math.max(0, Math.floor((now - job.start) / job.seconds)))
 }
 function hatchPhase(job, now) {
@@ -27,9 +42,13 @@ export function refreshProduction(state, now) {
                 product_guid: j.guid,
                 total_count: j.count - done,
                 finish_count: done - j.claimed,
-                start_time: j.start + done * j.seconds,
-                finish_time: j.start + Math.min(j.count, done + 1) * j.seconds,
-                total_finish_time: j.start + j.count * j.seconds,
+                ...(j.workEpoch !== undefined
+                    ? managedProjection(j)
+                    : {
+                          start_time: j.start + done * j.seconds,
+                          finish_time: j.start + Math.min(j.count, done + 1) * j.seconds,
+                          total_finish_time: j.start + j.count * j.seconds,
+                      }),
             }
         })
         const status = jobs.some((j) => completed(j, now) < j.count) ? 4 : 1
@@ -106,7 +125,24 @@ export function refreshProduction(state, now) {
 export function rescheduleJobs(jobs, now) {
     let end = now
     for (const job of jobs) {
+        if (job.workEpoch !== undefined) {
+            end = Math.max(end, job.workProjection?.total_finish_time ?? now)
+            continue
+        }
         if (job.start > now) job.start = Math.max(now, end)
         end = Math.max(end, job.start + job.count * job.seconds)
     }
+}
+
+function managedProjection(job) {
+    const projection = job.workProjection
+    ensure(
+        projection &&
+            ['start_time', 'finish_time', 'total_finish_time'].every(
+                (key) => Number.isSafeInteger(projection[key]) && projection[key] >= 0 && projection[key] <= 0xffffffff,
+            ),
+        'Invalid managed production wire projection',
+        ErrorCode.GameConfig,
+    )
+    return projection
 }

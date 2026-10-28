@@ -14,6 +14,7 @@ import { Protocol } from './protocol.js'
 import { Store } from './store.js'
 import { Tables } from './player.js'
 import { Game } from './game.js'
+import { validateProductionWorkPolicy } from './production-work.js'
 import { ARENA_TIMER_MS } from './npc-kibo-time.js'
 import { FrameReader, encodeFrame } from './wire.js'
 
@@ -50,6 +51,7 @@ function requestString(value, fallback) {
 }
 
 export async function startServer(config, logger = console) {
+    validateProductionWorkPolicy(config.productionWorkPolicy)
     const gachaArtwork = new GachaArtwork()
     const runtime = {
         revision: sourceRevision(config.base),
@@ -66,6 +68,7 @@ export async function startServer(config, logger = console) {
             offlinePayments: config.offlinePayments ?? true,
             taskEventDiagnosticsFile: config.diagnosticsFile,
             gachaPolicy: config.gachaPolicy,
+            productionWorkPolicy: config.productionWorkPolicy,
         })
     const diagnostics = new ProtocolDiagnostics(
         config.database === ':memory:' && !config.diagnosticsForTests ? null : config.diagnosticsFile,
