@@ -204,6 +204,7 @@ import { collectionDue, settleCollections, retimeCollections } from './home-coll
 import { simpleProductionDue, settleSimpleProducts, simpleProductSnapshot } from './simple-production.js'
 import { hasCaptureCardReward } from './capture-card-stock.js'
 import { registerTechnology } from './handlers/technology.js'
+import { technologyPoints } from './technology.js'
 import { registerBuildingPlacement } from './handlers/buildings.js'
 import { registerFarming } from './handlers/farming.js'
 import { registerFarmWorkers } from './handlers/farm-workers.js'
@@ -974,6 +975,7 @@ export class Game {
                 //5009 is the gateway-to-GS alias,not an independent player entry.
                 // Main entry packets and the source fact commit in this transaction.
                 if (e.name === 'CSProtoEnterGame') recordLoginDay(this.tables, state, now)
+                technologyPoints(this.tables, state)
                 return [...this.loginPackets(state, session, r, frame, e.id), ...battle]
             })
             session.entered = true
@@ -1496,8 +1498,10 @@ export class Game {
                 ) {
                     this.activities.notify(context)
                 }
-                if (state.home?.technology && state.player.basic_info.lv !== playerLevelBefore)
+                if (state.home?.technology && state.player.basic_info.lv !== playerLevelBefore) {
+                    technologyPoints(this.tables, state)
                     state.homeRevision = (state.homeRevision || 0) + 1
+                }
                 if (!battleReport && prepareTaskScenes(this.tables, state)) {
                     worldSync({ ...context, push: context.pushBefore })
                     syncBattle({ ...context, push: context.pushBefore })

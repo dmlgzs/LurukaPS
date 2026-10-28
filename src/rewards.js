@@ -1,5 +1,6 @@
 import { recordBattlePassAcquisition } from './battle-pass-tasks.js'
 import { ErrorCode } from './error-codes.js'
+import { creditTechnologyPoints, reconcileTechnologyPoints } from './technology-points.js'
 import { grantReputation } from './reputation.js'
 import { grantHomeExperience } from './home-experience.js'
 import { grantDuelAreaExperience, grantDuelPetExperience } from './kibo-duel-progress.js'
@@ -155,6 +156,9 @@ export function grantRewards(tables, state, rewards, depth = 0, context = {}) {
                 ensure(basic[key] + itemnum <= 0x7fffffff, 'Currency overflow')
                 basic[key] += itemnum
                 syncCurrencyMirrors(state.player)
+            } else if (itemid === 205) {
+                ensureHome(tables, state)
+                creditTechnologyPoints(tables, state, itemnum)
             } else if (itemid === 4 && context.personalFavor) {
                 grantEntryHeroFavor(tables, state, itemnum, context.personalFavor)
             } else if (itemid === 50 && context.battlePassExp) {
@@ -175,6 +179,9 @@ export function grantRewards(tables, state, rewards, depth = 0, context = {}) {
                     Number.isSafeInteger(basic.exp + itemnum) && basic.exp + itemnum <= 0x7fffffff,
                     'Experience overflow',
                 )
+                // Migrate the pre-level credit before changing the derived total.
+                ensureHome(tables, state)
+                reconcileTechnologyPoints(tables, state)
                 basic.exp += itemnum
                 const rows = tables.get('player_level'),
                     max = Math.max(...rows.map((x) => x.id))
@@ -191,6 +198,7 @@ export function grantRewards(tables, state, rewards, depth = 0, context = {}) {
                     const next = tables.find('player_level', basic.lv)
                     granted.push(...grantRewards(tables, state, parseRewards(next.reward), depth + 1, context))
                 }
+                reconcileTechnologyPoints(tables, state)
             } else {
                 if (itemid === 4) {
                     // TODO: migrate each legacy caller with its actual recipient

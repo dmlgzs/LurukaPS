@@ -1,6 +1,7 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { homeCondition } from './home-grid.js'
+import { reconcileTechnologyPoints } from './technology-points.js'
 export function technologyState(tables, state) {
     ensure(state.home, 'Home state missing', ErrorCode.GameConfig)
     if (!state.home.technology) {
@@ -45,13 +46,8 @@ export function reconcileAutomaticTechnology(tables, state) {
     return changed
 }
 export function technologyPoints(tables, state) {
-    const tech = technologyState(tables, state)
-    const total = tables
-        .get('home_technology_level')
-        .filter((r) => r.id <= state.player.basic_info.lv)
-        .reduce((n, r) => n + r.technologyCount, 0)
-    ensure(Number.isSafeInteger(total) && total >= 0, 'Invalid technology point schedule', ErrorCode.GameConfig)
-    return { total, available: Math.max(0, total - tech.spent) }
+    technologyState(tables, state)
+    return reconcileTechnologyPoints(tables, state)
 }
 export function technologyParents(tree, tech) {
     return String(tree.pretechnologyTypeId || '')
