@@ -1,4 +1,5 @@
 import { ensure, syncPlayer } from './handlers/common.js'
+import { activateMonthlyEntitlement } from './entitlement-benefits.js'
 import { grantRewards, parseRewards } from './rewards.js'
 export function monthlyPayload(state, isFirst = false) {
     return {
@@ -10,23 +11,7 @@ export function monthlyPayload(state, isFirst = false) {
     }
 }
 export function purchaseMonthly(c, config, count) {
-    const previous = c.state.monthlyCard
-    ensure(!previous || previous.purchase_sdk_id === config.purchaseSdkID, 'Another monthly-card type is active')
-    const end = Math.max(c.now, previous?.end_time ?? 0) + config.day * 86400 * count
-    ensure(Number.isSafeInteger(end) && end > c.now, 'Invalid monthly card duration')
-    const rewards = grantRewards(
-        c.tables,
-        c.state,
-        parseRewards(config.reward).map((r) => ({ ...r, itemnum: r.itemnum * count })),
-    )
-    c.state.monthlyCard = {
-        ...previous,
-        config_id: config.id,
-        purchase_sdk_id: config.purchaseSdkID,
-        end_time: end,
-        claim_until: previous?.claim_until ?? 0,
-    }
-    return { rewards: { rewards }, first: !previous || previous.end_time <= c.now }
+    return activateMonthlyEntitlement(c, config, count)
 }
 export function registerMonthly(on, tables) {
     const hour = Number(tables.get('game').find((x) => x.title === 'DAILY_REFRESH_TIME')?.value ?? 4)
