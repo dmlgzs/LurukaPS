@@ -45,6 +45,7 @@ export function registerItems(on) {
         let total = 0
         const gifts = [],
             staminaItems = [],
+            pointItems = [],
             rewards = []
         for (const request of items) {
             ensure(
@@ -64,7 +65,18 @@ export function registerItems(on) {
             ensure(item, 'Unknown common item', ErrorCode.ItemCannotFound)
             if (isGiftItem(item)) gifts.push({ item, request })
             else if (item.type === 100) staminaItems.push(request)
-            else ensure(false, 'This consumable type is not implemented', ErrorCode.FunctionClosed)
+            else if (item.useType === 20) {
+                ensure(
+                    item.type === 520 &&
+                        /^[1-9]\d*$/.test(String(item.useFunction)) &&
+                        Number.isSafeInteger(Number(item.useFunction)) &&
+                        Number(item.useFunction) <= 0xffffffff,
+                    'Invalid technology item',
+                    ErrorCode.GameConfig,
+                )
+                ensure(!request.args?.length, 'Unsupported item arguments', ErrorCode.UseItemArgFail)
+                pointItems.push({ request, value: Number(item.useFunction) })
+            } else ensure(false, 'This consumable type is not implemented', ErrorCode.FunctionClosed)
         }
         // Validate stock before random draws and never spend newly generated
         // contents to pay another entry in the same request.
@@ -72,10 +84,26 @@ export function registerItems(on) {
             ? aggregateCosts(gifts.map(({ request }) => ({ item_id: request.itemid, item_num: request.num })))
             : null
         if (giftCosts) spend(c.state, giftCosts, 0, c.now)
+        if (pointItems.length) {
+            const costs = aggregateCosts(
+                pointItems.map(({ request }) => ({ item_id: request.itemid, item_num: request.num })),
+            )
+            const gain = pointItems.reduce((sum, { request, value }) => {
+                const next = sum + safeProduct(value, request.num)
+                ensure(
+                    Number.isSafeInteger(next) && next <= 0xffffffff,
+                    'Technology item gain overflow',
+                    ErrorCode.GameConfig,
+                )
+                return next
+            }, 0)
+            spend(c.state, costs, 0, c.now)
+            rewards.push(...grantRewards(c.tables, c.state, [{ itemtype: 10, itemid: 205, itemnum: gain }]))
+        }
         if (staminaItems.length) rewards.push(...stamina(c, staminaItems).rewards)
         for (const { item, request } of gifts)
             rewards.push(...grantRewards(c.tables, c.state, itemGiftRewards(c.tables, item, request, c.randomInt)))
-        if (gifts.length) syncPlayer(c)
+        if (gifts.length || pointItems.length) syncPlayer(c)
         return { rewards, src: rewardSource(c.tables, 'commonItemUse') }
     }
     on('UseItem', (c, r) => {
