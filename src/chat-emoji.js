@@ -49,6 +49,32 @@ export function chatEmojiSnapshot(tables, state) {
     }
 }
 
+// CHAT_EMOJI sends tostring(configId) as bytes, not arbitrary chat text.
+export function prepareChatEmojiUse(tables, state, bytes) {
+    ensure(
+        bytes.length > 0 && bytes.length <= 10 && bytes[0] !== 48 && bytes.every((byte) => byte >= 48 && byte <= 57),
+        'Chat emoji message must be a canonical decimal ID',
+        ErrorCode.InvalidArgument,
+    )
+    const id = Number(bytes.toString('utf8'))
+    ensure(validId(id), 'Chat emoji ID is outside its wire range', ErrorCode.InvalidArgument)
+    ensure(tables.find('chat_emoji', id), 'Unknown chat emoji configuration', ErrorCode.ChatEmojiConfigNotExist)
+    const snapshot = chatEmojiSnapshot(tables, state)
+    ensure(
+        snapshot.bags.some((row) => row.id === id),
+        'Chat emoji is not owned',
+        ErrorCode.ChatEmojiHadNot,
+    )
+    const limit = Number(tables.get('game').find((row) => row.title === 'CHAT_EMOJI_COLLECT_RECENTLY_NUM_MAX')?.value)
+    ensure(validId(limit), 'Invalid recent chat emoji capacity', ErrorCode.GameConfig)
+    // Local LRU policy: latest successful use first, unique IDs, table capacity.
+    // TODO: the official backend's recent ordering algorithm is not recovered.
+    return {
+        ...snapshot,
+        lately_collects: [id, ...snapshot.lately_collects.filter((other) => other !== id)].slice(0, limit),
+    }
+}
+
 export function changeChatEmoji(c, r) {
     const ids = r.u32s ?? []
     ensure(Array.isArray(ids) && ids.every(validId), 'Invalid chat emoji favorites', ErrorCode.InvalidArgument)

@@ -3,6 +3,7 @@ import { publicProfile } from '../public-profile.js'
 import { ErrorCode } from '../error-codes.js'
 import { isChatMuted, legacyChatBans, chatRoutingInfo } from '../chat-shields.js'
 import { selectedChatBubble } from '../chat-cosmetics.js'
+import { prepareChatEmojiUse } from '../chat-emoji.js'
 import { privateHistory, visibleConversation, reopenConversation, deleteConversation } from '../chat-conversations.js'
 function peerId(value) {
     const id = Number(value)
@@ -101,6 +102,7 @@ export function registerChat(on, store, { runGM } = {}) {
             target = String(c.state.world.map_id)
             broadcast = { kind: 'map', map: c.state.world.map_id, sender: c.id }
         }
+        const emojiSync = r.type === 2 ? prepareChatEmojiUse(c.tables, c.state, bytes) : null
         const info = store.appendChat(c.id, type, target, c.state.world.map_id, {
             msg: bytes.toString('base64'),
             time: c.now,
@@ -111,6 +113,12 @@ export function registerChat(on, store, { runGM } = {}) {
             bubbleId: selectedChatBubble(c.tables, c.state, r.bubbleId ?? 0),
             language: r.language ?? c.state.player.basic_info.language ?? 1,
         })
+        if (emojiSync) {
+            // appendChat and this account edit share Store.transact's SQLite
+            // transaction, including encoding every notification and the ACK.
+            c.state.chatEmoji = { ...c.state.chatEmoji, recent: [...emojiSync.lately_collects] }
+            c.pushBefore('CSProtoChatEmojiSync', emojiSync)
+        }
         const value = { target: { tid: target, chat_type: type }, chat: info }
         c.push('CSProtoChatInfoChange', value)
         for (const recipient of recipients)
