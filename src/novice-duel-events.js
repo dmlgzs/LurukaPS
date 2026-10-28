@@ -3,6 +3,7 @@ import { ensure } from './handlers/common.js'
 
 const uint = (n) => Number.isSafeInteger(n) && n >= 0 && n <= 0xffffffff
 const positive = (n) => uint(n) && n > 0
+const safePositive = (n) => Number.isSafeInteger(n) && n > 0
 const object = (v) => v && typeof v === 'object' && !Array.isArray(v)
 const uuid = (v) => typeof v === 'string' && /^[1-9][0-9]*$/.test(v) && BigInt(v) <= 0xffffffffffffffffn
 const numericKey = (v) => typeof v === 'string' && /^[1-9][0-9]*$/.test(v) && positive(Number(v))
@@ -30,7 +31,11 @@ function facts(run) {
         )
     for (const [key, row] of Object.entries(saved.casts))
         ensure(
-            numericKey(key) && object(row) && row.serial === Number(key) && positive(row.skillId),
+            /^[1-9][0-9]*$/.test(key) &&
+                safePositive(Number(key)) &&
+                object(row) &&
+                row.serial === Number(key) &&
+                positive(row.skillId),
             'Invalid novice NPC skill fact',
             ErrorCode.GameConfig,
         )
@@ -81,7 +86,7 @@ export function recordNoviceNpcDeployment(tables, run, actor) {
 
 export function recordNoviceNpcAcceptedSkill(run, skillId, serial) {
     ensure(
-        positive(skillId) && positive(serial) && run.trainer_cast_serial === serial,
+        positive(skillId) && safePositive(serial) && run.trainer_cast_serial === serial,
         'Invalid novice NPC accepted skill',
         ErrorCode.GameConfig,
     )

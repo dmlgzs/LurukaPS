@@ -39,6 +39,44 @@ export function noviceEventFixture(name, options) {
         actors,
         summon,
         selectTagged,
+        enterWithSkill: (skillId) => {
+            const configured = f.tables.get('kibo_duel_skill').find((r) => r.skillId === skillId)
+            assert(configured)
+            const level = f.tables
+                .get('kibo_duel_area_level')
+                .find((r) => r.areaType === 1 && String(r.kiboDuelSkill).split('|').map(Number).includes(configured.id))
+            if (!configured.defaultSkill) {
+                assert(level, 'A real area level unlocks this actual trainer skill')
+                edit((s) => {
+                    ;(s.kiboDuelAreas ??= {})[1] = { id: 1, lvl: level.level, exp: 0, got_lvl_reward: [1] }
+                })
+            }
+            f.call('KiboDuelGetGroup', { u32: 2001 })
+            f.call('KiboDuelGroupInfoChange', {
+                slot: 1,
+                duel_id: 2001,
+                hero: f.state().player.heros_info.heros[0].guid,
+                pet_guids: f
+                    .state()
+                    .pets.slice(0, 8)
+                    .map((p) => ({ id: p.guid, is_trial: false })),
+                hero_skills: [{ skill_id: skillId, skill_lv: 1, skill_slot: 701, type: 1 }],
+            })
+            f.call('KiboDuelSetCurGroup', { u32: 1 })
+            f.call('MultiCampaignCreate', { dungeon_id: f.tables.find('kibo_duel', 2001).dungeonId })
+            f.call('StartDungeonClientOk')
+            f.call('MultiCampaignPlayerLoadFinish')
+            f.call('KiboDuelArenaFirstConfirmReq')
+            f.advance(f.state().combat.npcDuel.intro_until - f.now())
+            f.tick()
+        },
+        cast: (skillId, index, sourceType = 1) =>
+            f.call('SkillStart', {
+                unit_id: f.state().combat.npcDuel.trainer_guid,
+                op_time: String(f.now() * 1000),
+                skill: { skill_id: skillId, slot: 701 },
+                verify_info: { battle_index: String(index), source_type: sourceType },
+            }),
     }
 }
 

@@ -1,3 +1,4 @@
+import { recordNoviceNpcAcceptedSkill } from './novice-duel-events.js'
 import { ErrorCode } from './error-codes.js'
 import { arenaContext, arenaMillis, secondsToArenaMs } from './npc-kibo-time.js'
 import fs from 'node:fs'
@@ -44,7 +45,7 @@ export function recordArenaTrainerSkill(c, uuid, request) {
         ...effect,
         value: evaluateArenaFormula(value_formula, { parameter: (index) => parameters[index] }),
     }))
-    c.state.combat.npcDuel = {
+    const accepted = {
         ...run,
         trainer_skills: {
             ...run.trainer_skills,
@@ -65,6 +66,7 @@ export function recordArenaTrainerSkill(c, uuid, request) {
             })),
         ],
     }
+    c.state.combat.npcDuel = recordNoviceNpcAcceptedSkill(accepted, id, serial)
 }
 
 export function recordArenaTrainerStop(c, uuid, request) {
