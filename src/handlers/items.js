@@ -1,4 +1,5 @@
 import { ErrorCode } from '../error-codes.js'
+import { isEntitlementTicket, useEntitlementTicket } from '../entitlement-tickets.js'
 import { ensure, syncPlayer } from './common.js'
 import { aggregateCosts, spend, spendCurrency } from '../inventory.js'
 import { grantRewards, parseRewards } from '../rewards.js'
@@ -10,7 +11,7 @@ function safeProduct(a, b) {
     ensure(Number.isSafeInteger(n) && n > 0 && n <= 0xffffffff, 'Item count overflow')
     return n
 }
-export function registerItems(on) {
+export function registerItems(on, store) {
     const stamina = (c, items) => {
         const costs = aggregateCosts(items.map((i) => ({ item_id: i.itemid, item_num: i.num })))
         let gain = 0,
@@ -107,6 +108,7 @@ export function registerItems(on) {
         return { rewards, src: rewardSource(c.tables, 'commonItemUse') }
     }
     on('UseItem', (c, r) => {
+        if (isEntitlementTicket(c.tables.find('common_item', r.itemid))) return useEntitlementTicket(c, r, store)
         if (c.tables.find('common_item', r.itemid)?.useType !== 18) return use(c, [r])
         ensure(r.num === 1 && !r.args?.length, 'Detector use requires one item and no arguments', ErrorCode.ParamError)
         const target = detectorTarget(c.tables, c.state, r.itemid, c.now)

@@ -639,7 +639,7 @@ export class Game {
         this.finishPendingCharacterTask = taskHandlers.finishPendingCharacterTask
         this.recoverCompletedCampaignTasks = taskHandlers.recoverCompletedCampaignTasks
         registerStory(on, tables)
-        registerItems(on)
+        registerItems(on, store)
         registerSnackBags(on)
         registerSoulStoryRecords(on)
         this.shopGoodsTips = registerShops(on, tables)
