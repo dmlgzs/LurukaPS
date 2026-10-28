@@ -28,7 +28,13 @@ export function ranchFixture(name, options = {}) {
     let pets
     store.transact(session.id, 0, (s) => {
         s.world.map_id = Number(tables.get('game').find((r) => r.title === 'HOME_ID').value)
-        s.player.basic_info.lv = options.level ?? 6
+        s.player.basic_info.lv = options.level ?? 15
+        // Current pageHomeRanchNew checks system171: task106010 node195 AND lv15.
+        // This is a legitimate saved-story prerequisite fixture, not earned play.
+        s.taskRecords = [
+            ...(s.taskRecords ?? []).filter((row) => row.task_id !== 106010),
+            { task_id: 106010, count: 1 },
+        ]
         pets = createPets(tables, s, 500001, options.pets ?? 2).map((p) => p.guid)
         for (const p of s.pets.filter((p) => pets.includes(p.guid))) {
             p.work_status = 0

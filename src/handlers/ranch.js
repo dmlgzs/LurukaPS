@@ -18,12 +18,69 @@ import {
 import { pickRanchDrops, storeRanchDrop } from '../ranch-claims.js'
 import { grantRewards } from '../rewards.js'
 import { rewardSource } from '../reward-source.js'
+import { playerIsInBattle } from '../player-battle-state.js'
 
 export function ranchContext(c, block) {
     const map = ranchCatalog(c.tables).constants.get('HOME_ID')
     ensure(c.state.world.map_id === map, 'Ranch operation requires the home scene', ErrorCode.PlayerNotInHome)
     ensureHome(c.tables, c.state)
     return ranchAt(c.tables, c.state, block)
+}
+function ranchDispatchContext(c, block) {
+    // HomeCenter opens current pageHomeRanchNew (06014510 / CSPage).
+    // Its Check060148a7 uses CheckBattleStatePageBase06014477, not HOME_ID.
+    // Physical pickup/storage callers retain ranchContext's scene guard.
+    ensure(!playerIsInBattle(c.state), 'Ranch management is unavailable during battle', ErrorCode.PlayerInFight)
+    ensureHome(c.tables, c.state)
+    const ranch = ranchAt(c.tables, c.state, block),
+        system = c.tables.find('system_unlock', 171)
+    ensure(
+        system && [0, 1].includes(system.homeUnlock) && typeof system.unlockCondi === 'string',
+        'Ranch system configuration unavailable',
+        ErrorCode.GameConfig,
+    )
+    ensure(system.homeUnlock === 0, 'Ranch home-dependent unlock is not implemented', ErrorCode.FunctionClosed)
+    ensure(
+        typeof c.activityCatalog?.condition === 'function',
+        'Ranch condition evaluator unavailable',
+        ErrorCode.GameConfig,
+    )
+    const expression = system.unlockCondi.replaceAll(/\s/g, '')
+    ensure(
+        !expression.includes('||'),
+        'Ranch alternative system condition is not implemented',
+        ErrorCode.FunctionClosed,
+    )
+    const clauses = expression
+        ? expression.split('&&').map((part) => {
+              const text = part.startsWith('(') && part.endsWith(')') ? part.slice(1, -1) : part
+              ensure(/^\d+(#\d+)+$/.test(text), 'Malformed ranch system unlock expression', ErrorCode.GameConfig)
+              const args = text.split('#').map(Number),
+                  [kind, target] = args
+              ensure(
+                  args.every((value) => Number.isSafeInteger(value) && value > 0),
+                  'Invalid ranch system arguments',
+                  ErrorCode.GameConfig,
+              )
+              ensure(
+                  [2004, 12045].includes(kind),
+                  'Ranch system condition is not implemented',
+                  ErrorCode.FunctionClosed,
+              )
+              ensure(
+                  args.length === (kind === 2004 ? 2 : 3),
+                  'Invalid ranch system condition shape',
+                  ErrorCode.GameConfig,
+              )
+              const value = c.activityCatalog.condition(args.join('|'), c.state)
+              ensure(Number.isFinite(value), 'Invalid ranch system condition result', ErrorCode.GameConfig)
+              return value >= (kind === 2004 ? target : 1)
+          })
+        : []
+    // Preserve the verified page's AND gate without inventing permanent system
+    // grants or the separate, still-unrecovered temporary GM-disable lifecycle.
+    ensure(clauses.every(Boolean), 'Ranch management system is locked', ErrorCode.SystemLock)
+    return ranch
 }
 export function registerRanch(on, tables) {
     on('RanchGetStoreReward', (c, request) => {
@@ -47,7 +104,7 @@ export function registerRanch(on, tables) {
         return {}
     })
     on('RanchSetPetOption', (c, request) => {
-        const ranch = ranchContext(c, request.block_id),
+        const ranch = ranchDispatchContext(c, request.block_id),
             data = ranchCatalog(tables)
         ensure([1, 2].includes(request.work_type), 'Invalid ranch work role', ErrorCode.InvalidArgument)
         const producer = request.work_type === 1,

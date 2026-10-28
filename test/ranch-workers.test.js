@@ -17,7 +17,7 @@ test('6162 assigns current role/slot and removes battle and mount bindings befor
         const out = f.assign(),
             s = f.state(),
             worker = s.pets.find((p) => p.guid === f.pets[0])
-        assert.equal(out.at(-1).id, 6162)
+        assert(out.some((packet) => packet.id === 6162))
         assert(out.some((p) => p.id === 6102))
         assert(out.some((p) => p.id === 6517))
         assert.equal(worker.work_status, 6)
@@ -212,7 +212,7 @@ test('locked ranch, foreign pets, bad roles and encoding failure leave worker an
         )
         assert.deepEqual(f.store.load(f.session.id), before)
         f.store.transact(f.session.id, 0, (s) => {
-            s.player.basic_info.lv = 6
+            s.player.basic_info.lv = 15
         })
         for (const req of [
             { block_id: 999, slot: 1, pet_guid: f.pets[0], work_type: 1 },

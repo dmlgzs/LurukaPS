@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { homeModelFixture } from './pet-model-home-fixture.js'
 import { ErrorCode } from '../src/error-codes.js'
-test('6162 retains its home prerequisite, rejects bad nonzero activation, and allows producer removal without checking the departing model', () => {
+test('6162 rejects bad nonzero activation at home or remotely and allows removal without checking the departing model', () => {
     const f = homeModelFixture('pet-model-ranch')
     try {
         const { ranch, worker } = f.ranch(),
@@ -24,7 +24,7 @@ test('6162 retains its home prerequisite, rejects bad nonzero activation, and al
         })
         assert.throws(
             () => f.call('RanchSetPetOption', request),
-            (e) => e.code === ErrorCode.PlayerNotInHome,
+            (e) => e.code === ErrorCode.GameConfig && /Pet model/.test(e.message),
         )
     } finally {
         f.store.close()
