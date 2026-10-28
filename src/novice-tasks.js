@@ -2,6 +2,7 @@ import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { noviceCounters } from './novice-counters.js'
 import { noviceDuelVictoryRule, noviceDuelVictoryValue } from './novice-duel-victory.js'
+import { noviceDuelFeverRule, noviceDuelFeverValue } from './novice-duel-fever.js'
 import { noviceNpcEventRule, noviceNpcEventValue } from './novice-duel-events.js'
 
 export class NoviceTasks {
@@ -63,8 +64,12 @@ export class NoviceTasks {
                 if (!noviceNpcEventRule(this.tables, [kind, ...p])) return null
                 ensure(p[2] === row.param, 'Novice NPC event threshold mismatch', ErrorCode.GameConfig)
                 return noviceNpcEventValue(state, kind, p[0], p[1])
-            // TODO: the other5 duel tutorial conditions need actual receipts for
-            // elemental KOs, distinct pets and an accurately timed frenzy outcome.
+            case 13058:
+                if (!noviceDuelFeverRule([kind, ...p])) return null
+                ensure(p[0] === row.param, 'Novice fever victory threshold mismatch', ErrorCode.GameConfig)
+                return noviceDuelFeverValue(state)
+            // TODO: the other4 duel tutorial conditions need actual receipts for
+            // elemental KOs and distinct pets.
             // Do not infer them from the current team or a first-clear record.
             default:
                 return null

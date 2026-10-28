@@ -32,9 +32,9 @@ test('all five actual thresholds follow shared global new-win facts through real
     try {
         const system = new NoviceTasks(f.tables)
         const unsupported = [...system.tasks.values()].filter(
-            (r) => r.id >= 5101 && ![13053, 13055, 13056].includes(Number(r.finishCondition.split('#')[0])),
+            (r) => r.id >= 5101 && ![13053, 13055, 13056, 13058].includes(Number(r.finishCondition.split('#')[0])),
         )
-        assert.equal(unsupported.length, 5)
+        assert.equal(unsupported.length, 4)
         assert(unsupported.every((r) => system.value(f.state(), r) === null))
         assert.equal(system.value(f.state(), { finishCondition: '13053#0#3#2', param: 2 }), null)
         assert.equal(system.value(f.state(), { finishCondition: '13053#1#2#2', param: 2 }), null)
