@@ -91,8 +91,8 @@ export function clearAbyssRuntime(c) {
         run = s.abyssRun
     if (!run) return false
     saveAbyssCheckpoint(s)
-    // Clear the map cache before restoring the ordinary formation; sending an
-    // empty all array would leave the previous client list intact.
+    // Clear the map cache early; the formation tombstone must wait until the
+    // real destination WorldMapSync has selected the ordinary client proxy.
     publishAbyssHeroMapElements(c, true)
     const copies = new Set(run.heroes.map((x) => x.guid)),
         restored = run.previous_manager ?? { type: 7, cur_group: 0, src: 0, groups: [] },
@@ -106,7 +106,11 @@ export function clearAbyssRuntime(c) {
     delete s.abyssRun
     delete s.combat
     c.push('SCProtoAbyssDungeonMonsterBuffSync', { buff_ids: [] })
-    c.push('CSProtoSyncPlayerData', { group_mgrs: [restored] })
+    return { restoredManager: structuredClone(restored) }
+}
+export function publishAbyssExit(c, exit) {
+    if (!exit) return false
+    c.push('CSProtoSyncPlayerData', { group_mgrs: [exit.restoredManager] })
     c.push('CSProtoOnlineModeChange', { mode: 1 })
     syncBattle(c)
     return true

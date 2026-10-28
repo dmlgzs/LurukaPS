@@ -2,7 +2,7 @@ import { createAbyssRun, installAbyssFormation, abyssDungeonInfo, abyssActorInfo
 import { ensureAbyssScene } from '../abyss-scene.js'
 import { abyssTables, abyssModeLevels } from '../abyss-catalog.js'
 import { abyssDataSnapshot } from '../abyss-data.js'
-import { worldSync } from './world.js'
+import { worldSync, WORLD_MAP_CMD_ENTER } from './world.js'
 import { syncBattle } from '../battle.js'
 import { ensure } from './common.js'
 import { ErrorCode } from '../error-codes.js'
@@ -63,6 +63,7 @@ export function registerAbyssChallenge(on) {
             'Cannot reset another active abyss challenge',
             ErrorCode.AbyssInvalidChallengeLevel,
         )
+        let abyssExit = null
         if (run) {
             const target = run.return_world
             ensure(
@@ -76,7 +77,7 @@ export function registerAbyssChallenge(on) {
                 ErrorCode.GameConfig,
             )
             Object.assign(c.state.world, structuredClone(target))
-            clearAbyssRuntime({ ...c, push: c.pushBefore })
+            abyssExit = clearAbyssRuntime({ ...c, push: c.pushBefore })
         }
         const mode = abyssModeRecord(c.state, r.mode, context.rotation),
             saved = mode.levels[level.id]
@@ -90,7 +91,7 @@ export function registerAbyssChallenge(on) {
                 ['newer', 'persistent', 'rotation'][r.mode - 1] + '_mode_info'
             ].find((x) => x.cur_level === level.id),
         })
-        if (run) worldSync({ ...c, push: c.pushBefore })
+        if (run) worldSync({ ...c, push: c.pushBefore }, {}, WORLD_MAP_CMD_ENTER, true, { abyssExit })
         return {}
     })
     on('AbyssChallengeRetry', (c) => {
@@ -116,8 +117,8 @@ export function registerAbyssChallenge(on) {
             ErrorCode.GameConfig,
         )
         Object.assign(c.state.world, structuredClone(target))
-        clearAbyssRuntime({ ...c, push: c.pushBefore })
-        worldSync({ ...c, push: c.pushBefore })
+        const abyssExit = clearAbyssRuntime({ ...c, push: c.pushBefore })
+        worldSync({ ...c, push: c.pushBefore }, {}, WORLD_MAP_CMD_ENTER, true, { abyssExit })
         return {}
     })
     on('AbyssChallengeNext', (c) => {

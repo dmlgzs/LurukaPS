@@ -3,7 +3,7 @@ import { recoverFallPosition, acceptFallRecoveryMovement, resetFallRecoveryScope
 import { resetPlayerBattleRelations } from './world-combat.js'
 import { ErrorCode } from '../error-codes.js'
 import { checkpointSnapshot } from '../world-checkpoints.js'
-import { clearAbyssRuntime } from '../abyss-flow.js'
+import { clearAbyssRuntime, publishAbyssExit } from '../abyss-flow.js'
 import { abyssHeroMapElements } from '../abyss-buffs.js'
 import { registerExplorationRewards } from './exploration-rewards.js'
 import { recordNpcArenaMovement } from '../npc-kibo-battle.js'
@@ -143,6 +143,23 @@ export function repairLegacyMountState(state, tables) {
     return true
 }
 export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = true, options = {}) {
+    let abyssExit = options.abyssExit ?? null
+    const leavingAbyss = !!abyssExit || (c.state.abyssRun && c.state.abyssRun.map_id !== c.state.world.map_id),
+        emit = c.push,
+        deferredGroups = []
+    if (leavingAbyss) {
+        // Only49/256 enter a SceneProxy. A real departure cannot be published
+        // as a same-scene delta while the client still selects formation7.
+        if (![WORLD_MAP_CMD_ENTER, 49].includes(cmd)) cmd = WORLD_MAP_CMD_ENTER
+        c = {
+            ...c,
+            push: (name, value) => {
+                if (name === 'CSProtoSyncPlayerData' && value.group_mgrs)
+                    deferredGroups.push([name, structuredClone(value)])
+                else emit(name, value)
+            },
+        }
+    }
     if (expireArenaTrialTrainer(c.state)) {
         c.push('CSProtoTrialDatas', trialPayload(c.state))
         c.push('CSProtoSyncPlayerData', { heros_info: c.state.player.heros_info })
@@ -210,7 +227,7 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
         c.push('CSProtoTrialDatas', trialPayload(s))
         if (clearedManager) c.push('CSProtoSyncPlayerData', { group_mgrs: [clearedManager] })
     }
-    if (s.abyssRun && s.abyssRun.map_id !== w.map_id) clearAbyssRuntime(c)
+    if (s.abyssRun && s.abyssRun.map_id !== w.map_id) abyssExit = clearAbyssRuntime(c)
     const cultivationExtra = cultActivityAttrExtra(s)
     c.push('CSProtoWorldMapPointSync', { u32s: w.points })
     if (includeMarks) c.push('CSProtoWorldMapMarkListSync', worldMarkPayload(s))
@@ -263,6 +280,18 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
     }
     if ([WORLD_MAP_CMD_ENTER, 49].includes(cmd) && s.abyssRun?.map_id === w.map_id)
         c.push('CSProtoOnlineModeChange', { mode: 5 })
+    if (leavingAbyss) {
+        ensure(abyssExit, 'Abyss departure synchronization plan is missing', ErrorCode.GameConfig)
+        for (const [name, value] of deferredGroups) {
+            // Early home/trial repair snapshots may still include the live
+            // copied group. Never restore those retired actors after CutWorld.
+            value.group_mgrs = value.group_mgrs.map((manager) =>
+                manager.type === 7 ? structuredClone(abyssExit.restoredManager) : manager,
+            )
+            emit(name, value)
+        }
+        publishAbyssExit({ ...c, push: emit }, abyssExit)
+    }
 }
 export function rememberMap(c, destination) {
     const w = c.state.world
