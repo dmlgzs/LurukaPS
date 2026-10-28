@@ -32,7 +32,6 @@ export function recordNoviceDuelFeverOutcome(c, duel, outcome) {
             run.duel_id === duel.id &&
             run.map_id === state.world.map_id &&
             state.multiCampaign?.duel_id === duel.id &&
-            state.multiCampaign.arena_status === 4 &&
             duel.type === 1 &&
             duel.duelMode === 1 &&
             Number.isSafeInteger(run.generation) &&
@@ -40,6 +39,11 @@ export function recordNoviceDuelFeverOutcome(c, duel, outcome) {
         'Invalid NPC fever outcome source',
         ErrorCode.GameConfig,
     )
+    const phase = state.multiCampaign.arena_status
+    // Preserve the existing explicit loss path before the regular clock starts.
+    // This observer must not authorize early victories or manufacture facts.
+    if ([2, 3, 6].includes(phase) && outcome.result === 2 && outcome.reason === 3) return false
+    ensure(phase === 4, 'Invalid NPC fever outcome source', ErrorCode.GameConfig)
     const timing = arenaOutcomeTime(c, outcome)
     const elapsedMs = timing.known ? Math.max(0, timing.atMs - secondsToArenaMs(run.regular_started_at)) : null
     const fever =
