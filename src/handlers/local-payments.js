@@ -9,6 +9,7 @@ import { ensure, syncPlayer } from './common.js'
 import { grantRewards, parseRewards } from '../rewards.js'
 import { MallCatalog } from '../mall.js'
 import { payGoodsPlan } from '../mall-pay-goods.js'
+import { notifyRechargePopup } from '../mall-popup.js'
 import { createHash } from 'node:crypto'
 export function registerLocalPayments(on, tables, store, { enabled = true } = {}) {
     const catalog = new MallCatalog(tables)
@@ -87,6 +88,7 @@ export function registerLocalPayments(on, tables, store, { enabled = true } = {}
         if (previous) {
             ensure(previous.fingerprint === fingerprint, 'Offline order nonce reused with different product')
             notify(previous)
+            notifyRechargePopup(c)
             return {}
         }
         // A fulfilled receipt is replayed above without recharging or applying
@@ -204,6 +206,7 @@ export function registerLocalPayments(on, tables, store, { enabled = true } = {}
         mall.popupQueue.push(popup)
         syncPlayer({ ...c, push: c.pushBefore })
         notify(order)
+        notifyRechargePopup(c)
         return {}
     }
     on('NonMallCreatePayOrder', (c, r) => handle(c, r))

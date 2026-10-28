@@ -51,7 +51,8 @@ test('offline recharge grants correct currency and first bonus once, with non-ac
         legacy.product_id = legacy.product_id.replace('lurukaps-offline:', 'azurjs-offline:')
         f.call('NonMallCreatePayOrder', legacy)
         assert.equal(currency(f.state(), 901), 600)
-        assert.equal(f.state().mall.popupQueue.length, 1)
+        assert.equal(f.state().mall.popupQueue.length, 0)
+        assert(packets.some((p) => p.id === 18048 && p.data.recharge_diamond))
         const before = f.store.load(f.session.id)
         assert.throws(() => f.call('NonMallCreatePayOrder', order('nonce-0001', 2002, 3)), /nonce reused/)
         assert.deepEqual(f.store.load(f.session.id), before)
@@ -101,17 +102,17 @@ test('offline gift follows catalog stock limits and all failures roll back', () 
         f.store.close()
     }
 })
-test('order deduplication and pending delivery popups survive database restart', () => {
+test('order deduplication and consumed delivery popups survive database restart', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'azur-orders-')),
         file = path.join(dir, 'state.sqlite')
     let f = fixture({}, file)
     try {
-        f.call('NonMallCreatePayOrder', order('persist-0001'))
+        const delivered = f.call('NonMallCreatePayOrder', order('persist-0001'))
         f.store.close()
         f = fixture({}, file)
         f.call('NonMallCreatePayOrder', order('persist-0001'))
         assert.equal(currency(f.state(), 901), 60)
-        const popup = f.call('GetRechargePopupData')[0].data
+        const popup = delivered.find((p) => p.id === 18048).data
         assert(popup.popup_id > 0)
         assert.equal(popup.recharge_diamond.purchase_sdk_id, 2001)
         assert.equal(f.call('GetRechargePopupData')[0].data.popup_id, 0)

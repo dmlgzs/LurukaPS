@@ -55,8 +55,8 @@ test('offline battle pass SDK4001 unlocks premium, grants only immediate table r
         assert(packets.findIndex((x) => x.id === 18005) < packets.findIndex((x) => x.id === 18038))
         f.call('NonMallCreatePayOrder', order('battle-pass-basic-0001', 4001))
         assert.equal(f.state().player.basic_info.diamond, before + 680)
-        assert.equal(f.state().mall.popupQueue.length, 1)
-        const popup = f.call('GetRechargePopupData').find((p) => p.id === 18048).data
+        assert.equal(f.state().mall.popupQueue.length, 0)
+        const popup = packets.find((p) => p.id === 18048).data
         assert.equal(popup.battlepass_data.rewards.src, 134)
         assert.equal(popup.battlepass_data.rewards.rewards[0].itemnum, 680)
         const paid = f.call('BattlePassGetLevelReward', { level: 1, is_paid: true }).find((p) => p.id === 18001).data
@@ -189,14 +189,15 @@ test('battle pass payment reply failure rolls back entitlement, immediate reward
     }
 })
 
-test('battle pass paid tier and pending purchase popup survive SQLite restart and old order replay', () => {
+test('battle pass paid tier and consumed purchase popup survive SQLite restart and old order replay', () => {
     const parent = path.resolve(os.tmpdir()),
         temp = fs.mkdtempSync(path.join(parent, 'battle-pass-pay-persist-')),
         file = path.join(temp, 'state.sqlite')
     let f = fixture('pass-pay-persist', { store: new Store(file) })
     try {
         const request = order('battle-pass-persist-0001', 4002)
-        f.call('NonMallCreatePayOrder', request)
+        const delivered = f.call('NonMallCreatePayOrder', request)
+        assert.equal(delivered.find((p) => p.id === 18048).data.battlepass_data.up_level, 10)
         const before = f.state().player.basic_info.diamond,
             tickets = quantity(f.state(), 501000)
         f.store.close()
@@ -208,9 +209,8 @@ test('battle pass paid tier and pending purchase popup survive SQLite restart an
         f.call('NonMallCreatePayOrder', request)
         assert.equal(f.state().player.basic_info.diamond, before)
         assert.equal(quantity(f.state(), 501000), tickets)
-        assert.equal(f.state().mall.popupQueue.length, 1)
-        const data = f.call('GetRechargePopupData').find((p) => p.id === 18048).data
-        assert.equal(data.battlepass_data.up_level, 10)
+        assert.equal(f.state().mall.popupQueue.length, 0)
+        assert.equal(f.call('GetRechargePopupData').find((p) => p.id === 18048).data.popup_id, 0)
     } finally {
         f.store.close()
         const resolved = path.resolve(temp)
