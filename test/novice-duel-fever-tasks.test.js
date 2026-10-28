@@ -90,7 +90,7 @@ test('actual HP report arriving beyond end_at cannot change the earlier timeout 
     }
 })
 
-test('real fever victory is global before group unlock, then5404 claims once while the other4 remain unsupported', () => {
+test('real fever victory is global before group unlock, then5404 claims once while the other two remain unsupported', () => {
     const f = noviceDuelFixture('novice-fever-task')
     try {
         const system = new NoviceTasks(f.tables)
@@ -108,10 +108,8 @@ test('real fever victory is global before group unlock, then5404 claims once whi
         f.relogin()
         assert.deepEqual(f.state().noviceDuelFeverWins, before)
         assert.equal(f.state().noviceTasks.claimedTasks[5404], true)
-        const other = f.tables
-            .get('novice_task')
-            .filter((row) => [13054, 13057].includes(Number(row.finishCondition.split('#')[0])))
-        assert.equal(other.length, 4)
+        const other = f.tables.get('novice_task').filter((row) => Number(row.finishCondition.split('#')[0]) === 13054)
+        assert.equal(other.length, 2)
         assert(other.every((row) => system.value(f.state(), row) === null))
         assert.equal(system.value(f.state(), { finishCondition: '13058#2', param: 2 }), null)
     } finally {

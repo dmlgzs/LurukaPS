@@ -4,6 +4,7 @@ import { noviceCounters } from './novice-counters.js'
 import { noviceDuelVictoryRule, noviceDuelVictoryValue } from './novice-duel-victory.js'
 import { noviceDuelFeverRule, noviceDuelFeverValue } from './novice-duel-fever.js'
 import { noviceNpcEventRule, noviceNpcEventValue } from './novice-duel-events.js'
+import { noviceDuelSpeciesRule, noviceDuelSpeciesValue } from './novice-duel-species.js'
 
 export class NoviceTasks {
     constructor(tables) {
@@ -68,8 +69,12 @@ export class NoviceTasks {
                 if (!noviceDuelFeverRule([kind, ...p])) return null
                 ensure(p[0] === row.param, 'Novice fever victory threshold mismatch', ErrorCode.GameConfig)
                 return noviceDuelFeverValue(state)
-            // TODO: the other4 duel tutorial conditions need actual receipts for
-            // elemental KOs and distinct pets.
+            case 13057:
+                if (!noviceDuelSpeciesRule([kind, ...p])) return null
+                ensure(p[1] === row.param, 'Novice species victory threshold mismatch', ErrorCode.GameConfig)
+                return noviceDuelSpeciesValue(state, p[0])
+            // TODO: the other two duel tutorial conditions need actual receipts
+            // for elemental KO causality. Distinct species follows human policy.
             // Do not infer them from the current team or a first-clear record.
             default:
                 return null

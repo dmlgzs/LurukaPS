@@ -71,9 +71,9 @@ for (const [tag, skill, tagTask, skillTask, group] of [
             assert.deepEqual(f.state().noviceDuelEventWins, saved)
             const system = new NoviceTasks(f.tables),
                 closed = [...system.tasks.values()].filter(
-                    (r) => r.id >= 5101 && [13054, 13057].includes(Number(r.finishCondition.split('#')[0])),
+                    (r) => r.id >= 5101 && Number(r.finishCondition.split('#')[0]) === 13054,
                 )
-            assert.equal(closed.length, 4)
+            assert.equal(closed.length, 2)
             assert(closed.every((r) => system.value(f.state(), r) === null))
         } finally {
             f.close()
