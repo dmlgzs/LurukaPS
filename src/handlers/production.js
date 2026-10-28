@@ -76,6 +76,7 @@ export function registerProduction(on, tables) {
         }
         h.nextProductGuid = next
         h.productionJobs[b.guid] = jobs
+        c.reconcileProductionWork?.()
         refreshProduction(c.state, c.now)
         return { rewards: [] }
     })
