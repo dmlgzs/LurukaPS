@@ -70,6 +70,7 @@ export function registerCooking(on, tables) {
             reportedDone: 0,
         })
         home.productionJobs[build.guid] = jobs
+        c.reconcileProductionWork?.()
         refreshProduction(c.state, c.now)
         return { rewards: [] }
     })
