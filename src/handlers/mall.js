@@ -5,6 +5,7 @@ import { spend, spendCurrency } from '../inventory.js'
 import { grantRewards, parseRewards } from '../rewards.js'
 import { WorldObjectCatalog } from '../world-objects.js'
 import { registerPayGoods } from '../mall-pay-goods.js'
+import { takeRechargePopup } from '../mall-popup.js'
 export function registerMall(on, tables) {
     const catalog = new MallCatalog(tables),
         drops = new WorldObjectCatalog(tables)
@@ -98,10 +99,7 @@ export function registerMall(on, tables) {
             first_recharge_time_list: records.map((r) => String(r.first_recharge_time)),
         }
     })
-    on(
-        'GetRechargePopupData',
-        (c) => c.state.mall?.popupQueue?.shift() ?? c.state.mall?.pendingPopup ?? { popup_id: 0 },
-    )
+    on('GetRechargePopupData', (c) => takeRechargePopup(c.state))
     on('MallReddotSet', (c, r) => {
         const mall = (c.state.mall ??= {}),
             dots = (mall.reddots ??= { diamond_reddot: [], pay_reddot: [] })
