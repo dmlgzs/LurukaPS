@@ -4,6 +4,58 @@ import { ErrorCode } from './error-codes.js'
 import { combatState } from './combat-state.js'
 import { enemyDefinition } from './enemy-state.js'
 import { visibleEnemySlots } from './enemy-group-visibility.js'
+
+// CBT3 AbyssGraphComponent.OnGraphInitSuccess (0602b4df) sends empty9509
+// after graph initialization. It confirms the admitted room, not battle start.
+export function acknowledgeAbyssSceneLoaded(external, state) {
+    const run = state.abyssRun,
+        positive = (value) => Number.isSafeInteger(value) && value > 0,
+        object = (value) => value && typeof value === 'object' && !Array.isArray(value)
+    ensure(
+        object(run) &&
+            [1, 2, 3].includes(run.mode) &&
+            positive(run.level_id) &&
+            positive(run.map_id) &&
+            positive(run.dungeon_id) &&
+            positive(run.instance_id) &&
+            Number.isSafeInteger(run.part_index) &&
+            run.part_index >= 0 &&
+            Array.isArray(run.rooms) &&
+            run.part_index < run.rooms.length &&
+            ['ready', 'intro', 'running', 'won', 'lost'].includes(run.phase),
+        'Malformed abyss scene acknowledgment context',
+        ErrorCode.GameConfig,
+    )
+    ensure(state.world?.map_id === run.map_id, 'Abyss scene is not active', ErrorCode.NotInDungeonMap)
+    const tables = abyssTables(external),
+        level = tables.find('abbys_level', run.level_id),
+        ids = String(level?.dungeonId ?? '')
+            .split('|')
+            .map(Number),
+        room = run.rooms[run.part_index]
+    ensure(
+        level?.mode === run.mode &&
+            ids.every(positive) &&
+            run.rooms.length === ids.length &&
+            object(room) &&
+            room.dungeon_id === ids[run.part_index] &&
+            room.dungeon_id === run.dungeon_id &&
+            room.map_id === run.map_id &&
+            positive(room.point_id),
+        'Abyss scene acknowledgment does not match its admitted level room',
+        ErrorCode.GameConfig,
+    )
+    const { route } = abyssRoute(tables, run.dungeon_id)
+    ensure(
+        route.map_id === run.map_id && route.point_id === room.point_id,
+        'Abyss scene acknowledgment route differs from its admitted room',
+        ErrorCode.GameConfig,
+    )
+    // Do not use requireAbyssRun here: its mode3 refresh writes rotation_end.
+    // Actual game actions retain their existing time/rotation guards.
+    return {}
+}
+
 export function ensureAbyssScene(external, state, now) {
     const run = state.abyssRun
     if (!run || run.map_id !== state.world.map_id) return false

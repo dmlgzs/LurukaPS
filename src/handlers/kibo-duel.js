@@ -29,6 +29,7 @@ import { ensureEntrustSceneObjects } from '../entrust.js'
 import { storyCampaignSnapshot } from '../story-campaign.js'
 import { syncStoryCampaignEnemies } from './story-campaign.js'
 import { exitEntrust, syncEntrust, startMaterialDungeon, restartMaterialDungeon } from './entrust.js'
+import { acknowledgeAbyssSceneLoaded } from '../abyss-scene.js'
 
 const ids = (text) =>
     String(text ?? '')
@@ -495,6 +496,7 @@ export function registerKiboDuel(on, tables, protocol) {
         return { op: r.op === 2 ? 2 : 1, ret_code: ErrorCode.Succ }
     })
     on('StartDungeonClientOk', (c) => {
+        if (c.state.abyssRun !== undefined) return acknowledgeAbyssSceneLoaded(tables, c.state)
         if (c.state.storyCampaign) {
             ensure(c.state.storyCampaign.map_id === c.state.world.map_id, 'Story dungeon scene is not active')
             c.state.storyCampaign.loading_complete_at ??= c.now
