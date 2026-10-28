@@ -3,6 +3,7 @@ import { arenaContext, arenaMillis, arenaActionMillis, secondsToArenaMs } from '
 import { ensure } from './handlers/common.js'
 import { pairs } from './battle.js'
 import { arenaFeverInfo } from './npc-kibo-stage-buffs.js'
+import { arenaScoreOutcome, sealArenaScoreOutcome } from './npc-kibo-outcome-time.js'
 
 // Local wire cadence, not an official backend rate. Keep a stable window
 // beyond ModuleDuelEnergy's350ms CostInit callback between passive updates.
@@ -56,7 +57,15 @@ export function advanceArenaScores(c) {
     c = arenaContext(c)
     const battle = c.state.combat,
         run = battle?.npcDuel
-    if (!run || run.pause || run.regular_started_at === undefined || run.result || run.score_at >= c.now) return false
+    if (
+        !run ||
+        run.pause ||
+        run.regular_started_at === undefined ||
+        run.result ||
+        arenaScoreOutcome(run) ||
+        run.score_at >= c.now
+    )
+        return false
     const counts = { 1: 0, 2: 0 }
     // Membership describes the interval before a summon/death at this instant.
     for (const uuid of Object.keys(run.in_fight)) counts[run.actors[uuid].camp]++
@@ -76,12 +85,21 @@ export function advanceArenaScores(c) {
         'Arena score rate unavailable',
         ErrorCode.GameConfig,
     )
-    let loss = 0
+    let loss = 0,
+        zeroAtMs
+    const needed = empty ? run.scores[empty] * 1000 - (run.score_remainders?.[empty] ?? 0) : 0
     if (empty)
         for (let i = 0; i < rates.length; i++) {
             const start = Math.max(run.score_at, run.regular_started_at + rates[i].at)
             const end = Math.min(c.now, run.end_at, run.regular_started_at + (rates[i + 1]?.at ?? Infinity))
-            if (end > start) loss += (secondsToArenaMs(end) - secondsToArenaMs(start)) * rates[i].rate
+            if (end > start) {
+                const fromMs = secondsToArenaMs(start),
+                    toMs = secondsToArenaMs(end),
+                    amount = (toMs - fromMs) * rates[i].rate
+                if (zeroAtMs === undefined && run.scores[empty] > 0 && rates[i].rate > 0 && loss + amount >= needed)
+                    zeroAtMs = fromMs + Math.ceil((needed - loss) / rates[i].rate)
+                loss += amount
+            }
         }
     const scores = { ...run.scores }
     const fractions = { ...run.score_remainders }
@@ -92,7 +110,9 @@ export function advanceArenaScores(c) {
         fractions[empty] = total - lost * 1000
         scores[empty] = Math.max(0, scores[empty] - lost)
     }
-    battle.npcDuel = { ...run, score_at: Math.min(c.now, run.end_at), scores, score_remainders: fractions }
+    let next = { ...run, score_at: Math.min(c.now, run.end_at), scores, score_remainders: fractions }
+    if (zeroAtMs !== undefined) next = sealArenaScoreOutcome(next, zeroAtMs, scores, 'passive')
+    battle.npcDuel = next
     if (lost)
         c.push('SCProtoKiboDuelArenaScoreInfoSync', {
             score_infos: [1, 2].map((camp) => ({ camp, score: scores[camp] })),

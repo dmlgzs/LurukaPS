@@ -2,6 +2,7 @@ import { ErrorCode } from './error-codes.js'
 import { recordNoviceNpcDeployment } from './novice-duel-events.js'
 import { recordActiveProgress, notifyActive } from './daily-active.js'
 import { arenaContext, arenaMillis, arenaActionMillis } from './npc-kibo-time.js'
+import { arenaScoreOutcome, sealArenaScoreOutcome } from './npc-kibo-outcome-time.js'
 import { ensure } from './handlers/common.js'
 import { combatState } from './combat-state.js'
 import { npcDuelEntry, selectedArenaGroup } from './npc-kibo-duel.js'
@@ -670,6 +671,8 @@ export function recordNpcArenaDeaths(c) {
     const battle = c.state.combat,
         previous = battle?.npcDuel
     if (!previous || previous.map_id !== c.state.world.map_id || c.state.multiCampaign?.arena_status !== 4) return false
+    // Scores already terminated, or the real timeout precedes this late HP report.
+    if (arenaScoreOutcome(previous) || c.now >= previous.end_at) return false
     const died = Object.keys(previous.in_fight).filter(
         (uuid) => battle.entities[uuid]?.hp === 0 && !Object.hasOwn(previous.dead, uuid),
     )
@@ -694,7 +697,7 @@ export function recordNpcArenaDeaths(c) {
     }
     // OnKiboDead already removes the local fighting slot; do not send an
     // out-of-fight teleport before the client's death animation has run.
-    battle.npcDuel = run
+    battle.npcDuel = sealArenaScoreOutcome(run, arenaMillis(c), run.scores, 'death')
     c.push('SCProtoKiboDuelArenaScoreInfoSync', {
         score_infos: [1, 2].map((camp) => ({ camp, score: run.scores[camp] })),
     })

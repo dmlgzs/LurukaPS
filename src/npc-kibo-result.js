@@ -2,6 +2,8 @@ import { ErrorCode } from './error-codes.js'
 import { recordNoviceDuelVictory } from './novice-duel-victory.js'
 import { recordNoviceNpcEventWin } from './novice-duel-events.js'
 import { NoviceTasks } from './novice-tasks.js'
+import { arenaScoreOutcome, arenaOutcomeTime } from './npc-kibo-outcome-time.js'
+import { recordNoviceDuelFeverOutcome } from './novice-duel-fever.js'
 import { arenaContext } from './npc-kibo-time.js'
 import { advanceArenaScores } from './npc-kibo-clock.js'
 import { stopArenaPetAI } from './npc-kibo-pet-ai.js'
@@ -19,6 +21,8 @@ import { clearArenaStageBuffs } from './npc-kibo-stage-buffs.js'
 export function npcArenaOutcome(state, now) {
     const run = state.combat?.npcDuel
     if (!run || run.result || state.multiCampaign?.arena_status !== 4) return null
+    const terminal = arenaScoreOutcome(run)
+    if (terminal) return { result: terminal.result, reason: terminal.reason }
     if (run.scores[1] <= 0 && run.scores[2] <= 0) return { result: 3, reason: 1 }
     if (run.scores[2] <= 0) return { result: 1, reason: 1 }
     if (run.scores[1] <= 0) return { result: 2, reason: 1 }
@@ -65,7 +69,7 @@ function grant(c, rewards, guids) {
 export function settleNpcArena(c, outcome) {
     c = arenaContext(c)
     advanceArenaScores(c)
-    outcome ??= npcArenaOutcome(c.state, c.now)
+    outcome = npcArenaOutcome(c.state, c.now) ?? outcome
     if (c.memoryDraft && outcome?.result === 1) Object.assign(c.state, structuredClone(c.state))
     const run = c.state.combat?.npcDuel
     ensure(run && run.map_id === c.state.world.map_id, 'No active NPC arena')
@@ -73,7 +77,8 @@ export function settleNpcArena(c, outcome) {
     ensure(outcome && [1, 2, 3].includes(outcome.result), 'NPC arena result is not proven')
     publishArenaStatistics(c, true)
     const duel = c.tables.find('kibo_duel', run.duel_id)
-    const activeNow = run.pause?.server_at ?? c.now
+    const timing = arenaOutcomeTime(c, outcome)
+    const activeNow = timing.known ? timing.atMs / 1000 : (run.pause?.server_at ?? c.now)
     const elapsed = Math.max(0, activeNow - (run.regular_started_at ?? activeNow))
     const remaining = Math.max(0, Number(duel.time) - elapsed)
     const old = c.state.kiboDuelRecords?.[duel.id]
@@ -83,6 +88,7 @@ export function settleNpcArena(c, outcome) {
     const goals = String(duel.challenge || '')
         .split('|')
         .filter(Boolean)
+    recordNoviceDuelFeverOutcome(c, duel, outcome)
     if (outcome.result === 1) {
         goals.forEach((text, index) => {
             const [kind, seconds] = text.split('#').map(Number)
@@ -119,7 +125,7 @@ export function settleNpcArena(c, outcome) {
         ;(c.state.kiboDuelRecords ??= {})[duel.id] = {
             id: duel.id,
             star: (old?.star ?? 0) | mask,
-            success_time: Number(old?.success_time) > 0 ? old.success_time : String(Math.floor(c.now)),
+            success_time: Number(old?.success_time) > 0 ? old.success_time : String(Math.floor(activeNow)),
         }
         ;(c.state.kiboDuelChallengeClaims ??= {})[duel.id] = previousMask | mask
         notifyProgress(c)
@@ -151,8 +157,8 @@ export function settleNpcArena(c, outcome) {
         id: duel.id,
         status: 4,
         star: mask,
-        start_time: Math.floor(c.now - elapsed),
-        end_time: Math.floor(c.now),
+        start_time: Math.floor(activeNow - elapsed),
+        end_time: Math.floor(activeNow),
     })
     // Result must arrive before FINISH/EXIT: ExitStage dereferences it.
     c.pushBefore('SCProtoKiboDuelArenaResultInfoSync', result)
