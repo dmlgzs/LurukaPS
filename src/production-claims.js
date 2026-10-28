@@ -105,6 +105,7 @@ export function claimProductionStock(c, request, { cancel = false, allowEmpty = 
     if (claimed || cancel) {
         h.productionJobs[b.guid] = jobs.filter((job) => !(cancel && ids.includes(job.guid)) && job.claimed < job.count)
         if (cancel) rescheduleJobs(h.productionJobs[b.guid], c.now)
+        c.reconcileProductionWork?.()
         refreshProduction(c.state, c.now)
         c.state.homeRevision = (c.state.homeRevision || 0) + 1
     }
@@ -119,7 +120,7 @@ export function claimProductionStock(c, request, { cancel = false, allowEmpty = 
                   : 'productionFinish'
               : undefined
     return {
-        build: b,
+        build: c.reconcileProductionWork ? c.state.home.builds.find((entry) => entry.guid === b.guid) : b,
         reward: {
             rewards,
             ...(operation ? { src: rewardSource(c.tables, operation) } : {}),
