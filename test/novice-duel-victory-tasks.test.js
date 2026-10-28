@@ -12,7 +12,7 @@ const row = (packets, id) =>
     packets.flatMap((p) => (p.id === 10761 ? p.data.groups.flatMap((g) => g.tasks) : [])).find((r) => r.task_id === id)
 const claim = (f, id) => f.call('NoviceTaskFinish', { u32: id }).find((p) => p.id === 10762).data
 function nextGroup(f, group) {
-    // Controlled old receipts for the thirteen still unsupported tasks, not
+    // Controlled old receipts for the other tutorial tasks, not
     // newly earned events. The new 13053 task is always won and claimed live.
     f.store.transact(f.session.id, 0, (s) => {
         for (const task of f.tables
@@ -32,9 +32,9 @@ test('all five actual thresholds follow shared global new-win facts through real
     try {
         const system = new NoviceTasks(f.tables)
         const unsupported = [...system.tasks.values()].filter(
-            (r) => r.id >= 5101 && !r.finishCondition.startsWith('13053#'),
+            (r) => r.id >= 5101 && ![13053, 13055, 13056].includes(Number(r.finishCondition.split('#')[0])),
         )
-        assert.equal(unsupported.length, 13)
+        assert.equal(unsupported.length, 5)
         assert(unsupported.every((r) => system.value(f.state(), r) === null))
         assert.equal(system.value(f.state(), { finishCondition: '13053#0#3#2', param: 2 }), null)
         assert.equal(system.value(f.state(), { finishCondition: '13053#1#2#2', param: 2 }), null)
@@ -46,7 +46,7 @@ test('all five actual thresholds follow shared global new-win facts through real
         assert.deepEqual(claim(f, 5101).rewards, [])
         assert.throws(
             () => claim(f, 5103),
-            (e) => e.code === ErrorCode.FunctionClosed,
+            (e) => e.code === ErrorCode.NoviceTaskNotFinished,
         )
         f.call('MultiCampaignQuit')
         let stars = 0
