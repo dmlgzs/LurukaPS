@@ -1,0 +1,13 @@
+{
+    "version": 1,
+    "enabled": true,
+    "conditionKind": 13057,
+    "distinctBy": "accepted-config-id",
+    "requiredSpecies": 8,
+    "requiredWins": 1,
+    "ownedAndLegalTrial": true,
+    "sameSpeciesMerged": true,
+    "officiallyVerified": false,
+    "humanChoice": "call_a4af52a008df4b91b190f73d37a6c3bb",
+    "todo": "Official backend distinct-instance versus species predicate remains unrecovered. Human explicitly chose eight distinct species; use only server-accepted deployments qualified before the first real outcome. Never backfill old rosters, wins or untimed facts."
+}

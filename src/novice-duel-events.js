@@ -55,6 +55,20 @@ function facts(run) {
     return saved
 }
 
+export function noviceNpcDeploymentFacts(run) {
+    return Object.values(facts(run).deployments)
+}
+
+export function noviceNpcFactQualifies(run, timing, row) {
+    const terminal = arenaScoreOutcome(run)
+    return (
+        timing.known &&
+        row.terminalAlreadyKnown === false &&
+        Number.isSafeInteger(row.acceptedAtMs) &&
+        (row.acceptedAtMs < timing.atMs || (row.acceptedAtMs === timing.atMs && terminal?.source === 'death'))
+    )
+}
+
 export function recordNoviceNpcDeployment(tables, run, actor, acceptedAtMs) {
     if (actor.camp !== 1) return run
     ensure(
@@ -206,17 +220,12 @@ export function recordNoviceNpcEventWin(c, duel, outcome) {
     )
     const savedFacts = facts(run),
         timing = arenaOutcomeTime(c, outcome),
-        terminal = arenaScoreOutcome(run),
         tags = {},
         skills = {}
     // Continuous score loss and timeout terminate before an action at that
     // millisecond. A cast accepted before a same-ms HP death may qualify;
     // anything observed after an already sealed terminal event cannot.
-    const qualifies = (row) =>
-        timing.known &&
-        row.terminalAlreadyKnown === false &&
-        Number.isSafeInteger(row.acceptedAtMs) &&
-        (row.acceptedAtMs < timing.atMs || (row.acceptedAtMs === timing.atMs && terminal?.source === 'death'))
+    const qualifies = (row) => noviceNpcFactQualifies(run, timing, row)
     for (const row of Object.values(savedFacts.deployments)) {
         const actor = run.actors[row.uuid]
         ensure(

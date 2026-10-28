@@ -1,6 +1,7 @@
 import { ErrorCode } from './error-codes.js'
 import { recordNoviceDuelVictory } from './novice-duel-victory.js'
 import { recordNoviceNpcEventWin } from './novice-duel-events.js'
+import { recordNoviceNpcSpeciesWin } from './novice-duel-species.js'
 import { NoviceTasks } from './novice-tasks.js'
 import { arenaScoreOutcome, arenaOutcomeTime } from './npc-kibo-outcome-time.js'
 import { recordNoviceDuelFeverOutcome } from './novice-duel-fever.js'
@@ -101,6 +102,7 @@ export function settleNpcArena(c, outcome) {
         })
         recordNoviceDuelVictory(c, duel, mask)
         recordNoviceNpcEventWin(c, duel, outcome)
+        recordNoviceNpcSpeciesWin(c, duel, outcome)
         const previousMask = c.state.kiboDuelChallengeClaims?.[duel.id] ?? old?.star ?? 0
         const newMask = mask & ~previousMask
         // firstLoot is first-clear bonus; commonReward is the configured
