@@ -1,4 +1,5 @@
 import { ErrorCode } from './error-codes.js'
+import { recordNoviceNpcDeployment } from './novice-duel-events.js'
 import { recordActiveProgress, notifyActive } from './daily-active.js'
 import { arenaContext, arenaMillis, arenaActionMillis } from './npc-kibo-time.js'
 import { ensure } from './handlers/common.js'
@@ -266,7 +267,7 @@ export function setArenaInFight(c, actor, move, inFight, first = false) {
         }
         run.ever_summoned = { ...run.ever_summoned, [actor.uuid]: true }
     } else delete run.in_fight[actor.uuid]
-    battle.npcDuel = run
+    battle.npcDuel = inFight ? recordNoviceNpcDeployment(c.tables, run, actor) : run
     if (!inFight) clearArenaCardControls(c, actor.uuid)
     c.pushBefore('SCProtoKiboInFightChange', {
         changes: [{ kibo_guid: actor.uuid, in_fight: inFight, pos: move.pos, angle: move.angle, is_first: first }],
