@@ -74,7 +74,7 @@ test('stamina counts only successful currency-3 spending, never balances or othe
 test('duel task thresholds are not fabricated from clear records; successor unlock checks actual task records', () => {
     const s = fresh()
     s.kiboDuelRecords = { 501: { star: 7, success_time: 1 } }
-    assert.equal(system.value(s, system.tasks.get(5101)), null)
+    assert.equal(system.value(s, system.tasks.get(5101)), 0)
     system.ledger(s).claimedGroups[201] = true
     assert.equal(system.unlocked(s, system.groups.get(202)), false)
     s.taskRecords = [{ task_id: 991002, count: 1 }]
@@ -109,7 +109,7 @@ test('10762 persists a single receipt, synchronizes statuses, rolls back invalid
         )
         assert.throws(
             () => call('NoviceTaskFinish', { u32: 5101 }),
-            (e) => e.code === ErrorCode.FunctionClosed,
+            (e) => e.code === ErrorCode.NoviceTaskNotFinished,
         )
         store.transact(session.id, 0, (s) => (s.player.basic_info.lv = 10))
         const row = tables.find('novice_task', 106),

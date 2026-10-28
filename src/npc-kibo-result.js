@@ -1,5 +1,6 @@
 import { ErrorCode } from './error-codes.js'
 import { recordNoviceDuelVictory } from './novice-duel-victory.js'
+import { NoviceTasks } from './novice-tasks.js'
 import { arenaContext } from './npc-kibo-time.js'
 import { advanceArenaScores } from './npc-kibo-clock.js'
 import { stopArenaPetAI } from './npc-kibo-pet-ai.js'
@@ -33,6 +34,16 @@ function notifyProgress(c) {
     })
     const changed = refreshTaskProgress(c.tables, c.state)
     if (changed.length) c.pushBefore('CSProtoTaskSync', { tasks: changed })
+    // NPC results can originate in a shallow deferred tick, outside Game's
+    // ordinary novice notify path. Separate mutable completion receipts first.
+    if (c.state.noviceTasks)
+        c.state.noviceTasks = {
+            ...c.state.noviceTasks,
+            claimedTasks: { ...c.state.noviceTasks.claimedTasks },
+            claimedGroups: { ...c.state.noviceTasks.claimedGroups },
+            completedTasks: { ...c.state.noviceTasks.completedTasks },
+        }
+    new NoviceTasks(c.tables).notify(c)
 }
 
 function grant(c, rewards, guids) {

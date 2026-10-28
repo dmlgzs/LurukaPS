@@ -1,9 +1,11 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { noviceCounters } from './novice-counters.js'
+import { noviceDuelVictoryRule, noviceDuelVictoryValue } from './novice-duel-victory.js'
 
 export class NoviceTasks {
     constructor(tables) {
+        this.tables = tables
         this.tasks = new Map(tables.get('novice_task').map((r) => [r.id, r]))
         this.groups = new Map(tables.get('novice_task_group').map((r) => [r.id, r]))
     }
@@ -51,8 +53,12 @@ export class NoviceTasks {
                 return counters.staminaSpent
             case 12014:
                 return p[0] === 0 && p[1] === 0 ? counters.captures : null
-            // TODO: duel tutorial 5101–5404 needs actual match event receipts for
-            // stars, elemental KOs, tagged summons, trainer casts and frenzy.
+            case 13053:
+                if (!noviceDuelVictoryRule(this.tables, [kind, ...p])) return null
+                ensure(p[2] === row.param, 'Novice duel victory threshold mismatch', ErrorCode.GameConfig)
+                return noviceDuelVictoryValue(state, p[0], p[1])
+            // TODO: the other13 duel tutorial conditions need actual receipts for
+            // elemental KOs, tagged summons, trainer casts, distinct pets and frenzy.
             // Do not infer them from the current team or a first-clear record.
             default:
                 return null
