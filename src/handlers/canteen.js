@@ -3,41 +3,139 @@ import { ensureHome } from '../home.js'
 import { spend, addItems } from '../inventory.js'
 import { ensure } from './common.js'
 
-function foodScore(tables, id) {
+const uint = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff
+const positive = (value) => uint(value) && value > 0
+
+function foodScore(tables, id, stored = false) {
     const item = tables.find('common_item', id)
-    ensure(item?.type === 355, 'Item is not pet food')
+    ensure(item, 'Food item configuration is missing', ErrorCode.GameConfig)
+    ensure(item.type === 355, 'Item is not food', stored ? ErrorCode.GameConfig : ErrorCode.ItemIsNotFood)
     const food = tables.find('food', id)
+    ensure(food, 'Food configuration is missing', ErrorCode.FoodConfNotExist)
     ensure(
-        Number.isInteger(food?.satietyScore) && food.satietyScore > 0,
-        'Food has no canteen satiety configuration',
-        ErrorCode.InvalidProtoID,
+        uint(food.satietyScore) && food.satietyScore <= 0x7fffffff,
+        'Food satiety configuration is malformed',
+        ErrorCode.GameConfig,
+    )
+    ensure(
+        food.satietyScore > 0,
+        'Food has no pet satiety use',
+        stored ? ErrorCode.GameConfig : ErrorCode.FoodIsNotPetUse,
     )
     return food.satietyScore
 }
 
+function stockedFoods(tables, canteen) {
+    ensure(
+        canteen && typeof canteen === 'object' && !Array.isArray(canteen),
+        'Invalid canteen state',
+        ErrorCode.GameConfig,
+    )
+    ensure(Array.isArray(canteen.foods), 'Invalid stocked food list', ErrorCode.GameConfig)
+    const foods = new Map()
+    let value = 0n
+    for (const entry of canteen.foods) {
+        ensure(
+            entry &&
+                positive(entry.itemid) &&
+                positive(entry.itemnum) &&
+                (entry.itemtype === undefined || entry.itemtype === 3),
+            'Invalid stocked food record',
+            ErrorCode.GameConfig,
+        )
+        ensure(!foods.has(entry.itemid), 'Duplicate stocked food record', ErrorCode.GameConfig)
+        value += BigInt(entry.itemnum) * BigInt(foodScore(tables, entry.itemid, true))
+        ensure(value <= 0xffffffffn, 'Stocked food value overflow', ErrorCode.GameConfig)
+        foods.set(entry.itemid, entry.itemnum)
+    }
+    // Whole-dish transfers must not rebuild unknown consumed/partial ledgers.
+    const saved = canteen.food_value ?? 0
+    ensure(
+        uint(saved) && BigInt(saved) === value,
+        'Stocked food value does not match whole dishes',
+        ErrorCode.GameConfig,
+    )
+    return foods
+}
+
+function validateBag(state, items, withdraw) {
+    const bag = state.player.sbag_infos.items
+    ensure(Array.isArray(bag), 'Invalid food inventory', ErrorCode.GameConfig)
+    for (const [id, count] of items) {
+        const stacks = bag.filter((entry) => entry.itemid === id)
+        for (const entry of stacks)
+            ensure(
+                uint(entry.itemnum) &&
+                    (entry.itemtype === undefined || entry.itemtype === 3) &&
+                    (entry.deadtime === undefined || uint(entry.deadtime)),
+                'Invalid food inventory stack',
+                ErrorCode.GameConfig,
+            )
+        const destination = stacks.find((entry) => !entry.deadtime)
+        if (withdraw && destination)
+            ensure(
+                uint(destination.itemnum + count),
+                'Food refund count overflows inventory wire value',
+                ErrorCode.GameConfig,
+            )
+    }
+}
+
 export function registerCanteen(on, tables) {
     on('AddPetFood', (c, r) => {
-        const home = ensureHome(tables, c.state)
         const homeMapId = Number(tables.get('game').find((row) => row.title === 'HOME_ID')?.value)
-        ensure(c.state.world.map_id === homeMapId, 'Pet table requires the home scene')
-        const build = home.builds.find((entry) => entry.guid === r.build_guid)
-        ensure(build?.build_type === 6 && [1, 4].includes(build.status), 'Pet table is not owned or placed')
+        ensure(positive(homeMapId), 'Home scene configuration is invalid', ErrorCode.GameConfig)
+        ensure(c.state.world.map_id === homeMapId, 'Pet table requires the home scene', ErrorCode.PlayerNotInHome)
+        const home = ensureHome(tables, c.state)
+        ensure(positive(r.build_guid), 'Invalid pet table identity', ErrorCode.HomeBuildGuidInvild)
+        ensure(Array.isArray(home.builds), 'Invalid owned building list', ErrorCode.GameConfig)
+        const matches = home.builds.filter((entry) => entry.guid === r.build_guid)
+        ensure(matches.length > 0, 'Pet table is not owned', ErrorCode.HomeBuildGuidInvild)
+        ensure(matches.length === 1, 'Duplicate owned building identity', ErrorCode.GameConfig)
+        const build = matches[0]
+        ensure(build.build_type === 6, 'Building is not a pet table', ErrorCode.BuildTypeNotMatch)
         ensure(
-            [0, 1].includes(r.operate_type) && r.items.length > 0 && r.items.length <= 32,
+            build.locate && [1, 4].includes(build.status),
+            'Pet table is not placed',
+            ErrorCode.HomeBuildInvalidStatus,
+        )
+        const config = tables.find('home_building', build.build_id)
+        ensure(config, 'Pet table configuration is missing', ErrorCode.BuildConfNotFound)
+        const group = tables.get('home_building_group').find((entry) => entry.groupId === config.groupId)
+        ensure(group, 'Pet table group configuration is missing', ErrorCode.BuildGroupConfNotFound)
+        ensure(group.type === 6, 'Pet table configuration has another building type', ErrorCode.BuildTypeNotMatch)
+        ensure(positive(home.level), 'Saved cultivation home level is invalid', ErrorCode.GameConfig)
+        const level = tables.find('home_level', home.level)
+        ensure(level, 'Home level configuration is missing', ErrorCode.HomeLvConfigNotFound)
+        ensure(
+            positive(config.trough) &&
+                config.trough <= 0x7fffffff &&
+                uint(level.table_food_max) &&
+                level.table_food_max <= 0x7fffffff,
+            'Pet table capacity configuration is invalid',
+            ErrorCode.GameConfig,
+        )
+        // CBT3 GetSatietyScoreInfo -> DataUtil -> HomeUtil(enum4): cultivation
+        // home_level.table_food_max is added once to this building's trough.
+        const capacity = config.trough + level.table_food_max
+        ensure(capacity <= 0x7fffffff, 'Pet table capacity sum overflows the client int32', ErrorCode.GameConfig)
+        ensure(
+            [0, 1].includes(r.operate_type) && Array.isArray(r.items) && r.items.length > 0 && r.items.length <= 32,
             'Invalid pet food operation',
+            ErrorCode.InvalidArgument,
         )
         const items = new Map()
         for (const entry of r.items) {
             ensure(
-                Number.isInteger(entry.itemid) &&
-                    entry.itemid > 0 &&
-                    Number.isInteger(entry.itemnum) &&
-                    entry.itemnum > 0,
-                'Invalid food quantity',
+                positive(entry.itemid) &&
+                    positive(entry.itemnum) &&
+                    (entry.itemtype === undefined || entry.itemtype === 3),
+                'Invalid food quantity or type',
+                ErrorCode.InvalidArgument,
             )
             foodScore(tables, entry.itemid)
-            const count = (items.get(entry.itemid) || 0) + entry.itemnum
-            ensure(Number.isSafeInteger(count) && count <= 0xffffffff, 'Food quantity overflow')
+            const count = (items.get(entry.itemid) ?? 0) + entry.itemnum
+            ensure(positive(count), 'Food request quantity overflow', ErrorCode.InvalidArgument)
             items.set(entry.itemid, count)
         }
         const canteen = build.pet_canteen ?? {
@@ -47,19 +145,22 @@ export function registerCanteen(on, tables) {
             food_extra_ids: [],
             food_extra_values: [],
         }
-        const foods = new Map(canteen.foods.map((entry) => [entry.itemid, entry.itemnum]))
+        const foods = stockedFoods(tables, canteen)
         for (const [id, count] of items) {
-            const next = (foods.get(id) || 0) + (r.operate_type === 1 ? count : -count)
-            ensure(next >= 0 && next <= 0xffffffff, 'Food is not stocked in this pet table')
+            const old = foods.get(id) ?? 0
+            if (r.operate_type === 0)
+                ensure(old >= count, 'Food is not stocked in this pet table', ErrorCode.PetFoodSubFail)
+            const next = old + (r.operate_type === 1 ? count : -count)
+            ensure(uint(next), 'Pet table item capacity exceeded', ErrorCode.HomeFoodOver)
             if (next) foods.set(id, next)
             else foods.delete(id)
         }
-        const foodValue = [...foods].reduce((sum, [id, count]) => sum + count * foodScore(tables, id), 0)
-        const capacity = Number(tables.find('home_building', build.build_id)?.trough)
-        ensure(
-            Number.isSafeInteger(foodValue) && Number.isInteger(capacity) && capacity > 0 && foodValue <= capacity,
-            'Pet table food capacity exceeded',
+        const foodValue = [...foods].reduce(
+            (sum, [id, count]) => sum + BigInt(count) * BigInt(foodScore(tables, id, true)),
+            0n,
         )
+        ensure(foodValue <= BigInt(capacity), 'Pet table food capacity exceeded', ErrorCode.HomeFoodOver)
+        validateBag(c.state, items, r.operate_type === 0)
         if (r.operate_type === 1) spend(c.state, items, 0, c.now)
         else
             addItems(
@@ -68,7 +169,7 @@ export function registerCanteen(on, tables) {
             )
         build.pet_canteen = {
             ...canteen,
-            food_value: foodValue,
+            food_value: Number(foodValue),
             foods: [...foods].map(([itemid, itemnum]) => ({ itemid, itemnum, itemtype: 3 })),
         }
         c.state.homeRevision = (c.state.homeRevision || 0) + 1
