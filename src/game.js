@@ -214,7 +214,7 @@ import { refreshProduction, productionDue } from './production.js'
 import { retimeProduction } from './production-time.js'
 import { settleProductionWork, reconcileProductionWork, productionWorkDue } from './production-work.js'
 import { captureWorkFoodTaskSnapshot, recordWorkFoodTaskWitnesses } from './task-work-food-witness.js'
-import { ranchDue, settleRanches, retimeRanches } from './ranch.js'
+import { ranchDue, settleRanches, retimeRanches, reconcileRanchTechnology } from './ranch.js'
 import { collectionDue, settleCollections, retimeCollections } from './home-collection.js'
 import { simpleProductionDue, settleSimpleProducts, simpleProductSnapshot } from './simple-production.js'
 import { hasCaptureCardReward } from './capture-card-stock.js'
@@ -1472,6 +1472,7 @@ export class Game {
                     validateMedicineLedger(state)
                 reconcileMedicine(context)
                 const response = recoveredChoice ? {} : handler(context, r)
+                if (e.name === 'CSProtoHomeTechnologyLevelUp') reconcileRanchTechnology(this.tables, state)
                 // 9596 is the current client readiness report; 9509 is only
                 // reached after its existing dungeon-domain validation.
                 // Server order is tested; Unity listener timing remains explicit.
@@ -1802,7 +1803,7 @@ export class Game {
         const homeDue =
                 productionDue(current, now) ||
                 (this.productionWorkPolicy && productionWorkDue(this.tables, current, now, this.productionWorkPolicy)),
-            ranchReady = ranchDue(current, now),
+            ranchReady = ranchDue(this.tables, current, now),
             collectionReady = collectionDue(current, now),
             exchangeReady = homeExchangeDue(this.tables, current, now),
             simpleDue = simpleProductionDue(current, now),

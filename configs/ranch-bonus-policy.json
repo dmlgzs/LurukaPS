@@ -1,0 +1,21 @@
+{
+    "version": 1,
+    "enabled": true,
+    "approved": true,
+    "officiallyVerified": false,
+    "approval": "ranch-local-policy-approved-b362/APPROVAL.md",
+    "counter": "committed-base-item-units-per-ranch",
+    "tier": "enabled-descendant-replaces-ancestor",
+    "extraSelection": "uniform-original-positions",
+    "surpriseSelection": "normalized-relative-weights-guaranteed-one",
+    "upgradeCredit": "keep-integer-units-next-base-only",
+    "pending": "sealed-fifo-before-base",
+    "pendingLimit": 2,
+    "adoption": "legacy-through-T-before-adopt-future-after-T",
+    "currencySlots": "one-per-merged-currency",
+    "dailyReset": false,
+    "eggProducer": false,
+    "offlineAutoStorage": false,
+    "clientValidated": false,
+    "todo": "Human-approved local rules, not official type9 execution. Preserve missing model mapping for3:360005 and original1050 positions; no filtering, replacement, hidden grant or forced storage. Satiety, experience, eggs, daily resets and offline auto harvesting remain separate."
+}

@@ -1,3 +1,11 @@
+import {
+    ranchBonusEnabled,
+    validateRanchBonus,
+    adoptRanchBonus,
+    reconcileRanchBonuses,
+    recordRanchBaseCommit,
+    reserveRanchDropGuid,
+} from './ranch-bonus.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { homeCondition } from './home-grid.js'
@@ -28,10 +36,16 @@ function changed(state) {
 }
 export function ensureRanches(tables, state) {
     if (!state.home) return []
-    const home = state.home,
-        data = ranchCatalog(tables)
+    let home = state.home
+    const data = ranchCatalog(tables)
+    let copied = false
     for (const block of data.blocks) {
         if (!homeCondition(block.unlockCondi, state) || home.ranches?.[block.id]) continue
+        if (!copied) {
+            state.home = { ...home, ranches: { ...home.ranches } }
+            home = state.home
+            copied = true
+        }
         const guid = allocateHomeGuid(home)
         ;(home.ranches ??= {})[block.id] = {
             guid,
@@ -59,7 +73,7 @@ export function ranchAt(tables, state, blockId) {
         'Saved ranch level is not configured',
         ErrorCode.HomeRanchLvNotExist,
     )
-    return ranch
+    return writableRanch(state, blockId)
 }
 export function ranchWorkerLimit(tables, state, field = 'pasture_woker_max') {
     const level = tables.find('home_level', state.home.level)
@@ -161,7 +175,8 @@ export function ranchPayloads(tables, state) {
                 drop_times: drop_times.map(({ drop_id, time }) => ({ drop_id, time })),
             })),
             harvest_pet: ranch.harvest_pet,
-            drops: ranch.drops,
+            // Internal sealed provenance is not a HomeRanchDropReward wire field.
+            drops: ranch.drops.map(({ guid, pet_guid, drop_id, item }) => ({ guid, pet_guid, drop_id, item })),
             eggs: ranch.eggs,
             stores: ranch.stores,
         },
@@ -181,20 +196,105 @@ export function clearRanchPetSlots(state, guid) {
     if (cleared) changed(state)
     return cleared
 }
-export function ranchDue(state, now) {
-    return Object.values(state.home?.ranches || {}).some((ranch) =>
-        ranch.product_pets.some((slot) => slot.drop_times.some((clock) => clock.time <= now)),
+
+export function writableRanch(state, blockId) {
+    const ranch = state.home.ranches[blockId]
+    ensure(
+        ranch &&
+            ['product_pets', 'drops', 'eggs', 'stores'].every((key) => Array.isArray(ranch[key])) &&
+            ['claimedRewardGuids', 'claimedEggGuids'].every(
+                (key) => ranch[key] === undefined || Array.isArray(ranch[key]),
+            ),
+        'Malformed writable ranch state',
+        ErrorCode.GameConfig,
     )
+    const bonus =
+        ranch.bonus && typeof ranch.bonus === 'object'
+            ? {
+                  ...ranch.bonus,
+                  families:
+                      ranch.bonus.families && typeof ranch.bonus.families === 'object'
+                          ? Object.fromEntries(
+                                Object.entries(ranch.bonus.families).map(([id, row]) => [
+                                    id,
+                                    row && typeof row === 'object' ? { ...row } : row,
+                                ]),
+                            )
+                          : ranch.bonus.families,
+                  pendingBonus: Array.isArray(ranch.bonus.pendingBonus)
+                      ? ranch.bonus.pendingBonus.map((row) =>
+                            row && typeof row === 'object'
+                                ? {
+                                      ...row,
+                                      item: row.item && typeof row.item === 'object' ? { ...row.item } : row.item,
+                                  }
+                                : row,
+                        )
+                      : ranch.bonus.pendingBonus,
+              }
+            : ranch.bonus
+    const draft = {
+        ...ranch,
+        product_pets: Array.isArray(ranch.product_pets)
+            ? ranch.product_pets.map((slot) => ({
+                  ...slot,
+                  drop_times: Array.isArray(slot.drop_times)
+                      ? slot.drop_times.map((clock) => ({ ...clock }))
+                      : slot.drop_times,
+              }))
+            : ranch.product_pets,
+        drops: Array.isArray(ranch.drops) ? ranch.drops.slice() : ranch.drops,
+        eggs: Array.isArray(ranch.eggs) ? ranch.eggs.slice() : ranch.eggs,
+        stores: Array.isArray(ranch.stores) ? ranch.stores.slice() : ranch.stores,
+        ...(ranch.claimedRewardGuids ? { claimedRewardGuids: ranch.claimedRewardGuids.slice() } : {}),
+        ...(ranch.claimedEggGuids ? { claimedEggGuids: ranch.claimedEggGuids.slice() } : {}),
+        ...(ranch.bonus !== undefined ? { bonus } : {}),
+    }
+    state.home = { ...state.home, ranches: { ...state.home.ranches, [blockId]: draft } }
+    return draft
+}
+export function ranchDue(tables, state, now) {
+    const data = ranchCatalog(tables)
+    for (const ranch of Object.values(state.home?.ranches ?? {})) {
+        ensure(
+            Array.isArray(ranch.product_pets) && Array.isArray(ranch.drops),
+            'Invalid saved ranch scheduler state',
+            ErrorCode.GameConfig,
+        )
+        if (ranch.bonus !== undefined) {
+            ensure(
+                ranchBonusEnabled() &&
+                    ranch.bonus &&
+                    ranch.bonus.version === 1 &&
+                    Array.isArray(ranch.bonus.pendingBonus) &&
+                    ranch.bonus.pendingBonus.length <= 2,
+                'Ranch bonus model unavailable or malformed',
+                ErrorCode.GameConfig,
+            )
+            const config = data.levels.get(ranch.lv)
+            ensure(
+                config && Number.isSafeInteger(config.petProductLimit) && config.petProductLimit > 0,
+                'Invalid ranch visible capacity',
+                ErrorCode.GameConfig,
+            )
+            if (ranch.bonus.pendingBonus.length && ranch.drops.length < config.petProductLimit) return true
+        }
+        if (ranch.product_pets.some((slot) => slot.drop_times.some((clock) => clock.time <= now))) return true
+    }
+    return false
 }
 export function retimeRanches(tables, state, now) {
     let updated = false
-    for (const ranch of Object.values(state.home?.ranches || {}))
-        for (const slot of ranch.product_pets) {
-            const pet = state.pets.find((pet) => pet.guid === slot.pet_guid)
+    for (const ranch of Object.values(state.home?.ranches ?? {})) {
+        const changes = []
+        for (let slotIndex = 0; slotIndex < ranch.product_pets.length; slotIndex++) {
+            const slot = ranch.product_pets[slotIndex],
+                pet = state.pets.find((item) => item.guid === slot.pet_guid)
             ensure(pet, 'Missing assigned ranch pet', ErrorCode.GameConfig)
             const drops = ranchPetDrops(tables, pet)
-            for (const clock of slot.drop_times) {
-                const row = drops.find((row) => row.id === clock.drop_id)
+            for (let index = 0; index < slot.drop_times.length; index++) {
+                const clock = slot.drop_times[index],
+                    row = drops.find((item) => item.id === clock.drop_id)
                 ensure(
                     row && Number.isSafeInteger(clock.seconds) && clock.seconds > 0 && Number.isSafeInteger(clock.time),
                     'Invalid saved ranch clock',
@@ -202,18 +302,25 @@ export function retimeRanches(tables, state, now) {
                 )
                 const seconds = ranchSeconds(tables, state, pet, row)
                 if (clock.seconds === seconds || clock.time <= now) continue
-                clock.time = now + Math.max(1, Math.ceil(((clock.time - now) / clock.seconds) * seconds))
-                clock.seconds = seconds
-                updated = true
+                const time = now + Math.max(1, Math.ceil(((clock.time - now) / clock.seconds) * seconds))
+                ensure(Number.isSafeInteger(time) && time <= 0xffffffff, 'Ranch clock overflow', ErrorCode.InvalidLogic)
+                changes.push({ slotIndex, index, time, seconds })
             }
         }
+        if (changes.length) {
+            const draft = writableRanch(state, ranch.block_id)
+            for (const row of changes)
+                Object.assign(draft.product_pets[row.slotIndex].drop_times[row.index], {
+                    time: row.time,
+                    seconds: row.seconds,
+                })
+            updated = true
+        }
+    }
     if (updated) changed(state)
     return updated
 }
-
-// Geometric skipping samples Bernoulli failures without a loop per missed
-// interval. Work is bounded by the configured visible drop capacity, including
-// arbitrarily old saves and zero-probability rows.
+// Geometric skipping is bounded by visible capacity, not missed periods.
 function successes(attempts, probability, limit, randomInt) {
     if (!probability || !attempts || !limit) return []
     const result = []
@@ -229,29 +336,91 @@ function successes(attempts, probability, limit, randomInt) {
     }
     return result
 }
-export function settleRanches(tables, state, now, randomInt) {
+function floorLimit(tables, ranch) {
+    const config = ranchCatalog(tables).levels.get(ranch.lv)
+    ensure(
+        config && Number.isSafeInteger(config.petProductLimit) && config.petProductLimit > 0,
+        'Invalid ranch floor capacity',
+        ErrorCode.GameConfig,
+    )
+    return config.petProductLimit
+}
+function drainInto(tables, ranch) {
+    const ledger = validateRanchBonus(tables, ranch),
+        moved = []
+    if (!ledger) return moved
+    while (ledger.pendingBonus.length && ranch.drops.length < floorLimit(tables, ranch)) {
+        const sealed = ledger.pendingBonus.shift()
+        // Preserve the exact historical producer and selected bonus HomeDrop.
+        ranch.drops.push({
+            guid: sealed.guid,
+            pet_guid: sealed.pet_guid,
+            drop_id: sealed.drop_id,
+            item: { ...sealed.item },
+            bonus_source: {
+                family: sealed.family,
+                technologyId: sealed.technologyId,
+                paramsFingerprint: sealed.paramsFingerprint,
+                triggerBaseGuid: sealed.triggerBaseGuid,
+                triggerBaseDropId: sealed.triggerBaseDropId,
+                triggeredAt: sealed.triggeredAt,
+            },
+        })
+        moved.push(sealed.guid)
+    }
+    return moved
+}
+export function drainRanchPending(tables, state, ranch, now) {
+    if (ranch.bonus === undefined) return { changed: false, homeChanged: false, movedGuids: [] }
+    ensure(ranchBonusEnabled(), 'Saved ranch bonus requires its configured model', ErrorCode.GameConfig)
+    const ledger = validateRanchBonus(tables, ranch)
+    if (!ledger.pendingBonus.length || ranch.drops.length >= floorLimit(tables, ranch))
+        return { changed: false, homeChanged: false, movedGuids: [] }
+    const draft = writableRanch(state, ranch.block_id),
+        movedGuids = drainInto(tables, draft)
+    if (movedGuids.length) changed(state)
+    return { changed: !!movedGuids.length, homeChanged: !!movedGuids.length, movedGuids }
+}
+export function reconcileRanchTechnology(tables, state) {
+    if (!ranchBonusEnabled()) return false
     let updated = false
-    for (const ranch of ensureRanches(tables, state)) {
-        const config = ranchCatalog(tables).levels.get(ranch.lv)
+    for (const ranch of Object.values(state.home?.ranches ?? {})) {
+        if (ranch.bonus === undefined) continue
+        validateRanchBonus(tables, ranch)
+        updated = reconcileRanchBonuses(tables, state, writableRanch(state, ranch.block_id)) || updated
+    }
+    return updated
+}
+export function settleRanches(tables, state, now, randomInt) {
+    const enabled = ranchBonusEnabled()
+    let updated = false
+    for (const original of ensureRanches(tables, state)) {
         ensure(
-            config && Number.isSafeInteger(config.petProductLimit) && config.petProductLimit > 0,
-            'Invalid ranch floor capacity',
+            Array.isArray(original.product_pets) && Array.isArray(original.drops),
+            'Malformed ranch production state',
             ErrorCode.GameConfig,
         )
-        // TODO: verify whether petProductLimit is shared by the ranch or per
-        // producer. Current table supplies the limit; no server capture proves
-        // its attribution. Use a shared visible cap as an explicit local policy.
-        const room = Math.max(0, config.petProductLimit - ranch.drops.length),
+        const managed = original.bonus !== undefined
+        ensure(enabled || !managed, 'Saved ranch bonus requires its configured model', ErrorCode.GameConfig)
+        if (managed) validateRanchBonus(tables, original)
+        // Own every mutable path even when the caller borrowed a shallow draft.
+        const ranch = writableRanch(state, original.block_id)
+        if (managed) {
+            reconcileRanchBonuses(tables, state, ranch)
+            if (drainInto(tables, ranch).length) updated = true
+        }
+        const room = Math.max(0, floorLimit(tables, ranch) - ranch.drops.length),
             pending = []
         for (const slot of ranch.product_pets) {
-            const pet = state.pets.find((pet) => pet.guid === slot.pet_guid)
+            const pet = state.pets.find((item) => item.guid === slot.pet_guid)
             ensure(
                 pet && pet.work_status === 6 && pet.work_build === ranch.block_id,
                 'Inconsistent ranch production assignment',
                 ErrorCode.PetWorkingStatusValid,
             )
+            ensure(Array.isArray(slot.drop_times), 'Malformed ranch production clocks', ErrorCode.GameConfig)
             for (const clock of slot.drop_times) {
-                const row = ranchPetDrops(tables, pet).find((row) => row.id === clock.drop_id)
+                const row = ranchPetDrops(tables, pet).find((item) => item.id === clock.drop_id)
                 ensure(
                     row &&
                         Number.isSafeInteger(clock.time) &&
@@ -266,28 +435,36 @@ export function settleRanches(tables, state, now, randomInt) {
                 for (const offset of successes(attempts, row.rate / 10000, room, randomInt))
                     pending.push({ at: clock.time + offset * clock.seconds, slot, row })
                 clock.time += attempts * clock.seconds
+                ensure(
+                    Number.isSafeInteger(clock.time) && clock.time <= 0xffffffff,
+                    'Ranch clock overflow',
+                    ErrorCode.InvalidLogic,
+                )
                 updated = true
             }
         }
         pending.sort((a, b) => a.at - b.at || a.slot.slot - b.slot.slot || a.row.id - b.row.id)
-        for (const { slot, row } of pending.slice(0, room)) {
-            ensure(
-                Number.isSafeInteger(ranch.nextDropGuid) && ranch.nextDropGuid > 0 && ranch.nextDropGuid <= 0xffffffff,
-                'Ranch drop identity space exhausted',
-                ErrorCode.InvalidLogic,
-            )
+        for (const { at, slot, row } of pending) {
+            if (ranch.drops.length >= floorLimit(tables, ranch) || ranch.bonus?.pendingBonus.length) break
             const count = row.minValue + (row.maxValue > row.minValue ? randomInt(row.maxValue - row.minValue + 1) : 0)
-            ranch.drops.push({
-                guid: ranch.nextDropGuid++,
+            const drop = {
+                guid: reserveRanchDropGuid(ranch),
                 pet_guid: slot.pet_guid,
                 drop_id: row.id,
                 item: { itemtype: row.itemType, itemid: lists(row.itemId)[0], itemnum: count },
-            })
+            }
+            ranch.drops.push(drop)
+            if (managed) {
+                recordRanchBaseCommit(tables, state, ranch, drop, at, randomInt)
+                if (drainInto(tables, ranch).length) updated = true
+            }
         }
+        // First close every legacy <=T window above without bonus, then adopt.
+        if (enabled && !managed) adoptRanchBonus(tables, state, ranch, now)
+        if (managed) validateRanchBonus(tables, ranch)
     }
     if (updated) changed(state)
-    // TODO: authoritative offline cap/paused clock semantics, 3005/3006 extra
-    // drops and eggs, satiety/experience settlement and exact retiming policy.
-    // Current 57 farmProducts rows are supported, without inventing extra loot.
+    // Explicitly separate: eggs, daily limits, satiety/experience and offline
+    // automatic pickup still lack an approved implemented producer here.
     return updated
 }

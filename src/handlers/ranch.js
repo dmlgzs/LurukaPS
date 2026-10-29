@@ -14,6 +14,7 @@ import {
     ranchSeconds,
     clearRanchPetSlots,
     settleRanches,
+    drainRanchPending,
 } from '../ranch.js'
 import { pickRanchDrops, storeRanchDrop } from '../ranch-claims.js'
 import { ranchStoreItems } from '../ranch-items.js'
@@ -94,19 +95,22 @@ export function registerRanch(on, tables) {
     })
     on('RanchPetAutoGetReward', (c, request) => {
         const ranch = ranchContext(c, request.block_id)
-        storeRanchDrop(tables, c.state, ranch, request.reward_guid)
+        if (storeRanchDrop(tables, c.state, ranch, request.reward_guid))
+            drainRanchPending(tables, c.state, ranch, c.now)
         return {}
     })
     on('RanchPlayerGetReward', (c, request) => {
         const ranch = ranchContext(c, request.block_id)
+        const before = ranch.drops.length
         pickRanchDrops(tables, c.state, ranch, request)
+        if (ranch.drops.length < before) drainRanchPending(tables, c.state, ranch, c.now)
         // Current response is ProtoNullRsp; the shared dispatcher sends actual
         // inventory/egg/ranch deltas before this pickup acknowledgement.
         return {}
     })
     on('RanchSetPetOption', (c, request) => {
-        const ranch = ranchDispatchContext(c, request.block_id),
-            data = ranchCatalog(tables)
+        let ranch = ranchDispatchContext(c, request.block_id)
+        const data = ranchCatalog(tables)
         ensure([1, 2].includes(request.work_type), 'Invalid ranch work role', ErrorCode.InvalidArgument)
         const producer = request.work_type === 1,
             slot = request.slot ?? 0
@@ -171,6 +175,8 @@ export function registerRanch(on, tables) {
         )
             return {}
         settleRanches(tables, c.state, c.now, c.randomInt)
+        // Settlement owns a COW ranch branch; do not continue writing the old reference.
+        ranch = c.state.home.ranches[request.block_id]
         if (existing !== '0' && existing !== chosen?.guid) {
             const previous = c.state.pets.find((pet) => pet.guid === existing)
             ensure(previous, 'Missing previous ranch worker', ErrorCode.GameConfig)

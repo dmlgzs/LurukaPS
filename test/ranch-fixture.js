@@ -4,7 +4,7 @@ import { Protocol } from '../src/protocol.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { createPets } from '../src/pets.js'
-import { technologyState } from '../src/technology.js'
+import { technologyState, technologyPoints } from '../src/technology.js'
 
 export function ranchFixture(name, options = {}) {
     const cfg = configuration(),
@@ -50,6 +50,10 @@ export function ranchFixture(name, options = {}) {
         // its first HomeSync adds nodes after notifyJourney cached homeRevision,
         // and a second no-op assignment legitimately observes the new revision.
         technologyState(tables, s)
+        // The versioned technology point ledger also derives its total from
+        // this controlled level change. Reconcile it before idempotency checks,
+        // as the normal level-up dispatcher does, rather than during HomeSync.
+        technologyPoints(tables, s)
     })
     return {
         tables,
