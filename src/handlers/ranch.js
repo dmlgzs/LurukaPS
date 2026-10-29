@@ -16,6 +16,7 @@ import {
     settleRanches,
 } from '../ranch.js'
 import { pickRanchDrops, storeRanchDrop } from '../ranch-claims.js'
+import { ranchStoreItems } from '../ranch-items.js'
 import { grantRewards } from '../rewards.js'
 import { rewardSource } from '../reward-source.js'
 import { playerIsInBattle } from '../player-battle-state.js'
@@ -86,7 +87,7 @@ export function registerRanch(on, tables) {
     on('RanchGetStoreReward', (c, request) => {
         const ranch = ranchContext(c, request.u32)
         ensure(ranch.stores.length > 0, 'Ranch storage is empty', ErrorCode.HomeRanchStoreIsNull)
-        const rewards = grantRewards(tables, c.state, ranch.stores)
+        const rewards = grantRewards(tables, c.state, ranchStoreItems(tables, ranch.stores))
         ranch.stores = []
         c.state.homeRevision = (c.state.homeRevision || 0) + 1
         return { rewards, src: rewardSource(tables, 'ranchStoreHarvest') }
