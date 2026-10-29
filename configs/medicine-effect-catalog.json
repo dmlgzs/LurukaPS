@@ -1,0 +1,66 @@
+{
+    "schema": 1,
+    "medicines": {
+        "2020001": {
+            "targetType": 1,
+            "medicineType": 3,
+            "cooldownType": 19,
+            "cooldownSeconds": 1800,
+            "worldBuffId": 7001,
+            "elementConfigId": 601400111,
+            "worldBuff": {
+                "durationType": 1,
+                "duration": 0,
+                "group": 0,
+                "priority": 0
+            }
+        },
+        "2020002": {
+            "targetType": 2,
+            "medicineType": 3,
+            "cooldownType": 20,
+            "cooldownSeconds": 1800,
+            "worldBuffId": 7002,
+            "elementConfigId": 601400111,
+            "worldBuff": {
+                "durationType": 1,
+                "duration": 0,
+                "group": 0,
+                "priority": 0
+            }
+        }
+    },
+    "effects": {
+        "601400111": {
+            "kind": "revive",
+            "elementType": 29,
+            "formulaId": 108,
+            "functionParams": [10000, 0, 0, 0, 0, 0, 10000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            "formulaSha256": "1373123b6b124cb97a9a6618d2b37b0c829b634881019a63fb6d19bbb6346009",
+            "decodedAssetSha256": "dadededfda99cca46a08d7b79473f8cfdb1b5eaa8f841978133e95355cc86221",
+            "assetIsLasting": false
+        }
+    },
+    "provenance": {
+        "generator": "azurjs/scripts/export-medicine-effects.mjs",
+        "generatorSha256": "f2fd1ec508fa05b749f6615dad48c40b8829a18900c3a3cb587a5a1374c77a77",
+        "sources": {
+            "commonItems": {
+                "sha256": "327b2a819394d594e6d7c31ebcc1e5ebe31db0a9b478f19a2208511d7a222b9e"
+            },
+            "medicines": {
+                "sha256": "32dfae6a0bbc1907ef294ce5b9f609ae0ce5e3e823bf1b1d4fa8fff75c4f5976"
+            },
+            "worldBuffs": {
+                "sha256": "19538dfd2d71946db45c5c640772931cae06b646081e5897edd7596921c8d3eb"
+            },
+            "assets": {
+                "sha256": "f830098e8dda5dae68fc9516d843be6e456e11088f067b5425c487b8538fa293"
+            },
+            "formulas": {
+                "sha256": "791fb3d72246848914481de226df705f514b9cab7e0aaa495b7190208f2195f4"
+            }
+        },
+        "policyIncluded": false
+    }
+}

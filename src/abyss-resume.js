@@ -1,3 +1,4 @@
+import { observeAcceptedHeroVitals, invalidateTrackedHeroes, invalidateMedicineContext } from './medicine-state.js'
 import { ensure } from './handlers/common.js'
 import { ErrorCode } from './error-codes.js'
 import { heroBattleLimits } from './battle.js'
@@ -86,6 +87,7 @@ export function validateAbyssCheckpoint(checkpoint, roster, level, rotation) {
 }
 export function restoreAbyssCheckpoint(state, run, checkpoint) {
     if (!checkpoint) return
+    invalidateMedicineContext(state, 'abyss-checkpoint-restore')
     for (const field of ['heroes', 'pets', 'heroAttrs', 'petAttrs', 'challenges', 'dead_hero_ids'])
         run[field] = structuredClone(checkpoint[field])
     run.part_index = checkpoint.completed_parts

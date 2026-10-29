@@ -1,3 +1,4 @@
+import { invalidateMedicineContext } from './medicine-state.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { petData } from './pets.js'
@@ -103,6 +104,7 @@ export function ensureCultFormation(tables, catalog, state, accountId) {
     })
     if (!Object.hasOwn(run, 'previous_cult_manager'))
         run.previous_cult_manager = existing ? structuredClone(existing) : null
+    invalidateMedicineContext(state, 'cult-roster-install')
     run.heroes = heroes
     run.pets = pets
     state.player.group_mgrs = state.player.group_mgrs.filter((x) => x.type !== 8)

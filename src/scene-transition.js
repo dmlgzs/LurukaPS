@@ -1,3 +1,4 @@
+import { invalidateMedicineContext } from './medicine-state.js'
 import { clearSceneMount } from './mounts.js'
 // Only server-authorized map changes can open this movement allowance.
 // Readiness acknowledgments or a valid destination move close it; old reports
@@ -6,6 +7,7 @@ export function beginSceneTransition(state, previousMapId, now, command) {
     const world = state.world
     if (!Number.isInteger(previousMapId) || previousMapId <= 0 || previousMapId === world.map_id) return false
     // Never recreate the destination player from the previous scene's ride.
+    invalidateMedicineContext(state, 'scene-transition', now)
     clearSceneMount(state, previousMapId)
     delete world.transform
     world.scene_transition = { from_map_id: previousMapId, to_map_id: world.map_id, command, started_at: now }

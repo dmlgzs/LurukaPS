@@ -1,3 +1,4 @@
+import { observeAcceptedHeroVitals, invalidateTrackedHeroes, invalidateMedicineContext } from '../medicine-state.js'
 import { beginMountActionLifecycle, endMountActionLifecycle, isExitedMountAction } from '../mount-action-lifecycle.js'
 import { recoverFallPosition, acceptFallRecoveryMovement, resetFallRecoveryScope } from '../fall-recovery.js'
 import { resetPlayerBattleRelations } from './world-combat.js'
@@ -296,6 +297,7 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
 export function rememberMap(c, destination) {
     const w = c.state.world
     if (w.map_id === destination) return
+    invalidateMedicineContext(c.state, 'world-departure', c.now)
     const history = (c.state.worldHistory ??= [])
     history.push({ map_id: w.map_id, point_id: w.point_id, area_id: w.area_id, pos: { ...w.pos }, angle: w.angle })
     if (history.length > 8) history.shift()
@@ -495,6 +497,7 @@ export function registerWorld(on) {
             if (!battle) continue
             const max = heroBattleLimits(heroModules(c.tables, c.state, hero))
             Object.assign(battle, { hp: max.hp, sp: max.sp, alive_state: 0 })
+            observeAcceptedHeroVitals(c.state, hero.guid, battle, 'accepted-9118-revival', c.now)
         }
         syncBattle(c)
         return {}

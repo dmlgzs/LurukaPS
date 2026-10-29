@@ -1,3 +1,4 @@
+import { reconcileMedicineContext } from '../medicine-state.js'
 import { registerHeroEquipment } from './hero-equipment.js'
 import { isPreviousTrialActor } from './trial-groups.js'
 import { syncBattle } from '../battle.js'
@@ -87,6 +88,7 @@ export function registerCollection(on) {
                 if (h.pet_id !== '0') pet(c.state, h.pet_id).hero_id = h.guid
             }
         g.heros = infos.map((info) => ({ hero_id: info.hero_guid || '0', pet_id: info.pet_guid || '0' }))
+        reconcileMedicineContext(c.state, c.now)
         reconcileFormationPets(c.state)
         if (!heroIds.includes(g.control)) g.control = heroIds[0]
         const syncContext = { ...c, push: c.pushBefore }
@@ -103,6 +105,7 @@ export function registerCollection(on) {
         ids.forEach((id) => hero(c.state, id))
         checkNormalPets(c, { ...old, heros: r.group.heros }, r.type)
         old.heros = r.group.heros
+        reconcileMedicineContext(c.state, c.now)
         old.control = ids.includes(r.group.control) ? r.group.control : ids[0]
         reconcileFormationPets(c.state)
         syncGroups(c)
@@ -113,6 +116,7 @@ export function registerCollection(on) {
         checkNormalPets(c, group(c.state, r.type, r.group_id), r.type)
         m.last_group = m.cur_group
         m.cur_group = r.group_id
+        reconcileMedicineContext(c.state, c.now)
         syncGroups(c)
         return {}
     })

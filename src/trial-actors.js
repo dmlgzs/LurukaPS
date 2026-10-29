@@ -1,4 +1,15 @@
+import { observeAcceptedHeroVitals, invalidateTrackedHeroes, invalidateMedicineContext } from './medicine-state.js'
+import { effectiveFormationManager } from './formation-scope.js'
 export function retireTrialActors(state, actors) {
+    const active = activeFormationManager(state),
+        group = active?.groups.find((row) => row.id === active.cur_group)
+    if (group?.heros.some((slot) => actors.some((actor) => actor.guid === slot.hero_id)))
+        invalidateMedicineContext(state, 'formation-identity-retirement')
+    invalidateTrackedHeroes(
+        state,
+        actors.map((actor) => actor.guid),
+        'trial-retirement',
+    )
     const ids = new Set(state.retiredTrialActors ?? [])
     for (const actor of actors) ids.add(actor.guid)
     state.retiredTrialActors = [...ids].slice(-128)
@@ -28,11 +39,5 @@ export function temporaryPets(state) {
     ]
 }
 export function activeFormationManager(state) {
-    const type =
-        state.abyssRun && state.abyssRun.map_id === state.world.map_id
-            ? 7
-            : state.cultTrial && state.cultTrial.map_id === state.world.map_id
-              ? 8
-              : 1
-    return state.player.group_mgrs.find((manager) => manager.type === type)
+    return effectiveFormationManager(state)
 }

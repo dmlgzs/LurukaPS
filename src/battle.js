@@ -1,3 +1,4 @@
+import { invalidateTrackedHeroes, observeAcceptedHeroVitals } from './medicine-state.js'
 import { numericGeneAttributes } from './pet-gene-numeric.js'
 import { effectGeneSkills } from './pet-dna-skills.js'
 import { petSoulAttributes } from './pet-star-soul.js'
@@ -205,6 +206,7 @@ export function refreshBattleState(tables, state) {
         heroModules(tables, state, hero),
     )
     const previous = new Map((state.player.heros_info.battle_infos || []).map((x) => [x.hero_id, x]))
+    const oldTracked = state.medicine?.tracked
     state.player.heros_info.battle_infos = heros.map((h) => {
         const { hp: maxhp, sp: maxsp } = heroBattleLimits(h)
         const old = previous.get(h.hero_guid)
@@ -222,6 +224,16 @@ export function refreshBattleState(tables, state) {
         }
     })
     state.battleHpUnitsVersion = 1
+    if (oldTracked) {
+        const rows = new Map(state.player.heros_info.battle_infos.map((row) => [row.hero_id, row]))
+        for (const id of Object.keys(oldTracked)) {
+            const row = rows.get(id),
+                tracked = state.medicine?.tracked?.[id]
+            if (!tracked) continue
+            if (!row || row.hp !== tracked.hp || row.alive_state !== tracked.aliveState)
+                invalidateTrackedHeroes(state, [id], row ? 'battle-state-repair' : 'battle-state-remove')
+        }
+    }
     return heros
 }
 export function syncBattle(c) {

@@ -1,3 +1,18 @@
+import {
+    medicineCooldownPayload,
+    medicineDeliveryPayload,
+    reconcileMedicine,
+    medicineDue,
+    syncMedicineExpiry,
+    syncMedicineDelivery,
+} from './medicine.js'
+import {
+    medicineCleanupPayload,
+    takeMedicineCleanupPayload,
+    personalBuffFrames,
+    preparePersonalBuffPacket,
+    validateMedicineLedger,
+} from './medicine-state.js'
 import { pushPermanent } from './growup-permanent.js'
 import { growupArchiveSnapshot } from './growup-archive.js'
 import { notifyBattlePassTasks } from './battle-pass-tasks.js'
@@ -976,7 +991,14 @@ export class Game {
                 // Main entry packets and the source fact commit in this transaction.
                 if (e.name === 'CSProtoEnterGame') recordLoginDay(this.tables, state, now)
                 technologyPoints(this.tables, state)
-                return [...this.loginPackets(state, session, r, frame, e.id), ...battle]
+                return [
+                    ...this.loginPackets(state, session, r, frame, e.id),
+                    ...battle,
+                    this.packet('SCProtoMedicineInfo', medicineCooldownPayload(state, now)),
+                    ...personalBuffFrames(medicineDeliveryPayload({ state, now, tables: this.tables })).map((value) =>
+                        this.packet('CSProtoWorldBuffSync', value),
+                    ),
+                ]
             })
             session.entered = true
             const activeState = this.store.load(session.id).state,
@@ -1307,12 +1329,28 @@ export class Game {
                         arena_now_ms: arenaNowMs,
                         randomInt: this.rng,
                         tables: this.tables,
-                        pushBefore: (name, value) => before.push(this.packet(name, value)),
-                        push: (name, value) => after.push(this.packet(name, value, { pushSeq: frame.pushSeq })),
+                        pushBefore: (name, value) => {
+                            if (name === 'CSProtoWorldBuffSync') preparePersonalBuffPacket(state, this.tables, value)
+                            before.push(this.packet(name, value))
+                        },
+                        push: (name, value) => {
+                            if (name === 'CSProtoWorldBuffSync') preparePersonalBuffPacket(state, this.tables, value)
+                            after.push(this.packet(name, value, { pushSeq: frame.pushSeq }))
+                        },
                         broadcast: (audience, name, value) => after.push(this.packet(name, value, { audience })),
                     }
+                    reconcileMedicine(context)
                     const response = handler(context, r)
-                    return [...before, ...(fastCombatReplies.has(e.name) ? [reply(response)] : []), ...after]
+                    syncMedicineExpiry(context)
+                    const cleanup = personalBuffFrames(takeMedicineCleanupPayload(state)).map((value) =>
+                        this.packet('CSProtoWorldBuffSync', value),
+                    )
+                    return [
+                        ...cleanup,
+                        ...before,
+                        ...(fastCombatReplies.has(e.name) ? [reply(response)] : []),
+                        ...after,
+                    ]
                 },
                 {
                     defer: true,
@@ -1342,6 +1380,7 @@ export class Game {
                 const bagBefore = JSON.stringify(state.player.sbag_infos)
                 upgradeInventory(state)
                 const statePacket = (name, value, meta = {}) => {
+                    if (name === 'CSProtoWorldBuffSync') preparePersonalBuffPacket(state, this.tables, value)
                     if (name === 'CSProtoPetInfoSync') value = taskPetPresentation(this.tables, state, value)
                     if (name === 'CSProtoSyncPlayerData' && value) {
                         syncCurrencyMirrors(state.player)
@@ -1425,7 +1464,24 @@ export class Game {
                 if (!battleReport) observeActiveSession(this.tables, state, now)
                 const activeCountersBefore = activeCounterSample(state)
                 const repeatRosterBefore = battleReport ? null : repeatFormationBefore(this.tables, state)
+                if (
+                    e.name === 'CSProtoMultiCampaignPlayerLoaded' ||
+                    e.name === 'CSProtoStartDungeonClientOk' ||
+                    (e.name === 'CSProtoUseItem' && this.tables.find('common_item', r.itemid)?.useType === 17)
+                )
+                    validateMedicineLedger(state)
+                reconcileMedicine(context)
                 const response = recoveredChoice ? {} : handler(context, r)
+                // 9596 is the current client readiness report; 9509 is only
+                // reached after its existing dungeon-domain validation.
+                // Server order is tested; Unity listener timing remains explicit.
+                if (
+                    (e.name === 'CSProtoMultiCampaignPlayerLoaded' && state.abyssRun?.map_id !== state.world.map_id) ||
+                    (e.name === 'CSProtoStartDungeonClientOk' && state.abyssRun?.map_id === state.world.map_id)
+                )
+                    syncMedicineDelivery(context)
+                reconcileMedicine(context)
+                syncMedicineExpiry(context)
                 if (!battleReport) notifyEscBackground(context)
                 if (!battleReport) notifySocialWheel(context)
                 if (!battleReport) notifyPamiMail(context, e.name)
@@ -1618,7 +1674,11 @@ export class Game {
                 if (!battleReport) validateRepeatFormation(this.tables, state, repeatRosterBefore)
                 if (['CSProtoWorldCheckpointOpen', 'CSProtoWorldCheckpointClose'].includes(e.name))
                     context.push('CSProtoWorldCheckpointSync', checkpointSnapshot(state))
+                const medicineCleanup = personalBuffFrames(takeMedicineCleanupPayload(state)).map((value) =>
+                    this.packet('CSProtoWorldBuffSync', value),
+                )
                 return [
+                    ...medicineCleanup,
                     ...((state.appearanceRevision ?? 0) !== appearanceRevision
                         ? [
                               this.packet('SCProtoClothesInfoSync', clothesSnapshot(this.tables, state)),
@@ -1738,6 +1798,7 @@ export class Game {
             exact = arenaNowMs / 1000,
             current = this.store.load(id).state
         requireProductionWorkModel(current, this.productionWorkPolicy)
+        const medicineReady = medicineDue(current, now)
         const homeDue =
                 productionDue(current, now) ||
                 (this.productionWorkPolicy && productionWorkDue(this.tables, current, now, this.productionWorkPolicy)),
@@ -1755,6 +1816,7 @@ export class Game {
                     ? abyssTimeoutDue(this.tables, current, now)
                     : false,
             durable =
+                medicineReady ||
                 homeDue ||
                 ranchReady ||
                 collectionReady ||
@@ -1767,6 +1829,7 @@ export class Game {
                 !!abyssDue ||
                 !!npcArenaOutcome(current, exact)
         if (
+            !medicineReady &&
             !homeDue &&
             !ranchReady &&
             !collectionReady &&
@@ -1845,6 +1908,11 @@ export class Game {
                         }),
                     )
                 }
+                syncMedicineExpiry({ state, now, pushBefore: (name, value) => packets.push(this.packet(name, value)) })
+                const medicineCleanup = personalBuffFrames(takeMedicineCleanupPayload(state)).map((value) =>
+                    this.packet('CSProtoWorldBuffSync', value),
+                )
+                packets.unshift(...medicineCleanup)
                 const work = homeDue && this.productionWorkPolicy ? this.reviewProduction(state, now) : null,
                     productionChanged = work ? work.homeChanged : homeDue && refreshProduction(state, now),
                     productionPetChanged = !!work?.petChanged
@@ -1962,6 +2030,8 @@ export class Game {
     }
     loginPackets(state, session, r, frame, id) {
         const now = this.clock()
+        validateMedicineLedger(state)
+        reconcileMedicine({ state, now, tables: this.tables })
         repairPetModelBindings(this.tables, state)
         const permanentSync = []
         pushPermanent(
@@ -1992,6 +2062,9 @@ export class Game {
                 server_time: String(Date.now()),
                 time_offset: '0',
             }),
+            ...personalBuffFrames(medicineCleanupPayload(state, true)).map((value) =>
+                this.packet('CSProtoWorldBuffSync', value),
+            ),
             this.packet(
                 id,
                 {

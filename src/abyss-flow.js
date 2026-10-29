@@ -1,3 +1,4 @@
+import { observeAcceptedHeroVitals, invalidateTrackedHeroes, invalidateMedicineContext } from './medicine-state.js'
 import { requireAbyssRun, abyssTaskTags } from './abyss-battle.js'
 import { abyssTables, abyssRoute } from './abyss-catalog.js'
 import { ErrorCode } from './error-codes.js'
@@ -128,6 +129,7 @@ export function retryAbyssRoom(c) {
         'Saved abyss retry phase is invalid',
         ErrorCode.GameConfig,
     )
+    invalidateTrackedHeroes(c.state, ids, 'abyss-retry', c.now)
     run.total_battle_time = run.challenges.slice(0, run.part_index).reduce((sum, x) => sum + x.battle_time, 0)
     run.dead_hero_ids = run.dead_hero_ids.filter((id) => priorHeroes.has(id))
     run.challenges = run.challenges.map((x, i) =>

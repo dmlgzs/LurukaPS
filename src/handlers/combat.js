@@ -1,3 +1,4 @@
+import { observeAcceptedHeroVitals, invalidateTrackedHeroes, invalidateMedicineContext } from '../medicine-state.js'
 import { materialStoryPending } from '../multiple-material-story.js'
 import { ornamentSkills } from '../hero-equipment.js'
 import { recordAndSyncHandbookSkill } from '../pet-handbook-sync.js'
@@ -365,6 +366,7 @@ export function registerCombat(on) {
                 const max = maximums.get(id)
                 if (values.delta !== undefined) saved.hp = Math.max(0, Math.min(max.hp, saved.hp + values.delta))
                 saved.alive_state = saved.hp > 0 ? 0 : 1
+                observeAcceptedHeroVitals(c.state, id, saved, 'accepted-10705-row', c.now)
                 if (entrustRun && entrustRun.hero_deaths !== undefined && previousHp > 0 && saved.hp === 0)
                     entrustRun.hero_deaths++
                 changed.set(id, { uuid: id, hp: saved.hp, sp: saved.sp, alive_state: saved.alive_state, reason: 0 })

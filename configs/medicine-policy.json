@@ -1,0 +1,15 @@
+{
+    "version": 2,
+    "runtimeEnabled": true,
+    "approved": true,
+    "officiallyVerified": false,
+    "approval": "medicine-local-policy-approved-b353/APPROVAL.md",
+    "revivalMode": "compatibility",
+    "sceneTypes": [1, 2],
+    "cancelAfterAcceptance": "no-refund-no-cooldown-reversal",
+    "pendingLifetime": "table-cooldown-or-context-invalidation",
+    "originAttribution": "unknown-or-competing",
+    "strictCrossOriginReplayProtection": false,
+    "exactRuntimeInstanceIsolation": false,
+    "clientValidated": false
+}

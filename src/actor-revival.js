@@ -1,14 +1,21 @@
+import {
+    observeAcceptedHeroVitals,
+    endMedicineTarget,
+    takeMedicineCleanupPayload,
+    reconcileMedicineContext,
+    personalBuffFrames,
+} from './medicine-state.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { u64, combatState } from './combat-state.js'
 import { heroModules, heroBattleLimits, petModules } from './battle.js'
 import { temporaryHeroes, temporaryPets, isRetiredTrialActor } from './trial-actors.js'
 
-export function reviveFriendlyActor(c, request) {
+export function prepareRevival(c, request) {
     ensure(typeof request.hero_uuid !== 'number' || Number.isSafeInteger(request.hero_uuid), 'Unsafe revival identity')
     const id = u64(request.hero_uuid)
     ensure(id !== '0', 'Missing revival actor')
-    if (isRetiredTrialActor(c.state, id)) return
+    if (isRetiredTrialActor(c.state, id)) return { kind: 'retired', id }
     const heroes = [...c.state.player.heros_info.heros, ...temporaryHeroes(c.state)]
     const hero = heroes.find((value) => value.guid === id)
     const pet = [...c.state.pets, ...temporaryPets(c.state)].find((value) => value.guid === id)
@@ -54,9 +61,21 @@ export function reviveFriendlyActor(c, request) {
     // actual HP, not basis points or the WORLD_HERO_REBORN_HP percentage.
     // A repeated report on an already live actor is a resync, never a heal.
     const restored = hp === 0 || alive !== 0 ? Math.min(request.revive_val, max.hp) : Math.min(hp, max.hp)
+    return { kind: 'ready', id, hero, saved, currentBattle, max, restored, hp, alive }
+}
+export function applyRevival(c, plan) {
+    if (plan.kind === 'retired') return { kind: 'retired', id: plan.id }
+    const { id, hero, saved, currentBattle, max, restored, hp, alive } = plan
+    ensure(
+        (saved?.hp ?? max.hp) === hp && (saved?.alive_state ?? (hp > 0 ? 0 : 1)) === alive,
+        'Revival preimage changed',
+        ErrorCode.GameConfig,
+    )
+    const kind = hp === 0 || alive !== 0 ? 'applied' : 'already-alive'
     if (hero) {
         saved.hp = restored
         saved.alive_state = 0
+        observeAcceptedHeroVitals(c.state, id, saved, 'accepted-10721', c.now)
         if (Object.hasOwn(saved, 'rescue_val')) saved.rescue_val = 0
         delete saved.final_blow_guid
         if (currentBattle?.entities?.[id])
@@ -82,8 +101,26 @@ export function reviveFriendlyActor(c, request) {
             updated_at: c.now,
         }
     }
+    if (hero && kind === 'already-alive')
+        endMedicineTarget(c.state, id, 'ended-by-accepted-revival', 'accepted-10721-already-alive', c.now)
+    return { kind, id, restored }
+}
+export function emitRevival(c, result) {
+    if (result.kind === 'retired') return
+    const { id, restored } = result
+    for (const cleanup of personalBuffFrames(takeMedicineCleanupPayload(c.state)))
+        c.pushBefore('CSProtoWorldBuffSync', cleanup)
     // SP is deliberately absent: this effect changes HP and alive state only.
     c.pushBefore('CSProtoObjBattleInfoSync', {
         infos: [{ uuid: id, hp: restored, alive_state: 0, rescue_val: 0, final_blow_guid: '0', reason: 0 }],
     })
+}
+
+export function reviveFriendlyActor(c, request) {
+    const plan = prepareRevival(c, request)
+    reconcileMedicineContext(c.state, c.now)
+    if (plan.kind === 'retired') endMedicineTarget(c.state, plan.id, 'cancelled', 'retired-10721', c.now)
+    const result = applyRevival(c, plan)
+    emitRevival(c, result)
+    return result
 }

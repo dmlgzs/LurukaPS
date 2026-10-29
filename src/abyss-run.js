@@ -1,3 +1,4 @@
+import { invalidateMedicineContext, reconcileMedicineContext } from './medicine-state.js'
 import { abyssTables, abyssModeLevels, abyssRoute } from './abyss-catalog.js'
 import { abyssChallengeRoster } from './abyss-roster.js'
 import { ErrorCode } from './error-codes.js'
@@ -118,6 +119,7 @@ export function createAbyssRun(c, request) {
         previous_manager: structuredClone(s.player.group_mgrs.find((x) => x.type === 7) ?? null),
     }
     s.nextAbyssInstanceId = run.instance_id + 1
+    invalidateMedicineContext(s, 'abyss-new-run', c.now)
     s.abyssRun = run
     restoreAbyssCheckpoint(s, run, checkpoint)
     saved.levels[level.id] = {
@@ -134,6 +136,7 @@ export function createAbyssRun(c, request) {
 }
 export function installAbyssFormation(state) {
     const run = state.abyssRun
+    reconcileMedicineContext(state)
     ensure(run, 'No abyss challenge formation', ErrorCode.AbyssNoChallengeList)
     state.player.group_mgrs = state.player.group_mgrs.filter((x) => x.type !== 7)
     state.player.group_mgrs.push({

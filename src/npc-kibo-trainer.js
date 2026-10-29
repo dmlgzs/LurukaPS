@@ -1,3 +1,4 @@
+import { invalidateTrackedHeroes } from './medicine-state.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { mainHeroConfigId } from './main-hero.js'
@@ -43,8 +44,16 @@ export function arenaTrainer(tables, state, duel, formation) {
 
 export function prepareArenaTrainer(tables, state, duel, formation) {
     const hero = arenaTrainer(tables, state, duel, formation)
-    if (duel.trialRole) state.npcArenaTrialTrainer = { duel_id: duel.id, map_id: state.world.map_id, hero }
-    else clearArenaTrialTrainer(state)
+    if (duel.trialRole) {
+        const prior = state.npcArenaTrialTrainer
+        if (!prior || prior.duel_id !== duel.id || prior.map_id !== state.world.map_id || prior.hero.guid !== hero.guid)
+            invalidateTrackedHeroes(
+                state,
+                [hero.guid, ...(prior ? [prior.hero.guid] : [])],
+                'arena-trainer-registration',
+            )
+        state.npcArenaTrialTrainer = { duel_id: duel.id, map_id: state.world.map_id, hero }
+    } else clearArenaTrialTrainer(state)
     return hero
 }
 

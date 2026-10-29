@@ -1,3 +1,4 @@
+import { observeAcceptedHeroVitals, invalidateTrackedHeroes, invalidateMedicineContext } from './medicine-state.js'
 import policy from '../configs/actor-rescue-policy.json' with { type: 'json' }
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
@@ -108,6 +109,7 @@ export function rescueActors(c, request) {
             ensure(Number.isSafeInteger(maxHp) && maxHp > 0, 'Invalid rescue maximum HP', ErrorCode.GameConfig)
             target.saved.hp = Math.max(1, Math.floor((maxHp * rate) / COMPLETE))
             target.saved.alive_state = ALIVE
+            observeAcceptedHeroVitals(c.state, target.id, target.saved, 'accepted-10738-rescue', c.now)
             target.saved.rescue_val = 0
             delete target.saved.final_blow_guid
             for (const [from, to] of Object.entries(battle.rescueSources))

@@ -1,3 +1,4 @@
+import { invalidateTrackedHeroes, invalidateMedicineContext, reconcileMedicineContext } from '../medicine-state.js'
 import { ErrorCode } from '../error-codes.js'
 import { trialSoulEssence, trialOrnaments, trialRuneIds } from '../trial-equipment.js'
 import { TaskGraphs, asList, nodeConditions } from '../tasks.js'
@@ -77,12 +78,14 @@ export function repairTrialActorGuids(tables, state) {
         const configId = trialHeroConfigId(tables, config, state)
         if (![config.heroId, configId].includes(hero.conf_id)) continue
         if (hero.conf_id !== configId) {
+            invalidateTrackedHeroes(state, [hero.guid], 'trial-config-repair')
             hero.conf_id = configId
             changed = true
         }
         const old = hero.guid,
             correct = trialHeroGuid(account, interimId)
         if (old === correct) continue
+        invalidateTrackedHeroes(state, [old, correct], 'trial-guid-repair')
         hero.guid = correct
         for (const g of m.groups) {
             if (g.control === old) g.control = correct
@@ -209,6 +212,7 @@ export function restoreMixedTrialGroup(tables, state) {
         JSON.stringify(active.heros) !== JSON.stringify(positions) || active.control !== control || m.cur_group !== 0
     if (changed) {
         active.heros = positions
+        reconcileMedicineContext(state)
         active.control = control
         m.cur_group = 0
         m.src = 0
@@ -521,6 +525,18 @@ export function registerTrialGroups(on, tables) {
             ensure(idx >= 0, 'Trial control not in formation')
             control = heroes[idx].guid
         }
+        if (!existing) invalidateMedicineContext(c.state, 'trial-new-registration', c.now)
+        else {
+            const prior = new Map(existing.heroes.map((hero) => [hero.guid, hero]))
+            invalidateTrackedHeroes(
+                c.state,
+                heroes
+                    .filter((hero) => !prior.has(hero.guid) || prior.get(hero.guid).conf_id !== hero.conf_id)
+                    .map((hero) => hero.guid),
+                'trial-registration-replacement',
+                c.now,
+            )
+        }
         c.state.trialGroup = {
             previous_group: existing?.previous_group ?? m.cur_group,
             task_id: active.task.task_id,
@@ -539,6 +555,7 @@ export function registerTrialGroups(on, tables) {
         if (!existing) m.last_group = m.cur_group
         m.cur_group = 0
         m.src = 0
+        reconcileMedicineContext(c.state, c.now)
         publish(c)
         return {}
     })

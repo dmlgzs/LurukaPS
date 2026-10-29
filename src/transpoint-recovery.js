@@ -1,3 +1,4 @@
+import { observeAcceptedHeroVitals, invalidateTrackedHeroes, invalidateMedicineContext } from './medicine-state.js'
 import { heroModules, heroBattleLimits, petModules } from './battle.js'
 import { combatState } from './combat-state.js'
 import { group } from './handlers/common.js'
@@ -27,6 +28,7 @@ export function recoverFormationHp(c) {
         }
         saved.hp = max.hp
         saved.alive_state = 0
+        observeAcceptedHeroVitals(c.state, hero.guid, saved, 'accepted-9102-recovery', c.now)
         infos.push({ uuid: hero.guid, hp: saved.hp, alive_state: 0, reason: 1 })
     }
     const pets = [...c.state.pets, ...(c.state.trialGroup?.pets ?? [])].filter(

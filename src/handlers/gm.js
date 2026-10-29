@@ -1,3 +1,4 @@
+import { observeAcceptedHeroVitals, invalidateTrackedHeroes, invalidateMedicineContext } from '../medicine-state.js'
 import { ErrorCode } from '../error-codes.js'
 import { purchaseMonthly, monthlyPayload } from '../monthly-card.js'
 import { giveAllRewards } from '../give-all.js'
@@ -163,7 +164,10 @@ export function registerGM(on, { enabled = true } = {}) {
             for (const hero of c.state.player.heros_info.heros) {
                 const max = heroBattleLimits(heroModules(c.tables, c.state, hero))
                 const battle = c.state.player.heros_info.battle_infos.find((b) => b.hero_id === hero.guid)
-                if (battle) Object.assign(battle, { hp: max.hp, sp: max.sp, alive_state: 0 })
+                if (battle) {
+                    Object.assign(battle, { hp: max.hp, sp: max.sp, alive_state: 0 })
+                    observeAcceptedHeroVitals(c.state, hero.guid, battle, 'accepted-gm-heal', c.now)
+                }
             }
             syncBattle({ ...c, push: c.pushBefore })
             result = 'Owned heroes healed'
