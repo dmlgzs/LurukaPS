@@ -241,7 +241,7 @@ test('quantity args unknown type stock corrupt definitions and uint32 overflow a
             [{ itemid: 5200001, num: 1, args: ['1'] }, ErrorCode.UseItemArgFail],
             [{ itemid: 5200001, num: 11 }, ErrorCode.ItemNotEnough],
             [{ itemid: 999999, num: 1 }, ErrorCode.ItemCannotFound],
-            [{ itemid: 2020001, num: 1 }, ErrorCode.FunctionClosed],
+            [{ itemid: 2020001, num: 1 }, ErrorCode.MedicineRequireTarget],
         ])
             rejects(f, req, code)
         const row = f.tables.find('common_item', 5200001),

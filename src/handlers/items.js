@@ -1,4 +1,5 @@
 import { ErrorCode } from '../error-codes.js'
+import { useMedicine } from '../medicine.js'
 import { isEntitlementTicket, useEntitlementTicket } from '../entitlement-tickets.js'
 import { ensure, syncPlayer } from './common.js'
 import { aggregateCosts, spend, spendCurrency } from '../inventory.js'
@@ -109,6 +110,7 @@ export function registerItems(on, store) {
     }
     on('UseItem', (c, r) => {
         if (isEntitlementTicket(c.tables.find('common_item', r.itemid))) return useEntitlementTicket(c, r, store)
+        if (c.tables.find('common_item', r.itemid)?.useType === 17) return useMedicine(c, r, store)
         if (c.tables.find('common_item', r.itemid)?.useType !== 18) return use(c, [r])
         ensure(r.num === 1 && !r.args?.length, 'Detector use requires one item and no arguments', ErrorCode.ParamError)
         const target = detectorTarget(c.tables, c.state, r.itemid, c.now)
