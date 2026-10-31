@@ -123,7 +123,7 @@ export function registerItems(on, store) {
     on('BatchUseItem', (c, r) => use(c, r.items))
     on('ExchangeItem', (c, r) => {
         ensure(Number.isInteger(r.item_num) && r.item_num > 0, 'Invalid exchange quantity')
-        ensure(!r.args?.length, 'Exchange arguments are not yet supported', ErrorCode.InvalidProtoID)
+        ensure(!r.args?.length, 'Exchange arguments are not yet supported', ErrorCode.FunctionClosed)
         const recipes = c.tables
             .get('common_item_change')
             .filter((x) => x.itemId === r.item_id && x.itemType === r.item_type)
@@ -131,7 +131,7 @@ export function registerItems(on, store) {
         ensure(
             recipes.length === 1,
             'Ambiguous exchange recipe requires verified selection semantics',
-            ErrorCode.InvalidProtoID,
+            ErrorCode.FunctionClosed,
         )
         const recipe = recipes[0]
         ensure(Number.isSafeInteger(recipe.itemNum) && recipe.itemNum > 0, 'Invalid recipe cost', ErrorCode.GameConfig)
