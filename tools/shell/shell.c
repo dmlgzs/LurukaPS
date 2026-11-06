@@ -249,22 +249,26 @@ static int verify_profile(const Image *image) {
 }
 /* Pure bounded URL routing; never treat a URL inside a query as its path. */
 static int rewrite_discovery(const wchar_t *url,size_t length,wchar_t *out,size_t capacity) {
-    static const wchar_t endpoint[]=L"/version/client/patchV1";
-    size_t start,i,path,base_length=wcslen(api_url),endpoint_length=wcslen(endpoint);
+    static const wchar_t *endpoints[]={L"/version/client/patchV1",L"/version/client/getCdnV1",
+        L"/version/client/preDownloadConfV1",L"/version/client/getAccountV1",L"/version/client/cdntoken"};
+    size_t start,i,path,path_end,endpoint,base_length=wcslen(api_url);
     if (length>=7 && !wmemcmp(url,L"http://",7)) start=7;
     else if (length>=8 && !wmemcmp(url,L"https://",8)) start=8;
     else return 0;
     for (i=start;i<length && url[i]!=L'/' && url[i]!=L'?' && url[i]!=L'#';++i) {}
     if (i==start || i==length || url[i]!=L'/') return 0;
     path=i;
-    if (length-path<endpoint_length || wmemcmp(url+path,endpoint,endpoint_length)) return 0;
-    i=path+endpoint_length;
-    if (i<length && url[i]!=L'?' && url[i]!=L'#') return 0;
+    for (path_end=path;path_end<length && url[path_end]!=L'?' && url[path_end]!=L'#';++path_end) {}
+    for (endpoint=0;endpoint<sizeof(endpoints)/sizeof(endpoints[0]);++endpoint)
+        if (path_end-path==wcslen(endpoints[endpoint]) &&
+            !wmemcmp(url+path,endpoints[endpoint],path_end-path)) break;
+    if (endpoint==sizeof(endpoints)/sizeof(endpoints[0])) return 0;
+    if (path==base_length && !wmemcmp(url,api_url,base_length)) return 0;
     if (base_length+length-path>=capacity) return -1;
     memcpy(out,api_url,base_length*sizeof(wchar_t));
     memcpy(out+base_length,url+path,(length-path)*sizeof(wchar_t));
     out[base_length+length-path]=0;
-    return length==base_length+length-path && !wmemcmp(out,url,length) ? 0 : 1;
+    return 1;
 }
 static void *route_managed_url(void *url,int *changed) {
     wchar_t replacement[4096]; int32_t length; int result;
@@ -281,7 +285,7 @@ static void *route_managed_url(void *url,int *changed) {
     url=string_new((const uint16_t *)replacement,(int32_t)wcslen(replacement));
     if (!url) { log_line("IL2CPP URL allocation failed"); ExitProcess(1); }
     *changed=1;
-    log_line("Redirected /version/client/patchV1 to configured local API (query redacted)");
+    log_line("Redirected allowlisted /version/client/ endpoint to configured local API (query redacted)");
     return url;
 }
 static void request_replacement(void *url,void *method,void *headers,void *body,
@@ -499,17 +503,36 @@ static uintptr_t test_nine_hook(void *a,void *b,void *c,void *d,void *e,int32_t 
     return test_nine_original(a,b,c,d,e,f,g,h,i)+1;
 }
 static int routing_self_test(void) {
-    wchar_t out[4096]; size_t i;
-    const wchar_t *unchanged[]={L"https://api.example/version/client/getCdnV1",L"https://api.example/version/client/cdntoken",
-        L"https://api.example/version/client/preDownloadConfV1",L"https://cdn.example/chs/windows/30_package_1938420.hash",
-        L"https://api.example/version/client/patchV10",L"https://api.example/path?url=/version/client/patchV1",
-        L"http://127.0.0.1:20001/version/client/patchV1",L"/version/client/patchV1"};
-    const wchar_t *input=L"https://api.example/version/client/patchV1?zoneId=22#fragment";
-    if (rewrite_discovery(input,wcslen(input),out,4096)!=1 ||
-        wcscmp(out,L"http://127.0.0.1:20001/version/client/patchV1?zoneId=22#fragment")) return 0;
-    if (rewrite_discovery(input,wcslen(input),out,8)!=-1) return 0;
+    wchar_t out[4096],input[512],expected[512]; size_t i,j,length;
+    const wchar_t *endpoints[]={L"patchV1",L"getCdnV1",L"preDownloadConfV1",L"getAccountV1",L"cdntoken"};
+    const wchar_t *suffixes[]={L"",L"?zoneId=22&url=/version/client/patchV1#fragment",
+        L"#fragment?zoneId=22",L"?"};
+    const wchar_t *unchanged[]={L"https://cdn.example/chs/windows/30_package_1938420.hash",
+        L"https://api.example/sdk/login",L"https://api.example/version/client/patchV10",
+        L"https://api.example/version/client/getCdnV1/asset",L"https://api.example/version/client/preDownloadConfV1/",
+        L"https://api.example/version/client/getAccountV1.json",L"https://api.example/version/client/cdntokenX",
+        L"https://api.example/version/client/PatchV1",L"https://api.example/path?url=/version/client/patchV1",
+        L"https://api.example#url=/version/client/getCdnV1",L"https:///version/client/patchV1",
+        L"http:///version/client/getCdnV1",L"/version/client/patchV1",L"//api.example/version/client/getCdnV1"};
+    for (i=0;i<sizeof(endpoints)/sizeof(endpoints[0]);++i) {
+        for (j=0;j<sizeof(suffixes)/sizeof(suffixes[0]);++j) {
+            swprintf(input,512,L"https://api.example/version/client/%ls%ls",endpoints[i],suffixes[j]);
+            swprintf(expected,512,L"http://127.0.0.1:20001/version/client/%ls%ls",endpoints[i],suffixes[j]);
+            length=wcslen(expected);
+            if (rewrite_discovery(input,wcslen(input),out,4096)!=1 || wcscmp(out,expected)) return 0;
+            if (rewrite_discovery(input,wcslen(input),out,length+1)!=1 || wcscmp(out,expected)) return 0;
+            if (rewrite_discovery(input,wcslen(input),out,length)!=-1 ||
+                rewrite_discovery(input,wcslen(input),out,0)!=-1) return 0;
+            if (rewrite_discovery(expected,length,out,4096)!=0 ||
+                rewrite_discovery(expected,length,out,0)!=0) return 0;
+        }
+        swprintf(input,512,L"http://api.example/version/client/%ls",endpoints[i]);
+        swprintf(expected,512,L"http://127.0.0.1:20001/version/client/%ls",endpoints[i]);
+        if (rewrite_discovery(input,wcslen(input),out,4096)!=1 || wcscmp(out,expected)) return 0;
+    }
     for (i=0;i<sizeof(unchanged)/sizeof(unchanged[0]);++i)
         if (rewrite_discovery(unchanged[i],wcslen(unchanged[i]),out,4096)!=0) return 0;
+    log_line("Startup routing: 5 exact endpoints, query/fragment, resource/SDK exclusions, idempotence and capacity: PASS");
     return 1;
 }
 static int identity_test_writes,identity_test_calls,identity_test_seen;

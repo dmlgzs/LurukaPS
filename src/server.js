@@ -474,22 +474,33 @@ export async function startServer(config, logger = console) {
                     cdnBak: config.cdnBackupUrls ?? [],
                 }
                 break
-            case '/version/client/cdntoken':
-                api = 'CdnToken'
-                data = {
-                    tc: {
-                        tmpSecretID: '',
-                        tmpSecretKey: '',
-                        sessionToken: '',
-                        expiredTime: 0xffffffff,
-                        url: '',
-                        type: 0,
-                        appid: '',
-                        region: '',
-                        bucket: '',
-                    },
-                }
+            case '/version/client/getAccountV1':
+                api = 'GetAccountV1'
+                // Offline resource classification follows the native failure
+                // fallback (ResCheckManager 0x61EA310): old-account resources.
+                // This is not account creation, authentication or role data.
+                data = { isOld: true }
                 break
+            case '/version/client/preDownloadConfV1':
+                api = 'PreDownloadConfV1'
+                // PreDownloadSlot 0x61F5490 only completes for code0/non-null
+                // data. A historical10018 response silently leaves it waiting.
+                // Both resource tracks are explicitly absent, not active jobs.
+                data = { jobName: config.jobName, gray: null, formal: null }
+                break
+            case '/version/client/cdntoken':
+                // This local server has no cloud-storage credentials. Use an
+                // actual HTTP status, not a fabricated official game error or
+                // code0 that sends empty credentials into the COS initializer.
+                res.writeHead(503, { 'content-type': 'application/json; charset=utf-8' })
+                res.end(
+                    JSON.stringify({
+                        code: 503,
+                        message: 'Cloud uploads are unavailable on the local server',
+                        timestamp,
+                    }),
+                )
+                return
             case '/version/client/announceV1':
                 api = 'AnnounceV1'
                 data = announcementHttpData(game.announcementBaseUrl, timestamp)
