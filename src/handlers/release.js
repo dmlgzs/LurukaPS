@@ -6,6 +6,7 @@ import { grantRewards } from '../rewards.js'
 import { petReleaseRewards, releaseBonus } from '../pet-release.js'
 import { releaseLedger } from '../release-ledger.js'
 import { initializePetStarSoulProgress } from '../pet-star-soul-progress.js'
+import { cancelRemovedMutationPet } from '../pet-mutation-state.js'
 function unique(ids) {
     ensure(ids.length > 0 && new Set(ids.map(String)).size === ids.length, 'Invalid release selection')
 }
@@ -51,6 +52,7 @@ export function registerRelease(on, tables) {
         const granted = grantRewards(tables, c.state, rewards)
         const ids = new Set(r.pet_list)
         c.state.pets = c.state.pets.filter((p) => !ids.has(p.guid))
+        for (const id of ids) cancelRemovedMutationPet(c.state, String(id), c.now)
         c.state.petRevision = (c.state.petRevision || 0) + 1
         ledger.lastTime = c.now
         c.state.releaseLedgers ??= {}

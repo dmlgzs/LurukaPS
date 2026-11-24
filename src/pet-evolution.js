@@ -4,6 +4,7 @@ import { ensure } from './handlers/common.js'
 import { initialPetSkills } from './skills.js'
 import { initialPetLabor, initialPetTalents, petGrade } from './pets.js'
 import { randomMountSpeed } from './mounts.js'
+import { requireNoMutationPending } from './pet-mutation-state.js'
 
 const rules = new Map(rows.map((row) => [row.petId, row]))
 export const petEvolutionRule = (id) => rules.get(Number(id))
@@ -77,6 +78,7 @@ function evolvedTalents(tables, pet, nextId) {
     return retained.slice(0, defaults.length)
 }
 export function planPetEvolution(tables, state, pet, random) {
+    requireNoMutationPending(state, pet.guid)
     const row = petEvolutionRule(pet.config_id),
         old = tables.find('pet', pet.config_id)
     ensure(old && row, 'Pet evolution configuration unavailable', ErrorCode.GameConfig)

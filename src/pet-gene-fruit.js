@@ -1,12 +1,14 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { petGrade } from './pets.js'
+import { requireNoMutationPending } from './pet-mutation-state.js'
 function integerConstant(tables, title) {
     const n = Number(tables.get('game').find((r) => r.title === title)?.value)
     ensure(Number.isInteger(n) && n > 0, 'Invalid ' + title, ErrorCode.GameConfig)
     return n
 }
 export function planGeneFruit(tables, state, pet, r) {
+    requireNoMutationPending(state, pet.guid)
     const fruit = tables.find('pet_feed_item', r.item_id)
     ensure(fruit, 'Pet feeding item does not exist', ErrorCode.PetFeedItemNotExist)
     ensure(fruit.type === 3, 'Item is not a gene fruit', ErrorCode.InvalidArgument)

@@ -4,6 +4,7 @@ import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { temporaryPets, temporaryHeroes } from './trial-actors.js'
 import { refreshAutoBuildShortcut } from './home.js'
+import { cancelRemovedMutationPet } from './pet-mutation-state.js'
 
 export const instanceTaskTypes = new Set([5, 14, 15])
 export function taskInstanceGuid(value) {
@@ -185,6 +186,7 @@ export function taskResourcePlan(c, items) {
     return () => {
         if (pets.size) {
             state.pets = state.pets.filter((pet) => !pets.has(String(pet.guid)))
+            for (const guid of pets) cancelRemovedMutationPet(state, guid, c.now)
             state.petRevision = (state.petRevision ?? 0) + 1
         }
         if (eggs.size) {
