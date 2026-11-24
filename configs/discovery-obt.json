@@ -1,0 +1,20 @@
+{
+  "source": "https://prod-version-all-p3-cn.manjuu.com/version/client/v1_0/patch",
+  "fetchedAt": "2026-11-24T17:49:55.687Z",
+  "zoneId": 22,
+  "buildPipe": 1,
+  "jobName": "OB1-Client-AllPlatform-Release-V1.0.0",
+  "version": "1.0.0.30",
+  "hotRevision": "2868078.3217420.3217420.3217420.3217420",
+  "isForceHot": false,
+  "pkgUrl": "",
+  "cdn": "https://prod-patch-all-p3-cn.manjuu.com/project-3/",
+  "cdnBak": [
+    "https://l1-prod-patch-all-p3-cn.manjuu.com/project-3/",
+    "https://l2-prod-patch-all-p3-cn.manjuu.com/project-3/"
+  ],
+  "releaseHotHis": [],
+  "serverHotTag": 1,
+  "channel": "ob1.0",
+  "serverState": 0
+}

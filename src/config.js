@@ -29,7 +29,9 @@ export function loadProductionWorkPolicy(file, { optional = false } = {}) {
     return policy
 }
 export function configuration() {
-    const discovery = JSON.parse(fs.readFileSync(path.join(base, 'configs/discovery-cbt3.json'), 'utf8'))
+    const discoveryProfile = environment('AZUR_DISCOVERY_PROFILE') || 'obt'
+    if (!['obt', 'cbt3'].includes(discoveryProfile)) throw Error('Invalid discovery profile')
+    const discovery = JSON.parse(fs.readFileSync(path.join(base, `configs/discovery-${discoveryProfile}.json`), 'utf8'))
     const policyFile = environment('AZUR_PRODUCTION_WORK_POLICY_FILE'),
         productionWorkPolicy = loadProductionWorkPolicy(
             policyFile ?? path.join(base, 'configs/production-work-policy.json'),
@@ -50,6 +52,10 @@ export function configuration() {
         publicHost: environment('AZUR_PUBLIC_HOST') || '127.0.0.1',
         database: environment('AZUR_DB') || path.join(base, 'data/azur.sqlite'),
         tables: environment('AZUR_TABLES') || path.resolve(base, '../DataTable/MasterData/Tables'),
+        discoveryProfile,
+        serverState: discovery.serverState ?? 0,
+        clientChannel: discovery.channel ?? '',
+        serverHotTag: discovery.serverHotTag,
         version: environment('AZUR_VERSION') || discovery.version,
         hotRevision: environment('AZUR_HOT_REVISION') || discovery.hotRevision,
         isForceHot:
@@ -59,7 +65,8 @@ export function configuration() {
         cdnBackupUrls: discovery.cdnBak,
         releaseHotHistory: discovery.releaseHotHis,
         jobName: environment('AZUR_JOB_NAME') || discovery.jobName,
-        serverName: environment('AZUR_SERVER_NAME') || 'LurukaPS',
+        serverName:
+            environment('AZUR_SERVER_NAME') || (discovery.channel ? `${discovery.channel}_LurukaPS` : 'LurukaPS'),
         serverTag: environment('AZUR_SERVER_TAG') || '2001',
         serverId: integer('AZUR_SERVER_ID', 320229),
         serverDescription: environment('AZUR_SERVER_DESC') || 'LurukaPS CBT3 local server',

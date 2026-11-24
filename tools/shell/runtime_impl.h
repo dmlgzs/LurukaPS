@@ -171,6 +171,10 @@ static int discover_method_layout(void) {
     log_line("MethodInfo native pointer offset calibrated: %llu",(unsigned long long)method_pointer_offset);
     return 1;
 }
+static int binding_only_site(size_t i) {
+    return i==SITE_LaunchOptionStart || i==SITE_LuaDoString || i==SITE_SdkRegister ||
+        (i>=SITE_UriCtor && i<=SITE_HttpSetUri && i!=SITE_BestSend);
+}
 static int resolve_site(size_t index) {
     const MethodSpec *spec=method_specs+index;
     void *klass=find_runtime_class(spec->space,spec->klass),*iterator=NULL; const void *method,*found=NULL; BYTE *address; size_t i;
@@ -187,14 +191,14 @@ static int resolve_site(size_t index) {
     if (!executable_memory(address,16) || *address==0xc3 || *address==0xc2) {
         log_line("Unsupported interpreter/shared/short method: %s",spec->name); return -1;
     }
-    for (i=0;i<SITE_COUNT;++i) if (i!=index && sites[i].address==address) { log_line("Shared patch entry rejected: %s",spec->name); return -1; }
+    for (i=0;i<SITE_COUNT;++i) if (i!=index && sites[i].address==address && (!binding_only_site(i) || !binding_only_site(index))) { log_line("Shared patch entry rejected: %s",spec->name); return -1; }
     sites[index].name=spec->name; sites[index].address=address; sites[index].method=found;
     memcpy(sites[index].expected,address,16);
     log_line("Resolved %s -> %p",spec->name,(void *)address);
     return 1;
 }
 static int site_enabled(size_t i) {
-    if (i>=SITE_SdkFactory && !local_sdk_enabled) return 0;
+    if (i>=SITE_SdkFactory && i<=SITE_SdkRegion && !local_sdk_enabled) return 0;
     if (!tcp_only && (i==SITE_InfoTLS || i==SITE_InfoKcp || i==SITE_NetKcp || i==SITE_NetSsl)) return 0;
     if (!camera_fade && (i==SITE_CameraFade || i==SITE_NpcFade)) return 0;
     return 1;
@@ -231,11 +235,12 @@ static int resolve_enum_literal(const char *space,const char *name,const char *l
     rt.static_value(field,value); return 1;
 }
 #include "local_sdk.h"
+#include "transport_routing.h"
 static int resolve_runtime_contracts(void) {
     if (!discover_method_layout() ||
         !resolve_enum_literal("MJUnionSDK","EMJSDKType","Login","MJUnionSDK.EMJSDKType",&login_event) ||
         !resolve_enum_literal("HybridCLR","LoadImageErrorCode","OK","HybridCLR.LoadImageErrorCode",&hybrid_load_ok)) return 0;
-    if (!setup_local_sdk()) return 0;
+    if (!setup_local_sdk() || !setup_transport_routing()) return 0;
     log_line("Runtime enums resolved: Login=%d HybridCLR.OK=%d",login_event,hybrid_load_ok);
     return 1;
 }

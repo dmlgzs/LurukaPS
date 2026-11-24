@@ -274,7 +274,9 @@ static int verify_il2cpp_image(const Image *image) {
 /* Pure bounded URL routing; never treat a URL inside a query as its path. */
 static int rewrite_discovery(const wchar_t *url,size_t length,wchar_t *out,size_t capacity) {
     static const wchar_t *endpoints[]={L"/version/client/patchV1",L"/version/client/getCdnV1",
-        L"/version/client/preDownloadConfV1",L"/version/client/getAccountV1",L"/version/client/cdntoken"};
+        L"/version/client/preDownloadConfV1",L"/version/client/getAccountV1",L"/version/client/cdntoken",
+        L"/version/client/v1_0/patch",L"/version/client/v1_0/getcdn",
+        L"/version/client/v1_0/predownloadconf",L"/version/client/v1_0/getaccount"};
     size_t start,i,path,path_end,endpoint,base_length=wcslen(api_url);
     if (length>=7 && !wmemcmp(url,L"http://",7)) start=7;
     else if (length>=8 && !wmemcmp(url,L"https://",8)) start=8;
@@ -514,6 +516,13 @@ static int install_patches(HMODULE game) {
         staged[i]=1;
         switch (i) {
         case SITE_LaunchOptionStart: continue;
+        case SITE_UriCtor: memcpy(&transport_uri_ctor,&sites[i].address,sizeof(transport_uri_ctor)); continue;
+        case SITE_UriAbsolute: memcpy(&transport_uri_absolute,&sites[i].address,sizeof(transport_uri_absolute)); continue;
+        case SITE_UriIsAbsolute: memcpy(&transport_uri_is_absolute,&sites[i].address,sizeof(transport_uri_is_absolute)); continue;
+        case SITE_BestGetUri: memcpy(&transport_best_get,&sites[i].address,sizeof(transport_best_get)); continue;
+        case SITE_BestSetUri: memcpy(&transport_best_set,&sites[i].address,sizeof(transport_best_set)); continue;
+        case SITE_HttpGetUri: memcpy(&transport_http_get,&sites[i].address,sizeof(transport_http_get)); continue;
+        case SITE_HttpSetUri: memcpy(&transport_http_set,&sites[i].address,sizeof(transport_http_set)); continue;
         case SITE_SdkRegister:
             memcpy(&sdk_register,&sites[i].address,sizeof(sdk_register)); continue;
         case SITE_LuaDoString:
@@ -541,6 +550,9 @@ static int install_patches(HMODULE game) {
         case SITE_SdkGetData: hook=16; callback=(const void *)local_sdk_get_data; original_slot=&sdk_get_original; break;
         case SITE_SdkSetData: hook=17; callback=(const void *)local_sdk_set_data; original_slot=&sdk_set_original; break;
         case SITE_SdkRegion: hook=18; callback=(const void *)local_sdk_region; original_slot=&sdk_region_original; break;
+        case SITE_BestSend: hook=19; callback=(const void *)transport_best_send; original_slot=&transport_best_original; break;
+        case SITE_HttpSend: hook=20; callback=(const void *)transport_http_send; original_slot=&transport_http_original; break;
+        case SITE_UnityUrl: hook=21; callback=(const void *)transport_unity_url; original_slot=&transport_unity_original; break;
         default: return 0;
         }
         if (hook>=0) {
@@ -657,7 +669,8 @@ static uintptr_t test_nine_hook(void *a,void *b,void *c,void *d,void *e,int32_t 
 }
 static int routing_self_test(void) {
     wchar_t out[4096],input[512],expected[512]; size_t i,j,length;
-    const wchar_t *endpoints[]={L"patchV1",L"getCdnV1",L"preDownloadConfV1",L"getAccountV1",L"cdntoken"};
+    const wchar_t *endpoints[]={L"patchV1",L"getCdnV1",L"preDownloadConfV1",L"getAccountV1",L"cdntoken",
+        L"v1_0/patch",L"v1_0/getcdn",L"v1_0/predownloadconf",L"v1_0/getaccount"};
     const wchar_t *suffixes[]={L"",L"?zoneId=22&url=/version/client/patchV1#fragment",
         L"#fragment?zoneId=22",L"?"};
     const wchar_t *unchanged[]={L"https://cdn.example/chs/windows/30_package_1938420.hash",
@@ -665,7 +678,12 @@ static int routing_self_test(void) {
         L"https://api.example/version/client/getCdnV1/asset",L"https://api.example/version/client/preDownloadConfV1/",
         L"https://api.example/version/client/getAccountV1.json",L"https://api.example/version/client/cdntokenX",
         L"https://api.example/version/client/PatchV1",L"https://api.example/path?url=/version/client/patchV1",
-        L"https://api.example#url=/version/client/getCdnV1",L"https:///version/client/patchV1",
+        L"https://api.example#url=/version/client/getCdnV1",
+        L"https://api.example/version/client/v1_0/patch/",L"https://api.example/version/client/v1_0/patches",
+        L"https://api.example/version/client/v1_0/getcdn/asset",L"https://api.example/version/client/v1_0/GetCdn",
+        L"https://api.example/version/client/v1_0/getaccount.json",L"https://api.example/version/client/v1_00/patch",
+        L"https://api.example/version/client/v1_0/%70atch",L"https://api.example/path?url=/version/client/v1_0/patch",
+        L"https://cdn.example/chs/windows/30_raw_streaming_package_3217420.hash",L"https:///version/client/patchV1",
         L"http:///version/client/getCdnV1",L"/version/client/patchV1",L"//api.example/version/client/getCdnV1"};
     for (i=0;i<sizeof(endpoints)/sizeof(endpoints[0]);++i) {
         for (j=0;j<sizeof(suffixes)/sizeof(suffixes[0]);++j) {
@@ -685,7 +703,7 @@ static int routing_self_test(void) {
     }
     for (i=0;i<sizeof(unchanged)/sizeof(unchanged[0]);++i)
         if (rewrite_discovery(unchanged[i],wcslen(unchanged[i]),out,4096)!=0) return 0;
-    log_line("Startup routing: 5 exact endpoints, query/fragment, resource/SDK exclusions, idempotence and capacity: PASS");
+    log_line("Startup routing: 9 exact endpoints, query/fragment, resource/SDK exclusions, idempotence and capacity: PASS");
     return 1;
 }
 static int identity_test_writes,identity_test_calls,identity_test_seen;
@@ -750,6 +768,7 @@ static int identity_self_test(void) {
 }
 #include "runtime_tests.h"
 #include "local_sdk_tests.h"
+#include "transport_routing_tests.h"
 static int self_test(void) {
     BYTE *page=VirtualAlloc(NULL,4096,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE);
     Patch patches[2]; DWORD previous; MEMORY_BASIC_INFORMATION info; int ok;
@@ -793,7 +812,7 @@ static int self_test(void) {
             VirtualFree(hook_pages[0],0,MEM_RELEASE); hook_pages[0]=NULL;
         }
     }
-    ok=ok && routing_self_test() && identity_self_test() && assembly_manifest_test() && runtime_resolution_test(page) && staged_loading_test(page+512) && local_sdk_self_test() && bootstrap_trampoline_test(page+128);
+    ok=ok && routing_self_test() && identity_self_test() && assembly_manifest_test() && runtime_resolution_test(page) && staged_loading_test(page+512) && local_sdk_self_test() && transport_routing_test(page) && bootstrap_trampoline_test(page+128);
     VirtualFree(page,0,MEM_RELEASE);
     log_line("Patch transaction, executable code and page protection: %s",ok?"PASS":"FAIL");
     log_line("Selective discovery routing and 9-argument Win64 trampoline: %s",ok?"PASS":"FAIL");

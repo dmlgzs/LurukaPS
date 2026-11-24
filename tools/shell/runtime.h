@@ -4,7 +4,9 @@ enum { SITE_Start,SITE_LaunchOptionStart,SITE_InfoEnableSdk,SITE_AppEnableSdk,
     SITE_InfoLogUrl,SITE_AppLogUrl,SITE_InfoTLS,SITE_InfoKcp,SITE_NetKcp,SITE_NetSsl,
     SITE_CameraFade,SITE_NpcFade,SITE_RequestUrl,SITE_RequestUrlTT2,SITE_HttpGetJson,
     SITE_SdkTrigger,SITE_LuaStart,SITE_LuaDoString,SITE_LoadOriginal,SITE_LoadDhao,SITE_LoadMeta,SITE_SdkFactory,SITE_SdkInitialize,SITE_SdkInit,SITE_SdkLogin,SITE_SdkLogout,
-    SITE_SdkRegister,SITE_SdkGetData,SITE_SdkSetData,SITE_SdkRegion,SITE_COUNT };
+    SITE_SdkRegister,SITE_SdkGetData,SITE_SdkSetData,SITE_SdkRegion,
+    SITE_UriCtor,SITE_UriAbsolute,SITE_UriIsAbsolute,SITE_BestGetUri,SITE_BestSetUri,SITE_BestSend,
+    SITE_HttpGetUri,SITE_HttpSetUri,SITE_HttpSend,SITE_UnityUrl,SITE_COUNT };
 static Site sites[SITE_COUNT];
 static BYTE site_installed[SITE_COUNT];
 static int32_t hybrid_load_ok;
@@ -112,5 +114,16 @@ static const MethodSpec method_specs[SITE_COUNT]={
     {"MJSDKStrategy.RegisterEvent","MJUnionSDK","MJSDKStrategy","RegisterEvent","System.Void",0,3,{"MJUnionSDK.EMJSDKType","System.Action<MJUnionSDK.MJSDKData>","System.Boolean"}},
     {"MJSDKStrategy.GetSDKData","MJUnionSDK","MJSDKStrategy","GetSDKData","System.String",0,2,{"MJUnionSDK.EMJSDKParamType","System.String"}},
     {"MJSDKStrategy.SetSDKData","MJUnionSDK","MJSDKStrategy","SetSDKData","System.Boolean",0,2,{"MJUnionSDK.EMJSDKParamType","System.String"}},
-    {"ChinaSDKFactory.CreateStrategy","MJUnionSDK","ChinaSDKFactory","CreateStrategy","MJUnionSDK.ISDKStrategy",0,3,{"UnityEngine.RuntimePlatform","System.Boolean","System.Boolean"}}
+    {"ChinaSDKFactory.CreateStrategy","MJUnionSDK","ChinaSDKFactory","CreateStrategy","MJUnionSDK.ISDKStrategy",0,3,{"UnityEngine.RuntimePlatform","System.Boolean","System.Boolean"}},
+    {"Uri.ctor","System","Uri",".ctor","System.Void",0,1,{"System.String"}},
+    {"Uri.AbsoluteUri","System","Uri","get_AbsoluteUri","System.String",0,0,{0}},
+    {"Uri.IsAbsoluteUri","System","Uri","get_IsAbsoluteUri","System.Boolean",0,0,{0}},
+    {"HTTPRequest.Uri.get","BestHTTP","HTTPRequest","get_Uri","System.Uri",0,0,{0}},
+    {"HTTPRequest.Uri.set","BestHTTP","HTTPRequest","set_Uri","System.Void",0,1,{"System.Uri"}},
+    {"HTTPManager.SendRequest","BestHTTP","HTTPManager","SendRequest","BestHTTP.HTTPRequest",1,1,{"BestHTTP.HTTPRequest"}},
+    {"HttpRequestMessage.RequestUri.get","System.Net.Http","HttpRequestMessage","get_RequestUri","System.Uri",0,0,{0}},
+    {"HttpRequestMessage.RequestUri.set","System.Net.Http","HttpRequestMessage","set_RequestUri","System.Void",0,1,{"System.Uri"}},
+    {"HttpClient.SendAsync","System.Net.Http","HttpClient","SendAsync","System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage>",0,3,
+        {"System.Net.Http.HttpRequestMessage","System.Net.Http.HttpCompletionOption","System.Threading.CancellationToken"}},
+    {"UnityWebRequest.InternalSetUrl","UnityEngine.Networking","UnityWebRequest","InternalSetUrl","System.Void",0,1,{"System.String"}}
 };

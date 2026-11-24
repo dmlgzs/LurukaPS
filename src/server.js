@@ -421,6 +421,7 @@ export async function startServer(config, logger = console) {
                 }
                 break
             }
+            case '/version/client/v1_0/patch':
             case '/version/client/patchV1': {
                 api = 'PatchV1'
                 const zoneId = requestInt(requestBody.zoneId, 22),
@@ -437,7 +438,8 @@ export async function startServer(config, logger = console) {
                             addr: config.publicHost,
                             port: gamePort,
                             bakGate: JSON.stringify([{ addr: config.publicHost, port: gamePort }]),
-                            state: 0,
+                            state: config.serverState ?? 0,
+                            ...(config.serverHotTag === undefined ? {} : { hotTag: config.serverHotTag }),
                             version: '',
                             tag: config.serverTag,
                             tls: false,
@@ -447,12 +449,13 @@ export async function startServer(config, logger = console) {
                             id: config.serverId,
                             zoneId,
                             clientLog: config.clientLogUrl,
+                            ...(url.pathname === '/version/client/v1_0/patch' ? { clientLogBurst: '' } : {}),
                         },
                     ],
                 }
                 data = {
                     status: 4,
-                    pkgUrl: config.packageUrl || `http://${config.publicHost}:${web.address().port}/`,
+                    pkgUrl: config.packageUrl ?? `http://${config.publicHost}:${web.address().port}/`,
                     zoneId,
                     buildPipe,
                     jobName,
@@ -463,10 +466,13 @@ export async function startServer(config, logger = console) {
                     returnAll: 0,
                     isWhite: 0,
                     isForceHot: config.isForceHot ?? false,
-                    releaseHotHis: config.releaseHotHistory ?? [],
+                    ...(url.pathname === '/version/client/patchV1'
+                        ? { releaseHotHis: config.releaseHotHistory ?? [] }
+                        : {}),
                 }
                 break
             }
+            case '/version/client/v1_0/getcdn':
             case '/version/client/getCdnV1':
                 api = 'GetCdnV1'
                 data = {
@@ -474,13 +480,24 @@ export async function startServer(config, logger = console) {
                     cdnBak: config.cdnBackupUrls ?? [],
                 }
                 break
+            case '/version/client/v1_0/getaccount':
             case '/version/client/getAccountV1':
                 api = 'GetAccountV1'
                 // Offline resource classification follows the native failure
                 // fallback (ResCheckManager 0x61EA310): old-account resources.
                 // This is not account creation, authentication or role data.
-                data = { isOld: true }
+                data = {
+                    ...(url.pathname === '/version/client/v1_0/getaccount'
+                        ? {
+                              zoneId: requestInt(requestBody.zoneId, 22),
+                              serverTag: requestInt(requestBody.serverTag, 0),
+                              account: requestString(requestBody.account, ''),
+                          }
+                        : {}),
+                    isOld: true,
+                }
                 break
+            case '/version/client/v1_0/predownloadconf':
             case '/version/client/preDownloadConfV1':
                 api = 'PreDownloadConfV1'
                 // PreDownloadSlot 0x61F5490 only completes for code0/non-null
