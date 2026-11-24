@@ -80,14 +80,23 @@ function claimEntrustChest(c, times = 1) {
     const personalFavor = dungeonFavorRewardContext(c.tables, c.state, 'dungeon-chest')
     ensure(c.now <= (run.chest_ready_time ?? run.end_time) + chest.time, 'Entrust chest expired')
     ensure(times === 1 || chest.multimes === 1, 'Chest does not support multiple claims')
-    for (const cost of parseRewards(chest.need)) {
-        cost.itemnum *= times
+    const costs = parseRewards(chest.need).map((cost) => ({ ...cost, itemnum: cost.itemnum * times }))
+    for (const cost of costs)
         ensure(Number.isSafeInteger(cost.itemnum) && cost.itemnum <= 0xffffffff, 'Invalid chest cost')
+    const mutationSource = c.mutationSourceRuntime?.prepare(c, {
+        kind: run.kind === 'material' ? 'material' : 'entrust',
+        run,
+        box_id: chest.id,
+        times,
+        costs,
+    })
+    for (const [index, cost] of costs.entries()) {
         if (cost.itemtype === 10) spendCurrency(c.state, cost.itemid, cost.itemnum)
         else {
             ensure(cost.itemtype === 3, 'Unsupported chest cost', ErrorCode.GameConfig)
             spend(c.state, new Map([[cost.itemid, cost.itemnum]]), 0, c.now)
         }
+        if (cost.itemnum > 0) c.mutationSourceRuntime?.paid(c, mutationSource, index, cost)
     }
     // Roll independently for each paid share, with the normal shared drop
     // budget. Costs, rewards and receipt commit atomically in dispatch.
@@ -130,6 +139,7 @@ function claimEntrustChest(c, times = 1) {
     run.claim_times = times
     run.stage_index = catalog.stages(run.entrust_id, run.kind).at(-1).index + 1
     if (run.kind !== 'material') c.state.entrust.records[run.entrust_id].first_reward_claimed = true
+    c.mutationSourceRuntime?.complete(c, mutationSource)
     syncPlayer({ ...c, push: c.pushBefore })
     syncEntrustStage(c)
     return run.rewards

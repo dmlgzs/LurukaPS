@@ -127,9 +127,22 @@ export function claimRepeatChest(c, times = 1) {
         'Combined free share policy is not implemented',
         ErrorCode.FunctionClosed,
     )
-    for (const cost of parseRewards(chest.need)) {
-        const amount = cost.itemnum * paid
-        ensure(Number.isSafeInteger(amount) && amount <= 0xffffffff, 'Repeat chest cost overflow', ErrorCode.GameConfig)
+    const costs = parseRewards(chest.need).map((cost) => ({ ...cost, itemnum: cost.itemnum * paid }))
+    for (const cost of costs)
+        ensure(
+            Number.isSafeInteger(cost.itemnum) && cost.itemnum <= 0xffffffff,
+            'Repeat chest cost overflow',
+            ErrorCode.GameConfig,
+        )
+    const mutationSource = c.mutationSourceRuntime?.prepare(c, {
+        kind: 'repeat',
+        run,
+        box_id: chest.id,
+        times,
+        costs,
+    })
+    for (const [index, cost] of costs.entries()) {
+        const amount = cost.itemnum
         if (!amount) continue
         if (cost.itemtype === 10) {
             if (cost.itemid === 3) {
@@ -145,6 +158,7 @@ export function claimRepeatChest(c, times = 1) {
             ensure(cost.itemtype === 3, 'Repeat chest cost category unsupported', ErrorCode.FunctionClosed)
             spend(c.state, new Map([[cost.itemid, amount]]), 0, c.now)
         }
+        c.mutationSourceRuntime?.paid(c, mutationSource, index, cost)
     }
     const sameDay =
         mode.bonus_reward_fetch_time !== undefined &&
@@ -192,5 +206,6 @@ export function claimRepeatChest(c, times = 1) {
     run.claim_times = times
     run.rewards = [...rewards, ...awardedExtra]
     run.stage_index = catalog.stages(run.entrust_id).at(-1).index + 1
+    c.mutationSourceRuntime?.complete(c, mutationSource)
     return { rewards, extra: awardedExtra }
 }

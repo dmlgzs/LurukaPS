@@ -544,6 +544,7 @@ export class Game {
             tourPolicy = undefined,
             giftCodeConfig = undefined,
             productionWorkPolicy = undefined,
+            mutationSourceRuntime = undefined,
         } = {},
     ) {
         this.announcementBaseUrl = 'http://127.0.0.1:20001/'
@@ -551,6 +552,16 @@ export class Game {
         // The runtime supplies the approved local model; isolated verification
         // may inject the same model explicitly without changing its rules.
         this.productionWorkPolicy = productionWorkPolicy
+        ensure(
+            mutationSourceRuntime === undefined ||
+                (mutationSourceRuntime &&
+                    ['prepare', 'paid', 'complete'].every((name) => typeof mutationSourceRuntime[name] === 'function')),
+            'Invalid private mutation source service',
+            ErrorCode.GameConfig,
+        )
+        // Private candidate dependency injection only. The running main does
+        // not install this service until its complete release gates are met.
+        this.mutationSourceRuntime = mutationSourceRuntime
         // Only the newest successfully entered connection may receive an idle
         // abyss settlement. The TCP layer additionally checks the socket owner.
         this.abyssTickOwners = new Map()
@@ -1429,6 +1440,20 @@ export class Game {
                     randomInt: this.rng,
                     tables: this.tables,
                     pushTo: (recipient, name, value) => pushes.push(this.packet(name, value, { recipient })),
+                    ...(this.mutationSourceRuntime
+                        ? {
+                              mutationSourceRuntime: this.mutationSourceRuntime,
+                              allocateMutationSourceClaim: () => {
+                                  try {
+                                      return String(this.store.nextSequence('mutation-source-paid-claim:' + session.id))
+                                  } catch (error) {
+                                      if (error?.message === 'Sequence exhausted')
+                                          ensure(false, 'Mutation paid-claim identity exhausted', ErrorCode.GameConfig)
+                                      throw error
+                                  }
+                              },
+                          }
+                        : {}),
                     broadcast: (audience, name, value) => pushes.push(this.packet(name, value, { audience })),
                     pushBefore: (name, value) => emit(before, name, value),
                     push: (name, value) => emit(pushes, name, value, { pushSeq: frame.pushSeq }),
@@ -1574,6 +1599,22 @@ export class Game {
                 if (!battleReport) preparePetHandbook(this.tables, state)
                 const handbookPayload = battleReport ? null : takePetHandbookSync(state)
                 const handbookSync = handbookPayload ? [this.packet('CSProtoPetHandbookInfoSync', handbookPayload)] : []
+                // Mutation earning changes only the credited permanent records. Select
+                // this delta here, after all ordinary task/derived processing; any
+                // other pet revision, insertion, deletion or presentation change
+                // retains the original complete-bag and deletion contract.
+                const sourcePetSync = context.mutationSourcePetSync
+                const sourceOnlyPets =
+                    sourcePetSync?.version === 1 &&
+                    !sourcePetSync.disabled &&
+                    sourcePetSync.beforeRevision === petRevision &&
+                    sourcePetSync.expectedRevision === (state.petRevision || 0) &&
+                    petIdsBefore.length === state.pets.length &&
+                    petIdsBefore.every((id, index) => id === state.pets[index].guid) &&
+                    petViewBefore === hiddenTaskPetGuids(this.tables, state).join(',')
+                const notifiedPets = sourceOnlyPets
+                    ? state.pets.filter((pet) => sourcePetSync.guids.includes(pet.guid))
+                    : state.pets
                 const petSync =
                     (state.petRevision || 0) !== petRevision ||
                     (!battleReport && petViewBefore !== hiddenTaskPetGuids(this.tables, state).join(','))
@@ -1583,7 +1624,7 @@ export class Game {
                                   record_pets: state.recordPets ?? [],
                                   pet_infos: taskPetPresentation(this.tables, state, {
                                       pet_infos: {
-                                          pets: state.pets,
+                                          pets: notifiedPets,
                                           guid: petIdsBefore.filter((id) => !state.pets.some((p) => p.guid === id)),
                                       },
                                   }).pet_infos,

@@ -106,10 +106,21 @@ export function claimWeeklyChest(c, request) {
     const personalFavor = rewards.some((r) => r.itemtype === 10 && r.itemid === 4)
         ? dungeonFavorRewardContext(c.tables, c.state, 'weekly-chest')
         : undefined
-    for (const cost of costs) spendCurrency(c.state, cost.itemid, cost.itemnum)
+    const mutationSource = c.mutationSourceRuntime?.prepare(c, {
+        kind: 'weekly',
+        run,
+        box_id: chest.id,
+        times: request.times,
+        costs,
+    })
+    for (const [index, cost] of costs.entries()) {
+        spendCurrency(c.state, cost.itemid, cost.itemnum)
+        if (cost.itemnum > 0) c.mutationSourceRuntime?.paid(c, mutationSource, index, cost)
+    }
     run.rewards = grantRewards(c.tables, c.state, rewards, 0, { personalFavor })
     run.chest_claimed = true
     run.claim_times = 1
     run.stage_index = catalog.stages(run.entrust_id, 'weekly').at(-1).index + 1
+    c.mutationSourceRuntime?.complete(c, mutationSource)
     return run.rewards
 }
