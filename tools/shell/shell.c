@@ -496,6 +496,8 @@ static int install_patches(HMODULE game) {
         staged[i]=1;
         switch (i) {
         case SITE_LaunchOptionStart: continue;
+        case SITE_SdkRegister:
+            memcpy(&sdk_register,&sites[i].address,sizeof(sdk_register)); continue;
         case SITE_LuaDoString:
             memcpy(&lua_do_string,&sites[i].address,sizeof(lua_do_string)); continue;
         case SITE_Start: patches[n]=make_patch(base,i,3,(const void *)start_replacement); break;
@@ -513,6 +515,14 @@ static int install_patches(HMODULE game) {
         case SITE_LoadOriginal: hook=8; callback=(const void *)load_original_callback; original_slot=&load_original; break;
         case SITE_LoadDhao: hook=9; callback=(const void *)load_dhao_callback; original_slot=&load_dhao; break;
         case SITE_LoadMeta: hook=10; callback=(const void *)load_meta_callback; original_slot=&load_meta; break;
+        case SITE_SdkFactory: hook=11; callback=(const void *)local_sdk_factory; original_slot=&sdk_factory_original; break;
+        case SITE_SdkInitialize: hook=12; callback=(const void *)local_sdk_initialize; original_slot=&sdk_initialize_original; break;
+        case SITE_SdkInit: hook=13; callback=(const void *)local_sdk_init; original_slot=&sdk_init_original; break;
+        case SITE_SdkLogin: hook=14; callback=(const void *)local_sdk_login; original_slot=&sdk_login_original; break;
+        case SITE_SdkLogout: hook=15; callback=(const void *)local_sdk_logout; original_slot=&sdk_logout_original; break;
+        case SITE_SdkGetData: hook=16; callback=(const void *)local_sdk_get_data; original_slot=&sdk_get_original; break;
+        case SITE_SdkSetData: hook=17; callback=(const void *)local_sdk_set_data; original_slot=&sdk_set_original; break;
+        case SITE_SdkRegion: hook=18; callback=(const void *)local_sdk_region; original_slot=&sdk_region_original; break;
         default: return 0;
         }
         if (hook>=0) {
@@ -721,6 +731,7 @@ static int identity_self_test(void) {
     return !fill_login_identity(data);
 }
 #include "runtime_tests.h"
+#include "local_sdk_tests.h"
 static int self_test(void) {
     BYTE *page=VirtualAlloc(NULL,4096,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE);
     Patch patches[2]; DWORD previous; MEMORY_BASIC_INFORMATION info; int ok;
@@ -763,7 +774,7 @@ static int self_test(void) {
             VirtualFree(hook_pages[0],0,MEM_RELEASE); hook_pages[0]=NULL;
         }
     }
-    ok=ok && routing_self_test() && identity_self_test() && assembly_manifest_test() && runtime_resolution_test(page) && staged_loading_test(page+512) && bootstrap_trampoline_test(page+128);
+    ok=ok && routing_self_test() && identity_self_test() && assembly_manifest_test() && runtime_resolution_test(page) && staged_loading_test(page+512) && local_sdk_self_test() && bootstrap_trampoline_test(page+128);
     VirtualFree(page,0,MEM_RELEASE);
     log_line("Patch transaction, executable code and page protection: %s",ok?"PASS":"FAIL");
     log_line("Selective discovery routing and 9-argument Win64 trampoline: %s",ok?"PASS":"FAIL");

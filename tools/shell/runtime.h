@@ -3,10 +3,12 @@ typedef struct { const char *name; BYTE *address; BYTE expected[16]; const void 
 enum { SITE_Start,SITE_LaunchOptionStart,SITE_InfoEnableSdk,SITE_AppEnableSdk,
     SITE_InfoLogUrl,SITE_AppLogUrl,SITE_InfoTLS,SITE_InfoKcp,SITE_NetKcp,SITE_NetSsl,
     SITE_CameraFade,SITE_NpcFade,SITE_RequestUrl,SITE_RequestUrlTT2,SITE_HttpGetJson,
-    SITE_SdkTrigger,SITE_LuaStart,SITE_LuaDoString,SITE_LoadOriginal,SITE_LoadDhao,SITE_LoadMeta,SITE_COUNT };
+    SITE_SdkTrigger,SITE_LuaStart,SITE_LuaDoString,SITE_LoadOriginal,SITE_LoadDhao,SITE_LoadMeta,SITE_SdkFactory,SITE_SdkInitialize,SITE_SdkInit,SITE_SdkLogin,SITE_SdkLogout,
+    SITE_SdkRegister,SITE_SdkGetData,SITE_SdkSetData,SITE_SdkRegion,SITE_COUNT };
 static Site sites[SITE_COUNT];
 static BYTE site_installed[SITE_COUNT];
 static int32_t hybrid_load_ok;
+static int local_sdk_enabled;
 typedef struct {
     void *(*domain_get)(void);
     const void **(*assemblies)(void *,size_t *);
@@ -29,6 +31,11 @@ typedef struct {
     void (*field_value)(void *,void *,void *);
     const void *(*field_type)(void *);
     size_t (*object_size)(void *);
+    void *(*object_new)(void *);
+    void *(*invoke)(const void *,void *,void **,void **);
+    uint32_t (*gc_new)(void *,BYTE);
+    void *(*gc_target)(uint32_t);
+    void (*gc_free)(uint32_t);
     int32_t (*string_length)(void *);
     const uint16_t *(*string_chars)(void *);
 } RuntimeApi;
@@ -96,5 +103,14 @@ static const MethodSpec method_specs[SITE_COUNT]={
     {"LuaManager.DoString","Lens.Framework.Managers","LuaManager","DoString","System.Object[]",1,1,{"System.String"}},
     {"HybridCLR.LoadOriginal","HybridCLR","RuntimeApi","LoadOriginalDifferentialHybridAssembly","HybridCLR.LoadImageErrorCode",1,1,{"System.String"}},
     {"HybridCLR.LoadDHAO","HybridCLR","RuntimeApi","LoadDifferentialHybridAssemblyWithDHAO","HybridCLR.LoadImageErrorCode",1,3,{"System.Byte[]","System.Byte[]","System.Byte[]"}},
-    {"HybridCLR.LoadMetaVersion","HybridCLR","RuntimeApi","LoadDifferentialHybridAssemblyWithMetaVersion","HybridCLR.LoadImageErrorCode",1,4,{"System.Byte[]","System.Byte[]","System.Byte[]","System.Byte[]"}}
+    {"HybridCLR.LoadMetaVersion","HybridCLR","RuntimeApi","LoadDifferentialHybridAssemblyWithMetaVersion","HybridCLR.LoadImageErrorCode",1,4,{"System.Byte[]","System.Byte[]","System.Byte[]","System.Byte[]"}},
+    {"SDKStrategyFactory.Create","MJUnionSDK","SDKStrategyFactory","Create","MJUnionSDK.ISDKStrategy",1,3,{"UnityEngine.RuntimePlatform","System.Boolean","System.Boolean"}},
+    {"MJSDKStrategy.Initialize","MJUnionSDK","MJSDKStrategy","Initialize","System.Void",0,2,{"UnityEngine.GameObject","MJUnionSDK.MJSDKHandler"}},
+    {"MJSDKStrategy.SDKInit","MJUnionSDK","MJSDKStrategy","SDKInit","System.Void",0,1,{"System.Action<MJUnionSDK.MJSDKData>"}},
+    {"MJSDKStrategy.Login","MJUnionSDK","MJSDKStrategy","Login","System.Void",0,2,{"System.String","System.Action<MJUnionSDK.MJSDKData>"}},
+    {"MJSDKStrategy.Logout","MJUnionSDK","MJSDKStrategy","Logout","System.Void",0,2,{"System.String","System.Action<MJUnionSDK.MJSDKData>"}},
+    {"MJSDKStrategy.RegisterEvent","MJUnionSDK","MJSDKStrategy","RegisterEvent","System.Void",0,3,{"MJUnionSDK.EMJSDKType","System.Action<MJUnionSDK.MJSDKData>","System.Boolean"}},
+    {"MJSDKStrategy.GetSDKData","MJUnionSDK","MJSDKStrategy","GetSDKData","System.String",0,2,{"MJUnionSDK.EMJSDKParamType","System.String"}},
+    {"MJSDKStrategy.SetSDKData","MJUnionSDK","MJSDKStrategy","SetSDKData","System.Boolean",0,2,{"MJUnionSDK.EMJSDKParamType","System.String"}},
+    {"ChinaSDKFactory.CreateStrategy","MJUnionSDK","ChinaSDKFactory","CreateStrategy","MJUnionSDK.ISDKStrategy",0,3,{"UnityEngine.RuntimePlatform","System.Boolean","System.Boolean"}}
 };

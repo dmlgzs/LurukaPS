@@ -194,6 +194,7 @@ static int resolve_site(size_t index) {
     return 1;
 }
 static int site_enabled(size_t i) {
+    if (i>=SITE_SdkFactory && !local_sdk_enabled) return 0;
     if (!tcp_only && (i==SITE_InfoTLS || i==SITE_InfoKcp || i==SITE_NetKcp || i==SITE_NetSsl)) return 0;
     if (!camera_fade && (i==SITE_CameraFade || i==SITE_NpcFade)) return 0;
     return 1;
@@ -229,10 +230,12 @@ static int resolve_enum_literal(const char *space,const char *name,const char *l
     if (!field || !type_matches(rt.field_type(field),type)) return 0;
     rt.static_value(field,value); return 1;
 }
+#include "local_sdk.h"
 static int resolve_runtime_contracts(void) {
     if (!discover_method_layout() ||
         !resolve_enum_literal("MJUnionSDK","EMJSDKType","Login","MJUnionSDK.EMJSDKType",&login_event) ||
         !resolve_enum_literal("HybridCLR","LoadImageErrorCode","OK","HybridCLR.LoadImageErrorCode",&hybrid_load_ok)) return 0;
+    if (!setup_local_sdk()) return 0;
     log_line("Runtime enums resolved: Login=%d HybridCLR.OK=%d",login_event,hybrid_load_ok);
     return 1;
 }
