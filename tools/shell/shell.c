@@ -84,6 +84,24 @@ static int error(const char *message) {
     return 1;
 }
 #include "assembly_manifest.h"
+/* The embedded manifest establishes awareness before user32 or Unity creates UI.
+ * Query it without changing system settings or overriding a caller's DPI context. */
+static int report_dpi_awareness(void) {
+    typedef HANDLE (WINAPI *GetContextFn)(void);
+    typedef BOOL (WINAPI *EqualContextFn)(HANDLE,HANDLE);
+    HMODULE user=GetModuleHandleW(L"user32.dll"); FARPROC proc;
+    GetContextFn get_context=NULL; EqualContextFn equal_context=NULL; int aware;
+    proc=GetProcAddress(user,"GetThreadDpiAwarenessContext"); memcpy(&get_context,&proc,sizeof(get_context));
+    proc=GetProcAddress(user,"AreDpiAwarenessContextsEqual"); memcpy(&equal_context,&proc,sizeof(equal_context));
+    if (get_context && equal_context) {
+        aware=equal_context(get_context(),(HANDLE)(INT_PTR)-4)!=0; /* PER_MONITOR_AWARE_V2 */
+        log_line("Initial thread DPI awareness: PerMonitorV2 %s",aware?"PASS":"FAIL (check executable compatibility overrides)");
+    } else {
+        aware=IsProcessDPIAware()!=0;
+        log_line("Initial process DPI awareness (legacy OS fallback): %s",aware?"PASS":"FAIL");
+    }
+    return aware;
+}
 static int blank_character(wchar_t ch) {
     return (ch>=9 && ch<=13) || ch==32 || ch==0xa0 || ch==0x1680 ||
         (ch>=0x2000 && ch<=0x200a) || ch==0x2028 || ch==0x2029 ||
@@ -737,6 +755,7 @@ static int self_test(void) {
     Patch patches[2]; DWORD previous; MEMORY_BASIC_INFORMATION info; int ok;
     typedef int (*TestFn)(void);
     if (!page) return 1;
+    if (!report_dpi_awareness()) { VirtualFree(page,0,MEM_RELEASE); return 1; }
     {
         HMODULE host=GetModuleHandleW(NULL);
         FARPROC nv=GetProcAddress(host,"NvOptimusEnablement");
@@ -790,7 +809,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int sho
     UnityMainFn unity_main=NULL; (void)previous;
     argv=CommandLineToArgvW(GetCommandLineW(),&argc);
     if (!argv) return error("Cannot parse arguments");
-    for (i=1;i<argc;++i) if (!wcscmp(argv[i],L"--check") || !wcscmp(argv[i],L"--self-test") || !wcscmp(argv[i],L"--help") || !wcscmp(argv[i],L"--ui-smoke-test")) check_mode=1;
+    for (i=1;i<argc;++i) if (!wcscmp(argv[i],L"--check") || !wcscmp(argv[i],L"--self-test") || !wcscmp(argv[i],L"--help") || !wcscmp(argv[i],L"--ui-smoke-test") || !wcscmp(argv[i],L"--dpi-check")) check_mode=1;
     for (i=1;i<argc;++i) if (!wcscmp(argv[i],L"--console")) {
         if (AllocConsole() || AttachConsole(ATTACH_PARENT_PROCESS)) {
             FILE *stream; stream=_wfreopen(L"CONOUT$",L"w",stderr); (void)stream;
@@ -800,6 +819,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int sho
     wcscpy(dir,exe);
     { wchar_t *slash=wcsrchr(dir,L'\\'); if (!slash) goto done; *slash=0; }
     for (i=1;i<argc;++i) {
+        if (!wcscmp(argv[i],L"--dpi-check")) { rc=report_dpi_awareness()?0:1; goto done; }
         if (!wcscmp(argv[i],L"--ui-smoke-test")) {
             int shown=show_account_dialog(instance,L"",1);
             rc=shown==1 && !wcscmp(selected_open_id,L"ui-smoke-account")?0:1;
@@ -807,7 +827,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int sho
         }
         if (!wcscmp(argv[i],L"--self-test")) { rc=self_test(); goto done; }
         if (!wcscmp(argv[i],L"--help")) {
-            log_line("Place AzurPromilia.exe and cbt3-shell.ini in the game directory.\n--check <game-directory>: validate without loading/executing DLLs\n--self-test: patch engine test\n--ui-smoke-test: native account dialog test, no Unity\n--console: show log console");
+            log_line("Place AzurPromilia.exe and cbt3-shell.ini in the game directory.\n--check <game-directory>: validate without loading/executing DLLs\n--self-test: patch engine test\n--dpi-check: verify DPI awareness without loading Unity\n--ui-smoke-test: native account dialog test, no Unity\n--console: show log console");
             rc=0; goto done;
         }
         if (!wcscmp(argv[i],L"--check")) {
@@ -821,6 +841,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int sho
     /* --check is read-only, including the supplied client directory. */
     if (!check_mode) log_file=_wfopen(path,L"ab");
     log_line("CBT3 C shell; mode=%s",check_mode?"check":"Unity host");
+    (void)report_dpi_awareness();
     log_line("Hybrid-GPU high-performance hints: NVIDIA=1 AMD=1; actual adapter is reported in Player.log");
     if (!join_path(path,32768,dir,L"cbt3-shell.ini") || !read_config(path)) { error("Invalid cbt3-shell.ini"); goto done; }
     if (!join_path(path,32768,dir,L"GameAssembly.dll") || !open_image(&image,path)) { error("Cannot open GameAssembly.dll"); goto done; }
