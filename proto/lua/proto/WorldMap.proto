@@ -136,6 +136,7 @@ enum WorldMapCmdType {
   WMCT_MONSTER_INFO_CHANGE = 50;
   WMCT_GM_RESET_ITEM = 255;
   WMCT_ENTER = 256;
+  WMCT_BOSS_REFRESH = 257;
 }
 enum WorldMapQuestStatusType {
   WMQST_NONE = 0;
@@ -150,6 +151,7 @@ enum WorldMapPlayerDirtyType {
   WMPDT_GROUP = 4;
   WMPDT_NAME = 5;
   WMPDT_FACE = 6;
+  WMPDT_PLATFORM = 7;
 }
 enum WorldMapItemType {
   WMIT_PRIVATE = 0;
@@ -172,11 +174,13 @@ enum WorldObjType {
   WOT_DESTROY = 12;
   WOT_PUZZLE_ITEM = 13;
   WOT_PUZZLE_OBJECT = 18;
+  WOT_Elevator = 19;
   WOT_TELEPORT_SMALL = 21;
   WOT_TELEPORT_BIG = 22;
   WOT_TELEPORT_EDGE = 23;
   WOT_TREASURE_CHEST = 30;
   WOT_PET_EGG = 31;
+  WOT_OCULUS = 37;
   WOT_MONSTER = 50;
   WOT_RANDOM_MONSTER = 51;
   WOT_CHEST_MONSTER = 52;
@@ -197,6 +201,9 @@ enum WorldObjType {
   WOT_RANDOM_TASK_AREA = 307;
   WOT_WEEK_BOSS = 308;
   WOT_FISH = 309;
+  WOT_KIBO_AREA = 500;
+  WOT_ACTIVE_DOOR = 600;
+  WOT_REBORN_DOOR = 601;
 }
 enum WorldObjRefreshType {
   WORT_FINISH = 1;
@@ -213,6 +220,13 @@ enum WorldMapTransportType {
   WMTT_MINIMAP = 0;
   WMTT_TRANSDOOR = 1;
 }
+enum DynamicObjSourceType {
+  DOST_UNKNOWN = 0;
+  DOST_WORLD = 1;
+  DOST_MASS_KIBO = 2;
+  DOST_WORLD_REFRESH = 3;
+  DOST_MASS_KIBO_CIRCLE = 4;
+}
 enum EnterWorldMapAction {
   EWMA_INVALID = 0;
   EWMA_LEAVE_AREA_LINE = 1;
@@ -224,6 +238,11 @@ enum WorldObjInteractType {
 }
 enum ExtContextType {
   ECT_QIBO_PUZZLE = 1;
+}
+enum BreakableDropType {
+  BREAKABLE_NONE = 0;
+  BREAKABLE_GOOD = 1;
+  BREAKABLE_BAD = 2;
 }
 enum PlayerActiveBehavior {
   PAB_FALL = 1;
@@ -252,6 +271,11 @@ enum WorldObjSearchType {
   WOST_PET_SPECIAL = 2;
   WOST_PET_ALL = 3;
 }
+enum QueryObjState {
+  QueryObjState_Invalid = 0;
+  QueryObjState_UnComplete = 1;
+  QueryObjState_Complete = 2;
+}
 message WorldMapGroup {
   repeated uint64 heros = 1 [json_name = "heros"];
   optional uint64 control = 2 [json_name = "control"];
@@ -276,6 +300,9 @@ message WorldMapPlayer {
   optional .cs.ApparelInfo apparel_info = 14 [json_name = "apparelInfo"];
   optional .cs.ClothesInfo clothes_info = 15 [json_name = "clothesInfo"];
   optional uint32 skin_id = 16 [json_name = "skinId"];
+  optional uint32 platform_type = 17 [json_name = "platformType"];
+  optional string platform_account_id = 18 [json_name = "platformAccountId"];
+  optional string platform_online_id = 19 [json_name = "platformOnlineId"];
 }
 message SCMultiPlayerSync {
   optional uint32 map_id = 1 [json_name = "mapId"];
@@ -291,6 +318,11 @@ message WorldMapChat {
 }
 message WorldMapExtra {
   optional .cs.FightAttr activity_attr = 1 [json_name = "activityAttr"];
+}
+message BossRefreshInfo {
+  optional uint32 boss_id = 1 [json_name = "bossId"];
+  optional uint32 refresh_count = 2 [json_name = "refreshCount"];
+  optional uint64 last_refresh_time = 3 [json_name = "lastRefreshTime"];
 }
 message WorldObj {
   message BattleGroup {
@@ -338,6 +370,11 @@ message WorldObj {
     optional uint32 refresh_pos_id = 1 [json_name = "refreshPosId"];
     optional uint32 spawner_id = 2 [json_name = "spawnerId"];
     optional uint32 expand_id = 3 [json_name = "expandId"];
+    optional .cs.DynamicObjSourceType source_type = 4 [json_name = "sourceType"];
+    optional uint32 area_id = 5 [json_name = "areaId"];
+    optional uint32 rule_id = 6 [json_name = "ruleId"];
+    optional uint32 reborn_pos_id = 7 [json_name = "rebornPosId"];
+    optional uint32 refresh_id = 8 [json_name = "refreshId"];
   }
   message ExpandData {
     optional .cs.WorldObj.BattleGroup battle_group = 1 [json_name = "battleGroup"];
@@ -357,6 +394,9 @@ message WorldObj {
   optional uint32 last_reward_step = 8 [json_name = "lastRewardStep"];
   optional .cs.Position pos = 9 [json_name = "pos"];
   optional bool across_day = 10 [json_name = "acrossDay"];
+  optional uint32 gm_level = 11 [json_name = "gmLevel"];
+  optional uint32 gm_dungeon_id = 12 [json_name = "gmDungeonId"];
+  optional uint32 gm_dungeon_group_idx = 13 [json_name = "gmDungeonGroupIdx"];
 }
 message WolrdMapElement {
   message ElementInfo {
@@ -398,6 +438,7 @@ message WorldMapNotify {
   optional uint32 area_id = 13 [json_name = "areaId"];
   optional uint32 area_line = 14 [json_name = "areaLine"];
   optional .cs.WorldMapExtra extra_data = 15 [json_name = "extraData"];
+  repeated .cs.BossRefreshInfo boss_refresh_infos = 16 [json_name = "bossRefreshInfos"];
 }
 message WorldMapPoseInvite {
   optional uint32 pose_id = 1 [json_name = "poseId"];
@@ -537,6 +578,8 @@ message CSWorldMapMark {
   repeated uint32 collect_ids = 5 [json_name = "collectIds"];
   repeated .cs.WorldMapArea map_area = 6 [json_name = "mapArea"];
   repeated uint32 del_mark_list = 7 [json_name = "delMarkList"];
+  repeated .cs.ActiveDoorScene active_door_scene = 8 [json_name = "activeDoorScene"];
+  repeated uint32 del_active_door_scene_list = 9 [json_name = "delActiveDoorSceneList"];
 }
 message CSWorldEventTrigger {
   optional uint32 cfg_id = 1 [json_name = "cfgId"];
@@ -635,6 +678,7 @@ message CSWorldMapObjInteract {
     optional uint32 tool_cfg_id = 7 [json_name = "toolCfgId"];
     optional .cs.ExtWorldContext ext_context = 8 [json_name = "extContext"];
     optional uint32 element_id = 9 [json_name = "elementId"];
+    optional uint32 drop_type = 10 [json_name = "dropType"];
   }
   repeated .cs.CSWorldMapObjInteract.WorldMapObjInteract objs = 1 [json_name = "objs"];
 }
@@ -724,6 +768,13 @@ message CSGamePauseRsp {
   optional uint64 game_time = 1 [json_name = "gameTime"];
   optional bool operate = 2 [json_name = "operate"];
 }
+message SCPausableClockSync {
+  optional uint64 sync_time_ms = 1 [json_name = "syncTimeMs"];
+  optional string name = 2 [json_name = "name"];
+  optional int64 now_ms = 3 [json_name = "nowMs"];
+  optional int64 total_paused_ms = 4 [json_name = "totalPausedMs"];
+  optional bool paused = 5 [json_name = "paused"];
+}
 message PlayableSubData {
   optional uint32 sub_id = 1 [json_name = "subId"];
   optional uint32 finish_step = 3 [json_name = "finishStep"];
@@ -761,6 +812,10 @@ message PlayableSync {
   optional bool all_sync = 6 [json_name = "allSync"];
   repeated .cs.PlayableFinish finish = 7 [json_name = "finish"];
   repeated .cs.PlayableStepRewardFlag step_flags = 8 [json_name = "stepFlags"];
+}
+message CSPlayableResetPosition {
+  optional uint32 play_id = 1 [json_name = "playId"];
+  optional uint32 object_id = 2 [json_name = "objectId"];
 }
 message CSPlayableCancel {
   optional uint32 playId = 1 [json_name = "playId"];
@@ -888,8 +943,8 @@ message PetChangeBC {
   optional .cs.HeroAttrInfo pet_attr = 2 [json_name = "petAttr"];
   optional .cs.PetAttrInfo pet_full_attr = 3 [json_name = "petFullAttr"];
 }
-message OnlineModeChange {
-  optional .cs.OnlineMode mode = 1 [json_name = "mode"];
+message SceneModeChange {
+  optional int32 mode = 1 [json_name = "mode"];
 }
 message SCWorldHatredSync {
   repeated .cs.HatredData obj_info = 1 [json_name = "objInfo"];
@@ -942,12 +997,17 @@ message SCObjAppear {
   optional .cs.ObjAppearData obj = 6 [json_name = "obj"];
   optional .cs.MapViewOtherPlayerInfo player = 7 [json_name = "player"];
   optional uint32 lv = 8 [json_name = "lv"];
+  optional bool is_client_create = 9 [json_name = "isClientCreate"];
 }
 message SCObjDisappear {
   optional uint64 agent_uid = 3 [json_name = "agentUid"];
+  optional bool is_client_create = 4 [json_name = "isClientCreate"];
 }
 message SCBatchObjAppear {
   repeated .cs.SCObjAppear obj = 1 [json_name = "obj"];
+}
+message CSObjAppearReq {
+  repeated uint64 agent_uids = 1 [json_name = "agentUids"];
 }
 message SCBatchObjDisappear {
   repeated .cs.SCObjDisappear obj = 1 [json_name = "obj"];
@@ -1072,9 +1132,11 @@ message StateUpdate {
   optional .cs.AttributeUpdateList attribute_list = 2 [json_name = "attributeList"];
   optional .cs.CSFsmInfo fsm_info = 3 [json_name = "fsmInfo"];
   optional .cs.AceAntiData4 ace_data_4 = 4 [json_name = "aceData4"];
+  optional bool ace_data_4_flag = 5 [json_name = "aceData4Flag"];
 }
 message CSFindUnCompletedWorldObj {
   optional uint32 item_id = 1 [json_name = "itemId"];
+  optional uint32 filter = 2 [json_name = "filter"];
 }
 message SCFindUnCompletedWorldObj {
   optional uint32 obj_id = 1 [json_name = "objId"];
@@ -1120,7 +1182,59 @@ message CSTryCreateWorldObj {
 message TryCreateWorldObjRsp {
   optional uint64 guid = 1 [json_name = "guid"];
   optional uint64 agent_uid = 2 [json_name = "agentUid"];
+  optional bool is_new = 3 [json_name = "isNew"];
 }
 message SCTryCreateWorldObj {
   repeated .cs.TryCreateWorldObjRsp objs = 1 [json_name = "objs"];
+}
+message MassKiboUseItemReq {
+  optional uint32 item_id = 1 [json_name = "itemId"];
+  repeated uint32 used_pos_list = 2 [json_name = "usedPosList"];
+}
+message MassKiboUsedPosReq {
+  optional uint32 req_key = 1 [json_name = "reqKey"];
+}
+message MassKiboUsedPosRes {
+  optional uint32 req_key = 1 [json_name = "reqKey"];
+  repeated uint32 used_pos_list = 2 [json_name = "usedPosList"];
+}
+message MassKiboProgress {
+  optional uint32 caught_count = 1 [json_name = "caughtCount"];
+  optional uint32 generated_count = 2 [json_name = "generatedCount"];
+  optional uint64 client_target_id = 3 [json_name = "clientTargetId"];
+}
+message MassKiboObjToExpand {
+  optional uint32 object_id = 1 [json_name = "objectId"];
+  optional uint32 expand_id = 2 [json_name = "expandId"];
+}
+message MassKiboRecord {
+  optional uint32 area_id = 1 [json_name = "areaId"];
+  optional uint32 rule_id = 2 [json_name = "ruleId"];
+  optional uint32 reborn_pos_id = 3 [json_name = "rebornPosId"];
+  optional uint32 pre_start_time_stamp = 4 [json_name = "preStartTimeStamp"];
+  optional uint32 start_time_stamp = 5 [json_name = "startTimeStamp"];
+  optional uint32 spawner_object_id = 6 [json_name = "spawnerObjectId"];
+  repeated .cs.MassKiboObjToExpand kibo_objects = 7 [json_name = "kiboObjects"];
+  optional .cs.MassKiboProgress progress = 8 [json_name = "progress"];
+}
+message MassKiboSync {
+  repeated .cs.MassKiboRecord records = 1 [json_name = "records"];
+}
+message DynamicQueryExtra {
+  repeated .cs.BossRefreshInfo boss_refresh_infos = 1 [json_name = "bossRefreshInfos"];
+}
+message SCDynamicObjInfosSync {
+  optional uint32 map_id = 1 [json_name = "mapId"];
+  repeated .cs.WorldObj objs = 2 [json_name = "objs"];
+  optional .cs.DynamicQueryExtra extra = 3 [json_name = "extra"];
+}
+message CSClientQueryObjInfo {
+  repeated uint32 obj_id = 1 [json_name = "objId"];
+}
+message ClientQueryData {
+  optional uint32 obj_id = 1 [json_name = "objId"];
+  optional .cs.QueryObjState state = 2 [json_name = "state"];
+}
+message SCClientQueryObjInfo {
+  repeated .cs.ClientQueryData data_list = 1 [json_name = "dataList"];
 }

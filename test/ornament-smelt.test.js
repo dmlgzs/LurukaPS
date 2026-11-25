@@ -1,6 +1,7 @@
+import { readTable } from '../src/table-source.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import currentReturns from '../configs/ornament-smelt-values/values.json' with { type: 'json' }
+const currentReturns = readTable('values')
 import { ornamentFixture } from './helpers/ornament-fixture.js'
 import { createCustomOrnaments } from '../src/ornaments.js'
 import { ornamentSmeltPlan } from '../src/ornament-smelt.js'

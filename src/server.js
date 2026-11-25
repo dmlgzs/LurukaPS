@@ -414,8 +414,8 @@ export async function startServer(config, logger = console) {
                     data = { detail: game.gacha.detail(requestBody.poolId, images) }
                     api = 'ClientGachaPoolDetailReq'
                 } catch (error) {
-                    const status = error.code === ErrorCode.InvalidArgument ? 400 : 500
-                    res.writeHead(status, { 'content-type': 'application/json' })
+                    const httpStatus = error.code === ErrorCode.InvalidArgument ? 400 : 500
+                    res.writeHead(httpStatus, { 'content-type': 'application/json' })
                     res.end(JSON.stringify({ code: error.code ?? ErrorCode.GameConfig, message: error.message }))
                     return
                 }

@@ -1,4 +1,3 @@
-import table from '../configs/kibo-tour-tables.json' with { type: 'json' }
 import defaults from '../configs/kibo-tour-policy.json' with { type: 'json' }
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
@@ -42,12 +41,13 @@ export class KiboTourSystem {
             ErrorCode.GameConfig,
         )
         ensure(
-            table.schema_version === 1 && Array.isArray(table.rows),
+            Array.isArray(tables.get('game_events_kibo_tour_group')),
             'Invalid current tour table',
             ErrorCode.GameConfig,
         )
         this.rows = new Map()
-        for (const row of table.rows) {
+        for (const value of tables.get('game_events_kibo_tour_group')) {
+            const row = { ...value, id: value.Id ?? value.id }
             ensure(
                 uint(row.id) && row.id > 0 && !this.rows.has(row.id) && uint(row.groupId) && row.groupId > 0,
                 'Invalid current tour row identity',

@@ -26,6 +26,8 @@ message AbyssHeroUnit {
   optional .cs.CSWearPet hero = 2 [json_name = "hero"];
   optional uint32 hp = 3 [json_name = "hp"];
   optional uint32 pet_hp = 4 [json_name = "petHp"];
+  optional uint32 hero_level = 5 [json_name = "heroLevel"];
+  optional uint32 pet_level = 6 [json_name = "petLevel"];
 }
 message AbyssChallengeNode {
   optional uint32 dungeon_id = 1 [json_name = "dungeonId"];
@@ -54,6 +56,12 @@ message AbyssLevelInfo {
   optional uint32 star_num = 4 [json_name = "starNum"];
   optional bool passed = 5 [json_name = "passed"];
   repeated .cs.ChallengeTaskNode task_tags_list = 6 [json_name = "taskTagsList"];
+  optional bool inherited = 7 [json_name = "inherited"];
+}
+message AbyssRotationFormation {
+  optional uint32 index = 1 [json_name = "index"];
+  optional uint32 level = 2 [json_name = "level"];
+  repeated .cs.AbyssChallengeNode challenge_list = 3 [json_name = "challengeList"];
 }
 message AbyssStarRewardNode {
   optional uint32 stage_num = 1 [json_name = "stageNum"];
@@ -77,6 +85,8 @@ message SCAbyssData {
   optional bool inherit_notify_flag = 10 [json_name = "inheritNotifyFlag"];
   repeated .cs.AbyssChallengeNode last_rotation_heros = 11 [json_name = "lastRotationHeros"];
   optional uint32 rotation_remind_mail_sent_rotation_id = 12 [json_name = "rotationRemindMailSentRotationId"];
+  optional .cs.AbyssModeType last_challenge_mode = 13 [json_name = "lastChallengeMode"];
+  repeated .cs.AbyssRotationFormation pending_rotation_formation = 14 [json_name = "pendingRotationFormation"];
 }
 message CSAbyssChallenge {
   optional .cs.AbyssModeType mode = 1 [json_name = "mode"];

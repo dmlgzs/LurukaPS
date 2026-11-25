@@ -20,6 +20,7 @@ function catalog(tables) {
     const conditions = new Set(tables.get('common_condition').map((r) => r.id))
     const pets = new Map(tables.get('pet').map((r) => [r.id, r]))
     const dimensions = tables.get('pet_learningenum').map((r) => r.attributeEnum)
+    const favorLevels = new Set(tables.get('pet_favorability').map((r) => r.level))
     ensure(
         dimensions.length === 6 && new Set(dimensions).size === 6,
         'Invalid handbook aptitude dimensions',
@@ -78,13 +79,18 @@ function catalog(tables) {
                     )
                     ensure(conditions.has(parts[0]), 'Missing handbook condition definition', ErrorCode.GameConfig)
                     ensure(
-                        [13051, 13052, 13081].includes(parts[0]),
+                        [13051, 13052, 13081, 13127].includes(parts[0]),
                         'Handbook condition requires support',
                         ErrorCode.FunctionClosed,
                     )
                     ensure(
                         !chain.length || (chain.at(-1).kind === parts[0] && chain.at(-1).target < parts[2]),
                         'Handbook task thresholds are not increasing',
+                        ErrorCode.GameConfig,
+                    )
+                    ensure(
+                        parts[0] !== 13127 || favorLevels.has(parts[2]),
+                        'Invalid handbook favor level threshold',
                         ErrorCode.GameConfig,
                     )
                     chain.push({ id, kind: parts[0], target: parts[2], xp: row.taskAward })
@@ -129,7 +135,7 @@ function catalog(tables) {
             ),
         })
     }
-    const data = { plans, effects, pets, dimensions }
+    const data = { plans, effects, pets, dimensions, favorLevels }
     caches.set(tables, data)
     return data
 }
@@ -169,6 +175,38 @@ export function takePetHandbookSync(state) {
 function minimumTalent(data, pet) {
     const levels = data.dimensions.map((attr) => pet.comprehension?.find((r) => r.attr_id === attr)?.level)
     return levels.every((n) => Number.isSafeInteger(n) && n > 0 && n <= 9) ? Math.min(...levels) : 0
+}
+function observedFavorLevel(data, plan, old, specimens) {
+    const saved = old?.max_favor ?? 0
+    ensure(
+        saved === 0 || (Number.isSafeInteger(saved) && data.favorLevels.has(saved)),
+        'Invalid saved handbook favor level',
+        ErrorCode.GameConfig,
+    )
+    // The client sends favor_lv on individual pets, but receives handbook
+    // counts/completion from the server. Its 13127 evaluator is not shipped.
+    // Use actual same-species specimens as an observable lower bound, retain
+    // witnessed attainment and explicit completed tasks, and invent no released
+    // specimen's level or unseen official historical maximum.
+    ensure(
+        (old?.completed_tasks === undefined || Array.isArray(old.completed_tasks)) &&
+            (old?.tasks === undefined || Array.isArray(old.tasks)),
+        'Invalid saved handbook task history',
+        ErrorCode.GameConfig,
+    )
+    const completed = new Set(old?.completed_tasks ?? [])
+    for (const task of old?.tasks ?? []) if (task.complete === true) completed.add(task.task_id)
+    return Math.max(
+        saved,
+        0,
+        ...specimens.map((pet) =>
+            Number.isSafeInteger(pet.favor_lv) && data.favorLevels.has(pet.favor_lv) ? pet.favor_lv : 0,
+        ),
+        ...plan.chains
+            .flat()
+            .filter((task) => task.kind === 13127 && completed.has(task.id))
+            .map((task) => task.target),
+    )
 }
 function rebuildBonuses(data, state) {
     const bonuses = { own: {}, elements: {} }
@@ -244,8 +282,9 @@ export function preparePetHandbook(tables, state, { force = false, only = undefi
             ...specimens.map((p) => (Number.isSafeInteger(p.lv) && p.lv > 0 ? p.lv : 0)),
         )
         const maxTalent = Math.max(old?.max_talent ?? 0, 0, ...specimens.map((p) => minimumTalent(data, p)))
+        const maxFavor = observedFavorLevel(data, plan, old, specimens)
         const casts = state.petHandbookCasts?.[id] ?? 0,
-            metrics = { 13051: maxLevel, 13052: maxTalent, 13081: casts }
+            metrics = { 13051: maxLevel, 13052: maxTalent, 13081: casts, 13127: maxFavor }
         const active = [],
             completed = []
         let xp = 0
@@ -284,6 +323,7 @@ export function preparePetHandbook(tables, state, { force = false, only = undefi
             rewarded_lv: old?.rewarded_lv ?? 1,
             max_level: maxLevel,
             max_talent: maxTalent,
+            max_favor: maxFavor,
             total_exp: xp,
             completed_tasks: completed,
         }

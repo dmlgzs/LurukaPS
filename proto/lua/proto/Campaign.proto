@@ -5,6 +5,7 @@ import "CommonMsg.proto";
 import "ExOptions.proto";
 import "WorldMap.proto";
 import "Activity.proto";
+import "SceneSvr.proto";
 option go_package = "GmServer/bridge/csproto;csproto";
 enum CampaignStatusType {
   CST_NONE = 0;
@@ -25,22 +26,6 @@ enum ActType {
 enum CampaignSceneStatusType {
   CSST_NORMAL = 0;
   CSST_FINISH = 1;
-}
-enum CampaignType {
-  CT_SCENE = 1;
-  CT_BATTLE = 2;
-  CT_STORY_COMPAIGN = 3;
-  CT_REPEAT_EVENT = 10;
-  CT_TEACH = 100;
-  CT_DUNGEON_MATERIAL = 101;
-  CT_CULT_TRIAL = 102;
-  CT_KIBODUEL_PVE = 200;
-  CT_KIBODUEL_PVP = 201;
-  CT_KIBODUEL_PVP_PVE = 202;
-  CT_NEST_COOP = 300;
-  CT_KIBODUEL_ARENA_PVE = 400;
-  CT_KIBODUEL_ARENA_PVP = 401;
-  CT_DUNGEON_WEEKLY = 500;
 }
 enum CampaignChooseType {
   CCT_WORLD = 1;
@@ -179,6 +164,7 @@ message InstanceInfo {
   optional uint64 success_time = 3 [json_name = "successTime"];
   optional uint64 score = 4 [json_name = "score"];
   optional bool auto_afk_unlocked = 5 [json_name = "autoAfkUnlocked"];
+  optional bool first_reward = 6 [json_name = "firstReward"];
 }
 message StaminaBox {
   optional uint32 box_id = 1 [json_name = "boxId"];
@@ -230,9 +216,18 @@ message MultiCampaignInfo {
   optional uint32 dungeon_player_num = 13 [json_name = "dungeonPlayerNum"];
   optional uint32 stage_id = 14 [json_name = "stageId"];
   optional uint64 clearance_time = 15 [json_name = "clearanceTime"];
+  optional uint32 reward_claimed_num = 16 [json_name = "rewardClaimedNum"];
+}
+message MultiCampaignFinishInfo {
+  optional uint32 reward_claimed_num = 1 [json_name = "rewardClaimedNum"];
+}
+message MultiCampaignStatusInfo {
+  optional .cs.MultiCampaignStatus status = 1 [json_name = "status"];
+  optional uint64 start_time = 2 [json_name = "startTime"];
+  optional uint64 end_time = 3 [json_name = "endTime"];
 }
 message MultiCampaignBaseInfo {
-  repeated .cs.MultiCampaignPlayerInfo player_list = 1 [json_name = "playerList"];
+  repeated .scene.InitMapMember player_list = 1 [json_name = "playerList"];
   repeated .cs.MultiCampaignPlayerTeamOption team_option_list = 2 [json_name = "teamOptionList"];
   repeated .cs.TeamMemberAttr player_attr_list = 3 [json_name = "playerAttrList"];
   optional uint32 dungeon_id = 4 [json_name = "dungeonId"];
@@ -242,13 +237,6 @@ message MultiCampaignBaseInfo {
 message MultiCampaignPlayerStatus {
   optional uint32 player_id = 1 [json_name = "playerId"];
   optional .cs.MultiCampaignPlayerStatusType status = 2 [json_name = "status"];
-}
-message MultiCampaignPlayerInfo {
-  optional uint32 player_id = 1 [json_name = "playerId"];
-  optional uint32 hero_id = 2 [json_name = "heroId"];
-  optional string name = 3 [json_name = "name"];
-  optional uint32 lv = 4 [json_name = "lv"];
-  repeated .cs.MatchTeamHeroData heros = 6 [json_name = "heros"];
 }
 message CSSetMultiCampaignTeamOption {
   optional bool stay = 1 [json_name = "stay"];
@@ -509,9 +497,20 @@ message ReplyChangeDungeon {
 message PlayerDmgInfo {
   optional uint32 player_id = 1 [json_name = "playerId"];
   optional uint64 sum_dmg = 2 [json_name = "sumDmg"];
+  optional uint64 boss_dmg = 3 [json_name = "bossDmg"];
 }
 message SCPlayerDmgInfoSync {
   repeated .cs.PlayerDmgInfo info = 1 [json_name = "info"];
+}
+message PlayerDetailedStatsInfo {
+  optional uint32 player_id = 1 [json_name = "playerId"];
+  optional string player_name = 2 [json_name = "playerName"];
+  optional uint64 player_level = 3 [json_name = "playerLevel"];
+  repeated .cs.HeroDetailedStatsInfo heros = 4 [json_name = "heros"];
+}
+message SCPlayerDetailedStatsSync {
+  repeated .cs.PlayerDetailedStatsInfo info = 1 [json_name = "info"];
+  optional uint32 mvp_player_id = 2 [json_name = "mvpPlayerId"];
 }
 message CSPlayerLikeList {
   repeated uint32 like_player_ids = 1 [json_name = "likePlayerIds"];
@@ -521,6 +520,22 @@ message SCPlayerLikeList {
   repeated uint32 like_player_ids = 2 [json_name = "likePlayerIds"];
   optional .cs.WorldMapSceneType map_type = 3 [json_name = "mapType"];
   optional uint32 line_id = 4 [json_name = "lineId"];
+}
+message HeroDetailedStatsInfo {
+  optional .cs.EntityDetailedStatsInfo hero_info = 1 [json_name = "heroInfo"];
+  optional .cs.EntityDetailedStatsInfo kibo_info = 2 [json_name = "kiboInfo"];
+}
+message EntityDetailedStatsInfo {
+  optional uint64 guid = 1 [json_name = "guid"];
+  optional uint32 config_id = 2 [json_name = "configId"];
+  optional uint32 level = 3 [json_name = "level"];
+  optional uint64 dmg = 4 [json_name = "dmg"];
+  optional uint64 heal = 5 [json_name = "heal"];
+  optional uint64 take_dmg = 6 [json_name = "takeDmg"];
+  optional uint64 boss_dmg = 7 [json_name = "bossDmg"];
+  optional uint64 boss_heal = 8 [json_name = "bossHeal"];
+  optional uint64 boss_take_dmg = 9 [json_name = "bossTakeDmg"];
+  optional bytes pet_name = 10 [json_name = "petName"];
 }
 message TeamPlayerSettlementItemInfo {
   optional uint32 player_id = 1 [json_name = "playerId"];
@@ -537,6 +552,9 @@ message SCTeamPlayerSettlementInfo {
   optional uint32 mvp_player_id = 2 [json_name = "mvpPlayerId"];
   optional uint64 pass_time = 3 [json_name = "passTime"];
   optional uint32 scene_type = 4 [json_name = "sceneType"];
+}
+message SCMultiCampaignRewardClaimedNtf {
+  optional uint32 player_id = 1 [json_name = "playerId"];
 }
 message MultiCampaignTransfer {
   optional uint32 npc_id = 1 [json_name = "npcId"];
@@ -564,9 +582,9 @@ message MatchStatusSync {
   optional uint32 status = 1 [json_name = "status"];
   optional uint32 dungeon_id = 2 [json_name = "dungeonId"];
   optional uint32 ts = 3 [json_name = "ts"];
+  optional int64 ts_ms = 6 [json_name = "tsMs"];
   optional uint32 reason = 4 [json_name = "reason"];
   repeated bytes data = 5 [json_name = "data"];
-  optional int64 ts_ms = 6 [json_name = "tsMs"];
 }
 message InviteSuccessDataSync {
   optional uint32 dungeon_id = 1 [json_name = "dungeonId"];
@@ -654,6 +672,11 @@ message CampaignExtraInfo {
   optional uint32 stage = 4 [json_name = "stage"];
   optional uint32 archive_id = 5 [json_name = "archiveId"];
 }
+message SCProtoCampaignExtraInfo {
+  optional uint32 dungeon_id = 1 [json_name = "dungeonId"];
+  optional uint32 dungeon_instance_id = 2 [json_name = "dungeonInstanceId"];
+  optional .cs.CampaignExtraInfo extra_info = 3 [json_name = "extraInfo"];
+}
 message CSEnterCultTrial {
   optional uint32 activity_id = 1 [json_name = "activityId"];
   optional uint32 trial_id = 2 [json_name = "trialId"];
@@ -720,10 +743,11 @@ message RepeatEventLevelFinishedModeSavedData {
   optional uint32 mode = 1 [json_name = "mode"];
   optional uint32 star_count = 2 [json_name = "starCount"];
   optional uint32 pass_time = 3 [json_name = "passTime"];
-  optional uint32 bonus_reward_daily_count = 4 [json_name = "bonusRewardDailyCount"];
-  optional uint32 bonus_reward_fetch_time = 5 [json_name = "bonusRewardFetchTime"];
+  optional uint32 bonus_reward_daily_count = 4 [deprecated = true, json_name = "bonusRewardDailyCount"];
+  optional uint32 bonus_reward_fetch_time = 5 [deprecated = true, json_name = "bonusRewardFetchTime"];
   optional bool free_stamina_used = 6 [default = false, json_name = "freeStaminaUsed"];
   optional uint32 win_count = 7 [json_name = "winCount"];
+  optional uint32 chest_count = 8 [json_name = "chestCount"];
 }
 message RepeatEventLevelFinishedPublicData {
   optional uint32 date = 1 [json_name = "date"];
@@ -738,6 +762,7 @@ message RepeatEventLevelFinishedData {
   repeated .cs.RepeatEventLevelFinishedModeSavedData mode_save_data = 2 [json_name = "modeSaveData"];
   optional .cs.RepeatEventLevelFinishedPublicData public_data = 4 [json_name = "publicData"];
   optional uint32 event_id = 5 [json_name = "eventId"];
+  optional uint32 time_id = 6 [json_name = "timeId"];
 }
 message RepeatEventDetailTaskData {
   optional uint32 id = 1 [json_name = "id"];
@@ -751,6 +776,11 @@ message RepeatEventTaskFinishedData {
   repeated uint32 done_task_id = 4 [json_name = "doneTaskId"];
   repeated .cs.RepeatEventDetailTaskData detail_data = 5 [json_name = "detailData"];
 }
+message RepeatEventExtraRewardData {
+  optional uint32 event_id = 1 [json_name = "eventId"];
+  optional uint32 daily_count = 2 [json_name = "dailyCount"];
+  optional uint32 last_time = 3 [json_name = "lastTime"];
+}
 message RepeatEventTaskFinishedDataClient {
   optional uint32 event_id = 1 [json_name = "eventId"];
   optional uint32 task_id = 2 [json_name = "taskId"];
@@ -762,12 +792,14 @@ message RepeatEventData {
 }
 message SCRepeatEventSync {
   repeated .cs.RepeatEventLevelFinishedData finished_level_data = 1 [json_name = "finishedLevelData"];
+  optional .cs.RepeatEventExtraRewardData extra_reward_data = 2 [json_name = "extraRewardData"];
 }
 message SCRepeatEventTaskSync {
   repeated .cs.RepeatEventTaskFinishedDataClient finished_task_data = 1 [json_name = "finishedTaskData"];
 }
 message SCRepeatEventLevelModify {
   optional .cs.RepeatEventLevelFinishedData level_data = 1 [json_name = "levelData"];
+  optional .cs.RepeatEventExtraRewardData extra_reward_data = 2 [json_name = "extraRewardData"];
 }
 message RepeatEventFirstPassReward {
   optional uint32 event_id = 1 [json_name = "eventId"];

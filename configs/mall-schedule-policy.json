@@ -1,7 +1,18 @@
 {
-    "version": 1,
-    "missingCurrentSchedules": {
-        "998002": "open-ended-local"
+    "version": 2,
+    "enabled": true,
+    "localStrategy": "known-current-mall-no-expiry",
+    "userApproved": true,
+    "notOfficial": true,
+    "resourceVersion": "3217420",
+    "networkDisplayWindow": {
+        "start": "0",
+        "end": "4102444800"
     },
-    "reason": "CBT3 2451868 pay goods reference998002, absent from the current exported common_timelimit. The offline sandbox explicitly uses no date limit for this known backend-only schedule; this is not an official date claim. Unknown missing schedules remain errors."
+    "beginTimeRefresh": {
+        "enabled": true,
+        "localStrategy": "hold-until-authoritative-period",
+        "reason": "The current BeginTime refresh mode is server-period based. Its [21] parameter is not interpreted as days without a verified period anchor. Retain the saved purchase-count lower bound across old period keys, publish no reset deadline, and do not reset automatically. Supply an authoritative anchor before implementing periodic resets."
+    },
+    "reason": "User-approved local policy: remove only time restrictions for references present in the current version's mall_shop, mall_goods, mall_pay_goods and mall_shop_recommend. PlayerMallGoods uses 0/0 with no expiry. CommonTimeManager compares an inclusive interval, so 5200 uses a separate configurable local display window, initially the same future endpoint as the existing gacha policy. This is not an official date or sentinel claim. Purchase conditions, quotas, prices and rewards are unchanged; unknown references remain errors."
 }

@@ -1,3 +1,4 @@
+import { readTable } from '../src/table-source.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -46,9 +47,7 @@ function setMap(f, id) {
 test('9134 opens each of the eight current type4 points, returns sorted IDs and sends a full authoritative 9147 after ACK', () => {
     const f = fixture()
     try {
-        const points = JSON.parse(
-            fs.readFileSync(new URL('../configs/task-tables/world_borthpos.json', import.meta.url)),
-        ).filter((p) => p.type === 4)
+        const points = readTable('world_borthpos').filter((p) => p.type === 4)
         assert.equal(points.length, 8)
         for (const point of points) {
             setMap(f, point.cityId)

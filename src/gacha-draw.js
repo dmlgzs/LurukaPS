@@ -7,6 +7,7 @@ import { payGachaTickets } from './gacha-payment.js'
 import { configTime } from './shops.js'
 import { grantGachaAcquisition, gachaWireItem, gachaPresentationResult } from './gacha-acquisition.js'
 import { bindGachaProbabilityModel, gachaRulesForDraw } from './gacha-probabilities.js'
+import { staticTimeRow } from './time-definitions.js'
 
 const max64 = 0xffffffffffffffffn
 const uint = (n) => Number.isInteger(n) && n >= 0 && n <= 0xffffffff
@@ -73,12 +74,7 @@ export class GachaDrawEngine {
         }
         ensure(uint(config.timelimit), 'Invalid gacha time limit reference', ErrorCode.GameConfig)
         if (!config.timelimit) return this.offlineWindow()
-        let schedule
-        try {
-            schedule = this.tables.find('common_timelimit', config.timelimit)
-        } catch {
-            ensure(false, 'Gacha schedule table unavailable', ErrorCode.GameConfig)
-        }
+        const schedule = staticTimeRow(this.tables, config.timelimit)
         if (!schedule)
             return policy.missing_schedule === 'offline_open'
                 ? this.offlineWindow()

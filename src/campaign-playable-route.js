@@ -1,6 +1,7 @@
+import { readTable } from './table-source.js'
 import current from '../configs/campaign-playable-current.json' with { type: 'json' }
 import policy from '../configs/campaign-playable-policy.json' with { type: 'json' }
-import playableRows from '../configs/playable-tables/playable.json' with { type: 'json' }
+const playableRows = readTable('playable')
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { campaignStageSatisfied } from './campaign-stage-plan.js'

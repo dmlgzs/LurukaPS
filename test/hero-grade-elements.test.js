@@ -1,3 +1,4 @@
+import { readTable } from '../src/table-source.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -10,8 +11,8 @@ import { refreshHeroGradeElements } from '../src/hero-grade-elements.js'
 import { nextHeroGrade } from '../src/hero-grade.js'
 import { grantRewards } from '../src/rewards.js'
 import { ErrorCode } from '../src/error-codes.js'
-import grades from '../configs/hero-grade-tables/hero_grade.json' with { type: 'json' }
-import effects from '../configs/hero-grade-tables/hero_grade_effect.json' with { type: 'json' }
+const grades = readTable('hero_grade')
+const effects = readTable('hero_grade_effect')
 
 const expected = (id, grade) => {
     const row = grades.find((entry) => entry.heroId === id && entry.grade === grade)

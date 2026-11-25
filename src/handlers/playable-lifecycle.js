@@ -1,3 +1,4 @@
+import { readTable } from '../table-source.js'
 import { settleStoryCampaignScene } from './story-campaign.js'
 import { recordPetPuzzlePlayableCompletion } from '../pet-puzzle-progress.js'
 import {
@@ -15,12 +16,7 @@ import { rewardSource } from '../reward-source.js'
 import { WorldObjectCatalog } from '../world-objects.js'
 import { TaskGraphs, nodeConditions } from '../tasks.js'
 import { grantRewards, parseRewards } from '../rewards.js'
-const configs = new Map(
-    JSON.parse(fs.readFileSync(new URL('../../configs/playable-tables/playable.json', import.meta.url))).map((r) => [
-        r.id,
-        r,
-    ]),
-)
+const configs = new Map(readTable('playable').map((r) => [r.id, r]))
 // Only confirmed empty rewards are listed here. Unknown missing drops still
 // fail; if the original table later supplies a group, its real rewards win.
 const emptyScoreRewards = new Set(

@@ -3,6 +3,7 @@ import { ensure } from './handlers/common.js'
 import { refreshWindow } from './shops.js'
 import { mallConditions } from './mall-conditions.js'
 import { mallTableRow, mallSchedule } from './mall-schedule.js'
+import { mallBeginTimeRefreshWindow } from './mall-time-policy.js'
 export class MallCatalog {
     constructor(tables) {
         this.tables = tables
@@ -16,7 +17,7 @@ export class MallCatalog {
         const { start, end } = mallSchedule(this.tables, row.timelimit)
         const period = this.window(row, now)
         const record = state.mall?.purchases?.[`${isPay ? 'pay' : 'diamond'}:${id}`],
-            count = record?.period === period.start ? record.count : 0
+            count = record && ([1, 6].includes(row.refreshType) || record.period === period.start) ? record.count : 0
         const condition = mallConditions(this.tables, state, row.commonCondition)
         return {
             is_pay_goods: isPay,
@@ -31,13 +32,19 @@ export class MallCatalog {
         }
     }
     window(row, now) {
+        if (row.refreshType === 6) return mallBeginTimeRefreshWindow(this.tables, row)
         let refreshTypeParam = row.refreshTypeParam
         if (row.refreshType === 4 && String(refreshTypeParam).includes('|')) {
             const parts = String(refreshTypeParam).split('|').map(Number)
             ensure(parts.length === 3 && parts.every(Number.isInteger), 'Invalid mall refresh time')
             refreshTypeParam = parts[0] * 10000 + parts[1] * 100 + parts[2]
         }
-        return row.refreshType === 0 ? { start: 0, end: 0 } : refreshWindow({ ...row, refreshTypeParam }, now)
+        if (row.refreshType === 0) return { start: 0, end: 0 }
+        const hour = [3, 5].includes(row.refreshType)
+            ? Number(this.tables.get('game').find((entry) => entry.title === 'DAILY_REFRESH_TIME')?.value)
+            : 4
+        ensure(Number.isInteger(hour) && hour >= 0 && hour < 24, 'Invalid mall reset hour', ErrorCode.GameConfig)
+        return refreshWindow({ ...row, refreshTypeParam }, now, hour)
     }
     list(isPay, shopId, goodsId, state, now) {
         const catalog = isPay ? this.pay : this.diamond

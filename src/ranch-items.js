@@ -1,13 +1,8 @@
-import fs from 'node:fs'
+import { readTable } from './table-source.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 
-const stacks = new Map(
-    JSON.parse(fs.readFileSync(new URL('../configs/inventory-tables/common_item.json', import.meta.url))).map((row) => [
-        row.id,
-        row.stackNum,
-    ]),
-)
+const stacks = new Map(readTable('common_item').map((row) => [row.id, row.stackNum]))
 const positive = (n) => Number.isSafeInteger(n) && n > 0 && n <= 0xffffffff
 
 export function ranchItem(tables, item) {

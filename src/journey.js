@@ -5,7 +5,6 @@ import { ensure } from './handlers/common.js'
 import { taskNodeCompleted } from './tasks.js'
 import { guidedConditionValue } from './guided-conditions.js'
 import { grantRewards, parseRewards } from './rewards.js'
-import overrides from '../configs/journey-overrides.json' with { type: 'json' }
 import { rewardSource } from './reward-source.js'
 import { capturedPetVarieties } from './capture-variety.js'
 import { productionProgressRule, productionProgressValue } from './production-progress.js'
@@ -64,7 +63,7 @@ function supportedShape(tokens, tables) {
 // represented in the full wire catalogue and in the coverage report.
 export function journeyModel(tables) {
     if (models.has(tables)) return models.get(tables)
-    const targets = tables.get('journey_task_target').map((row) => ({ ...row, ...overrides.targets[row.id] }))
+    const targets = tables.get('journey_task_target')
     const tasks = tables.get('journey_task'),
         tabs = tables.get('journey_tab')
     const byTarget = new Map(),

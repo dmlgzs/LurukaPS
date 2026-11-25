@@ -1,6 +1,6 @@
+import { readTable } from '../src/table-source.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import fs from 'node:fs'
 import { configuration } from '../src/config.js'
 import { Tables } from '../src/player.js'
 import { productionTables } from '../src/production-tables.js'
@@ -14,7 +14,7 @@ test('all production recipes use the extracted current client table without modi
     external.get = (name) => (name === 'products' ? stale : base.get(name))
     external.find = (name, id) => (name === 'products' ? stale.find((row) => row.id === id) : base.find(name, id))
     const tables = productionTables(external)
-    const expected = JSON.parse(fs.readFileSync(new URL('../configs/production-tables/products.json', import.meta.url)))
+    const expected = readTable('products')
     assert.deepEqual(tables.get('products'), expected)
     assert.equal(expected.length, 426)
     assert.equal(productionTables(external), tables)

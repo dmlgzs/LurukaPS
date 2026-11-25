@@ -1,33 +1,9 @@
-import fs from 'node:fs'
-import { WorldObjectCatalog } from './world-objects.js'
 import { ensure } from './handlers/common.js'
 import { ErrorCode } from './error-codes.js'
 import { repeatStarTrustedCount, repeatStarWireRecord, sealRepeatStarProgress } from './repeat-star-progress.js'
 
-const names = [
-    'repeat_event_activity',
-    'repeat_event_chapter',
-    'repeat_event_level',
-    'repeat_event_task',
-    'dungeon',
-    'dungeon_scene',
-    'world_city',
-    'stamina_chest_drop',
-]
-const rows = Object.fromEntries(
-    names.map((name) => [
-        name,
-        JSON.parse(fs.readFileSync(new URL('../configs/repeat-event-tables/' + name + '.json', import.meta.url))),
-    ]),
-)
-const adapters = new WeakMap()
 export function repeatEventTables(external) {
-    if (!adapters.has(external)) {
-        const world = new WorldObjectCatalog(external)
-        const get = (name) => (name.startsWith('worldmap_') ? world.get(name) : (rows[name] ?? external.get(name)))
-        adapters.set(external, { get, find: (name, id) => get(name).find((row) => row.id === Number(id)) })
-    }
-    return adapters.get(external)
+    return external
 }
 export function repeatDungeon(tables, dungeonId) {
     const current = repeatEventTables(tables)

@@ -9,18 +9,13 @@ import {
 } from './tasks.js'
 import { deliveryKey } from './task-delivery.js'
 import { ensure } from './handlers/common.js'
-import fs from 'node:fs'
 
 // CBT3 TaskStore 060189b0/b1: targeted reports, not generic telemetry.
 const indexed = new Set([1001, 2519, 2520, 2512])
 const catalogs = new WeakMap()
-let petTables
 function ownsFractalPet(c, data) {
-    petTables ??= Object.fromEntries(
-        ['pet_rank', 'world_enemy_group', 'enemy'].map((name) => [
-            name,
-            JSON.parse(fs.readFileSync(new URL(`../configs/task-tables/${name}.json`, import.meta.url), 'utf8')),
-        ]),
+    const petTables = Object.fromEntries(
+        ['pet_rank', 'world_enemy_group', 'enemy'].map((name) => [name, c.tables.get(name)]),
     )
     const groupId = data.enemyData?.__type_TaskEnemiesOverrideData?.enemiesGroupId
     const group = petTables.world_enemy_group.find((r) => r.id === groupId),

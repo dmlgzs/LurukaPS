@@ -1,9 +1,9 @@
+import { readTable } from '../src/table-source.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { ranchFixture } from './ranch-fixture.js'
 import { ranchStoredSlots } from '../src/ranch-claims.js'
 import { ErrorCode } from '../src/error-codes.js'
-import fs from 'node:fs'
 
 function produce(f, gather = true) {
     f.assign()
@@ -71,9 +71,7 @@ test('storage capacity counts actual item stacks and full or overflowing stores 
     try {
         const drops = produce(f),
             first = drops[0],
-            numeric = JSON.parse(
-                fs.readFileSync(new URL('../configs/inventory-tables/common_item.json', import.meta.url)),
-            )
+            numeric = readTable('common_item')
         const stacked = numeric.find((row) => row.stackNum > 0)
         assert(stacked)
         assert.equal(ranchStoredSlots([{ itemtype: 3, itemid: stacked.id, itemnum: stacked.stackNum + 1 }]), 2)

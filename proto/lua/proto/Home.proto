@@ -39,6 +39,8 @@ enum WorldMapBuildType {
   WMBT_ACTIVITY_SHOW = 62;
   WMBT_WORLD_GAMEPLAY = 63;
   WMBT_BATCH_HATCH = 64;
+  WMBT_TOTEM = 65;
+  WMBT_PET_SHOW = 66;
 }
 enum ProductType {
   PT_Unkown2 = 2;
@@ -147,11 +149,6 @@ enum PetEggHatchState {
   PEHS_START_HATCH = 2;
   PEHS_FINISH_HATCH = 3;
 }
-enum BatchHatchSlotState {
-  BHSS_EMPTY = 0;
-  BHSS_HATCHING = 1;
-  BHSS_FINISH = 2;
-}
 enum EUpDown {
   EUD_None = 0;
   EUD_Up = 1;
@@ -202,7 +199,12 @@ message SpecialProductInfos {
   optional uint32 extra_type = 4 [json_name = "extraType"];
   optional uint32 designate_item_id = 5 [json_name = "designateItemId"];
   repeated .cs.CommonItem designate_cost = 6 [json_name = "designateCost"];
-  optional uint32 designate_item_type = 7 [json_name = "designateItemType"];
+  repeated .cs.cook_product product_infos = 7 [json_name = "productInfos"];
+  optional uint32 designate_item_type = 8 [json_name = "designateItemType"];
+}
+message cook_product {
+  optional uint32 product_id = 1 [json_name = "productId"];
+  optional uint32 index = 2 [json_name = "index"];
 }
 message HomeBuildPetCanteen {
   option (msg_to_server) = true;
@@ -231,6 +233,7 @@ message HomeBuildBatchHatchSlot {
   optional uint32 remain_time = 3 [json_name = "remainTime"];
   optional uint32 last_update_time = 4 [json_name = "lastUpdateTime"];
   optional uint32 state = 5 [json_name = "state"];
+  optional uint32 time_ratio_percent = 6 [json_name = "timeRatioPercent"];
 }
 message HomeBuildBatchHatchInfo {
   option (msg_to_server) = true;
@@ -263,6 +266,8 @@ message WorldMapHomeBuild {
   optional uint32 satiety_reduce_per = 21 [json_name = "satietyReducePer"];
   optional uint32 satiety_reduce_remainder = 22 [json_name = "satietyReduceRemainder"];
   optional .cs.HomeBuildBatchHatchInfo batch_hatch = 23 [json_name = "batchHatch"];
+  optional uint32 build_level = 24 [json_name = "buildLevel"];
+  optional .cs.HomeBuildPetShowInfo pet_show_info = 25 [json_name = "petShowInfo"];
   reserved 7 to 7;
   reserved 8 to 8;
 }
@@ -287,11 +292,16 @@ message FruitTreeExp {
   optional uint32 seed_id = 1 [json_name = "seedId"];
   optional uint32 exp = 2 [json_name = "exp"];
 }
+message SatietyZeroWorkPet {
+  optional uint64 pet_guid = 1 [json_name = "petGuid"];
+  optional uint32 start_time = 2 [json_name = "startTime"];
+}
 message HomeHub {
   repeated .cs.buildsInfo pos_infos = 1 [json_name = "posInfos"];
   repeated uint64 station_pets = 2 [json_name = "stationPets"];
   repeated .cs.FruitTreeExp fruit_tree_exp = 3 [json_name = "fruitTreeExp"];
   repeated .cs.FruitTreeExp fruit_dna_tree_drop_exp = 4 [json_name = "fruitDnaTreeDropExp"];
+  repeated .cs.SatietyZeroWorkPet satiety_zero_work_pets = 5 [json_name = "satietyZeroWorkPets"];
 }
 message WorldMapBuildCrop {
   optional uint32 seed_id = 1 [json_name = "seedId"];
@@ -316,8 +326,20 @@ message WorldMapBuildCrop {
   repeated uint32 follower_build_guids = 20 [json_name = "followerBuildGuids"];
   optional uint32 fruit_grow_start_water_time = 21 [json_name = "fruitGrowStartWaterTime"];
   optional .cs.CSHomeHarvestResult drop_result = 22 [json_name = "dropResult"];
+  optional uint32 grow_less_reduction_bp = 23 [json_name = "growLessReductionBp"];
+  optional uint32 planting_grow_cost_time = 24 [json_name = "plantingGrowCostTime"];
+  optional uint32 planting_pre_cost_time = 25 [json_name = "plantingPreCostTime"];
+  optional bool water_grow_time_applied = 26 [json_name = "waterGrowTimeApplied"];
+  optional uint32 water_normal_grow_cost_time = 27 [json_name = "waterNormalGrowCostTime"];
+  optional uint32 water_normal_pre_cost_time = 28 [json_name = "waterNormalPreCostTime"];
+  optional bool fruit_water_penalty_applied = 29 [json_name = "fruitWaterPenaltyApplied"];
 }
 message WorldMapHome {
+}
+message BuildLevelCount {
+  option (msg_to_server) = true;
+  optional uint32 level = 1 [json_name = "level"];
+  optional uint32 count = 2 [json_name = "count"];
 }
 message Build {
   option (msg_to_server) = true;
@@ -325,6 +347,7 @@ message Build {
   optional uint32 total_num = 2 [json_name = "totalNum"];
   optional uint32 used_num = 3 [json_name = "usedNum"];
   optional bool unlock = 4 [json_name = "unlock"];
+  repeated .cs.BuildLevelCount level_counts = 5 [json_name = "levelCounts"];
 }
 message CSEnterHome {
   optional uint32 creator_id = 1 [json_name = "creatorId"];
@@ -402,6 +425,7 @@ message CSBuildLocate {
   optional uint32 guid = 1 [json_name = "guid"];
   optional uint32 build_id = 2 [json_name = "buildId"];
   optional .cs.HomeBuildLocate locate = 3 [json_name = "locate"];
+  optional uint32 build_level = 4 [json_name = "buildLevel"];
 }
 message CSBuildUnlocate {
   optional uint32 guid = 1 [json_name = "guid"];
@@ -450,6 +474,7 @@ message CSProductOrnament {
   optional uint32 ornament_guid = 3 [json_name = "ornamentGuid"];
   optional uint32 designated_item_id = 4 [json_name = "designatedItemId"];
   optional uint32 count = 5 [json_name = "count"];
+  repeated uint32 select_material = 6 [json_name = "selectMaterial"];
 }
 message CSCookRequest {
   optional uint32 build_guid = 1 [json_name = "buildGuid"];
@@ -515,6 +540,8 @@ message CollectBuildData {
   optional uint32 start_time = 4 [json_name = "startTime"];
   optional uint64 pet_guid = 5 [json_name = "petGuid"];
   repeated .cs.CollectItem items = 7 [json_name = "items"];
+  optional uint32 product_choose_id = 8 [json_name = "productChooseId"];
+  optional uint64 choose_time = 9 [json_name = "chooseTime"];
   reserved 6 to 6;
 }
 message CSCollectStart {
@@ -700,6 +727,13 @@ message PlayerPlanInfo {
 message CSHatchOperator {
   optional uint32 build_guid = 1 [json_name = "buildGuid"];
   optional uint32 egg_guid = 2 [json_name = "eggGuid"];
+}
+message CSSetEggCatchCard {
+  optional uint32 egg_guid = 1 [json_name = "eggGuid"];
+  optional uint32 catch_card_id = 2 [json_name = "catchCardId"];
+}
+message CSSetDefaultCatchCard {
+  optional uint32 catch_card_id = 1 [json_name = "catchCardId"];
 }
 message SCHatchFinish {
   optional uint64 pet_guid = 1 [json_name = "petGuid"];
@@ -947,6 +981,8 @@ message CSCancelExangeObj {
   optional uint32 id = 1 [json_name = "id"];
   optional uint32 guid = 2 [json_name = "guid"];
 }
+message CSCancelAllObj {
+}
 message SCExchangeObj {
   repeated .cs.ExchangeObjInfo obj_info = 1 [json_name = "objInfo"];
   optional uint32 settle_num = 2 [json_name = "settleNum"];
@@ -1010,16 +1046,6 @@ message ExchangeBaseInfo {
   optional uint32 max_guid = 9 [json_name = "maxGuid"];
   optional uint32 extra_num = 10 [json_name = "extraNum"];
 }
-message HatchSlotDetail {
-  optional uint32 slot = 1 [json_name = "slot"];
-  optional uint32 egg_guid = 2 [json_name = "eggGuid"];
-  optional uint32 egg_id = 3 [json_name = "eggId"];
-  optional uint32 state = 4 [json_name = "state"];
-  optional uint32 start_time = 5 [json_name = "startTime"];
-  optional uint32 finish_time = 6 [json_name = "finishTime"];
-  optional uint32 total_time = 7 [json_name = "totalTime"];
-  repeated uint32 egg_affix = 8 [json_name = "eggAffix"];
-}
 message HatchSlotParam {
   optional uint32 slot = 1 [json_name = "slot"];
   optional uint32 egg_guid = 2 [json_name = "eggGuid"];
@@ -1035,14 +1061,12 @@ message CSBatchHatchPetEgg {
   repeated .cs.HatchSlotParam slots = 2 [json_name = "slots"];
 }
 message SCBatchHatchPetEggRsp {
-  repeated .cs.HatchSlotDetail slots = 1 [json_name = "slots"];
 }
 message CSCancelBatchHatch {
   optional uint32 build_guid = 1 [json_name = "buildGuid"];
   repeated uint32 slots = 2 [json_name = "slots"];
 }
 message SCCancelBatchHatchRsp {
-  repeated .cs.HatchSlotDetail slots = 1 [json_name = "slots"];
 }
 message CSBatchHatchOut {
   optional uint32 build_guid = 1 [json_name = "buildGuid"];
@@ -1050,20 +1074,22 @@ message CSBatchHatchOut {
 }
 message SCBatchHatchOutRsp {
   repeated .cs.BatchHatchResult results = 1 [json_name = "results"];
-  repeated .cs.HatchSlotDetail slots = 2 [json_name = "slots"];
-}
-message CSBatchHatchPetStation {
-  optional uint64 pet_guid = 1 [json_name = "petGuid"];
-  optional uint32 build_guid = 2 [json_name = "buildGuid"];
-  optional uint32 type = 3 [json_name = "type"];
 }
 message SCHatchSlotFinish {
   optional uint32 build_guid = 1 [json_name = "buildGuid"];
-  optional .cs.HatchSlotDetail slot = 2 [json_name = "slot"];
 }
-message CSBatchHatchInfo {
+message CSHomeBuildTotemUpgrade {
+  optional uint32 guid = 1 [json_name = "guid"];
+}
+message HomeBuildPetShowInfo {
+  option (msg_to_server) = true;
+  optional uint64 pet_guid = 1 [json_name = "petGuid"];
+}
+message CSHomePetShowSet {
   optional uint32 build_guid = 1 [json_name = "buildGuid"];
+  optional uint64 pet_guid = 2 [json_name = "petGuid"];
 }
-message SCBatchHatchInfoRsp {
-  repeated .cs.HatchSlotDetail slots = 1 [json_name = "slots"];
+message CSCollectSwitchProduct {
+  optional uint32 build_guid = 1 [json_name = "buildGuid"];
+  optional uint32 product_choose_id = 2 [json_name = "productChooseId"];
 }

@@ -1,30 +1,17 @@
-import fs from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { Tables } from './player.js'
-
-const directory = fileURLToPath(new URL('../configs/gacha-tables/', import.meta.url))
-const provenance = JSON.parse(fs.readFileSync(new URL('../configs/gacha-tables/source.json', import.meta.url)))
-const names = new Set(provenance.tables.map((row) => row.name))
-const current = new Tables(directory),
-    adapters = new WeakMap(),
+const adapters = new WeakMap(),
     wrapped = new WeakSet()
-const indices = new Map()
-function findCurrent(name, id) {
-    if (!indices.has(name)) {
-        const key = name === 'gacha' ? 'gachaId' : name === 'gacha_guarantee' ? 'guaranteeId' : 'id'
-        indices.set(name, new Map(current.get(name).map((row) => [row[key], row])))
-    }
-    return indices.get(name).get(Number(id))
-}
 
-// Verified 2451868 data adds novice guarantee 802 and changes 801's base chance.
-// Other tables remain external; never localize numeric IDs or copy the whole table tree.
 export function gachaTables(external) {
     if (wrapped.has(external)) return external
     if (!adapters.has(external)) {
-        const adapter = Object.create(external)
-        adapter.get = (name) => (names.has(name) ? current.get(name) : external.get(name))
-        adapter.find = (name, id) => (names.has(name) ? findCurrent(name, id) : external.find(name, id))
+        const adapter = Object.create(external),
+            indices = new Map()
+        adapter.find = (name, id) => {
+            const key = name === 'gacha' ? 'gachaId' : name === 'gacha_guarantee' ? 'guaranteeId' : null
+            if (!key) return external.find(name, id)
+            if (!indices.has(name)) indices.set(name, new Map(external.get(name).map((row) => [row[key], row])))
+            return indices.get(name).get(Number(id))
+        }
         adapters.set(external, adapter)
         wrapped.add(adapter)
     }

@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "mode": "local",
+    "userApproved": true,
+    "notOfficial": true,
+    "training": "not-implemented",
+    "initialGrade": "configured-minimum",
+    "upperGrade": "initial-grade",
+    "initialExp": 0,
+    "existingRecords": "preserve",
+    "officiallyVerified": false,
+    "evidence": "1.0 PetData receives server labor_infos unchanged; home_labor_type defines work types and home_labor_efficiency IDs define the score calculation domain. Each pet_home_talent.laborScoreLimit supplies the current initial score range. Choosing its minimum and freezing upper_labor_grade to the chosen score are explicit local policies, not recovered official creation or training rules.",
+    "todo": "Verify official creation/catch/hatch/evolution packets and labor training rules. laborScoreUpperLimit and game labor_*revise/WORLD_LEVEL_LABOR_LIMIT_INCREASE have unresolved server semantics; do not infer a training ceiling or progression formula from their names. Preserve existing saved labor records."
+}

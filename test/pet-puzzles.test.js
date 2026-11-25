@@ -1,6 +1,6 @@
+import { readTable } from '../src/table-source.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import fs from 'node:fs'
 import { configuration } from '../src/config.js'
 import { Tables } from '../src/player.js'
 import { Protocol } from '../src/protocol.js'
@@ -122,9 +122,7 @@ test('solving a rewarded puzzle leaves its chest available; claiming pays once a
 test('configured stage rewards pay once and persist flags; absent 10068 drops fail atomically', () => {
     const f = fixture()
     try {
-        const configs = JSON.parse(
-            fs.readFileSync(new URL('../configs/playable-tables/playable.json', import.meta.url)),
-        )
+        const configs = readTable('playable')
         for (const row of configs.filter((r) => r.stepRewards && r.id !== 60001)) {
             f.store.transact(f.session.id, 0, (s) => {
                 s.world.map_id = 100

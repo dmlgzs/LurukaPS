@@ -43,6 +43,14 @@ enum PetState {
   PET_PUZZLE_ROULETTE = 7;
   PET_HUB = 8;
 }
+enum PetBoxOrderType {
+  PBOT_NONE = 0;
+  PBOT_GRADE = 1;
+  PBOT_LEVEL = 2;
+  PBOT_MAIN_ELEMENT = 3;
+  PBOT_GROWTH_STAGE = 4;
+  PBOT_TALENT_GRADE = 5;
+}
 enum PetFSMStateType {
   PFST_NORMAL = 0;
   PFST_WORK = 1;
@@ -53,6 +61,16 @@ enum PetFSMStateType {
 enum PetHandElementType {
   PHET_SINGLE = 5009;
   PHET_ALL = 5010;
+}
+enum PetHandbookObtainSource {
+  PHOS_NONE = 0;
+  PHOS_STARSOUL = 1;
+  PHOS_HATCH = 2;
+  PHOS_EVOLVE = 3;
+  PHOS_ITEM = 4;
+  PHOS_MONSTER_SURVEY = 5;
+  PHOS_GM = 6;
+  PHOS_OPS = 7;
 }
 enum PetEggRatioType {
   PERT_PROBABILITY_R1 = 1;
@@ -68,11 +86,24 @@ enum PetEggHatchStrategy {
   PEHS_UP = 2;
   PEHS_RANDOM = 3;
 }
+enum PetTrainType {
+  PTT_Randomly = 1;
+  PTT_Specify = 2;
+}
+enum PetHandBookType {
+  PHBT_exp = 1;
+  PHBT_reward = 2;
+}
+enum PetAttrCompreCal {
+  PACC_pet_init = 1;
+  PACC_pet_comp = 2;
+}
 message PetEggBagInfo {
   repeated .cs.PetEggbaseInfo eggs = 1 [json_name = "eggs"];
   repeated uint32 guid = 2 [json_name = "guid"];
   repeated uint32 add_guid = 3 [json_name = "addGuid"];
   repeated .cs.PetEggGuaranteeInfo guarantees = 4 [json_name = "guarantees"];
+  repeated .cs.PetNewGuaranteeInfo new_guarantees = 5 [json_name = "newGuarantees"];
 }
 message PetBagInfo {
   repeated .cs.PetbaseInfo pets = 1 [json_name = "pets"];
@@ -100,10 +131,16 @@ message PetEggbaseInfo {
   optional uint32 hatch_build_guid = 10 [json_name = "hatchBuildGuid"];
   repeated uint32 egg_affix = 11 [json_name = "eggAffix"];
   optional uint32 pet_id = 12 [json_name = "petId"];
+  optional uint32 catch_card_id = 13 [json_name = "catchCardId"];
 }
 message PetEggGuaranteeInfo {
   option (msg_to_server) = true;
   optional uint32 egg_id = 1 [json_name = "eggId"];
+  repeated .cs.GuaranteeInfo info = 2 [json_name = "info"];
+}
+message PetNewGuaranteeInfo {
+  option (msg_to_server) = true;
+  optional uint32 guarantee_id = 1 [json_name = "guaranteeId"];
   repeated .cs.GuaranteeInfo info = 2 [json_name = "info"];
 }
 message GuaranteeInfo {
@@ -186,6 +223,9 @@ message PetbaseInfo {
   optional uint64 soul_link_level = 56 [json_name = "soulLinkLevel"];
   optional bool is_initial_partner = 57 [json_name = "isInitialPartner"];
   optional uint32 talent_grade = 58 [json_name = "talentGrade"];
+  optional uint32 show_build_guid = 59 [json_name = "showBuildGuid"];
+  optional uint32 ops_id = 60 [json_name = "opsId"];
+  repeated .cs.Comprehension kibo_comprehension = 61 [json_name = "kiboComprehension"];
 }
 message PetBoxBaseInfo {
   optional uint32 id = 1 [json_name = "id"];
@@ -236,6 +276,7 @@ message SCPetEggInfoSync {
   optional .cs.PetEggBagInfo egg_infos = 1 [json_name = "eggInfos"];
   optional uint32 free_reward_num = 2 [json_name = "freeRewardNum"];
   optional uint32 last_free_time = 3 [json_name = "lastFreeTime"];
+  optional uint32 default_catch_card_id = 4 [json_name = "defaultCatchCardId"];
 }
 message SCIncubationInfoSync {
   optional .cs.IncubationInfo incubation_infos = 1 [json_name = "incubationInfos"];
@@ -389,6 +430,9 @@ message PetHandbookInfo {
   repeated uint32 colorfuls = 8 [json_name = "colorfuls"];
   optional uint32 report_reward_times = 9 [json_name = "reportRewardTimes"];
   optional uint32 selected_colorful = 10 [json_name = "selectedColorful"];
+  optional uint32 survey_count = 11 [json_name = "surveyCount"];
+  optional uint32 obtain_count = 12 [json_name = "obtainCount"];
+  optional uint32 source = 13 [json_name = "source"];
 }
 message CSPetHandbookRewardReq {
 }
@@ -402,6 +446,7 @@ message SCPetHandbookReportRewardSync {
   optional uint32 pet_id = 1 [json_name = "petId"];
   optional .cs.Rewards reward = 2 [json_name = "reward"];
   optional uint32 report_reward_times = 3 [json_name = "reportRewardTimes"];
+  optional uint64 pet_guid = 4 [json_name = "petGuid"];
 }
 message CSPetHandbookColorfulSelectReq {
   optional uint32 pet_id = 1 [json_name = "petId"];
@@ -433,4 +478,23 @@ message CSWearPetSkinReq {
 message SCPetWearPetSkinRsp {
   optional uint64 pet_guid = 1 [json_name = "petGuid"];
   optional uint32 skin_id = 2 [json_name = "skinId"];
+}
+message CSPetTrainReq {
+  optional uint32 type = 1 [json_name = "type"];
+  optional uint64 train_pet = 2 [json_name = "trainPet"];
+  optional uint64 partner_train_pet = 3 [json_name = "partnerTrainPet"];
+  optional uint32 choose_type = 4 [json_name = "chooseType"];
+}
+message SCPetTrainRsp {
+  optional bool is_success = 1 [json_name = "isSuccess"];
+  optional .cs.Rewards reward = 2 [json_name = "reward"];
+}
+message CSCatchPetProbability {
+  optional uint32 cardId = 1 [json_name = "cardId"];
+  optional uint64 objId = 2 [json_name = "objId"];
+}
+message SCCatchPetProbability {
+  optional uint32 cardId = 1 [json_name = "cardId"];
+  optional uint64 objId = 2 [json_name = "objId"];
+  optional uint32 probability = 3 [json_name = "probability"];
 }

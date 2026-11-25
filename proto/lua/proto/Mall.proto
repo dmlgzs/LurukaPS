@@ -12,6 +12,7 @@ enum MallRefreshType {
   MallRefreshType_Month = 3;
   MallRefreshType_Day = 4;
   MallRefreshType_Week = 5;
+  MallRefreshType_BeginTime = 6;
 }
 enum MallType {
   MallType_General = 0;
@@ -146,10 +147,14 @@ message DebtPackInfo {
 message MallGoodsReddot {
   optional uint32 goods_id = 1 [json_name = "goodsId"];
   optional uint32 status = 2 [json_name = "status"];
+  optional uint64 cycle_time = 3 [json_name = "cycleTime"];
 }
 message MallReddotInfo {
   repeated .cs.MallGoodsReddot diamond_reddot = 1 [json_name = "diamondReddot"];
   repeated .cs.MallGoodsReddot pay_reddot = 2 [json_name = "payReddot"];
+}
+message MallMailOrderInfo {
+  optional uint64 mail_guid = 1 [json_name = "mailGuid"];
 }
 message SCPlayerMallGetRechargeDiamond {
   repeated uint32 purchase_sdk_id_list = 1 [json_name = "purchaseSdkIdList"];

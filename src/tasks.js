@@ -20,7 +20,11 @@ export class TaskGraphs {
         if (this.cache.has(id)) return this.cache.get(id)
         const config = this.tables.find('task', id)
         ensure(config, 'Unknown task')
-        const filename = path.join(this.directory, `task_client_${id}.json`)
+        // 1.0 exports retain the actual ast_ asset prefix. Compatibility is
+        // limited to the explicitly configured graph directory, never an old
+        // global data tree; an invalid current graph must not fall back.
+        const current = path.join(this.directory, `ast_task_client_${id}.json`)
+        const filename = fs.existsSync(current) ? current : path.join(this.directory, `task_client_${id}.json`)
         ensure(fs.existsSync(filename), 'Task graph unavailable', ErrorCode.TaskConfFail)
         const raw = JSON.parse(fs.readFileSync(filename, 'utf8'))
         ensure(raw.taskId === id, 'Mismatched task graph', ErrorCode.GameConfig)

@@ -5,6 +5,76 @@ import { noviceDuelVictoryRule, noviceDuelVictoryValue } from './novice-duel-vic
 import { noviceDuelFeverRule, noviceDuelFeverValue } from './novice-duel-fever.js'
 import { noviceNpcEventRule, noviceNpcEventValue } from './novice-duel-events.js'
 import { noviceDuelSpeciesRule, noviceDuelSpeciesValue } from './novice-duel-species.js'
+import { tableExportManifest } from './table-source.js'
+
+export function taskManualModel(tables) {
+    const manifest = tableExportManifest(tables)
+    if (!manifest) return 'novice'
+    const legacy = ['novice_task', 'novice_task_group']
+    if (legacy.every((name) => manifest.names.has(name))) return 'novice'
+    ensure(
+        !legacy.some((name) => manifest.names.has(name)),
+        'Incomplete legacy task manual definitions',
+        ErrorCode.GameConfig,
+    )
+    // 1.0 PageStarJourney and the noviceTask jump/red-dot aliases use these
+    // current tables. Validate their real files, rather than fabricating the
+    // deleted manual or swallowing damage to an expected exported table.
+    for (const name of ['journey_task', 'journey_task_target', 'journey_tab']) {
+        ensure(manifest.names.has(name), 'Current task manual definition unavailable', ErrorCode.GameConfig)
+        tables.get(name)
+    }
+    return 'journey'
+}
+
+export function noviceTaskValue(tables, state, row) {
+    const [kind, ...p] = String(row.finishCondition).split('#').map(Number)
+    ensure([kind, ...p].every(Number.isSafeInteger), 'Invalid novice condition', ErrorCode.GameConfig)
+    const counters = noviceCounters(state)
+    switch (kind) {
+        case 2004:
+            return state.player.basic_info.lv
+        case 13002:
+            return state.player.heros_info.heros.filter((h) => !h.trail && h.hero_lv >= p[0]).length
+        case 13006:
+            if (p[0] !== 0) return null
+            return state.player.soulessence_infos.soulessences.filter((s) => s.id > 0 && s.lv >= p[1]).length
+        case 13035:
+            if (p[0] !== 0) return null
+            return state.pets.filter(
+                (pet) =>
+                    !pet.trail &&
+                    !(state.trialGroup?.pets ?? []).some((trial) => trial.guid === pet.guid) &&
+                    pet.lv >= p[1],
+            ).length
+        case 11006:
+            return counters.staminaSpent
+        case 12014:
+            return p[0] === 0 && p[1] === 0 ? counters.captures : null
+        case 13053:
+            if (!noviceDuelVictoryRule(tables, [kind, ...p])) return null
+            ensure(p[2] === row.param, 'Novice duel victory threshold mismatch', ErrorCode.GameConfig)
+            return noviceDuelVictoryValue(state, p[0], p[1])
+        case 13055:
+        case 13056:
+            if (!noviceNpcEventRule(tables, [kind, ...p])) return null
+            ensure(p[2] === row.param, 'Novice NPC event threshold mismatch', ErrorCode.GameConfig)
+            return noviceNpcEventValue(state, kind, p[0], p[1])
+        case 13058:
+            if (!noviceDuelFeverRule([kind, ...p])) return null
+            ensure(p[0] === row.param, 'Novice fever victory threshold mismatch', ErrorCode.GameConfig)
+            return noviceDuelFeverValue(state)
+        case 13057:
+            if (!noviceDuelSpeciesRule([kind, ...p])) return null
+            ensure(p[1] === row.param, 'Novice species victory threshold mismatch', ErrorCode.GameConfig)
+            return noviceDuelSpeciesValue(state, p[0])
+        // TODO: the other two duel tutorial conditions need actual receipts
+        // for elemental KO causality. Distinct species follows human policy.
+        // Do not infer them from the current team or a first-clear record.
+        default:
+            return null
+    }
+}
 
 export class NoviceTasks {
     constructor(tables) {
@@ -33,52 +103,7 @@ export class NoviceTasks {
         return false // Unknown group conditions never silently open the group.
     }
     value(state, row) {
-        const [kind, ...p] = String(row.finishCondition).split('#').map(Number)
-        ensure([kind, ...p].every(Number.isSafeInteger), 'Invalid novice condition', ErrorCode.GameConfig)
-        const counters = noviceCounters(state)
-        switch (kind) {
-            case 2004:
-                return state.player.basic_info.lv
-            case 13002:
-                return state.player.heros_info.heros.filter((h) => !h.trail && h.hero_lv >= p[0]).length
-            case 13006:
-                if (p[0] !== 0) return null
-                return state.player.soulessence_infos.soulessences.filter((s) => s.id > 0 && s.lv >= p[1]).length
-            case 13035:
-                if (p[0] !== 0) return null
-                return state.pets.filter(
-                    (pet) =>
-                        !pet.trail &&
-                        !(state.trialGroup?.pets ?? []).some((trial) => trial.guid === pet.guid) &&
-                        pet.lv >= p[1],
-                ).length
-            case 11006:
-                return counters.staminaSpent
-            case 12014:
-                return p[0] === 0 && p[1] === 0 ? counters.captures : null
-            case 13053:
-                if (!noviceDuelVictoryRule(this.tables, [kind, ...p])) return null
-                ensure(p[2] === row.param, 'Novice duel victory threshold mismatch', ErrorCode.GameConfig)
-                return noviceDuelVictoryValue(state, p[0], p[1])
-            case 13055:
-            case 13056:
-                if (!noviceNpcEventRule(this.tables, [kind, ...p])) return null
-                ensure(p[2] === row.param, 'Novice NPC event threshold mismatch', ErrorCode.GameConfig)
-                return noviceNpcEventValue(state, kind, p[0], p[1])
-            case 13058:
-                if (!noviceDuelFeverRule([kind, ...p])) return null
-                ensure(p[0] === row.param, 'Novice fever victory threshold mismatch', ErrorCode.GameConfig)
-                return noviceDuelFeverValue(state)
-            case 13057:
-                if (!noviceDuelSpeciesRule([kind, ...p])) return null
-                ensure(p[1] === row.param, 'Novice species victory threshold mismatch', ErrorCode.GameConfig)
-                return noviceDuelSpeciesValue(state, p[0])
-            // TODO: the other two duel tutorial conditions need actual receipts
-            // for elemental KO causality. Distinct species follows human policy.
-            // Do not infer them from the current team or a first-clear record.
-            default:
-                return null
-        }
+        return noviceTaskValue(this.tables, state, row)
     }
     observe(state) {
         const ledger = this.ledger(state)

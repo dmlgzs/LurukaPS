@@ -1,3 +1,4 @@
+import { readTable } from './table-source.js'
 import { acquiredResourceCount } from './item-acquisition.js'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -10,11 +11,7 @@ const conditions = new Map(
         row,
     ]),
 )
-const buildingGroups = new Map(
-    JSON.parse(fs.readFileSync(new URL('../configs/client-tables/home_building.json', import.meta.url), 'utf8')).map(
-        (row) => [row.id, row.groupId],
-    ),
-)
+const buildingGroups = new Map(readTable('home_building').map((row) => [row.id, row.groupId]))
 const fieldGroups = new Set([2016, 2033])
 const shopTableDir = configuration().tables
 const shopTable = (name) => JSON.parse(fs.readFileSync(path.join(shopTableDir, `${name}.json`), 'utf8'))
@@ -22,12 +19,7 @@ const shopSlots = new Map(shopTable('shop_slot').map((row) => [row.slotId, row.s
 const goods = new Map(shopTable('goods').map((row) => [row.goodsId, row]))
 const commonItemTypes = new Map(shopTable('common_item').map((row) => [row.id, row.type]))
 const productRows = new Map(shopTable('products').map((row) => [row.id, row]))
-const petGroups = new Map(
-    JSON.parse(fs.readFileSync(new URL('../configs/task-tables/pet_rank.json', import.meta.url), 'utf8')).map((row) => [
-        row.petId,
-        row.petGroup,
-    ]),
-)
+const petGroups = new Map(readTable('pet_rank').map((row) => [row.petId, row.petGroup]))
 
 export function guidedKillRule(id) {
     const parts = String(conditions.get(id)?.condition ?? '')

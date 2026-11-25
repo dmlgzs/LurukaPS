@@ -51,7 +51,7 @@ export function configuration() {
         httpPort: port('AZUR_HTTP_PORT', 20001),
         publicHost: environment('AZUR_PUBLIC_HOST') || '127.0.0.1',
         database: environment('AZUR_DB') || path.join(base, 'data/azur.sqlite'),
-        tables: environment('AZUR_TABLES') || path.resolve(base, '../DataTable/MasterData/Tables'),
+        tables: environment('AZUR_TABLES') || path.resolve(base, '../Tables/Tables'),
         discoveryProfile,
         serverState: discovery.serverState ?? 0,
         clientChannel: discovery.channel ?? '',

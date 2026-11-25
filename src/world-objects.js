@@ -1,10 +1,9 @@
 import { ErrorCode } from './error-codes.js'
 import fs from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { ensure } from './handlers/common.js'
 export class WorldObjectCatalog {
-    constructor(tables, directory = fileURLToPath(new URL('../configs/world-tables/', import.meta.url))) {
+    constructor(tables, directory = undefined) {
         this.tables = tables
         this.directory = directory
         this.cache = new Map()
@@ -12,8 +11,11 @@ export class WorldObjectCatalog {
     }
     get(name) {
         if (!this.cache.has(name)) {
-            const file = path.join(this.directory, name + '.json')
-            this.cache.set(name, fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : this.tables.get(name))
+            const file = this.directory === undefined ? undefined : path.join(this.directory, name + '.json')
+            this.cache.set(
+                name,
+                file && fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : this.tables.get(name),
+            )
         }
         return this.cache.get(name)
     }

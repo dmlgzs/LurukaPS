@@ -1,0 +1,155 @@
+// Reconstructed from FileDescriptorSet. Keep the original .pb for exact options.
+syntax = "proto2";
+package scene;
+import "CommonMsg.proto";
+import "KiboDuelArena.proto";
+import "Team.proto";
+option go_package = "GmServer/bridge/csproto;csproto";
+enum EvalLuaType {
+  ELT_Scene_Init = 1;
+  ELT_Scene_Quit = 2;
+  ELT_Scene_Query = 3;
+  ELT_Scene_Assign = 4;
+  ELT_Scene_SyncOnline = 5;
+}
+message PointInfo {
+  optional uint32 posx = 1 [json_name = "posx"];
+  optional uint32 posy = 2 [json_name = "posy"];
+  optional uint32 posz = 3 [json_name = "posz"];
+  optional uint32 angle = 4 [json_name = "angle"];
+}
+message GetGSSvrInfoReq {
+  optional uint32 map_id = 1 [json_name = "mapId"];
+  optional uint32 creator_id = 2 [json_name = "creatorId"];
+  optional int32 line_id = 4 [json_name = "lineId"];
+  optional string now_gsId = 5 [json_name = "nowGsId"];
+  optional uint32 roleId = 6 [json_name = "roleId"];
+  optional .scene.PointInfo point_info = 7 [json_name = "pointInfo"];
+}
+message GetGSSvrInfoRsp {
+  optional uint32 errCode = 1 [json_name = "errCode"];
+  optional string gsId = 2 [json_name = "gsId"];
+  optional uint32 zoneId = 3 [json_name = "zoneId"];
+  optional uint32 map_id = 4 [json_name = "mapId"];
+  optional uint32 creator_id = 5 [json_name = "creatorId"];
+  optional string realSvrId = 8 [json_name = "realSvrId"];
+  optional .scene.PointInfo point_info = 9 [json_name = "pointInfo"];
+}
+message EvalLuaReq {
+  optional .scene.EvalLuaType evId = 1 [json_name = "evId"];
+  repeated int32 param1 = 2 [json_name = "param1"];
+}
+message EvalLuaRsp {
+  optional .scene.EvalLuaType evId = 1 [json_name = "evId"];
+  optional int32 param = 2 [json_name = "param"];
+}
+message PlayerSwitchSvrReq {
+  optional string oldGs = 1 [json_name = "oldGs"];
+  optional string gsId = 2 [json_name = "gsId"];
+  optional .cs.SwitchSvrInfo switch_info = 3 [json_name = "switchInfo"];
+}
+message PlayerSetRounterReq {
+  optional string gateId = 1 [json_name = "gateId"];
+  optional string gsId = 2 [json_name = "gsId"];
+  optional uint32 statue = 3 [json_name = "statue"];
+}
+message PlayerSetRounterRsp {
+  optional int32 err = 1 [json_name = "err"];
+}
+message SSGetSwitchGsReq {
+  optional uint32 line_id = 1 [json_name = "lineId"];
+  optional uint32 map_id = 2 [json_name = "mapId"];
+  optional string from_gs = 3 [json_name = "fromGs"];
+  optional uint32 type = 4 [json_name = "type"];
+  optional uint32 dungeon_id = 5 [json_name = "dungeonId"];
+  optional uint32 owner_player_id = 6 [json_name = "ownerPlayerId"];
+  optional .scene.InitMapParam map_param = 7 [json_name = "mapParam"];
+  optional bool create = 8 [json_name = "create"];
+  optional uint32 area_id = 9 [json_name = "areaId"];
+  optional uint32 area_line = 10 [json_name = "areaLine"];
+}
+message InitMapMember {
+  optional uint32 pid = 1 [json_name = "pid"];
+  optional .cs.TeamV2MemberData data = 2 [json_name = "data"];
+}
+message InitMapParam {
+  optional uint32 captain_id = 1 [json_name = "captainId"];
+  repeated uint32 player_ids = 2 [json_name = "playerIds"];
+  repeated uint32 npc_ids = 3 [json_name = "npcIds"];
+  optional uint32 site_id = 4 [json_name = "siteId"];
+  optional uint32 site_lv = 5 [json_name = "siteLv"];
+  optional uint32 dungeon_id = 6 [json_name = "dungeonId"];
+  repeated .scene.InitMapMember member_list = 7 [json_name = "memberList"];
+  optional uint32 dungeon_scene_id = 8 [json_name = "dungeonSceneId"];
+  optional uint32 area_id = 9 [json_name = "areaId"];
+  optional uint32 area_line = 10 [json_name = "areaLine"];
+  optional uint32 stage_id = 11 [json_name = "stageId"];
+  optional int64 team_id = 13 [json_name = "teamId"];
+  optional .cs.KIBO_DUEL_ARENA_PVP_ENTER_TYPE enter_type = 14 [json_name = "enterType"];
+  optional uint32 robot_id = 15 [json_name = "robotId"];
+}
+message SSGetSwitchGsRsp {
+  optional string gs_id = 1 [json_name = "gsId"];
+  optional uint32 line_id = 2 [json_name = "lineId"];
+  optional uint32 map_id = 3 [json_name = "mapId"];
+  optional uint32 area_id = 6 [json_name = "areaId"];
+  optional uint32 area_line = 5 [json_name = "areaLine"];
+  optional uint32 err = 4 [json_name = "err"];
+  optional string world_uid_str = 7 [json_name = "worldUidStr"];
+}
+message SSEnterMapPreReq {
+  optional uint32 playerId = 1 [json_name = "playerId"];
+  optional uint32 map_id = 2 [json_name = "mapId"];
+  optional uint32 line_id = 3 [json_name = "lineId"];
+  optional string from_gate = 4 [json_name = "fromGate"];
+  optional bool re_line = 5 [json_name = "reLine"];
+}
+message SSEnterMapPreRsp {
+  optional uint32 playerId = 1 [json_name = "playerId"];
+  optional uint32 map_id = 2 [json_name = "mapId"];
+  optional uint32 line_id = 3 [json_name = "lineId"];
+  optional int32 err = 4 [json_name = "err"];
+}
+message SSCreatePubMapReq {
+  optional uint32 line_id = 1 [json_name = "lineId"];
+  optional uint32 map_id = 2 [json_name = "mapId"];
+  optional string from_gate = 3 [json_name = "fromGate"];
+  optional uint32 dungeon_id = 4 [json_name = "dungeonId"];
+  optional uint32 owner_player_id = 5 [json_name = "ownerPlayerId"];
+  optional .scene.InitMapParam map_param = 6 [json_name = "mapParam"];
+}
+message SSCreatePubMapRsp {
+  optional uint32 line_id = 1 [json_name = "lineId"];
+  optional uint32 map_id = 2 [json_name = "mapId"];
+  optional int32 err = 3 [json_name = "err"];
+  optional string world_uid_str = 4 [json_name = "worldUidStr"];
+}
+message SSCreateAreaLineReq {
+  optional uint32 area_id = 1 [json_name = "areaId"];
+  optional uint32 area_line = 2 [json_name = "areaLine"];
+  optional string from_gate = 3 [json_name = "fromGate"];
+}
+message SSCreateAreaLineRsp {
+  optional uint32 err = 1 [json_name = "err"];
+}
+message SSCheckChatDecorReq {
+  optional string from_gate = 1 [json_name = "fromGate"];
+  optional uint32 pid = 2 [json_name = "pid"];
+  optional uint32 bubble_id = 3 [json_name = "bubbleId"];
+  optional uint32 emoji_id = 4 [json_name = "emojiId"];
+}
+message SSCheckChatDecorRsp {
+  optional uint32 err = 1 [json_name = "err"];
+}
+message SSEnterMapNtf {
+  optional uint32 player_id = 1 [json_name = "playerId"];
+  optional uint32 line_id = 2 [json_name = "lineId"];
+}
+message SSQuitMapNtf {
+  optional uint32 player_id = 1 [json_name = "playerId"];
+  optional uint32 line_id = 2 [json_name = "lineId"];
+}
+message SSSyncTeamChatNtf {
+  optional uint32 player_id = 1 [json_name = "playerId"];
+  optional int64 team_id = 2 [json_name = "teamId"];
+}

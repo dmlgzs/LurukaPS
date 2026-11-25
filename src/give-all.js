@@ -1,10 +1,5 @@
-import fs from 'node:fs'
-const rules = new Map(
-    JSON.parse(fs.readFileSync(new URL('../configs/inventory-tables/common_item.json', import.meta.url))).map((row) => [
-        row.id,
-        row,
-    ]),
-)
+import { readTable } from './table-source.js'
+const rules = new Map(readTable('common_item').map((row) => [row.id, row]))
 export function giveAllRewards(tables, state) {
     const rewards = tables
         .get('common_item')

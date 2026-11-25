@@ -216,6 +216,8 @@ message KiboDuelPVPPlayerInfo {
   optional .cs.KiboGuid kibo_guid = 5 [json_name = "kiboGuid"];
   optional string name = 6 [json_name = "name"];
   optional uint32 rank = 7 [json_name = "rank"];
+  optional bool is_robot = 8 [json_name = "isRobot"];
+  optional uint32 robot_id = 9 [json_name = "robotId"];
 }
 message SCKiboDuelPVPAllInfo {
   repeated .cs.KiboDuelPVPPlayerInfo player_info = 1 [json_name = "playerInfo"];
@@ -276,6 +278,7 @@ message PetDuelGroupNormalInfo {
   repeated .cs.PetDuelPetInfo pets = 1 [json_name = "pets"];
   optional uint32 hero = 2 [json_name = "hero"];
   optional uint32 hero_skin_id = 3 [json_name = "heroSkinId"];
+  optional uint32 spawner_id = 4 [json_name = "spawnerId"];
 }
 message KiboDuelPlayerInfo {
   optional uint32 player_id = 1 [json_name = "playerId"];

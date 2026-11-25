@@ -3,6 +3,22 @@ syntax = "proto2";
 package cs;
 import "ExOptions.proto";
 option go_package = "GmServer/bridge/csproto;csproto";
+enum CampaignType {
+  CT_SCENE = 1;
+  CT_BATTLE = 2;
+  CT_STORY_COMPAIGN = 3;
+  CT_REPEAT_EVENT = 10;
+  CT_TEACH = 100;
+  CT_DUNGEON_MATERIAL = 101;
+  CT_CULT_TRIAL = 102;
+  CT_KIBODUEL_PVE = 200;
+  CT_KIBODUEL_PVP = 201;
+  CT_KIBODUEL_PVP_PVE = 202;
+  CT_NEST_COOP = 300;
+  CT_KIBODUEL_ARENA_PVE = 400;
+  CT_KIBODUEL_ARENA_PVP = 401;
+  CT_DUNGEON_WEEKLY = 500;
+}
 enum IsolatedGamePlayDataType {
   IsolatedGamePlayData_Common = 0;
   IsolatedGamePlayData_Rogue = 1;
@@ -54,6 +70,7 @@ enum PlayerNoviceTaskStatus {
 enum SystemId {
   SI_NONE = 0;
   SI_GACHA = 2;
+  SI_HOME = 7;
   SI_HERO_GRADE = 23;
   SI_HERO_FAVOR = 50;
   SI_HERO_GIFT = 51;
@@ -67,6 +84,7 @@ enum SystemId {
   SI_CHANGE_WARDROBE = 73;
   SI_CHANGE_CLOTHES = 731;
   SI_NDAY_ACT = 75;
+  SI_MOUNT_SNACK_BAG = 139;
   SI_FIELD_UNPLANT = 156;
   SI_FIELD_CLOSE = 157;
   SI_PRODUCT = 164;
@@ -88,6 +106,7 @@ enum SystemId {
   SI_DUNGEON_MATERIAL = 1734;
   SI_CRISIS_CRUSADE = 1733;
   SI_START_JOURNEY = 57;
+  SI_TodoNoSense2 = 66;
   SI_MallRechargeDiamondSystem = 4401;
   SI_MallRechargeDiamondExchange = 44011;
   SI_MallShopSwitch4402 = 4402;
@@ -101,11 +120,15 @@ enum SystemId {
   SI_MallShopSwitch4410 = 4410;
   SI_MallShopSwitch4411 = 4411;
   SI_HERO_SKIN = 732;
-  SI_PET_EAT_FOOD = 5003;
+  SI_KIBO_FEED_EXP = 5001;
+  SI_KIBO_FEED_TALENT = 5002;
+  SI_KIBO_FEED_FACTOR = 5003;
   SI_PET_SOUL_LINK = 5004;
+  SI_KIBO_FEED = 5005;
   SI_WORLD_COLLECT = 92;
   SI_WORLD_COLLECT_TOOL = 1506;
   SI_Shortcut = 1019;
+  SI_PET_TRAIN = 510;
 }
 enum MoveStatus {
   MS_TRANSFER = 1;
@@ -140,18 +163,39 @@ enum PlayerSexType {
   PST_MALE = 1;
   PST_FEMALE = 2;
 }
-enum OnlineMode {
-  ONLINE_MODE_DEFAULT = 0;
-  SINGLE_PLAYER = 1;
-  MULTI_PLAYER_CITY = 2;
-  MULTI_PLAYER_PVE = 3;
-  MULTI_PLAYER_DUNGEON = 4;
-  SINGLE_PLAYER_DUNGEON = 5;
-  ONLINE_MODE_NEST_COOP = 6;
-  ONLINE_MODE_NEST_COOP_PVE = 7;
-  ONLINE_MODE_KIBO_DUEL_ARENA_PVP = 8;
-  ONLINE_MODE_KIBO_DUEL_ARENA_PVE = 9;
-  ONLINE_MODE_ABYSS = 10;
+enum SceneMode {
+  SCENE_MODE_DEFAULT = 0;
+  SCENE_MODE_SINGLE_WORLD = 1;
+  SCENE_MODE_MULTI_WORLD = 2;
+  SCENE_MODE_HOME = 3;
+  SCENE_MODE_HOME_BASE = 4;
+  SCENE_MODE_HOME_DORM = 5;
+  SCENE_MODE_MAIN_CAMPAIGN = 6;
+  SCENE_MODE_MATERIAL_SOLO = 7;
+  SCENE_MODE_MATERIAL_MULTI = 8;
+  SCENE_MODE_STORY = 9;
+  SCENE_MODE_MULTI_CAMPAIGN_SOLO = 10;
+  SCENE_MODE_MULTI_CAMPAIGN_MULTI = 11;
+  SCENE_MODE_WEEKLY_SOLO = 12;
+  SCENE_MODE_WEEKLY_MULTI = 13;
+  SCENE_MODE_ROGUE_NORMAL = 14;
+  SCENE_MODE_ROGUE_ENDLESS = 15;
+  SCENE_MODE_ABYSS_NORMAL = 16;
+  SCENE_MODE_ABYSS_ENDLESS = 17;
+  SCENE_MODE_TEACH = 18;
+  SCENE_MODE_KIBO_DUEL_PVE = 19;
+  SCENE_MODE_KIBO_DUEL_PVP = 20;
+  SCENE_MODE_KIBO_DUEL_PVP_PVE = 21;
+  SCENE_MODE_NEST_COOP = 22;
+  SCENE_MODE_KIBO_ARENA_PVE = 23;
+  SCENE_MODE_KIBO_ARENA_PVP = 24;
+  SCENE_MODE_POPPER_PARTY = 25;
+  SCENE_MODE_CULT_TRIAL_NORMAL = 26;
+  SCENE_MODE_CULT_TRIAL_ENDLESS = 27;
+  SCENE_MODE_REPEAT_EVENT = 28;
+  SCENE_MODE_PROLOGUE = 29;
+  SCENE_MODE_PROLOGUE_DRAGON_RELIC = 30;
+  SCENE_MODE_GROWUP_ACTIVITY = 31;
 }
 enum OrnamentAffixType {
   OAT_NONE = 0;
@@ -163,6 +207,8 @@ enum MailType {
   REWARD = 2;
   GIFTCODE = 3;
   SHOPREWARD = 4;
+  EVENT_NOTIFY = 5;
+  WEB_ACTIVITY_REWARD = 6;
 }
 enum BuffFromType {
   SKILL = 1;
@@ -178,6 +224,7 @@ enum GroupManagerType {
   GMT_KIBODUEL_ARENA = 6;
   GMT_ABYSS = 7;
   GMT_CULTTRIAL = 8;
+  GMT_HOME = 9;
 }
 enum AliveStateType {
   AST_Alive = 0;
@@ -241,6 +288,8 @@ enum GMPGameSystemEnum {
   PersonalCardSystem = 19;
   ChangeName = 191;
   ChangePersonalSign = 192;
+  ChangeSceneName = 1961;
+  ChangeDormName = 1508;
   PhotoSystem = 20;
   HeroCharDataSystem = 26;
   HeroCharDataStory = 261;
@@ -297,6 +346,7 @@ enum GMPGameSystemEnum {
   RECHARGE_IOS = 44013;
   RECHARGE_PC = 44014;
   RECHARGE_HARMONY = 44015;
+  RECHARGE_PS5 = 44016;
   MallRechargeDiamondExchange = 44011;
   MallShopSwitch4402 = 4402;
   MallShopSwitch4403 = 4403;
@@ -326,11 +376,16 @@ enum MedicineType {
 enum ShortcutKeyType {
   SKT_Item = 1;
 }
+enum KickoutType {
+  ban = 0;
+  kick = 1;
+}
 enum SkillTreeType {
   STT_Rogue = 1;
 }
 enum EnumBanType {
   CHAT = 1;
+  REPORT = 2;
 }
 enum TrialHeroType {
   THT_MAIN = 1;
@@ -422,6 +477,12 @@ message PlayerBasicInfo {
   optional .cs.WardrobeInfo last_sex_wardrobe = 42 [json_name = "lastSexWardrobe"];
   repeated .cs.DungeonUnlock dungeon_unlock_list = 43 [json_name = "dungeonUnlockList"];
   optional uint32 skin_id = 44 [json_name = "skinId"];
+  optional bool deleted = 45 [json_name = "deleted"];
+  optional bool is_internal_account = 46 [json_name = "isInternalAccount"];
+  repeated .cs.ActiveDoorScene active_door_scene = 47 [deprecated = true, json_name = "activeDoorScene"];
+  optional string platform_account_id = 52 [json_name = "platformAccountId"];
+  optional string platform_online_id = 53 [json_name = "platformOnlineId"];
+  optional uint32 platform_type = 54 [json_name = "platformType"];
 }
 message DungeonUnlock {
   optional int32 campaign_type = 1 [json_name = "campaignType"];
@@ -443,12 +504,22 @@ message CardDressListInfo {
 message StandPlatesBagInfo {
   optional uint32 config = 1 [json_name = "config"];
   optional string url = 2 [json_name = "url"];
+  optional uint32 num = 3 [json_name = "num"];
+  optional uint32 deadtime = 4 [json_name = "deadtime"];
+  optional bool deleted = 5 [json_name = "deleted"];
 }
 message SceneShowcase {
   optional uint32 id = 1 [json_name = "id"];
   optional string name = 2 [json_name = "name"];
   optional string Cover = 3 [json_name = "Cover"];
   optional string show_data = 4 [json_name = "showData"];
+}
+message ActiveDoorScene {
+  optional uint32 door_obj_id = 1 [json_name = "doorObjId"];
+  optional uint32 scene_id = 2 [json_name = "sceneId"];
+  optional bool monster_spawned = 3 [json_name = "monsterSpawned"];
+  optional uint32 world_level = 4 [json_name = "worldLevel"];
+  optional uint32 door_map_id = 5 [json_name = "doorMapId"];
 }
 message StandPlatesInfo {
   optional uint32 backboard = 1 [json_name = "backboard"];
@@ -460,6 +531,8 @@ message StandPlatesInfo {
   optional uint32 pet_count = 7 [json_name = "petCount"];
   optional uint32 profile = 8 [json_name = "profile"];
   optional uint32 profile_frame = 9 [json_name = "profileFrame"];
+  optional uint32 profile_frame_num = 10 [json_name = "profileFrameNum"];
+  optional uint32 profile_frame_limittime = 11 [json_name = "profileFrameLimittime"];
 }
 message PlayerQueryReq {
   repeated uint32 types = 1 [json_name = "types"];
@@ -497,7 +570,7 @@ message Comprehension {
   optional uint32 level = 3 [json_name = "level"];
   optional uint32 cur_exp = 4 [json_name = "curExp"];
   optional uint32 init_level = 5 [json_name = "initLevel"];
-  optional bool feed_fruit = 6 [default = false, json_name = "feedFruit"];
+  optional bool feed_fruit = 6 [json_name = "feedFruit"];
 }
 message PlayerBirthdayInfo {
   optional uint32 month = 1 [json_name = "month"];
@@ -598,6 +671,8 @@ message HeroItemInfo {
   optional uint32 hero_grade = 26 [json_name = "heroGrade"];
   optional uint32 hero_skin = 27 [json_name = "heroSkin"];
   optional uint32 char_kibo_state = 28 [json_name = "charKiboState"];
+  optional uint64 ornament_set_id = 29 [json_name = "ornamentSetId"];
+  optional int64 ornament_set_day = 30 [json_name = "ornamentSetDay"];
 }
 message MountItemInfo {
   optional uint32 conf_id = 1 [json_name = "confId"];
@@ -671,6 +746,14 @@ message ApparelInfo {
 }
 message ClothesInfo {
   repeated .cs.PartInfo parts = 1 [json_name = "parts"];
+  optional uint32 sex = 2 [json_name = "sex"];
+  optional uint32 present = 3 [json_name = "present"];
+  optional uint32 clothesid = 4 [json_name = "clothesid"];
+  optional bool wear = 5 [json_name = "wear"];
+}
+message PoseInfo {
+  optional .cs.Position pos = 1 [json_name = "pos"];
+  optional uint32 angle = 2 [json_name = "angle"];
 }
 message MoveInfo {
   option (msg_to_server) = true;
@@ -758,6 +841,9 @@ message CommonItem {
   optional uint32 sort_arg1 = 10 [json_name = "sortArg1"];
   optional uint32 sort_arg2 = 11 [json_name = "sortArg2"];
   optional uint32 src = 12 [json_name = "src"];
+  optional bool first_get = 13 [json_name = "firstGet"];
+  optional bool full_resonance = 14 [json_name = "fullResonance"];
+  repeated .cs.CommonItem display_items = 15 [json_name = "displayItems"];
 }
 message PreCostItem {
   option (msg_to_server) = true;
@@ -805,6 +891,7 @@ message RewardItemInfo {
   optional uint32 item_type = 1 [json_name = "itemType"];
   optional uint32 item_id = 2 [json_name = "itemId"];
   optional uint32 item_num = 3 [json_name = "itemNum"];
+  optional bool first_get = 4 [json_name = "firstGet"];
 }
 message OrnamentAffixInfo {
   option (msg_to_server) = true;
@@ -865,6 +952,39 @@ message Condition {
   option (msg_to_server) = true;
   repeated uint32 args = 1 [json_name = "args"];
 }
+message Channel {
+  option (msg_to_server) = true;
+  optional string channel_code = 1 [json_name = "channelCode"];
+  repeated string sub_channels = 2 [json_name = "subChannels"];
+}
+message CustomPetAttr {
+  option (msg_to_server) = true;
+  optional uint32 attr_id = 1 [json_name = "attrId"];
+  optional int32 rating = 2 [json_name = "rating"];
+}
+message CustomPetColor {
+  option (msg_to_server) = true;
+  optional int32 value = 1 [json_name = "value"];
+  optional int32 weight = 2 [json_name = "weight"];
+}
+message CustomPetParam {
+  option (msg_to_server) = true;
+  optional uint32 level = 1 [json_name = "level"];
+  optional uint32 pet_id = 2 [json_name = "petId"];
+  optional uint32 builder_rule = 3 [json_name = "builderRule"];
+  repeated .cs.CustomPetAttr pet_attr = 4 [json_name = "petAttr"];
+  optional bool is_release = 5 [json_name = "isRelease"];
+  repeated .cs.CustomPetColor star_color_param = 6 [json_name = "starColorParam"];
+  repeated .cs.CustomPetColor color_param = 7 [json_name = "colorParam"];
+  optional uint32 talent_dna = 8 [json_name = "talentDna"];
+  repeated uint32 dna = 9 [json_name = "dna"];
+  repeated int32 labor_score = 10 [json_name = "laborScore"];
+  optional int32 mount_speed = 11 [json_name = "mountSpeed"];
+  optional uint32 labor_talent = 12 [json_name = "laborTalent"];
+  optional uint32 catch_item = 13 [json_name = "catchItem"];
+  optional uint32 favor_level = 14 [json_name = "favorLevel"];
+  optional uint32 source_level = 15 [json_name = "sourceLevel"];
+}
 message MailInfo {
   option (msg_to_server) = true;
   optional uint32 createtm = 2 [json_name = "createtm"];
@@ -895,14 +1015,13 @@ message MailInfo {
   optional uint32 effect_start_time = 27 [json_name = "effectStartTime"];
   optional uint32 effect_end_time = 28 [json_name = "effectEndTime"];
   optional bool is_mall = 29 [json_name = "isMall"];
+  repeated .cs.Channel channel_limit = 32 [json_name = "channelLimit"];
+  optional .cs.CustomPetParam custom_pet = 33 [json_name = "customPet"];
+  repeated .cs.Ornament custom_ornaments = 34 [json_name = "customOrnaments"];
 }
 message GlobalMail {
   optional uint64 guid = 1 [json_name = "guid"];
   optional .cs.MailInfo mail = 2 [json_name = "mail"];
-}
-message SvrSendMail {
-  optional uint32 mail_id = 1 [json_name = "mailId"];
-  optional bool is_unique = 2 [json_name = "isUnique"];
 }
 message RankingInfo {
   optional uint32 pid = 1 [json_name = "pid"];
@@ -1040,9 +1159,13 @@ message ActivityList {
   optional uint32 type_param = 5 [json_name = "typeParam"];
   optional bytes content = 6 [json_name = "content"];
 }
+message TitleInfo {
+  optional uint32 id = 1 [json_name = "id"];
+  optional uint32 type = 2 [json_name = "type"];
+  optional uint32 deadtime = 3 [json_name = "deadtime"];
+}
 message TitleList {
-  repeated uint32 preffix_title = 1 [json_name = "preffixTitle"];
-  repeated uint32 suffix_title = 2 [json_name = "suffixTitle"];
+  repeated .cs.TitleInfo infos = 1 [json_name = "infos"];
 }
 message QuestInfo {
   repeated uint32 quest_vals = 1 [json_name = "questVals"];
@@ -1306,6 +1429,7 @@ message SwitchSvrInfo {
   optional uint32 seqNo = 8 [json_name = "seqNo"];
   optional uint32 area_id = 9 [json_name = "areaId"];
   optional uint32 area_line = 10 [json_name = "areaLine"];
+  optional uint32 entry_type = 12 [json_name = "entryType"];
 }
 message NewGeneInfo {
   option (msg_to_server) = true;
@@ -1400,6 +1524,10 @@ message PaomaLightNotice {
   optional uint32 begin_time = 2 [json_name = "beginTime"];
   optional uint32 end_time = 3 [json_name = "endTime"];
 }
+message AnnounceChannel {
+  optional string channel = 1 [json_name = "channel"];
+  repeated string sub_channel = 2 [json_name = "subChannel"];
+}
 message AnnounceNotice {
   repeated .cs.NoticeMeta meta = 1 [json_name = "meta"];
   optional int64 publish_time = 2 [json_name = "publishTime"];
@@ -1414,7 +1542,8 @@ message AnnounceNotice {
   repeated uint32 device_type = 11 [json_name = "deviceType"];
   optional uint32 priority = 12 [json_name = "priority"];
   optional uint32 showPositionScrolling = 13 [json_name = "showPositionScrolling"];
-  optional string channel = 14 [json_name = "channel"];
+  repeated .cs.AnnounceChannel channels = 14 [json_name = "channels"];
+  repeated uint32 build_pipe = 15 [json_name = "buildPipe"];
 }
 message AnnounceNoticeScrolling {
   repeated .cs.NoticeMeta meta = 1 [json_name = "meta"];
@@ -1430,7 +1559,8 @@ message AnnounceNoticeScrolling {
   repeated uint32 device_type = 11 [json_name = "deviceType"];
   optional uint32 priority = 12 [json_name = "priority"];
   optional uint32 showPositionScrolling = 13 [json_name = "showPositionScrolling"];
-  optional string channel = 14 [json_name = "channel"];
+  repeated .cs.AnnounceChannel channels = 14 [json_name = "channels"];
+  repeated uint32 build_pipe = 15 [json_name = "buildPipe"];
 }
 message GameSystemInfo {
   option (msg_to_server) = true;
@@ -1471,18 +1601,6 @@ message RouletteInfo {
   optional uint32 type = 1 [json_name = "type"];
   repeated uint64 guid = 2 [json_name = "guid"];
   optional uint32 pos = 3 [json_name = "pos"];
-}
-message NoviceTaskInfo {
-  option (msg_to_server) = true;
-  optional uint32 task_id = 1 [json_name = "taskId"];
-  optional uint32 task_value = 2 [json_name = "taskValue"];
-  optional uint32 task_status = 3 [json_name = "taskStatus"];
-}
-message NoviceTaskGroupInfo {
-  option (msg_to_server) = true;
-  optional uint32 group_id = 1 [json_name = "groupId"];
-  repeated .cs.NoviceTaskInfo tasks = 2 [json_name = "tasks"];
-  optional bool finished = 3 [json_name = "finished"];
 }
 message RechargeOrderInfo {
   option (msg_to_server) = true;
@@ -1622,6 +1740,7 @@ message Kickout {
   optional uint32 uid = 1 [json_name = "uid"];
   optional uint32 timestamp = 2 [json_name = "timestamp"];
   optional string reason = 3 [json_name = "reason"];
+  optional uint64 uuid = 4 [json_name = "uuid"];
 }
 message SCReputationInfoSync {
   repeated .cs.ReputationInfo infos = 1 [json_name = "infos"];
@@ -1666,10 +1785,13 @@ message ShortcutItemInfo {
 }
 message SCShortcutBaseSync {
   repeated .cs.ShortcutItemInfo item_infos = 1 [json_name = "itemInfos"];
+  repeated uint32 favorite_item_ids = 2 [json_name = "favoriteItemIds"];
 }
 message ExchangeShortcutItem {
   optional .cs.ShortcutItemInfo src_item = 1 [json_name = "srcItem"];
   optional .cs.ShortcutItemInfo tar_item = 2 [json_name = "tarItem"];
+  optional uint32 favorite_item_id = 3 [json_name = "favoriteItemId"];
+  optional bool is_favorite = 4 [json_name = "isFavorite"];
 }
 message CSShortcutKeySet {
   optional .cs.ShortcutKeyType type = 1 [json_name = "type"];
@@ -1761,6 +1883,9 @@ message SCMatchRankSync {
 message PresetWardrobeInfo {
   repeated .cs.WardrobeInfo info_list = 1 [json_name = "infoList"];
 }
+message PresetClothesInfo {
+  repeated .cs.ClothesInfo info_list = 1 [json_name = "infoList"];
+}
 message GameClientSetting {
   message SettingEntry {
     optional string key = 1 [json_name = "key"];
@@ -1809,4 +1934,22 @@ message RefreshProgress {
   repeated .cs.MapRefreshProgress proposal_progress = 2 [json_name = "proposalProgress"];
   optional bool is_unlock = 3 [json_name = "isUnlock"];
   optional uint64 unlockTime = 4 [json_name = "unlockTime"];
+}
+message VehicleInfo {
+  optional uint64 guid = 1 [json_name = "guid"];
+  optional uint32 conf_id = 2 [json_name = "confId"];
+  optional uint32 roulette_pos = 3 [json_name = "roulettePos"];
+  optional uint32 speed = 4 [json_name = "speed"];
+}
+message CSSetVehicleRoulettePos {
+  optional uint64 guid = 1 [json_name = "guid"];
+  optional uint32 pos = 2 [json_name = "pos"];
+}
+message SCVehicleDataSync {
+  repeated .cs.VehicleInfo owned_vehicles = 1 [json_name = "ownedVehicles"];
+  repeated uint64 vehicle_roulette = 2 [json_name = "vehicleRoulette"];
+}
+message KV32 {
+  optional uint32 id = 1 [json_name = "id"];
+  optional uint32 value = 2 [json_name = "value"];
 }

@@ -1,6 +1,6 @@
+import { readTable } from './table-source.js'
 import { ErrorCode } from './error-codes.js'
 import { recordPetAcquisition } from './pet-catalog.js'
-import fs from 'node:fs'
 import { randomInt } from 'node:crypto'
 import { initialPetSkills } from './skills.js'
 import { ensure } from './handlers/common.js'
@@ -12,14 +12,11 @@ import { lockedPetBoxes } from './pet-box-locks.js'
 import { initialPetSatiety } from './pet-initial-satiety.js'
 import { petStarSoulAllocationFloor } from './pet-star-soul-progress.js'
 import { requirePetModel } from './pet-model-eligibility.js'
+import { initialPetLaborFromPolicy, fixedPetLabor } from './pet-labor.js'
+import laborPolicy from '../configs/pet-labor-policy.json' with { type: 'json' }
 
-// The localized export corrupts pet.gradeScore. Use the numeric CBT3 table.
-const petScores = new Map(
-    JSON.parse(fs.readFileSync(new URL('../configs/pet-tables/pet.json', import.meta.url), 'utf8')).map((row) => [
-        row.id,
-        row.gradeScore,
-    ]),
-)
+// Scores and localized fields come from the same validated versioned export.
+const petScores = new Map(readTable('pet').map((row) => [row.id, row.gradeScore]))
 const fixedPetFactors = new Set([1, 3, 4, 5, 201, 229, 230])
 const skillIdsByTables = new WeakMap()
 function validGeneSkills(tables) {
@@ -70,21 +67,7 @@ export function initialPetGenes(tables, config) {
         .map((gene_id, index) => ({ pos: index + 1, gene_id, gene_lv: 1 }))
 }
 export function initialPetLabor(tables, configId) {
-    const row = tables.find('pet_home_talent', configId)
-    if (!row) return []
-    const types = String(row.laborType || '')
-        .split('|')
-        .filter(Boolean)
-        .map(Number)
-    const scoreRanges = String(row.laborScoreLimit || '').split('|')
-    const maximum = Math.max(...tables.get('home_labor_train').map((x) => x.id))
-    return [...new Set(types)]
-        .filter((id) => tables.find('home_labor_type', id))
-        .map((labor_id, index) => {
-            const range = scoreRanges[index] || scoreRanges[0] || '1#1'
-            const grade = Math.max(1, Math.min(maximum, Number(range.split('#')[0]) || 1))
-            return { labor_id, labor_grade: grade, upper_labor_grade: maximum, labor_exp: 0 }
-        })
+    return initialPetLaborFromPolicy(tables, configId, laborPolicy)
 }
 export function initialPetTalents(tables, configId) {
     const row = tables.find('pet_home_talent', configId)
@@ -341,19 +324,7 @@ export function customizedPetRewardDefinition(tables, customizedId) {
     )
     let labor
     if (config.laborScoreType === 1) {
-        labor = initialPetLabor(tables, config.petId)
-        const scores = String(config.laborScore || '')
-            .split('|')
-            .map(Number)
-        ensure(
-            labor.length === scores.length &&
-                scores.every(
-                    (score) => Number.isSafeInteger(score) && score > 0 && tables.find('home_labor_train', score),
-                ),
-            'Invalid customized pet labor scores',
-            ErrorCode.GameConfig,
-        )
-        labor = labor.map((row, index) => ({ ...row, labor_grade: scores[index] }))
+        labor = fixedPetLabor(tables, config.petId, config.laborScore, laborPolicy)
     }
     if (config.mountType === 1)
         ensure(

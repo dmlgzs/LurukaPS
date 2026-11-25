@@ -9,45 +9,26 @@ import { worldCollectionPayloads } from './world-collection.js'
 import { ensureCollectionData } from './home-collection.js'
 import { ensure } from './handlers/common.js'
 import { ensureHomeDormitories, dormPayload } from './home-dorm.js'
+import { defaultHomeBuildings } from './home-default-placement.js'
 export function ensureHome(tables, state) {
     if (state.home) {
         reconcileHomeExperience(tables, state)
         reconcileHomeStage(tables, state)
         return state.home
     }
-    const raw = tables.get('game').find((x) => x.title === 'HOME_DEFAULT_PLACEMENT')?.value
-    const values = String(raw || '')
-        .split('|')
-        .map(Number)
-    ensure(
-        values.length === 5 && values.every(Number.isInteger) && values[0] === 13,
-        'Invalid default home placement',
-        ErrorCode.GameConfig,
-    )
-    const [, id, block, anchor, direction] = values,
-        config = tables.find('home_building', id)
-    ensure(config && tables.find('home_block', block), 'Missing initial home configuration', ErrorCode.GameConfig)
-    const group = tables.get('home_building_group').find((g) => g.groupId === config.groupId)
-    ensure(group, 'Missing home building group', ErrorCode.BuildGroupConfNotFound)
+    const defaults = defaultHomeBuildings(tables)
     state.home = {
         name: Buffer.from('我的家园').toString('base64'),
         level: 1,
         exp: 0,
-        inventory: [{ build_id: id, total_num: 1, used_num: 1, unlock: true }],
-        builds: [
-            {
-                guid: 1,
-                build_id: id,
-                build_type: group.type,
-                status: 1,
-                locate: { block_id: block, anchor, direction },
-            },
-        ],
+        inventory: defaults.inventory,
+        builds: defaults.builds,
         shortcuts: [],
         wishlist: [],
-        nextBuildGuid: 2,
+        nextBuildGuid: defaults.nextBuildGuid,
         nextWishUid: 1,
     }
+    ensureCollectionData(state)
     reconcileHomeExperience(tables, state)
     reconcileHomeStage(tables, state)
     state.homeRevision = (state.homeRevision || 0) + 1

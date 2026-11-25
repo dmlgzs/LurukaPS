@@ -3,7 +3,7 @@ import { startServer } from './server.js'
 const config = configuration()
 const server = await startServer(config)
 console.log(
-    `LurukaPS CBT3: TCP ${server.tcp.address().address}:${server.tcp.address().port}, HTTP ${server.web.address().port}`,
+    `LurukaPS ${server.game.protocol.clientVersion ?? config.version}: TCP ${server.tcp.address().address}:${server.tcp.address().port}, HTTP ${server.web.address().port}`,
 )
 console.log(
     `Runtime ${server.runtime.revision}; local payments=${server.runtime.offlinePayments}; handlers=${server.game.handlers.size}; source=${config.base}`,

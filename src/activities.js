@@ -11,6 +11,8 @@ import { productionTables } from './production-tables.js'
 import { GrowupSystem } from './growup.js'
 import { activityAbyssStarValue } from './activity-abyss-star.js'
 import { activityRepeatStarValue } from './activity-repeat-star.js'
+import { staticTimeRow, staticTimeRows, shopTimeDefinitions, mergeCommonTime } from './time-definitions.js'
+import { mallCommonTimeDefinitions } from './mall-time-policy.js'
 
 const policy = JSON.parse(fs.readFileSync(new URL('../configs/activity-policy.json', import.meta.url)))
 export class ActivityCatalog {
@@ -32,7 +34,7 @@ export class ActivityCatalog {
         return Math.floor((now + (8 - this.resetHour) * 3600) / 86400)
     }
     window(row, now) {
-        const limit = this.tables.find('common_timelimit', row.timelimit)
+        const limit = staticTimeRow(this.tables, row.timelimit)
         const start = limit ? configTime(limit.startTime) : 0
         let end = limit ? configTime(limit.endTime) : configTime(policy.missingTimeEndTime)
         // Offline policy, not official scheduling. Several current event rows reference
@@ -212,27 +214,34 @@ export class ActivityCatalog {
         return null
     }
     commonTimes(now, state = undefined) {
-        const times = new Map(
-            this.tables.get('common_timelimit').map((r) => [
-                r.id,
-                {
-                    time_id: r.id,
-                    start_time: String(configTime(r.startTime)),
-                    end_time: String(configTime(r.endTime)),
-                },
-            ]),
-        )
+        const times = new Map(),
+            definitions = staticTimeRows(this.tables)
         for (const row of this.rows) {
             if (!row.timelimit) continue
             const w = this.tours.presentationWindow(this.window(row, now), state, row)
-            times.set(row.timelimit, {
+            mergeCommonTime(times, {
                 time_id: row.timelimit,
                 start_time: String(w.start_time),
                 end_time: String(w.end_time),
             })
         }
+        if (definitions) {
+            // Keep the existing explicit activity extension policy above; seed
+            // unrelated static IDs without reverting those presentation windows.
+            for (const row of definitions)
+                if (!times.has(row.id))
+                    mergeCommonTime(times, {
+                        time_id: row.id,
+                        start_time: configTime(row.startTime),
+                        end_time: configTime(row.endTime),
+                    })
+        } else {
+            for (const row of shopTimeDefinitions(this.tables)) mergeCommonTime(times, row)
+        }
         for (const source of this.commonTimeSources)
-            for (const row of source(now).data_list) times.set(row.time_id, row)
+            for (const row of source(now).data_list) mergeCommonTime(times, row)
+        for (const row of mallCommonTimeDefinitions(this.tables)) mergeCommonTime(times, row)
+        // Unknown mall IDs still need explicit policy or authorized definitions.
         return { data_list: [...times.values()] }
     }
     snapshot(state, now, context) {

@@ -1,0 +1,24 @@
+// Reconstructed from FileDescriptorSet. Keep the original .pb for exact options.
+syntax = "proto2";
+package cs;
+import "ExOptions.proto";
+option go_package = "GmServer/bridge/csproto;csproto";
+enum CollectionHandbookType {
+  CHT_NONE = 0;
+  CHT_HERO = 1;
+  CHT_MOUNT = 2;
+  CHT_VEHICLE = 3;
+  CHT_SOUL_ESSENCE = 4;
+  CHT_EQUIPMENT = 5;
+  CHT_ENEMY = 6;
+}
+message CollectionHandbookInfo {
+  optional uint32 type = 1 [json_name = "type"];
+  optional uint32 id = 2 [json_name = "id"];
+  optional uint64 first_get_time = 3 [json_name = "firstGetTime"];
+}
+message EnemyHandbookInfo {
+  optional uint32 enemy_id = 1 [json_name = "enemyId"];
+  optional bool discovered = 2 [json_name = "discovered"];
+  optional uint64 kill_count = 3 [json_name = "killCount"];
+}

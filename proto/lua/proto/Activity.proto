@@ -7,6 +7,7 @@ enum ActivityType {
   AT_SIGN = 1;
   AT_Main = 2;
   AT_DAILY_SIGN = 3;
+  AT_VERSION_SIGN = 4;
   AT_Level = 7;
   AT_Kibo_Tour_Group = 8;
   AT_KIBO_DUEL = 20;
@@ -20,9 +21,17 @@ enum ActivityType {
   AT_REPEAT_EVENT = 100;
   AT_TeachingUp = 110;
   AT_JOURNEY = 120;
-  AT_KIBO_GRAB = 130;
+  AT_KIBO_SURVEY = 130;
   AT_SUNSET = 131;
   AT_APP_SHARE = 140;
+  AT_FOLLOW = 150;
+  AT_GENERAL = 161;
+  AT_Main_Plot = 200;
+  AT_Unlock_Map = 210;
+  AT_RewardsGuide = 220;
+  AT_Mass_Kibo = 230;
+  AT_Link_Vehicle = 290;
+  AT_SIMPLE_SIGN = 350;
   AT_Only_Show = 998;
   AT_DAILY_TASK = 999;
 }
@@ -56,6 +65,10 @@ enum ActivityGrowUpTrainAttrType {
   ATTR_BODY = 102;
   ATTR_REALIZE = 103;
   ATTR_WAKAN = 104;
+  ATTR_STRENGTH_Q = 201;
+  ATTR_BODY_Q = 202;
+  ATTR_REALIZE_Q = 203;
+  ATTR_WAKAN_Q = 204;
 }
 enum GROWUP_EVENT_TYPE {
   GROWUP_NONE = 0;
@@ -88,14 +101,68 @@ enum GROWUP_EVENT_TYPE {
   GROWUP_STAMINA_RECOVER_INCREASE = 27;
   GROWUP_TRIAL_ENHANCE = 28;
   GROWUP_UNLOCK_EVENT = 29;
-  GROWUP_MAX = 30;
+  GROWUP_ADD_MONEY = 32;
+  GROWUP_REDUCE_MONEY = 33;
+  GROWUP_ADD_ACTIVITYCREDITCARD1 = 34;
+  GROWUP_ADD_ACTIVITYCREDITCARD2 = 35;
+  GROWUP_SHOP_PRICE_CHANGE = 36;
+  GROWUP_TRAINING_PRICE_CHANGE = 37;
+  GROWUP_ADD_MONEY_PER = 38;
+  GROWUP_UNLOCK_SHOP_OBJ = 39;
+  GROWUP_ADD_SHOP_OBJ_MAXNUM = 40;
+  GROWUP_REFERSH_EVENT = 41;
+  GROWUP_EVENTPER_CHANGE = 42;
+  GROWUP_RANDOM_ADD = 43;
+  GROWUP_RANDOM_REDUCE = 44;
+  GROWUP_ADD_MONEY_SHILIAN = 45;
+  GROWUP_ADD_MONEY_YOULI = 46;
+  GROWUP_ADD_LIMIT_BYALL_ALL = 47;
+  GROWUP_ADD_LIMIT_BYALL_DAY = 48;
+  GROWUP_ADD_TRAINOPTION_EXP = 49;
+  GROWUP_RANDOM_EFFECT = 50;
+  GROWUP_RIGHTNOW_REFRESH_SHOP = 51;
+  GROWUP_TRAINING_GAIN_PER = 52;
+  GROWUP_STAMINA_MAX_ADD = 53;
+  GROWUP_ASSIST_CHAR_POS_WEIGHT_CHANGE = 54;
+  GROWUP_ASSIST_TYPE_POS_WEIGHT_CHANGE = 55;
+  GROWUP_REST_MONEY_BASE_CHANGE = 56;
+  GROWUP_TRAIN_COUNT_YOULI_ATTR_ADD_PER = 57;
+  GROWUP_WORK_COUNT_YOULI_ATTR_ADD_PER = 58;
+  GROWUP_TRAIN_COUNT_ALL_ATTR_ADD_PER = 59;
+  GROWUP_WORK_COUNT_ALL_ATTR_ADD_PER = 60;
+  GROWUP_BOUNTY_COUNT_CHECK_ADD = 61;
+  GROWUP_BOUNTY_COUNT_ALL_ATTR_ADD_PER = 62;
+  GROWUP_YOULI_COUNT_STAMINA_USE_REDUCE = 63;
+  GROWUP_EVENT_MONEY_ADD_PER_DECAY = 64;
+  GROWUP_MAX = 65;
+}
+enum ACTIVITYCREDITCARD_CHANGE_TYPE {
+  CHANGE_TYPE_NONE = 0;
+  CHANGE_TYPE_1 = 1;
+  CHANGE_TYPE_2 = 2;
+  CHANGE_TYPE_3 = 3;
+  CHANGE_TYPE_4 = 4;
+  CHANGE_TYPE_5 = 5;
+  CHANGE_TYPE_6 = 6;
+  CHANGE_TYPE_7 = 7;
+  CHANGE_TYPE_8 = 8;
+  CHANGE_TYPE_MAX = 9;
+}
+enum ACTIVITYMONEY_TYPE {
+  ACTIVITY_MONEY_NONE = 0;
+  ACTIVITY_MONEY_TRAIN = 1;
+  ACTIVITY_MONEY_EVENT = 2;
+  ACTIVITY_MONEY_TRIAL = 3;
+  ACTIVITY_MONEY_REST = 4;
+  ACTIVITY_MONEY_OTHER = 5;
 }
 enum GROWUP_ATTR_CHANGE_TYPE {
   GROWUP_ATTR_CHANGE_NONE = 0;
   GROWUP_ATTR_CHANGE_TRAIN = 1;
   GROWUP_ATTR_CHANGE_EVENT = 2;
   GROWUP_ATTR_CHANGE_TRIAL = 3;
-  GROWUP_ATTR_CHANGE_MAX = 4;
+  GROWUP_ATTR_CHANGE_SHOP = 4;
+  GROWUP_ATTR_CHANGE_MAX = 5;
 }
 enum RANK_TYPE {
   RT_INVALID = 0;
@@ -114,6 +181,13 @@ enum GrowUpAssistChangeType {
   GROWUP_ASSIST_CHANGE_EVENT = 2;
   GROWUP_ASSIST_CHANGE_TRAIN = 3;
   GROWUP_ASSIST_CHANGE_REST = 4;
+  GROWUP_ASSIST_CHANGE_SHOP = 5;
+}
+enum GrowUpShopGoodStateType {
+  GROWUP_SHOP_GOOD_STATE_INVALID = 0;
+  GROWUP_SHOP_GOOD_STATE_NORMAL = 1;
+  GROWUP_SHOP_GOOD_STATE_SELL_OUT = 2;
+  GROWUP_SHOP_GOOD_STATE_OUT_DAY = 3;
 }
 message Sign {
   optional uint32 count = 1 [json_name = "count"];
@@ -123,6 +197,11 @@ message Sign {
 message StaminaBoxUp {
 }
 message DailySign {
+  optional uint32 count = 1 [json_name = "count"];
+  optional uint32 time = 2 [json_name = "time"];
+  optional uint32 reward_count = 3 [json_name = "rewardCount"];
+}
+message VersionSign {
   optional uint32 count = 1 [json_name = "count"];
   optional uint32 time = 2 [json_name = "time"];
   optional uint32 reward_count = 3 [json_name = "rewardCount"];
@@ -184,6 +263,7 @@ message GrowUpEventData {
 }
 message GrowUpStamina {
   optional uint32 stamina = 1 [json_name = "stamina"];
+  optional uint32 max_stamina = 2 [json_name = "maxStamina"];
 }
 message GrowUpMood {
   optional uint32 mood_level = 1 [json_name = "moodLevel"];
@@ -192,6 +272,7 @@ message GrowUpStatus {
   optional uint32 status_id = 1 [json_name = "statusId"];
   optional uint32 cur_duration_time = 2 [json_name = "curDurationTime"];
   optional uint32 cur_enable_time = 3 [json_name = "curEnableTime"];
+  optional uint32 cur_count = 4 [json_name = "curCount"];
 }
 message GrowUpTrainAttr {
   optional .cs.ActivityGrowUpTrainAttrType attr_id = 1 [json_name = "attrId"];
@@ -262,6 +343,7 @@ message GrowUpEndData {
   repeated .cs.GrowUpTrainAttr attrs = 4 [json_name = "attrs"];
   repeated .cs.GrowUpTrailData trails = 5 [json_name = "trails"];
   repeated uint32 starting_ids = 6 [json_name = "startingIds"];
+  optional .cs.ActivityCreditCardBase credit_card = 7 [json_name = "creditCard"];
 }
 message GrowUpEndBookData {
   repeated .cs.GrowUpEndData complete_end = 1 [json_name = "completeEnd"];
@@ -269,6 +351,34 @@ message GrowUpEndBookData {
 message GrowUpEventRecord {
   optional uint32 id = 1 [json_name = "id"];
   optional uint32 complete_cnt = 2 [json_name = "completeCnt"];
+}
+message GrowUpRandIdInfo {
+  optional uint32 id = 1 [json_name = "id"];
+  optional uint32 value = 2 [json_name = "value"];
+}
+message GrowUpCondKV {
+  optional uint32 key = 1 [json_name = "key"];
+  optional uint32 value = 2 [json_name = "value"];
+}
+message GrowUpCondKKV {
+  optional uint32 key1 = 1 [json_name = "key1"];
+  optional uint32 key2 = 2 [json_name = "key2"];
+  optional uint32 value = 3 [json_name = "value"];
+}
+message GrowUpCondAccumData {
+  repeated .cs.GrowUpCondKV train_count = 1 [json_name = "trainCount"];
+  optional uint32 rest_count = 2 [json_name = "restCount"];
+  optional uint32 event_step_count = 3 [json_name = "eventStepCount"];
+  optional uint32 train_stamina = 4 [json_name = "trainStamina"];
+  repeated .cs.GrowUpCondKV event_money = 5 [json_name = "eventMoney"];
+}
+message GrowUpCondRoundData {
+  repeated .cs.GrowUpCondKV train_count = 1 [json_name = "trainCount"];
+  optional uint32 rest_count = 2 [json_name = "restCount"];
+  optional uint32 train_stamina = 3 [json_name = "trainStamina"];
+  repeated .cs.GrowUpCondKV event_money = 4 [json_name = "eventMoney"];
+  repeated .cs.GrowUpCondKV effect_count = 5 [json_name = "effectCount"];
+  repeated .cs.GrowUpCondKKV spend_money = 6 [json_name = "spendMoney"];
 }
 message GrowUp {
   optional uint32 cur_stage = 1 [json_name = "curStage"];
@@ -303,13 +413,54 @@ message GrowUp {
   optional uint64 guid = 31 [json_name = "guid"];
   optional uint64 archive_guid = 32 [json_name = "archiveGuid"];
   optional .cs.SCActivityGrowUpEventInfoRsp cur_event_data = 33 [json_name = "curEventData"];
+  optional uint32 cur_starting_difficult_lv = 34 [json_name = "curStartingDifficultLv"];
+  optional uint32 is_touch_head = 35 [json_name = "isTouchHead"];
+  repeated .cs.GrowUpRandIdInfo rand_info = 36 [json_name = "randInfo"];
+  optional .cs.ATCheckResult last_check_result = 37 [json_name = "lastCheckResult"];
+  optional .cs.GrowUpCondAccumData cond_accum_data = 38 [json_name = "condAccumData"];
+  optional .cs.GrowUpCondRoundData cond_round_data = 39 [json_name = "condRoundData"];
+  optional uint32 rest_interact_chance = 40 [json_name = "restInteractChance"];
 }
-message KiboGrabInfo {
+message ActivityCreditCard {
+  optional uint32 activity_id = 1 [json_name = "activityId"];
+  optional .cs.ActivityCreditCardBase datas = 2 [json_name = "datas"];
+}
+message ActivityCreditCardBase {
+  optional uint32 cur_money = 1 [json_name = "curMoney"];
+  repeated .cs.CardBase card_base = 2 [json_name = "cardBase"];
+  optional uint32 cur_liability = 3 [json_name = "curLiability"];
+  repeated .cs.ActivityCreditCardUseHistory history = 4 [json_name = "history"];
+  optional uint32 total_loan_money = 5 [json_name = "totalLoanMoney"];
+  optional uint32 type = 6 [json_name = "type"];
+}
+message CardBase {
+  optional uint32 day = 1 [json_name = "day"];
+  optional uint32 stage = 2 [json_name = "stage"];
+  optional uint32 money = 3 [json_name = "money"];
+  optional uint32 type = 4 [json_name = "type"];
+}
+message ActivityCreditCardUseHistory {
+  optional .cs.CardBase history = 1 [json_name = "history"];
+  optional uint32 card_type = 2 [json_name = "cardType"];
+}
+message KiboSurveyInfo {
+  optional uint32 survey_id = 1 [json_name = "surveyId"];
+  optional uint32 score = 2 [json_name = "score"];
+  repeated .cs.KiboSurveyData data = 3 [json_name = "data"];
+}
+message KiboSurveyData {
   optional uint32 kibo_id = 1 [json_name = "kiboId"];
   optional uint32 num = 2 [json_name = "num"];
 }
-message KiboGrab {
-  repeated .cs.KiboGrabInfo data = 1 [json_name = "data"];
+message KiboSurvey {
+  repeated .cs.KiboSurveyInfo data = 1 [json_name = "data"];
+  optional uint32 refresh_time = 2 [json_name = "refreshTime"];
+  optional uint32 day_count = 3 [json_name = "dayCount"];
+}
+message ActFollow {
+  repeated uint32 claimed_click_ids = 1 [json_name = "claimedClickIds"];
+  repeated uint32 claimed_sdk_ids = 2 [json_name = "claimedSdkIds"];
+  repeated uint32 claimed_types = 3 [json_name = "claimedTypes"];
 }
 message ActivityData {
   optional .cs.Sign sign = 1 [json_name = "sign"];
@@ -323,7 +474,9 @@ message ActivityData {
   optional .cs.KiboTourGroup tour_group = 9 [json_name = "tourGroup"];
   optional .cs.PlayerJadeGameData jade_web_game = 10 [json_name = "jadeWebGame"];
   optional .cs.GrowUp grow_up = 11 [json_name = "growUp"];
-  optional .cs.KiboGrab kibo_grab = 12 [json_name = "kiboGrab"];
+  optional .cs.KiboSurvey kibo_survey = 12 [json_name = "kiboSurvey"];
+  optional .cs.VersionSign version_sign = 13 [json_name = "versionSign"];
+  optional .cs.ActFollow activity_follow = 14 [json_name = "activityFollow"];
 }
 message PopperParty {
   optional uint32 score = 1 [json_name = "score"];
@@ -337,6 +490,10 @@ message Activity {
   optional uint32 time = 2 [json_name = "time"];
   optional .cs.ActivityData data = 3 [json_name = "data"];
   repeated .cs.ActivityReward rewards = 4 [json_name = "rewards"];
+  optional uint32 quick_unlock_status = 5 [json_name = "quickUnlockStatus"];
+  optional uint32 event_closed_status = 6 [json_name = "eventClosedStatus"];
+  optional uint32 app_share_reward_fetched = 7 [json_name = "appShareRewardFetched"];
+  optional uint32 status_flags = 8 [json_name = "statusFlags"];
 }
 message ActivityConf {
   optional uint32 activity_id = 1 [json_name = "activityId"];
@@ -348,12 +505,19 @@ message ActivitySync {
   repeated .cs.ActivityConf confs = 2 [json_name = "confs"];
   repeated uint32 del_activitys = 3 [json_name = "delActivitys"];
 }
+message SCShareFirstRewardSync {
+  optional uint32 share_first_reward_type = 1 [json_name = "shareFirstRewardType"];
+}
 message SCActivityGet {
   repeated .cs.ActivityConf confs = 1 [json_name = "confs"];
 }
 message CSActivityReward {
   optional uint32 activity_id = 1 [json_name = "activityId"];
   repeated uint32 reward_id_list = 2 [json_name = "rewardIdList"];
+}
+message CSActivityFollowReward {
+  optional uint32 activity_id = 1 [json_name = "activityId"];
+  optional uint32 follow_id = 2 [json_name = "followId"];
 }
 message CSActivitySubmitItem {
   optional uint32 activity_id = 1 [json_name = "activityId"];
@@ -376,6 +540,7 @@ message CSActivityGrowUpStartSelectReq {
   optional uint32 activity_id = 1 [json_name = "activityId"];
   optional uint32 starting_id = 2 [json_name = "startingId"];
   repeated uint32 select_assist_char_ids = 3 [json_name = "selectAssistCharIds"];
+  optional uint32 starting_difficult_lv = 4 [json_name = "startingDifficultLv"];
 }
 message CSActivityGrowUpEventSelectReq {
   optional uint32 activity_id = 1 [json_name = "activityId"];
@@ -448,6 +613,7 @@ message ActivityGrowUpAttrChangeSync {
   optional uint32 activity_id = 1 [json_name = "activityId"];
   optional .cs.GROWUP_ATTR_CHANGE_TYPE change_type = 2 [json_name = "changeType"];
   repeated .cs.GrowUpAttrChange growup_attr_change = 3 [json_name = "growupAttrChange"];
+  optional uint32 money = 4 [json_name = "money"];
 }
 message RankKey {
   optional .cs.RANK_TYPE typ = 1 [json_name = "typ"];
@@ -476,6 +642,7 @@ message GrowUpEnd {
   repeated .cs.GrowUpTrainAttr attrs = 5 [json_name = "attrs"];
   repeated .cs.GrowUpTrailData trails = 6 [json_name = "trails"];
   repeated uint32 starting_ids = 7 [json_name = "startingIds"];
+  optional .cs.ActivityCreditCardBase credit_card = 8 [json_name = "creditCard"];
 }
 message CSActivityGrowUpEndQueryReq {
   optional uint32 activity_id = 1 [json_name = "activityId"];
@@ -504,6 +671,9 @@ message CultivateCharacter {
 message CultivateContext {
   optional .cs.CultivateCharacter character = 1 [json_name = "character"];
   optional uint32 attr_type = 2 [json_name = "attrType"];
+  optional int32 train_count_all_attr_add_per = 3 [json_name = "trainCountAllAttrAddPer"];
+  optional int32 work_count_all_attr_add_per = 4 [json_name = "workCountAllAttrAddPer"];
+  optional int32 bounty_count_all_attr_add_per = 5 [json_name = "bountyCountAllAttrAddPer"];
 }
 message CultivateModDetail {
   optional uint32 mod_id = 1 [json_name = "modId"];
@@ -564,6 +734,9 @@ message GetRankListReq {
   optional int64 from = 2 [json_name = "from"];
   optional int64 to = 3 [json_name = "to"];
 }
+message SyncGrowupCreditCardData {
+  optional .cs.ActivityCreditCard data = 1 [json_name = "data"];
+}
 message CSActivityGrowUpEventFinishReq {
   optional uint32 activity_id = 1 [json_name = "activityId"];
 }
@@ -584,4 +757,48 @@ message SCActivityGrowUpEventInfoRsp {
   optional uint32 event_id = 2 [json_name = "eventId"];
   optional uint32 cur_step = 3 [json_name = "curStep"];
   repeated .cs.GrowUpEventInfo event_option_infos = 4 [json_name = "eventOptionInfos"];
+}
+message GrowUpShopGoodData {
+  optional uint32 id = 1 [json_name = "id"];
+  optional uint32 start_sell_day = 2 [json_name = "startSellDay"];
+  optional .cs.GrowUpShopGoodStateType state = 3 [json_name = "state"];
+  optional bool is_sold = 4 [json_name = "isSold"];
+  optional uint32 cost = 5 [json_name = "cost"];
+}
+message GrowUpShopGoodSubTypeData {
+  optional uint32 sub_type = 1 [json_name = "subType"];
+  optional uint32 day_buy_max_times = 2 [json_name = "dayBuyMaxTimes"];
+  optional uint32 total_buy_times = 3 [json_name = "totalBuyTimes"];
+  optional uint32 cur_day_buy_times = 4 [json_name = "curDayBuyTimes"];
+  optional uint32 cur_buy_times = 5 [json_name = "curBuyTimes"];
+}
+message GrowUpShopAllGoodData {
+  optional uint32 type = 1 [json_name = "type"];
+  repeated .cs.GrowUpShopGoodData data = 2 [json_name = "data"];
+  optional uint32 max_good_num = 3 [json_name = "maxGoodNum"];
+}
+message SyncGrowupShopData {
+  optional uint32 activity_id = 1 [json_name = "activityId"];
+  repeated .cs.GrowUpShopAllGoodData datas = 2 [json_name = "datas"];
+  repeated .cs.GrowUpShopGoodSubTypeData sub_type_datas = 3 [json_name = "subTypeDatas"];
+}
+message CSActivityGrowUpShopBuyReq {
+  optional uint32 activity_id = 1 [json_name = "activityId"];
+  optional uint32 good_id = 2 [json_name = "goodId"];
+}
+message GrowUpShop {
+  optional uint32 activity_id = 1 [json_name = "activityId"];
+  repeated .cs.GrowUpShopAllGoodData datas = 2 [json_name = "datas"];
+  repeated .cs.GrowUpShopGoodSubTypeData sub_type_datas = 3 [json_name = "subTypeDatas"];
+  repeated uint32 effect_enable_ids = 4 [json_name = "effectEnableIds"];
+}
+message SyncGrowupShopEventData {
+  optional uint32 activity_id = 1 [json_name = "activityId"];
+  optional uint32 event_id = 2 [json_name = "eventId"];
+}
+message CSActivityGrowUpEnterReq {
+  optional uint32 activity_id = 1 [json_name = "activityId"];
+}
+message CSActivityGrowUpTouchHeadReq {
+  optional uint32 activity_id = 1 [json_name = "activityId"];
 }

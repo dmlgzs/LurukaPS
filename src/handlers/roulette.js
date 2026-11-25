@@ -1,11 +1,7 @@
-import fs from 'node:fs'
+import { readTable } from '../table-source.js'
 import { ensure } from './common.js'
 import { u64 } from '../combat-state.js'
-const items = new Map(
-    JSON.parse(fs.readFileSync(new URL('../../configs/inventory-tables/common_item.json', import.meta.url))).map(
-        (r) => [r.id, r],
-    ),
-)
+const items = new Map(readTable('common_item').map((r) => [r.id, r]))
 export function roulettePayload(state) {
     return {
         roulettes: Object.values(state.roulettes ?? {}).map((row) => ({

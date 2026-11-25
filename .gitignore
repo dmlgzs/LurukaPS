@@ -3,3 +3,5 @@ node_modules/
 .env
 .analysis-python/
 *.cpuprofile
+
+/proto/lua/proto/*.pb

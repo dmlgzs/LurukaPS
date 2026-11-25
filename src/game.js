@@ -32,6 +32,7 @@ import {
 } from './esc-background.js'
 import { registerSocialWheel, prepareSocialWheel, notifySocialWheel, socialWheelSnapshot } from './social-wheel.js'
 import { ErrorCode } from './error-codes.js'
+import { protocolHandlerEntry } from './protocol-registration.js'
 import { registerDownloadStartCompatibility } from './handlers/download-start.js'
 import { registerFriends } from './handlers/friends.js'
 import { registerLegacyMatchTeams } from './legacy-match-teams.js'
@@ -575,9 +576,14 @@ export class Game {
         this.tables = tables
         this.taskEventDiagnosticsFile = taskEventDiagnosticsFile
         this.handlers = new Map()
+        this.unavailableProtocolHandlers = new Map()
         const on = (name, handler) => {
-            const e = protocol.byName.get(name) || protocol.byName.get(`CSProto${name}`)
-            if (!e) throw Error(`Unknown handler ${name}`)
+            const registration = protocolHandlerEntry(protocol, name)
+            if (registration.status !== 'active') {
+                this.unavailableProtocolHandlers.set(registration.name, registration)
+                return
+            }
+            const e = registration.entry
             if (this.handlers.has(e.id)) throw Error(`Duplicate handler ${name}`)
             this.handlers.set(e.id, handler)
         }
@@ -658,9 +664,10 @@ export class Game {
         registerGiftCodes(on, store, giftCodeConfig)
         registerProgression(on)
         this.noviceTasks = registerNoviceTasks(on, tables)
+        this.taskManualModel = this.noviceTasks ? 'novice' : 'journey'
         registerAchievements(on)
         registerBattlePass(on)
-        registerJourney(on)
+        registerJourney(on, { legacyWindow: this.taskManualModel === 'novice' })
         const taskHandlers = registerTasks(on, tables)
         this.finishPendingCharacterTask = taskHandlers.finishPendingCharacterTask
         this.recoverCompletedCampaignTasks = taskHandlers.recoverCompletedCampaignTasks
@@ -1485,7 +1492,7 @@ export class Game {
                     context.push('CSProtoPlayableSync', playableSnapshot(state))
                     context.push('CSProtoTaskSync', taskSnapshot(this.tables, state))
                 }
-                if (!battleReport) this.noviceTasks.observe(state)
+                if (!battleReport) this.noviceTasks?.observe(state)
                 if (!battleReport) observeActiveSession(this.tables, state, now)
                 const activeCountersBefore = activeCounterSample(state)
                 const repeatRosterBefore = battleReport ? null : repeatFormationBefore(this.tables, state)
@@ -1521,7 +1528,7 @@ export class Game {
                 }
                 if ((state.reputationRevision ?? 0) !== reputationRevision)
                     context.pushBefore('CSProtoReputationInfo', reputationSnapshot(this.tables, state))
-                if (!battleReport) this.noviceTasks.notify(context)
+                if (!battleReport) this.noviceTasks?.notify(context)
                 if ((state.playerCardRevision || 0) !== cardRevision)
                     context.pushBefore('CSProtoStandPlatesBagInfo', playerCardSnapshot(this.tables, state))
                 if (!battleReport) {
@@ -2153,7 +2160,7 @@ export class Game {
             this.packet('CSProtoKiboDuelGroupInfoSync', kiboDuelSnapshot(state, this.tables)),
             this.packet('CSProtoWorldExplorationSync', explorationSnapshot(state)),
             this.packet('CSProtoWorldBossChestInfoSync', bossFirstChestInfo(this.tables, state)),
-            this.packet('CSProtoNoviceTaskInfoSync', this.noviceTasks.initial(state)),
+            ...(this.noviceTasks ? [this.packet('CSProtoNoviceTaskInfoSync', this.noviceTasks.initial(state))] : []),
             this.packet('CSProtoAchievementSync', achievementSnapshot(this.tables, state, now)),
             this.packet('SCProtoJourneySync', journeySnapshot(this.tables, state)),
             this.packet('SCProtoBattlePassSync', battlePassSnapshot(this.tables, state, now)),
@@ -2232,7 +2239,11 @@ export class Game {
             ...(this.activities.nday(state, now)
                 ? [this.packet('SCProtoNDayInfoSync', this.activities.nday(state, now))]
                 : []),
-            this.packet('CSProtoMailSync', { mails: state.mail }),
+            // 1.0 uses the new mailbox protocol family. Do not send the old
+            // payload under a reused numeric ID or clear saved mail contents.
+            ...(this.protocol.retiredNames?.has('CSProtoMailSync')
+                ? []
+                : [this.packet('CSProtoMailSync', { mails: state.mail })]),
             this.packet('CSProtoStorySync', { infos: { infos: state.storyIds || [] } }),
             this.packet('CSProtoHomeSync', homePayload(this.tables, state)),
             this.packet('CSProtoReputationInfo', reputationSnapshot(this.tables, state)),

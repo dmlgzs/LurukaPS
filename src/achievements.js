@@ -3,8 +3,7 @@ import { petPuzzleProgressRule, petPuzzleProgressValue } from './pet-puzzle-prog
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { taskNodeCompleted } from './tasks.js'
-import { NoviceTasks } from './novice-tasks.js'
-import overrides from '../configs/achievement-overrides.json' with { type: 'json' }
+import { noviceTaskValue } from './novice-tasks.js'
 import { achievementStateRule, achievementStateValue } from './achievement-state-progress.js'
 import {
     productionProgressRule,
@@ -49,7 +48,7 @@ function sharedRule(tokens) {
 
 export function achievementCatalogue(tables) {
     if (catalogues.has(tables)) return catalogues.get(tables)
-    const rows = tables.get('achievement').map((row) => ({ ...row, ...overrides.rows[row.id] })),
+    const rows = tables.get('achievement'),
         groups = tables.get('achievement_group')
     const byId = new Map(),
         groupIds = new Set(groups.map((row) => row.id)),
@@ -114,7 +113,7 @@ export function achievementCatalogue(tables) {
         const supported = scalarSupported || !!readingCompound
         rules.set(row.id, { tokens, supported, chain, readingScalar, readingCompound })
     }
-    const model = { rows, byId, groups, rules, novice: new NoviceTasks(tables) }
+    const model = { rows, byId, groups, rules }
     catalogues.set(tables, model)
     return model
 }
@@ -161,7 +160,7 @@ function observedValue(tables, model, row, state, completedTasks, facts) {
     if (kind === 12005) return farmHarvestProgressValue(tables, state, rule.tokens, facts)
     if (kind === 15048 || kind === 20003) return loginDayProgressValue(tables, state, rule.tokens, facts)
     if (achievementStateRule(rule.tokens)) return achievementStateValue(tables, state, rule.tokens, facts)
-    return model.novice.value(state, { finishCondition: row.finishCondition })
+    return noviceTaskValue(tables, state, { finishCondition: row.finishCondition })
 }
 
 export function observeAchievements(tables, state, now) {

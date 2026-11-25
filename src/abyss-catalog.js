@@ -1,24 +1,10 @@
 import fs from 'node:fs'
-import { fileURLToPath } from 'node:url'
 import { ensure } from './handlers/common.js'
 import { ErrorCode } from './error-codes.js'
-import { Tables } from './player.js'
 import { activeAbyssRotation } from './abyss-rotation.js'
 const routeData = JSON.parse(fs.readFileSync(new URL('../configs/abyss-routes.json', import.meta.url)))
 const policy = JSON.parse(fs.readFileSync(new URL('../configs/abyss-policy.json', import.meta.url)))
-const directory = fileURLToPath(new URL('../configs/abyss-tables/', import.meta.url)),
-    source = JSON.parse(fs.readFileSync(new URL('../configs/abyss-tables/source.json', import.meta.url))),
-    scoped = new Set(source.tables.map((x) => x.name)),
-    complete = new Set([
-        'abbys_mode',
-        'abbys_level',
-        'abbys_time',
-        'abbys_reward',
-        'abbys_buff',
-        'abbys_buff_group',
-        'abbys_direct_pass',
-    ]),
-    cache = new WeakMap()
+const cache = new WeakMap()
 const ids = (value) =>
     String(value ?? '')
         .split('|')
@@ -26,35 +12,13 @@ const ids = (value) =>
         .map(Number)
 export function abyssTables(external) {
     if (external.abyss_scope) return external
-    if (cache.has(external)) return cache.get(external)
-    const current = new Tables(directory),
-        merged = new Map(),
-        indices = new Map(),
-        adapter = {
-            abyss_scope: true,
-            abyss_directory: directory,
-            dir: external.dir,
-            get(name) {
-                if (!scoped.has(name)) return external.get(name)
-                if (complete.has(name) || name.startsWith('worldmap_')) return current.get(name)
-                if (!merged.has(name)) {
-                    const rows = new Map(external.get(name).map((x) => [x.id, x]))
-                    for (const row of current.get(name)) rows.set(row.id, row)
-                    merged.set(name, [...rows.values()])
-                }
-                return merged.get(name)
-            },
-            find(name, id) {
-                if (!scoped.has(name)) return external.find(name, id)
-                if (!indices.has(name)) indices.set(name, new Map(this.get(name).map((x) => [x.id, x])))
-                return indices.get(name).get(Number(id))
-            },
-            position(point) {
-                return Tables.prototype.position.call(this, point)
-            },
-        }
-    cache.set(external, adapter)
-    return adapter
+    if (!cache.has(external)) {
+        const adapter = Object.create(external)
+        adapter.abyss_scope = true
+        adapter.abyss_directory = external.dir
+        cache.set(external, adapter)
+    }
+    return cache.get(external)
 }
 export function abyssRotation(tables, now, policy) {
     return activeAbyssRotation(tables, now, policy)

@@ -9,6 +9,7 @@ enum GMMaskType {
   GMMaskType_Wudi = 3;
   GMMaskType_Dali = 4;
   GMMaskType_NoSPCost = 5;
+  GMMaskType_Xueren = 6;
 }
 message GMCommand {
   optional bytes command = 1 [json_name = "command"];
@@ -19,6 +20,26 @@ message GMCommands {
 }
 message GMCommandSync {
   optional bytes result = 1 [json_name = "result"];
+  optional .cs.GMInvisibleMailResult invisible_mail = 2 [json_name = "invisibleMail"];
+}
+message GMInvisibleMailArgument {
+  optional uint32 attribute_id = 1 [json_name = "attributeId"];
+  optional uint64 number_value = 2 [json_name = "numberValue"];
+  optional bytes string_value = 3 [json_name = "stringValue"];
+}
+message GMInvisibleMailEntry {
+  optional uint64 mail_id = 1 [json_name = "mailId"];
+  optional bytes title = 2 [json_name = "title"];
+  optional uint32 template_id = 3 [json_name = "templateId"];
+  repeated .cs.GMInvisibleMailArgument arguments = 4 [json_name = "arguments"];
+  optional uint64 latest_receivable_at = 5 [json_name = "latestReceivableAt"];
+  optional bytes reward_list = 6 [json_name = "rewardList"];
+}
+message GMInvisibleMailResult {
+  optional bool reset = 1 [json_name = "reset"];
+  repeated .cs.GMInvisibleMailEntry entries = 2 [json_name = "entries"];
+  optional bool complete = 3 [json_name = "complete"];
+  optional bytes error = 4 [json_name = "error"];
 }
 message ServerDebugInfo {
   optional uint64 time = 1 [json_name = "time"];

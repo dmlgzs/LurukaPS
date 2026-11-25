@@ -1,10 +1,11 @@
+import { readTable } from '../src/table-source.js'
 import { configuration } from '../src/config.js'
 import { Protocol } from '../src/protocol.js'
 import { Tables, seedPlayer } from '../src/player.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { addItems } from '../src/inventory.js'
-import itemRows from '../configs/inventory-tables/common_item.json' with { type: 'json' }
+const itemRows = readTable('common_item')
 
 const config = configuration(),
     tables = new Tables(config.tables)

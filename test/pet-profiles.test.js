@@ -10,6 +10,14 @@ import { Game } from '../src/game.js'
 import { petModelEligibility } from '../src/pet-model-eligibility.js'
 
 const tables = new Tables(configuration().tables)
+function aptitudeTotalValid(rows, ruleId = 1001) {
+    const rule = tables.find('pet_builder_rule', ruleId)
+    const builder = tables.get('pet_builder').find((row) => row.ID === rule?.petBuilderId)
+    assert(builder, `Missing builder ${ruleId}`)
+    const [minimum, maximum] = builder.talent.split('|').map(Number)
+    const total = rows.reduce((sum, row) => sum + row.level, 0)
+    return total >= minimum && total <= maximum
+}
 // This fixture tracks the current seed policy; the tests below cover profile
 // generation/repair rather than the former hardcoded number of pet rows.
 const seedPetCount = tables
@@ -26,10 +34,7 @@ test('builder aptitude weights respect its configured total and level-to-value r
     const lowest = initialPetComprehension(tables, 1001, () => 0),
         highest = initialPetComprehension(tables, 1001, (max) => max - 1)
     for (const rows of [lowest, highest]) {
-        assert.equal(
-            rows.reduce((sum, c) => sum + c.level, 0),
-            25,
-        )
+        assert(aptitudeTotalValid(rows))
         assert(
             rows.every(
                 (c) =>
@@ -48,23 +53,17 @@ test('builder aptitude weights respect its configured total and level-to-value r
     }
     assert.notDeepEqual(lowest, highest)
     const premium = initialPetComprehension(tables, 2004, (max) => max - 1)
-    assert.equal(
-        premium.reduce((sum, c) => sum + c.level, 0),
-        42,
-    )
+    assert(aptitudeTotalValid(premium, 2004))
     assert(premium.every((c) => c.level >= 6))
 })
 
-test('CBT3 seed and capture pets have table-backed grades and valid gene skills', () => {
+test('current seed and capture pets have table-backed grades and valid gene skills', () => {
     const state = seedPlayer(tables, 1, 'pet-profile')
     assert.equal(state.pets.length, seedPetCount)
     assert(state.pets.every((p) => p.grade > 0 && p.grade <= 99999))
     assert(state.pets.every((p) => p.color === 0))
     const target = state.pets.find((p) => p.config_id === 500297)
-    assert.equal(
-        target.comprehension.reduce((sum, c) => sum + c.level, 0),
-        25,
-    )
+    assert(aptitudeTotalValid(target.comprehension))
     assert(
         target.comprehension.every(
             (c) =>
@@ -84,7 +83,7 @@ test('CBT3 seed and capture pets have table-backed grades and valid gene skills'
     assert.equal(target.grade, petGrade(tables, target))
     assert.equal(target.gene_infos.length, 8)
     assert.equal(target.gene_state, 4)
-    assert.deepEqual(target.labor_infos, [{ labor_id: 5, labor_grade: 20, upper_labor_grade: 100, labor_exp: 0 }])
+    assert.deepEqual(target.labor_infos, [{ labor_id: 5, labor_grade: 20, upper_labor_grade: 20, labor_exp: 0 }])
     const timber = state.pets.find((p) => p.config_id === 500001)
     assert(timber.labor_infos.some((x) => x.labor_id === 3 && x.labor_grade > 0))
     assert(timber.talent_id.includes(20010110))
@@ -128,10 +127,7 @@ test('legacy pet repair is idempotent and preserves customized pet state', () =>
     assert(pet.grade > 0)
     assert.equal(pet.gene_infos.length, 8)
     assert.equal(pet.gene_state, 4)
-    assert.equal(
-        pet.comprehension.reduce((sum, c) => sum + c.level, 0),
-        25,
-    )
+    assert(aptitudeTotalValid(pet.comprehension))
     assert(
         pet.comprehension.every(
             (c) =>
@@ -164,10 +160,7 @@ test('interim all-100 D profiles reroll once but trained attributes remain uncha
     trained.comprehension[0] = { ...trained.comprehension[0], level: 5, init_level: 3, value: 120, cur_exp: 22 }
     const preserved = structuredClone(trained.comprehension[0])
     assert.equal(repairPetProfiles(tables, state), true)
-    assert.equal(
-        pet.comprehension.reduce((sum, c) => sum + c.level, 0),
-        25,
-    )
+    assert(aptitudeTotalValid(pet.comprehension))
     assert.deepEqual(trained.comprehension[0], preserved)
     const snapshot = structuredClone(state.pets)
     assert.equal(repairPetProfiles(tables, state), false)
@@ -209,7 +202,7 @@ test('legacy saved pet profiles are repaired and encoded during normal login', (
             data.pet_infos.pets.every(
                 (p) =>
                     p.comprehension.length === 6 &&
-                    p.comprehension.reduce((sum, c) => sum + c.level, 0) === 25 &&
+                    aptitudeTotalValid(p.comprehension) &&
                     p.comprehension.every((c) => c.init_level === c.level),
             ),
         )

@@ -1,0 +1,55 @@
+// Reconstructed from FileDescriptorSet. Keep the original .pb for exact options.
+syntax = "proto2";
+package cs;
+import "ExOptions.proto";
+import "CSCore.proto";
+option go_package = "GmServer/bridge/csproto;csproto";
+enum AnnivClientEventId {
+  AnnivClientEventIdNone = 0;
+  AnnivClientEventStackPlay = 5000;
+  AnnivClientEventStackEscRestart = 5001;
+  AnnivClientEventStackEndlessHighScore = 5002;
+  AnnivClientEventPhotoTake = 5003;
+  AnnivClientEventPhotoCharacterFirst = 5004;
+  AnnivClientEventNpcDialog = 5005;
+  AnnivClientEventDormInteract = 5006;
+  AnnivClientEventMapExplorRate = 5007;
+  AnnivClientEventSocialAction = 5008;
+}
+enum AnnivStatNpcDialogType {
+  AnnivStatNpcDialogTypeInvalid = 0;
+  AnnivStatNpcDialogTypeWorldMapNpc = 1;
+  AnnivStatNpcDialogTypeTaskPassBy = 2;
+  AnnivStatNpcDialogTypeTaskNpc = 3;
+}
+message AnnivClientEvent {
+  optional .cs.AnnivClientEventId event_id = 1 [json_name = "eventId"];
+  optional uint64 entity_id = 2 [json_name = "entityId"];
+  optional int64 value = 3 [json_name = "value"];
+  optional string str_value = 4 [json_name = "strValue"];
+}
+message CSAnnivStatReport {
+  repeated .cs.AnnivClientEvent events = 1 [json_name = "events"];
+}
+message CSAnnivStatQuery {
+  optional string dimension = 1 [json_name = "dimension"];
+  optional uint32 page = 2 [json_name = "page"];
+  optional uint32 page_size = 3 [json_name = "pageSize"];
+}
+message SCAnnivStatResult {
+  optional uint32 errcode = 1 [json_name = "errcode"];
+  optional string data_json = 2 [json_name = "dataJson"];
+  optional uint32 total = 3 [json_name = "total"];
+}
+message AnnivTestInjectEvent {
+  optional uint32 event_id = 1 [json_name = "eventId"];
+  optional uint64 entity_id = 2 [json_name = "entityId"];
+  optional int64 value = 3 [json_name = "value"];
+  optional string str_value = 4 [json_name = "strValue"];
+}
+message CSAnnivTestInject {
+  repeated .cs.AnnivTestInjectEvent events = 1 [json_name = "events"];
+  optional uint32 repeat = 2 [json_name = "repeat"];
+  optional bool auto_fill = 3 [json_name = "autoFill"];
+  optional bool flush = 4 [json_name = "flush"];
+}

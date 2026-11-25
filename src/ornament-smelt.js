@@ -1,10 +1,8 @@
-import currentReturns from '../configs/ornament-smelt-values/values.json' with { type: 'json' }
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { parseRewards } from './rewards.js'
 
-const overrides = new Map(currentReturns.map((row) => [row.id, row.smeltReturn])),
-    levels = new WeakMap()
+const levels = new WeakMap()
 function levelReturn(tables, item) {
     const level = item.lv === undefined ? 0 : item.lv
     ensure(Number.isSafeInteger(level) && level >= 0, 'Invalid saved ornament level', ErrorCode.GameConfig)
@@ -92,7 +90,7 @@ export function ornamentSmeltPlan(tables, state, guids) {
         for (const reward of levelReturn(tables, item)) add(reward)
         // BuildRewardEntries (06012970) uses template rarity to resolve star
         // counts. Instance quality is unrelated; strengthened returns are once.
-        const text = overrides.has(item.id) ? overrides.get(item.id) : config.smeltReturn
+        const text = config.smeltReturn
         ensure(typeof text === 'string', 'Invalid ornament base return', ErrorCode.GameConfig)
         const base = parseRewards(text)
         for (const reward of base) add(reward, copies)

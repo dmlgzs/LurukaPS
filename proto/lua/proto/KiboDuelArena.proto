@@ -149,3 +149,12 @@ message CSControlMapAI {
   optional .cs.CSControlMapAI.ControlObjType control_type = 1 [json_name = "controlType"];
   optional uint32 status = 2 [json_name = "status"];
 }
+message SummonTimelinePlaySync {
+  optional bool play = 1 [json_name = "play"];
+  optional uint64 start_time = 2 [json_name = "startTime"];
+  optional bool is_key_summon = 3 [json_name = "isKeySummon"];
+}
+message KiboDuelSkillPauseSync {
+  optional uint64 guid = 1 [json_name = "guid"];
+  optional bool pause = 2 [json_name = "pause"];
+}

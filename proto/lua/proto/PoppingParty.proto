@@ -4,6 +4,7 @@ package cs;
 import "ExOptions.proto";
 import "CommonMsg.proto";
 import "Battle.proto";
+import "PopperParty.proto";
 option go_package = "GmServer/bridge/csproto;csproto";
 enum PoppingPartyState {
   PPCS_NONE = 0;
@@ -48,12 +49,6 @@ message PoppingPartyPlayerInfo {
   optional uint32 player_id = 3 [json_name = "playerId"];
   optional string player_name = 1 [json_name = "playerName"];
   optional uint32 control_hero = 2 [json_name = "controlHero"];
-}
-message CampaignHero {
-  optional uint32 player_id = 1 [json_name = "playerId"];
-  optional .cs.HeroItemInfo hero_item = 2 [json_name = "heroItem"];
-  optional .cs.HeroAttrInfo hero_attr = 3 [json_name = "heroAttr"];
-  optional .cs.MoveInfo move = 4 [json_name = "move"];
 }
 message PoppingPartyStateInfo {
   optional .cs.PoppingPartyState state = 1 [json_name = "state"];

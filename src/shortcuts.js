@@ -1,4 +1,5 @@
-import items from '../configs/inventory-tables/common_item.json' with { type: 'json' }
+import { readTable } from './table-source.js'
+const items = readTable('common_item')
 import { ensure } from './handlers/common.js'
 import { ErrorCode } from './error-codes.js'
 

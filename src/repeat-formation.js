@@ -1,9 +1,9 @@
-import configured from '../configs/repeat-favor-roster-heroes.json' with { type: 'json' }
+import { readTable } from './table-source.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure, GameError } from './handlers/common.js'
 import { repeatDungeon } from './repeat-event.js'
 
-const eligibility = new Map(configured.heroes.map((row) => [row.id, row.favor]))
+const eligibility = new Map(readTable('hero').map((row) => [row.id, row.favor]))
 function roster(state) {
     const manager = state.player.group_mgrs.find((row) => row.type === 1)
     const group = manager?.groups.find((row) => row.id === manager.cur_group)

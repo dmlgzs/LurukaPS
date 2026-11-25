@@ -1,4 +1,4 @@
-import fs from 'node:fs'
+import { readTable } from '../src/table-source.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { ranchBonusFixture } from './ranch-bonus-fixture.js'
@@ -82,9 +82,7 @@ test('a real produced currency drop survives a controlled full99-slot warehouse 
         }
         const drop = f.state().home.ranches[201].drops.find((item) => item.item.itemtype === 10)
         assert.equal(drop.drop_id, 1052)
-        const definitions = JSON.parse(
-            fs.readFileSync(new URL('../configs/inventory-tables/common_item.json', import.meta.url)),
-        )
+        const definitions = readTable('common_item')
         // Import boundary for capacity only: these are valid metadata rows, not
         // a claim that the current27 ranch item pairs can fill99 distinct rows.
         const stores = definitions

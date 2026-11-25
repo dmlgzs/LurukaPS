@@ -1,25 +1,8 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
+import { configTime, staticTimeRow } from './time-definitions.js'
+export { configTime } from './time-definitions.js'
 const zone = 8 * 3600
-export function configTime(value) {
-    if (!value) return 0
-    const m = /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$/.exec(value)
-    ensure(m, 'Invalid shop date', ErrorCode.GameConfig)
-    const [y, mo, d, h, mi, s] = m.slice(1).map(Number)
-    const n = Date.UTC(y, mo - 1, d, h, mi, s) / 1000 - zone
-    const date = new Date((n + zone) * 1000)
-    ensure(
-        date.getUTCFullYear() === y &&
-            date.getUTCMonth() === mo - 1 &&
-            date.getUTCDate() === d &&
-            h < 24 &&
-            mi < 60 &&
-            s < 60,
-        'Invalid shop date',
-        ErrorCode.GameConfig,
-    )
-    return n
-}
 export function refreshWindow(goods, now, hour = 4) {
     const local = new Date((now + zone) * 1000),
         y = local.getUTCFullYear(),
@@ -108,7 +91,7 @@ export class ShopCatalog {
         ensure([0, 1].includes(launch), 'Shop launch type is not supported', ErrorCode.InvalidLogic)
         const limitId = row.timelimit ?? 0
         ensure(Number.isInteger(limitId) && limitId >= 0, 'Invalid shop time limit reference', ErrorCode.GameConfig)
-        const limit = limitId ? this.tables.get('common_timelimit').find((entry) => entry.id === limitId) : null
+        const limit = limitId ? staticTimeRow(this.tables, limitId) : undefined
         // Missing exported calendar rows may use the shop/goods' own explicit
         // dates. Do not invent or extend an activity's open period.
         const startText = limit?.startTime || row.startTime
@@ -142,7 +125,7 @@ export class ShopCatalog {
         const window = refreshWindow(goods, now, this.hour),
             key = `${shop.shopId}:${id}`,
             record = state.shopPurchases?.[key]
-        const bought = record?.period === window.start ? record.count : 0
+        const bought = record && (goods.refreshType === 1 || record.period === window.start) ? record.count : 0
         ensure(Number.isInteger(goods.goodsNum) && goods.goodsNum >= -1, 'Invalid shop stock', ErrorCode.GameConfig)
         const inTime = (!start || now >= start) && (!end || now < end)
         const unlock = conditionProgress(goods.commonCondition, state)

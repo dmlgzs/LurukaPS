@@ -1,5 +1,6 @@
-import rows from '../configs/hero-grade-tables/hero_grade.json' with { type: 'json' }
-import effects from '../configs/hero-grade-tables/hero_grade_effect.json' with { type: 'json' }
+import { readTable } from './table-source.js'
+const rows = readTable('hero_grade')
+const effects = readTable('hero_grade_effect')
 import { ensure } from './handlers/common.js'
 import { ErrorCode } from './error-codes.js'
 

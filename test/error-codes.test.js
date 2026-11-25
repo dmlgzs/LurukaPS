@@ -7,9 +7,9 @@ import { ErrorCode, LocalErrorCode } from '../src/error-codes.js'
 import { GameError, ensure } from '../src/handlers/common.js'
 import { configuration } from '../src/config.js'
 
-test('global codes match every CBT3 Lua definition and the resource shortage message table', () => {
+test('global codes match every current Lua definition and the resource shortage message table', () => {
     const tables = configuration().tables
-    const lua = fs.readFileSync(path.resolve(tables, '../Lua/src/proto_errcode.lua'), 'utf8')
+    const lua = fs.readFileSync(path.resolve(tables, '../Lua/src/src/proto/ErrCode.lua'), 'utf8')
     const expected = Object.fromEntries(
         [...lua.matchAll(/^\s*(\w+)\s*=\s*(\d+),\s*$/gm)].map(([, name, value]) => [
             name.replace(/^Err[Cc]ode/, ''),
@@ -19,7 +19,9 @@ test('global codes match every CBT3 Lua definition and the resource shortage mes
     assert.deepEqual(ErrorCode, expected)
     assert.ok(Object.isFrozen(ErrorCode))
     const messages = JSON.parse(fs.readFileSync(path.join(tables, 'errorCode.json'), 'utf8'))
-    assert.equal(messages.find((row) => row.id === ErrorCode.ItemNotEnough)._desc, 'ErrCodeItemNotEnough')
+    assert.equal(messages.find((row) => row.id === ErrorCode.ItemNotEnough).name, '物品不足')
+    assert.match(messages.find((row) => row.id === ErrorCode.SoulEssenceBagFull).name, /灵子/)
+    assert.match(messages.find((row) => row.id === ErrorCode.OrnamentBagFull).name, /装备/)
     assert.equal(LocalErrorCode.OfflinePaymentCallback, -9999 >>> 0)
     assert.equal(new GameError('invalid').code, ErrorCode.InvalidArgument)
     assert.throws(
@@ -35,7 +37,7 @@ test('runtime error paths use registered names instead of inline numeric codes',
         assert.doesNotMatch(source, /error:\d+/, `${file}: inline historical error status`)
         const ast = parsers.babel.parse(source)
         const label = (node) => `${file}:${node.loc.start.line}`
-        function walk(node) {
+        function walk(node, parent) {
             if (!node || typeof node !== 'object') return
             if (node.type === 'MemberExpression' && ['ErrorCode', 'LocalErrorCode'].includes(node.object?.name)) {
                 const codes = node.object.name === 'ErrorCode' ? ErrorCode : LocalErrorCode
@@ -58,13 +60,25 @@ test('runtime error paths use registered names instead of inline numeric codes',
                 node.type === 'ConditionalExpression' &&
                 /\.code\b/.test(source.slice(node.test.start, node.test.end))
             ) {
-                assert.notEqual(node.consequent.type, 'NumericLiteral', label(node))
-                assert.notEqual(node.alternate.type, 'NumericLiteral', label(node))
+                // HTTP status codes are a different namespace from protocol
+                // business errors. Allow only an explicitly named mapping
+                // consumed by writeHead, with standard HTTP numeric bounds.
+                const httpMapping =
+                    parent?.type === 'VariableDeclarator' &&
+                    parent.id?.name === 'httpStatus' &&
+                    /\.writeHead\(httpStatus\b/.test(source) &&
+                    [node.consequent, node.alternate].every(
+                        (value) => value.type === 'NumericLiteral' && value.value >= 100 && value.value <= 599,
+                    )
+                if (!httpMapping) {
+                    assert.notEqual(node.consequent.type, 'NumericLiteral', label(node))
+                    assert.notEqual(node.alternate.type, 'NumericLiteral', label(node))
+                }
             }
             for (const [key, value] of Object.entries(node)) {
                 if (key === 'loc') continue
-                if (Array.isArray(value)) value.forEach(walk)
-                else if (value && typeof value === 'object') walk(value)
+                if (Array.isArray(value)) value.forEach((child) => walk(child, node))
+                else if (value && typeof value === 'object') walk(value, node)
             }
         }
         walk(ast)

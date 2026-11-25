@@ -108,6 +108,30 @@ message CSEnterGame {
   optional string sub_channel = 32 [json_name = "subChannel"];
   optional string session_id = 33 [json_name = "sessionId"];
   repeated uint32 created_players = 34 [json_name = "createdPlayers"];
+  optional string extra = 35 [json_name = "extra"];
+  optional string pass_id = 36 [json_name = "passId"];
+  optional string branch = 37 [json_name = "branch"];
+  optional string platform_account_id = 38 [json_name = "platformAccountId"];
+  optional string platform_online_id = 39 [json_name = "platformOnlineId"];
+  optional uint32 platform_type = 40 [json_name = "platformType"];
+  optional uint32 crypto_version = 41 [json_name = "cryptoVersion"];
+  optional bytes client_public_key = 43 [json_name = "clientPublicKey"];
+}
+message CSPlatformBlacklistSync {
+  repeated string platform_account_ids = 1 [json_name = "platformAccountIds"];
+}
+message PlatformFriendInfo {
+  optional string platform_account_id = 1 [json_name = "platformAccountId"];
+  optional uint32 pid = 2 [json_name = "pid"];
+}
+message CSPlatformFriendQueryReq {
+  repeated string platform_account_ids = 1 [json_name = "platformAccountIds"];
+  optional uint32 page = 2 [json_name = "page"];
+  optional uint32 source = 3 [json_name = "source"];
+}
+message CSPlatformFriendQueryRsp {
+  repeated .cs.PlatformFriendInfo friends = 1 [json_name = "friends"];
+  optional uint32 page = 2 [json_name = "page"];
 }
 message SCEnterGame {
   optional .cs.PlayerData data = 1 [json_name = "data"];
@@ -123,11 +147,15 @@ message SCEnterGame {
   optional uint32 line_id = 11 [json_name = "lineId"];
   optional string server_id = 12 [json_name = "serverId"];
   optional string node_id = 13 [json_name = "nodeId"];
+  optional uint32 global_zone_id = 14 [json_name = "globalZoneId"];
 }
 message SCEnterGameToken {
   optional string server_param1 = 1 [json_name = "serverParam1"];
   optional bytes rc4_key = 2 [json_name = "rc4Key"];
   optional string server_param2 = 3 [json_name = "serverParam2"];
+  optional uint32 crytype = 4 [json_name = "crytype"];
+  optional uint32 crypto_version = 5 [json_name = "cryptoVersion"];
+  optional bytes server_public_key = 7 [json_name = "serverPublicKey"];
 }
 message SCEnterGameCallbackStart {
   optional bool reconnect = 1 [json_name = "reconnect"];
@@ -264,21 +292,6 @@ message SCPing {
 message SCQuestSync {
   repeated .cs.QuestGroupInfo groups = 1 [json_name = "groups"];
 }
-message CSMailList {
-}
-message SCMailList {
-  repeated .cs.MailInfo mails = 1 [json_name = "mails"];
-}
-message SCMailSync {
-  repeated .cs.MailInfo mails = 1 [json_name = "mails"];
-  optional uint32 collect_count = 2 [json_name = "collectCount"];
-  repeated uint64 dels = 3 [json_name = "dels"];
-}
-message SCMailFetch {
-  repeated uint64 guids = 1 [json_name = "guids"];
-  optional .cs.Rewards rewards = 2 [json_name = "rewards"];
-  optional uint32 errcode = 3 [json_name = "errcode"];
-}
 message SCFriendIdList {
   optional .cs.FriendAllId info = 1 [json_name = "info"];
 }
@@ -303,10 +316,12 @@ message CSChangeFriendRemarkRsp {
   optional bytes remark = 2 [json_name = "remark"];
 }
 message CSReportOnPlayer {
-  optional uint32 pid = 1 [json_name = "pid"];
-  optional bytes name = 2 [json_name = "name"];
-  optional string text = 3 [json_name = "text"];
+  repeated uint32 playerID = 1 [json_name = "playerID"];
+  optional uint32 reportID = 2 [json_name = "reportID"];
+  optional uint32 reportEntryID = 3 [json_name = "reportEntryID"];
   optional string reason = 4 [json_name = "reason"];
+  repeated uint64 kiboGuids = 5 [json_name = "kiboGuids"];
+  optional string special_data = 6 [json_name = "specialData"];
 }
 message SCDelChatShield {
   optional uint32 del = 1 [json_name = "del"];
@@ -525,6 +540,7 @@ message CSTrialGroupChange {
   repeated .cs.CSTrialGroupChange.trials trial_heros = 3 [json_name = "trialHeros"];
   repeated .cs.CSTrialGroupChange.trials trial_pets = 4 [json_name = "trialPets"];
   optional .cs.CSTrialGroupChange.trials trial_control = 5 [json_name = "trialControl"];
+  optional uint32 trial_id = 6 [json_name = "trialId"];
 }
 message CSTrialDatas {
   repeated .cs.HeroItemInfo trial_heros = 1 [json_name = "trialHeros"];
@@ -630,6 +646,7 @@ message PamiMailLetterContent {
     optional uint32 text_id = 1 [json_name = "textId"];
     optional uint32 record = 2 [json_name = "record"];
     optional uint32 timestamp = 3 [json_name = "timestamp"];
+    optional uint32 reply_timestamp = 4 [json_name = "replyTimestamp"];
   }
   optional uint32 mail_id = 1 [json_name = "mailId"];
   optional uint64 hero_id = 2 [json_name = "heroId"];
@@ -691,9 +708,6 @@ message AllChatEmojiInfo {
 }
 message CSGetQuestionLink {
   optional string link = 1 [json_name = "link"];
-}
-message AllNoviceTaskInfo {
-  repeated .cs.NoviceTaskGroupInfo groups = 1 [json_name = "groups"];
 }
 message AllRechargeOrderInfo {
   repeated .cs.RechargeOrderInfo orders = 1 [json_name = "orders"];
@@ -829,6 +843,14 @@ message CSExchangeGiftCode {
 }
 message SCExchangeGiftCode {
   optional uint32 status_code = 1 [json_name = "statusCode"];
+}
+message CSUploadClientLog {
+  optional string url = 1 [json_name = "url"];
+  optional int32 build_pipe = 2 [json_name = "buildPipe"];
+  optional string client_version = 3 [json_name = "clientVersion"];
+}
+message SCUploadClientLog {
+  optional uint32 ret_code = 1 [json_name = "retCode"];
 }
 message CSNDayRewardReq {
   optional uint32 reward_type = 1 [json_name = "rewardType"];

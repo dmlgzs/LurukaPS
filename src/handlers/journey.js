@@ -4,10 +4,10 @@ import { claimJourneyPointRewards } from '../journey-point-rewards.js'
 import { claimJourneySpecialReward } from '../journey-special-reward.js'
 import { acknowledgeJourneyWindow } from '../journey-window.js'
 
-export function registerJourney(on) {
+export function registerJourney(on, { legacyWindow = true } = {}) {
     on('JourneyTaskFinish', claimJourney)
     on('JourneyClientTrace', setJourneyTrace)
     on('JourneyReceivePointReward', claimJourneyPointRewards)
     on('JourneyReceiveSpecialReward', claimJourneySpecialReward)
-    on('ShowJourneyStageWindow', acknowledgeJourneyWindow)
+    if (legacyWindow) on('ShowJourneyStageWindow', acknowledgeJourneyWindow)
 }

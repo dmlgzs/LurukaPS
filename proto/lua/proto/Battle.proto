@@ -55,6 +55,7 @@ enum FightObjType {
   FO_Dungeon_Item = 29;
   FO_Abyss_Hero = 30;
   FO_Abyss_Pet = 31;
+  FO_Vehicle = 32;
 }
 enum FightObjSourceType {
   FOST_WORLD = 0;
@@ -70,6 +71,10 @@ enum FightObjState {
   FOS_Fight = 2;
   FOS_Reset = 3;
 }
+enum SkillCastMask {
+  SkillCastMask_None = 0;
+  SkillCastMask_BreakCombine = 1;
+}
 enum HeroAttrModuleType {
   HAMT_HERO_BASIC = 0;
   HAMT_SOULESSENCE = 1;
@@ -82,6 +87,8 @@ enum HeroAttrModuleType {
   HAMT_GLOBAL_BONUS = 8;
   HAMT_HERO_PLAYBALE = 9;
   HAMT_HERO_GRADE = 10;
+  HAMT_PET_FAVOR = 11;
+  HAMT_HOME_TOTEM = 12;
 }
 enum ModuleGamingType {
   MGT_WORLD_BATTLE = 0;
@@ -98,6 +105,8 @@ enum BuffOperator {
   BuffOpe_DotDoExecute = 8;
   BuffOpe_DotDoEnd = 9;
   BuffOpe_RemoteAdd = 10;
+  BuffOpe_BornElement = 11;
+  BuffOpe_RemoteDel = 12;
 }
 enum SkillVerifyType {
   SkillVerifyType_None = 0;
@@ -113,6 +122,7 @@ enum SkillVerifyType {
   SkillVerifyType_SMonster = 10;
   SkillVerifyType_MapItem = 11;
   SkillVerifyType_SAdd = 12;
+  SkillVerifyType_SWaitClient = 13;
 }
 enum FightFinishStatus {
   FFS_Success = 0;
@@ -151,6 +161,7 @@ enum DamageTagMask {
   DamageTagMask_None = 0;
   DamageTagMask_Heal = 1;
   DamageTagMask_Critical = 2;
+  DamageTagMask_BreakCombine = 4;
 }
 enum SummonType {
   monster = 1;
@@ -192,6 +203,10 @@ enum ElemSourceBehaviorType {
   ElemSourceBehaviorType_SkillIndex = 2;
   ElemSourceBehaviorType_ElemConfigId = 3;
   ElemSourceBehaviorType_BulletUid = 4;
+}
+enum BuffInfoMask {
+  BuffInfoMask_None = 0;
+  BuffInfoMask_IsBreak = 1;
 }
 message BattleContext {
   optional uint32 conf_id = 1 [json_name = "confId"];
@@ -396,6 +411,7 @@ message HatredData {
 message CSObjHatredChange {
   optional bool inc = 1 [json_name = "inc"];
   optional .cs.HatredData info = 2 [json_name = "info"];
+  optional bool force_reset = 3 [json_name = "forceReset"];
 }
 message SCObjHatredChange {
   optional bool inc = 1 [json_name = "inc"];
@@ -404,13 +420,16 @@ message SCObjHatredChange {
 message CSHatredReset {
   optional bool is_player = 1 [json_name = "isPlayer"];
   optional uint64 obj_id = 2 [json_name = "objId"];
+  optional bool force_reset = 3 [json_name = "forceReset"];
 }
 message SCHatredReset {
   optional bool is_player = 1 [json_name = "isPlayer"];
   optional uint64 obj_id = 2 [json_name = "objId"];
+  optional int32 reason = 3 [json_name = "reason"];
 }
 message CSHatredResetToHome {
   optional uint64 obj_id = 1 [json_name = "objId"];
+  optional bool force_reset = 2 [json_name = "forceReset"];
 }
 message SCHatredResetToHome {
   optional uint64 obj_id = 1 [json_name = "objId"];
@@ -444,6 +463,10 @@ message HurtInfo {
   optional .cs.BattleVerifyInfo verify_info = 16 [json_name = "verifyInfo"];
   optional int32 delta_sp = 17 [json_name = "deltaSp"];
   optional uint32 dmg_inc_id = 18 [json_name = "dmgIncId"];
+  optional int32 change_break_val = 19 [json_name = "changeBreakVal"];
+  optional string dps_debug_info = 20 [json_name = "dpsDebugInfo"];
+  optional sint32 real_damage = 21 [json_name = "realDamage"];
+  optional bool is_break = 22 [json_name = "isBreak"];
 }
 message SkillInfo {
   optional uint32 skill_id = 1 [json_name = "skillId"];
@@ -460,6 +483,8 @@ message SkillInfo {
   optional uint64 self_cd = 14 [json_name = "selfCd"];
   optional uint64 public_cd = 15 [json_name = "publicCd"];
   optional uint64 gcd = 16 [json_name = "gcd"];
+  optional uint32 cast_mask = 17 [json_name = "castMask"];
+  optional bool play_timeline = 18 [json_name = "playTimeline"];
 }
 message SCFightHeroInfoSync {
   repeated .cs.FightHeroInfo heros = 1 [json_name = "heros"];
@@ -576,10 +601,15 @@ message SCObjDeadNtf {
 message BreakVal {
   optional int32 val = 1 [json_name = "val"];
   optional uint64 chg_time_p = 3 [json_name = "chgTimeP"];
+  optional uint32 weak_state = 4 [json_name = "weakState"];
+  optional int32 max_val = 5 [json_name = "maxVal"];
+  optional uint32 weak_break_times = 6 [json_name = "weakBreakTimes"];
+  optional bool use_one_break = 7 [json_name = "useOneBreak"];
 }
 message BreakInfo {
   optional uint64 tarId = 1 [json_name = "tarId"];
   optional .cs.BreakVal val = 2 [json_name = "val"];
+  optional uint64 attackerId = 3 [json_name = "attackerId"];
 }
 message CSFightBreak {
   repeated .cs.BreakInfo infos = 1 [json_name = "infos"];
@@ -826,7 +856,7 @@ message SCDamageInfo {
   optional uint64 tar_id = 2 [json_name = "tarId"];
   optional uint32 val = 3 [json_name = "val"];
   optional uint32 tar_hp = 5 [json_name = "tarHp"];
-  optional .cs.DamageTagMask mask = 6 [json_name = "mask"];
+  optional uint32 mask = 6 [json_name = "mask"];
   optional uint32 element_conf_id = 7 [json_name = "elementConfId"];
 }
 message ElementBaseDataInfo {
@@ -992,6 +1022,7 @@ message BulletInfo {
   optional int32 rebound_bullet_config_id = 19 [json_name = "reboundBulletConfigId"];
   optional .cs.BattleVerifyInfo verify_info = 20 [json_name = "verifyInfo"];
   optional uint32 link_target_count = 21 [json_name = "linkTargetCount"];
+  optional int32 damage_effect_id = 22 [json_name = "damageEffectId"];
 }
 message CSBulletCreate {
   optional uint64 unit_id = 1 [json_name = "unitId"];
@@ -1060,6 +1091,17 @@ message MonsterCombineAttackState {
   repeated uint32 triggered_players = 3 [json_name = "triggeredPlayers"];
   optional uint64 break_stage_begin_trigger_time = 4 [json_name = "breakStageBeginTriggerTime"];
 }
+message MonsterBreakCombineTriggered {
+  optional uint64 uuid = 1 [json_name = "uuid"];
+  optional uint32 hero_id = 2 [json_name = "heroId"];
+  optional uint32 player_id = 3 [json_name = "playerId"];
+}
+message MonsterBreakCombineAttackState {
+  optional uint64 end_time = 1 [json_name = "endTime"];
+  repeated .cs.MonsterBreakCombineTriggered triggereds = 2 [json_name = "triggereds"];
+  optional uint32 player_num = 3 [json_name = "playerNum"];
+  optional uint64 sum_damage = 4 [json_name = "sumDamage"];
+}
 message MonsterBaseData {
   optional .cs.ObjBattlePhaseInfo info = 1 [json_name = "info"];
   optional uint64 break_time = 2 [json_name = "breakTime"];
@@ -1070,6 +1112,13 @@ message MonsterBaseData {
   repeated uint32 randPropSkills = 7 [json_name = "randPropSkills"];
   optional .cs.MonsterCombineAttackState combine_attack_state = 8 [json_name = "combineAttackState"];
   repeated uint32 syn_client_elements = 9 [json_name = "synClientElements"];
+  optional .cs.MonsterBreakCombineAttackState break_combine_attack_state = 10 [json_name = "breakCombineAttackState"];
+  optional .cs.BreakVal break_info = 11 [json_name = "breakInfo"];
+}
+message SkillMovePoint {
+  optional string index = 1 [json_name = "index"];
+  optional .cs.Position pos = 2 [json_name = "pos"];
+  optional .cs.Position dir = 3 [json_name = "dir"];
 }
 message SummonerBaseData {
   optional uint64 top_unit_id = 1 [json_name = "topUnitId"];
@@ -1098,6 +1147,7 @@ message BattleEntitySyncInfo {
   optional .cs.CSAnimatorSyncInfo animator_sync_info = 11 [json_name = "animatorSyncInfo"];
   optional .cs.PetBaseData pet_base_data = 12 [json_name = "petBaseData"];
   optional .cs.DungeonItemData dungeon_item_data = 13 [json_name = "dungeonItemData"];
+  repeated .cs.SkillMovePoint skill_points = 15 [json_name = "skillPoints"];
 }
 message DungeonItemData {
   optional .cs.DungeonItemType type = 1 [json_name = "type"];
@@ -1442,6 +1492,8 @@ message BuffInfo {
   repeated .cs.BattleLinkNode link_nodes = 32 [json_name = "linkNodes"];
   optional uint32 current_link_id = 33 [json_name = "currentLinkId"];
   optional uint32 bullet_config_id = 34 [json_name = "bulletConfigId"];
+  optional uint32 skill_index = 35 [json_name = "skillIndex"];
+  optional uint64 buff_mask = 36 [json_name = "buffMask"];
 }
 message CSSkillEffectDone {
   optional uint64 uuid = 1 [json_name = "uuid"];
@@ -1495,6 +1547,7 @@ message TeamCombineAttackTimerBegin {
   optional uint32 index = 2 [json_name = "index"];
   optional uint64 begin_time = 3 [json_name = "beginTime"];
   optional uint64 end_time = 4 [json_name = "endTime"];
+  optional bool is_little = 5 [json_name = "isLittle"];
 }
 message TeamCombineAttackTimerEnd {
   optional uint64 uuid = 1 [json_name = "uuid"];
@@ -1528,7 +1581,70 @@ message CSPerfectDefense {
   optional uint64 uuid = 1 [json_name = "uuid"];
   optional uint64 target_uuid = 2 [json_name = "targetUuid"];
 }
+message BreakCombineAttackTimerBegin {
+  optional uint64 uuid = 1 [json_name = "uuid"];
+  optional uint64 end_time = 2 [json_name = "endTime"];
+  optional uint32 player_num = 3 [json_name = "playerNum"];
+}
+message BreakCombineAttackTimerEnd {
+  optional uint64 uuid = 1 [json_name = "uuid"];
+}
+message ReqBreakCombineAttackBegin {
+  optional uint64 target_uuid = 1 [json_name = "targetUuid"];
+  optional uint64 uuid = 2 [json_name = "uuid"];
+}
+message RspBreakCombineAttackBegin {
+  optional uint64 target_uuid = 1 [json_name = "targetUuid"];
+  optional .cs.MonsterBreakCombineTriggered obj_info = 2 [json_name = "objInfo"];
+}
+message RspBreakCombineAttackFinish {
+  optional uint64 target_uuid = 1 [json_name = "targetUuid"];
+}
+message RspBreakCombineSkillAttackStart {
+  optional uint64 target_uuid = 1 [json_name = "targetUuid"];
+  optional uint32 last_attack_player_id = 2 [json_name = "lastAttackPlayerId"];
+  optional uint64 sum_damage = 3 [json_name = "sumDamage"];
+  optional uint32 player_num = 4 [json_name = "playerNum"];
+}
+message ReqBreakCombineAttackPlayerEnd {
+  optional uint64 target_uuid = 1 [json_name = "targetUuid"];
+}
+message CSCoopSkillUnit {
+  optional uint64 unit_id = 1 [json_name = "unitId"];
+  optional uint32 skill_id = 2 [json_name = "skillId"];
+}
+message CSCoopSkillReq {
+  optional uint64 unit_id = 1 [json_name = "unitId"];
+  optional uint64 target_id = 2 [json_name = "targetId"];
+  repeated .cs.CSCoopSkillUnit participant_units = 3 [json_name = "participantUnits"];
+  optional uint32 ban_slot_min = 4 [json_name = "banSlotMin"];
+  optional uint32 ban_slot_max = 5 [json_name = "banSlotMax"];
+  repeated uint32 control_types = 6 [json_name = "controlTypes"];
+  optional uint64 min_pass = 7 [json_name = "minPass"];
+}
+message SCCoopSkillRsp {
+  optional uint64 unit_id = 1 [json_name = "unitId"];
+  optional bool success = 2 [json_name = "success"];
+  repeated .cs.CSCoopSkillUnit pass_unit_units = 3 [json_name = "passUnitUnits"];
+  optional uint64 target_id = 4 [json_name = "targetId"];
+}
 message CSDungeonBuffExtendNotify {
   optional uint32 extend_seconds = 1 [json_name = "extendSeconds"];
   optional uint32 change = 2 [json_name = "change"];
+}
+message CSReportSKillVector3 {
+  repeated .cs.SkillMovePoint skill_move_points = 1 [json_name = "skillMovePoints"];
+  optional uint64 tar_id = 2 [json_name = "tarId"];
+  optional bool clear = 3 [json_name = "clear"];
+}
+message SCSkillMovePointSync {
+  optional uint64 unit_id = 1 [json_name = "unitId"];
+  repeated .cs.SkillMovePoint skill_move_points = 2 [json_name = "skillMovePoints"];
+  optional bool clear = 3 [json_name = "clear"];
+}
+message SkillTimelinePosInfo {
+  optional uint64 uuid = 1 [json_name = "uuid"];
+  optional uint32 skill_id = 2 [json_name = "skillId"];
+  optional .cs.Position pos = 3 [json_name = "pos"];
+  optional .cs.Position rotation = 4 [json_name = "rotation"];
 }

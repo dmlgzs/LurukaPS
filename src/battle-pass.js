@@ -1,5 +1,4 @@
 import { battlePassTaskSnapshot, prepareBattlePassTaskPeriods } from './battle-pass-tasks.js'
-import overrides from '../configs/battle-pass-overrides.json' with { type: 'json' }
 import activityPolicy from '../configs/activity-policy.json' with { type: 'json' }
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
@@ -7,10 +6,7 @@ import { configTime } from './shops.js'
 import { grantRewards, parseRewards } from './rewards.js'
 import { rewardSource } from './reward-source.js'
 export function battlePassRow(name, original) {
-    const row = { ...original }
-    for (const [field, patch] of Object.entries(overrides[name]?.[row.id] ?? {}))
-        if (row[field] === patch.from) row[field] = patch.to
-    return row
+    return { ...original }
 }
 const catalogues = new WeakMap()
 export function battlePassModel(tables) {

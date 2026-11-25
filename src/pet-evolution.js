@@ -1,4 +1,5 @@
-import rows from '../configs/pet-rank-tables/pet_rank.json' with { type: 'json' }
+import { readTable } from './table-source.js'
+const rows = readTable('pet_rank')
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { initialPetSkills } from './skills.js'

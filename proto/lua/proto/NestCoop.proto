@@ -58,7 +58,7 @@ enum NestCoopPlayerState {
 }
 message NestCoopLevelHistory {
   optional uint32 level_id = 1 [json_name = "levelId"];
-  optional .cs.OnlineMode mode = 2 [json_name = "mode"];
+  optional .cs.SceneMode mode = 2 [json_name = "mode"];
 }
 message NestCoopSiteInfo {
   optional uint32 site_id = 1 [json_name = "siteId"];
@@ -141,7 +141,6 @@ message SCNestCoopCampaign {
   optional .cs.NestCoopStat stats = 15 [json_name = "stats"];
   repeated .cs.MapPlayerWorldBuff buff_list = 16 [json_name = "buffList"];
   repeated .cs.NestCoopNeutralAreaInfo area_list = 17 [json_name = "areaList"];
-  repeated .cs.MatchTeamMemberData member_list = 18 [json_name = "memberList"];
 }
 message NestCoopGroup {
   optional uint32 player_id = 1 [json_name = "playerId"];

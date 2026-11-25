@@ -65,3 +65,6 @@ message SCShopGoodsTipSync {
   repeated uint32 tipInfos = 1 [json_name = "tipInfos"];
   optional bool isAll = 2 [json_name = "isAll"];
 }
+message ShopRefreshTimeNtf {
+  repeated .cs.ShopInfo data = 1 [json_name = "data"];
+}

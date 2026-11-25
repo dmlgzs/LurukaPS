@@ -1,7 +1,7 @@
 // Reconstructed from FileDescriptorSet. Keep the original .pb for exact options.
 syntax = "proto2";
 package cs;
-import "CommonMsg.proto";
+import "ExOptions.proto";
 option go_package = "GmServer/bridge/csproto;csproto";
 message DungeonMaterialInfo {
   optional uint32 material_id = 1 [json_name = "materialId"];

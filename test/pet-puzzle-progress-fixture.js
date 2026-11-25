@@ -1,4 +1,4 @@
-import fs from 'node:fs'
+import { readTable } from '../src/table-source.js'
 import { configuration } from '../src/config.js'
 import { Tables } from '../src/player.js'
 import { Protocol } from '../src/protocol.js'
@@ -13,9 +13,7 @@ export const puzzleTables = new Tables(cfg.tables)
 export const puzzleProtocol = new Protocol(cfg.base)
 export const puzzleWorld = new WorldObjectCatalog(puzzleTables)
 export const puzzlePolicy = policy
-export const playableRows = JSON.parse(
-    fs.readFileSync(new URL('../configs/playable-tables/playable.json', import.meta.url)),
-)
+export const playableRows = readTable('playable')
 export function puzzleFixture(name, file = ':memory:', setup = true) {
     const store = new Store(file),
         session = {}

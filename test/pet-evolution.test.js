@@ -1,6 +1,7 @@
+import { readTable } from '../src/table-source.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import rows from '../configs/pet-rank-tables/pet_rank.json' with { type: 'json' }
+const rows = readTable('pet_rank')
 import { configuration } from '../src/config.js'
 import { Tables } from '../src/player.js'
 import { petData, createPets } from '../src/pets.js'

@@ -19,6 +19,7 @@ message SCDoGachaRsp {
 message CSGacheChooseReq {
   optional uint32 pool_id = 1 [json_name = "poolId"];
   optional uint32 item_id = 2 [json_name = "itemId"];
+  repeated uint32 item_id_repeated = 3 [json_name = "itemIdRepeated"];
 }
 message CSGachaAimTargetReq {
   optional uint32 pool_id = 1 [json_name = "poolId"];
@@ -57,6 +58,7 @@ message GachaPool {
   optional uint32 received_up_count = 7 [json_name = "receivedUpCount"];
   optional bool received_self_choose = 8 [json_name = "receivedSelfChoose"];
   repeated uint32 aimed_item_ids = 9 [json_name = "aimedItemIds"];
+  optional uint32 received_self_choose_count = 10 [json_name = "receivedSelfChooseCount"];
 }
 message GachaPity {
   option (msg_to_server) = true;

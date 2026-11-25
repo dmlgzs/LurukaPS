@@ -2,6 +2,7 @@ import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { productionTables } from './production-tables.js'
 import { parseRewards } from './rewards.js'
+import { cookingOutputCatalogue } from './cooking-output-catalogue.js'
 import policy from '../configs/production-progress-policy.json' with { type: 'json' }
 
 const uint = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff
@@ -176,7 +177,9 @@ function cookingCatalogue(external) {
     const tables = productionTables(external)
     ensure(
         policy.cookingVariety?.condition === 12210 &&
-            policy.cookingVariety.selector === 'WorldMapBuildType10/resource3/products_multi_quality.productGroup' &&
+            policy.cookingVariety.selector === 'WorldMapBuildType10/resource3/versioned-quality-group' &&
+            policy.cookingVariety.groupSources?.recipeGroups === 'products_multi_quality.id' &&
+            policy.cookingVariety.groupSources?.legacyOutputRows === 'products_multi_quality.productGroup' &&
             policy.cookingVariety.quality === 'all-known-qualities-per-group' &&
             policy.cookingVariety.unknownOutputs === 'ignore-unmapped-with-once-log' &&
             policy.cookingVariety.officiallyVerified === false,
@@ -184,53 +187,7 @@ function cookingCatalogue(external) {
         ErrorCode.GameConfig,
     )
     if (cookingCatalogues.has(tables)) return cookingCatalogues.get(tables)
-    const foods = new Set(),
-        groups = new Set(),
-        outputGroups = new Map(),
-        nonCookingOutputs = new Set(),
-        recipeOutputs = new Map()
-    for (const row of tables.get('food')) {
-        ensure(row && uint(row.id) && !foods.has(row.id), 'Malformed cooking food catalogue', ErrorCode.GameConfig)
-        foods.add(row.id)
-    }
-    for (const row of tables.get('food_group')) {
-        ensure(
-            row && uint(row.id) && !groups.has(row.id),
-            'Malformed cooking food group catalogue',
-            ErrorCode.GameConfig,
-        )
-        groups.add(row.id)
-    }
-    for (const row of tables.get('products_multi_quality')) {
-        ensure(row && uint(row.productId) && row.productId > 0, 'Malformed cooking quality row', ErrorCode.GameConfig)
-        const recipe = tables.find('products', row.productId)
-        if (recipe?.type === 2 && uint(row.id) && row.id > 0 && recipe.rewardId === `3#${row.id}#1`) {
-            nonCookingOutputs.add(row.id)
-            continue
-        }
-        if (recipe?.type !== 3) continue // The same protocol also processes mill ingredients.
-        ensure(
-            uint(row.id) &&
-                row.id > 0 &&
-                foods.has(row.id) &&
-                uint(row.productGroup) &&
-                row.productGroup > 0 &&
-                groups.has(row.productGroup) &&
-                uint(row.productRarity) &&
-                !outputGroups.has(row.id) &&
-                !recipeOutputs.has(recipe.id) &&
-                recipe.rewardId === `3#${row.id}#1`,
-            'Cooking recipe output has no unique food group',
-            ErrorCode.GameConfig,
-        )
-        outputGroups.set(row.id, row.productGroup)
-        recipeOutputs.set(recipe.id, row.id)
-    }
-    for (const recipe of tables.get('products'))
-        if (recipe.type === 3 && !recipe.notReleased)
-            ensure(recipeOutputs.has(recipe.id), 'Current cooking output is not classified', ErrorCode.GameConfig)
-    ensure(outputGroups.size > 0, 'Cooking variety catalogue is empty', ErrorCode.GameConfig)
-    const result = { outputGroups, nonCookingOutputs, groups: new Set(outputGroups.values()), tables }
+    const result = { ...cookingOutputCatalogue(tables), tables }
     cookingCatalogues.set(tables, result)
     return result
 }

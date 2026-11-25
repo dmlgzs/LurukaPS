@@ -1,10 +1,14 @@
-import { NoviceTasks } from '../novice-tasks.js'
+import { NoviceTasks, taskManualModel } from '../novice-tasks.js'
 import { ErrorCode } from '../error-codes.js'
 import { ensure } from './common.js'
 import { grantRewards, parseRewards } from '../rewards.js'
 import { rewardSource } from '../reward-source.js'
 
 export function registerNoviceTasks(on, tables) {
+    // Current clients route the old novice entry to StarJourney. Its own
+    // handlers/synchronization are registered separately; do not emit an empty
+    // legacy snapshot or translate old reward IDs into unrelated Journey IDs.
+    if (taskManualModel(tables) === 'journey') return null
     const system = new NoviceTasks(tables)
     on('NoviceTaskFinish', (c, r) => {
         const row = system.tasks.get(r.u32)

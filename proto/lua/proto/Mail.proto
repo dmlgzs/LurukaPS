@@ -1,0 +1,212 @@
+// Reconstructed from FileDescriptorSet. Keep the original .pb for exact options.
+syntax = "proto2";
+package cs;
+import "CommonMsg.proto";
+option go_package = "GmServer/bridge/csproto;csproto";
+enum MailCategory {
+  MAIL_CATEGORY_UNSPECIFIED = 0;
+  MAIL_CATEGORY_PLAYER = 1;
+  MAIL_CATEGORY_SYSTEM = 2;
+  MAIL_CATEGORY_REWARD = 3;
+  MAIL_CATEGORY_GIFTCODE = 4;
+  MAIL_CATEGORY_SHOP_REWARD = 5;
+  MAIL_CATEGORY_EVENT_NOTIFY = 6;
+}
+enum MailListType {
+  MAIL_LIST_TYPE_UNSPECIFIED = 0;
+  MAIL_LIST_TYPE_ALL = 1;
+  MAIL_LIST_TYPE_UNREAD = 2;
+  MAIL_LIST_TYPE_FAVORITE = 3;
+}
+enum MailOperationCode {
+  MAIL_OPERATION_OK = 0;
+  MAIL_OPERATION_NOT_READY = 1;
+  MAIL_OPERATION_INVALID_ARGUMENT = 2;
+  MAIL_OPERATION_INVALID_CURSOR = 3;
+  MAIL_OPERATION_NOT_FOUND = 4;
+  MAIL_OPERATION_PROTECTED = 5;
+  MAIL_OPERATION_CONFLICT = 6;
+  MAIL_OPERATION_RESPONSE_TOO_LARGE = 7;
+  MAIL_OPERATION_UNKNOWN_ENUM = 8;
+  MAIL_OPERATION_FAVORITE_LIMIT = 9;
+  MAIL_OPERATION_CLAIM_CAPACITY_FULL = 10;
+  MAIL_OPERATION_CLAIM_PARTIAL_CAPACITY_FULL = 11;
+  MAIL_OPERATION_CLAIM_BUSY = 12;
+  MAIL_OPERATION_START_EXPIRED = 13;
+  MAIL_OPERATION_CLAIM_PARTIAL_FAILED = 14;
+  MAIL_OPERATION_NO_CLAIMABLE_REWARD = 15;
+}
+enum MailboxChangeType {
+  MAILBOX_CHANGE_TYPE_UNSPECIFIED = 0;
+  MAILBOX_CHANGE_TYPE_UPSERT = 1;
+  MAILBOX_CHANGE_TYPE_DELETE = 2;
+}
+enum MailDeleteSelector {
+  MAIL_DELETE_SELECTOR_UNSPECIFIED = 0;
+  MAIL_DELETE_SELECTOR_MAIL_IDS = 1;
+  MAIL_DELETE_SELECTOR_ALL_READ = 2;
+}
+enum MailClaimSelector {
+  MAIL_CLAIM_SELECTOR_UNSPECIFIED = 0;
+  MAIL_CLAIM_SELECTOR_MAIL_IDS = 1;
+}
+enum MailClaimStatus {
+  MAIL_CLAIM_STATUS_UNSPECIFIED = 0;
+  MAIL_CLAIM_STATUS_PREPARED = 1;
+  MAIL_CLAIM_STATUS_PROCESSING = 2;
+  MAIL_CLAIM_STATUS_SUCCEEDED = 3;
+  MAIL_CLAIM_STATUS_FAILED = 4;
+}
+enum MailClaimAllState {
+  MAIL_CLAIM_ALL_STATE_UNSPECIFIED = 0;
+  MAIL_CLAIM_ALL_STATE_RUNNING = 1;
+  MAIL_CLAIM_ALL_STATE_FINISHED = 2;
+  MAIL_CLAIM_ALL_STATE_INTERRUPTED = 3;
+}
+message MailView {
+  optional uint64 mail_id = 1 [json_name = "mailId"];
+  optional uint32 create_time = 2 [json_name = "createTime"];
+  optional bytes sender_id = 3 [json_name = "senderId"];
+  optional uint32 template_id = 4 [json_name = "templateId"];
+  repeated .cs.ExtraInfo args = 5 [json_name = "args"];
+  optional bytes title = 6 [json_name = "title"];
+  optional bytes content = 7 [json_name = "content"];
+  optional .cs.Rewards reward = 8 [json_name = "reward"];
+  optional uint32 visible_time = 9 [json_name = "visibleTime"];
+  optional uint32 expire_time = 10 [json_name = "expireTime"];
+  optional bool read = 11 [json_name = "read"];
+  optional bool claimed = 12 [json_name = "claimed"];
+  optional bool favorite = 13 [json_name = "favorite"];
+  optional .cs.MailCategory category = 14 [json_name = "category"];
+  optional uint64 gm_id = 15 [json_name = "gmId"];
+  optional uint32 business_event_time = 16 [json_name = "businessEventTime"];
+}
+message MailboxSummary {
+  optional uint32 total_visible_count = 1 [json_name = "totalVisibleCount"];
+  optional uint32 unread_count = 2 [json_name = "unreadCount"];
+  optional uint32 favorite_count = 3 [json_name = "favoriteCount"];
+  optional uint64 mailbox_version = 4 [json_name = "mailboxVersion"];
+  optional uint32 unclaimed_reward_mail_count = 5 [json_name = "unclaimedRewardMailCount"];
+}
+message MailOperationResult {
+  optional uint64 mail_id = 1 [json_name = "mailId"];
+  optional .cs.MailOperationCode code = 2 [json_name = "code"];
+  optional bytes detail = 3 [json_name = "detail"];
+}
+message CSListMails {
+  optional .cs.MailListType list_type = 1 [json_name = "listType"];
+  optional bytes cursor = 2 [json_name = "cursor"];
+  optional uint32 limit = 3 [json_name = "limit"];
+  optional uint64 known_mailbox_version = 4 [json_name = "knownMailboxVersion"];
+}
+message SCListMails {
+  repeated .cs.MailView mails = 1 [json_name = "mails"];
+  optional bytes cursor = 2 [json_name = "cursor"];
+  optional bool has_more = 3 [json_name = "hasMore"];
+  optional uint64 mailbox_version = 4 [json_name = "mailboxVersion"];
+  optional .cs.MailboxSummary summary = 5 [json_name = "summary"];
+  optional .cs.MailOperationCode code = 6 [json_name = "code"];
+}
+message CSGetMailboxSummary {
+  optional uint64 known_mailbox_version = 1 [json_name = "knownMailboxVersion"];
+}
+message SCGetMailboxSummary {
+  optional .cs.MailboxSummary summary = 1 [json_name = "summary"];
+  optional .cs.MailOperationCode code = 2 [json_name = "code"];
+}
+message MailboxChange {
+  optional .cs.MailboxChangeType type = 1 [json_name = "type"];
+  optional uint64 mail_id = 2 [json_name = "mailId"];
+  optional .cs.MailView mail = 3 [json_name = "mail"];
+}
+message MailboxDelta {
+  optional uint64 base_version = 1 [json_name = "baseVersion"];
+  optional uint64 mailbox_version = 2 [json_name = "mailboxVersion"];
+  optional .cs.MailboxSummary summary = 3 [json_name = "summary"];
+  repeated .cs.MailboxChange changes = 4 [json_name = "changes"];
+  optional bool reset_required = 5 [json_name = "resetRequired"];
+}
+message CSSyncMailbox {
+  optional uint64 since_version = 1 [json_name = "sinceVersion"];
+  optional uint32 max_deltas = 2 [json_name = "maxDeltas"];
+}
+message SCSyncMailbox {
+  repeated .cs.MailboxDelta deltas = 1 [json_name = "deltas"];
+  optional uint64 last_version = 2 [json_name = "lastVersion"];
+  optional bool has_more = 3 [json_name = "hasMore"];
+  optional uint64 mailbox_version = 4 [json_name = "mailboxVersion"];
+  optional .cs.MailOperationCode code = 5 [json_name = "code"];
+}
+message SCMailboxDelta {
+  optional .cs.MailboxDelta delta = 1 [json_name = "delta"];
+  optional bool capacity_full_notice = 2 [json_name = "capacityFullNotice"];
+}
+message CSMailRead {
+  optional uint64 mail_id = 1 [json_name = "mailId"];
+}
+message SCMailRead {
+  optional .cs.MailOperationResult result = 1 [json_name = "result"];
+  optional .cs.MailboxDelta delta = 2 [json_name = "delta"];
+  optional .cs.MailOperationCode code = 3 [json_name = "code"];
+}
+message CSMailDelete {
+  optional .cs.MailDeleteSelector selector = 1 [json_name = "selector"];
+  repeated uint64 mail_ids = 2 [json_name = "mailIds"];
+  optional bytes request_id = 3 [json_name = "requestId"];
+}
+message SCMailDelete {
+  repeated .cs.MailOperationResult results = 1 [json_name = "results"];
+  optional .cs.MailboxDelta delta = 2 [json_name = "delta"];
+  optional .cs.MailOperationCode code = 3 [json_name = "code"];
+  optional bool has_more = 4 [json_name = "hasMore"];
+}
+message CSMailFavorite {
+  optional uint64 mail_id = 1 [json_name = "mailId"];
+  optional bool favorite = 2 [json_name = "favorite"];
+}
+message SCMailFavorite {
+  optional .cs.MailOperationResult result = 1 [json_name = "result"];
+  optional .cs.MailboxDelta delta = 2 [json_name = "delta"];
+  optional .cs.MailOperationCode code = 3 [json_name = "code"];
+}
+message MailClaimTarget {
+  optional uint64 mail_id = 1 [json_name = "mailId"];
+  optional bytes claim_id = 2 [json_name = "claimId"];
+}
+message CSMailClaim {
+  optional .cs.MailClaimSelector selector = 1 [json_name = "selector"];
+  repeated .cs.MailClaimTarget mails = 2 [json_name = "mails"];
+  optional bytes request_id = 3 [json_name = "requestId"];
+}
+message MailClaimResult {
+  optional uint64 mail_id = 1 [json_name = "mailId"];
+  optional bytes claim_id = 2 [json_name = "claimId"];
+  optional .cs.MailOperationCode code = 3 [json_name = "code"];
+  optional .cs.MailClaimStatus status = 4 [json_name = "status"];
+  optional .cs.Rewards rewards = 5 [json_name = "rewards"];
+  optional bytes detail = 6 [json_name = "detail"];
+}
+message SCMailClaim {
+  repeated .cs.MailClaimResult results = 1 [json_name = "results"];
+  optional .cs.MailboxDelta delta = 2 [json_name = "delta"];
+  optional .cs.MailOperationCode code = 3 [json_name = "code"];
+}
+message CSStartMailClaimAll {
+  optional uint64 request_seq = 1 [json_name = "requestSeq"];
+}
+message SCStartMailClaimAll {
+  optional uint64 request_seq = 1 [json_name = "requestSeq"];
+  optional string operation_id = 2 [json_name = "operationId"];
+  optional .cs.MailClaimAllState state = 3 [json_name = "state"];
+  optional .cs.MailOperationCode code = 4 [json_name = "code"];
+}
+message SCMailClaimAllUpdate {
+  optional string operation_id = 1 [json_name = "operationId"];
+  optional uint64 update_seq = 2 [json_name = "updateSeq"];
+  optional .cs.MailClaimAllState state = 3 [json_name = "state"];
+  repeated .cs.MailClaimResult results = 4 [json_name = "results"];
+  repeated .cs.MailOperationResult skipped_results = 5 [json_name = "skippedResults"];
+  optional .cs.MailboxDelta delta = 6 [json_name = "delta"];
+  optional .cs.MailOperationCode summary_code = 7 [json_name = "summaryCode"];
+  optional bool has_pending = 8 [json_name = "hasPending"];
+}
