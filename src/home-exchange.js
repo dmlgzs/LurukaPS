@@ -6,6 +6,7 @@ import { spend } from './inventory.js'
 import { refreshAutoCropShortcut } from './home.js'
 import { grantRewards, parseRewards } from './rewards.js'
 import { rewardSource } from './reward-source.js'
+import exchangePolicy from '../configs/home-exchange-policy.json' with { type: 'json' }
 
 function settleShipment(tables, state, now, kind, shipment) {
     const exchange = state.homeExchange,
@@ -16,7 +17,6 @@ function settleShipment(tables, state, now, kind, shipment) {
     let principal = 0,
         quantity = 0
     for (const entry of box) {
-        const row = exchangeItemConfig(tables, entry.id)
         ensure(
             Number.isInteger(entry.num) && entry.num > 0 && Number.isInteger(entry.unitPrice) && entry.unitPrice > 0,
             'Invalid saved exchange quantity or quote',
@@ -33,7 +33,12 @@ function settleShipment(tables, state, now, kind, shipment) {
         ensure(
             entry.items?.length &&
                 entry.items.every(
-                    (item) => item.itemid === row.itemId && Number.isInteger(item.itemnum) && item.itemnum > 0,
+                    (item) =>
+                        Number.isInteger(item.itemid) &&
+                        item.itemid > 0 &&
+                        item.itemid === entry.items[0].itemid &&
+                        Number.isInteger(item.itemnum) &&
+                        item.itemnum > 0,
                 ) &&
                 entry.items.reduce((n, item) => n + item.itemnum, 0) === entry.num,
             'Invalid shipment inventory proof',
@@ -99,17 +104,17 @@ export function settleExchangeImmediately(c) {
 }
 export function homeExchangeDue(tables, state, now) {
     const exchange = state.homeExchange
-    if (!exchange) return false
+    if (!exchange) return exchangeEligibleEvents(tables, state).length > 0
     return (
-        exchange.market?.day !== exchangeClock(tables, now).businessDay ||
+        exchange.marketChecked !== exchangeMarketKey(tables, state, now) ||
         (exchange.box ?? []).some((row) => row.shippingAt <= now) ||
         (exchange.shipments ?? []).some((row) => row.settleAt <= now)
     )
 }
 export function prepareHomeExchange(c, { publish = true, historyNotice = true } = {}) {
-    const exchange = c.state.homeExchange
-    if (!exchange) return false
-    const previousDay = exchange.market?.day
+    const previousMarket = c.state.homeExchange?.market
+    if (!c.state.homeExchange && !exchangeEligibleEvents(c.tables, c.state).length) return false
+    const exchange = (c.state.homeExchange ??= { history: [], box: [], pendingNotice: { rewards: [] } })
     // The page counts down to midnight, then says the merchant is away until
     // 04:00. Its add/cancel callbacks remain available. Move departed goods
     // out of the editable box and let new bookings target the next departure.
@@ -127,7 +132,7 @@ export function prepareHomeExchange(c, { publish = true, historyNotice = true } 
     for (const batch of due) settleShipment(c.tables, c.state, c.now, 'scheduled', batch.items)
     if (due.length) exchange.shipments = exchange.shipments.filter((row) => !due.includes(row))
     ensureHomeExchange(c.tables, c.state, c.now, c.randomInt)
-    const marketChanged = previousDay !== exchange.market.day
+    const marketChanged = previousMarket !== exchange.market
     if (publish) {
         if (due.length) {
             c.pushBefore('CSProtoSyncPlayerData', {
@@ -138,7 +143,8 @@ export function prepareHomeExchange(c, { publish = true, historyNotice = true } 
             if (historyNotice)
                 c.pushBefore('CSProtoSCHomeExchangeInfo', { history: exchangeHistorySnapshot(c.state, true) })
         }
-        if (marketChanged) c.pushBefore('CSProtoHomeExchangeNewInfo', exchangeNewsSnapshot(c.state))
+        if (marketChanged && !exchange.marketUnavailable)
+            c.pushBefore('CSProtoHomeExchangeNewInfo', exchangeNewsSnapshot(c.state))
         if (due.length || departing.length || marketChanged)
             c.pushBefore('CSProtoSCHomeexchanceObj', exchangeBoxSnapshot(c.tables, c.state, c.now))
     }
@@ -147,15 +153,17 @@ export function prepareHomeExchange(c, { publish = true, historyNotice = true } 
 export function homeExchangeLoginData(tables, state, now) {
     if (!state.homeExchange) return []
     return [
-        ['CSProtoHomeExchangeNewInfo', exchangeNewsSnapshot(state)],
+        ...(!state.homeExchange.marketUnavailable && state.homeExchange.market
+            ? [['CSProtoHomeExchangeNewInfo', exchangeNewsSnapshot(state)]]
+            : []),
         ['CSProtoSCHomeexchanceObj', exchangeBoxSnapshot(tables, state, now)],
         ['CSProtoSCHomeExchangeInfo', { history: exchangeHistorySnapshot(state, true) }],
     ]
 }
 
 export function returnExchangeReservation(c, r) {
-    const config = exchangeItemConfig(c.tables, r.id),
-        clock = exchangeClock(c.tables, c.now)
+    const clock = exchangeClock(c.tables, c.now)
+    ensure(Number.isInteger(r.id) && r.id > 0 && r.id <= 0xffffffff, 'Invalid exchange item ID')
     ensure(!r.guid, 'Exchange material must not specify an instance')
     const exchange = c.state.homeExchange,
         entries = exchange?.box?.filter((e) => e.id === r.id) ?? []
@@ -172,7 +180,7 @@ export function returnExchangeReservation(c, r) {
     let total = 0
     for (const item of entries.flatMap((entry) => entry.items ?? [])) {
         ensure(
-            item.itemid === config.itemId &&
+            c.tables.find('common_item', item.itemid) &&
                 (item.itemtype ?? 3) === 3 &&
                 Number.isInteger(item.itemnum) &&
                 item.itemnum > 0,
@@ -216,7 +224,8 @@ export function returnExchangeReservation(c, r) {
     const receipts = (exchange.cancelReceipts ??= {})
     receipts[r.id] = clock.day
     for (const [id, day] of Object.entries(receipts)) if (day !== clock.day) delete receipts[id]
-    refreshAutoCropShortcut(c.tables, c.state, config.itemId)
+    for (const itemId of new Set([...restored.values()].map((item) => item.itemid)))
+        refreshAutoCropShortcut(c.tables, c.state, itemId)
     return true
 }
 
@@ -238,14 +247,22 @@ export function exchangeItemConfig(tables, id) {
     return row
 }
 export function exchangeUnitPrice(tables, state, id) {
+    ensure(
+        state.homeExchange?.market && !state.homeExchange.marketUnavailable,
+        'Exchange market is not open',
+        ErrorCode.FunctionClosed,
+    )
     const row = exchangeItemConfig(tables, id),
         change = state.homeExchange.market.changes[id] ?? 0
     ensure(
-        Number.isInteger(change) && Number.isInteger(row.bonusRate),
+        Number.isInteger(change) && (row.bonusRate === undefined || Number.isInteger(row.bonusRate)),
         'Invalid exchange price modifier',
         ErrorCode.GameConfig,
     )
-    const value = Math.trunc((row.price * (100 + change + row.bonusRate)) / 100)
+    const value =
+        row.bonusRate === undefined
+            ? Math.ceil((row.price * (100 + change)) / 100)
+            : Math.trunc((row.price * (100 + change + row.bonusRate)) / 100)
     ensure(
         Number.isSafeInteger(value) && value > 0 && value <= 0xffffffff,
         'Invalid exchange unit price',
@@ -357,7 +374,45 @@ export function exchangeCatalogue(tables) {
         'Exchange news configuration unavailable',
         ErrorCode.GameConfig,
     )
-    const result = { resetHour, limit, increase, currency: currency.resourceID, items, events }
+    const currentRanges = events.every((row) => !String(row.EventUnlock).includes('#'))
+    ensure(
+        currentRanges
+            ? events.every((row) => list(row.EventUnlock).length === 2)
+            : events.every((row) => String(row.EventUnlock).includes('#')),
+        'Mixed or malformed exchange event unlock schema',
+        ErrorCode.GameConfig,
+    )
+    const first = currentRanges ? list(game('HOME_EXCHANGE_FIRST')) : []
+    ensure(
+        !currentRanges || (first.length === 3 && first.every((n) => Number.isInteger(n) && n > 0)),
+        'Invalid first exchange configuration',
+        ErrorCode.GameConfig,
+    )
+    const firstChanges = currentRanges
+        ? String(game('HOME_EXCHANGE_FIRST_INCREASE') ?? '')
+              .split('|')
+              .filter((token) => token.trim())
+              .map((token) => token.split('#').map(Number))
+        : []
+    ensure(
+        firstChanges.every(
+            ([id, upper, percent, ...rest]) =>
+                !rest.length && items.has(id) && [0, 1].includes(upper) && Number.isInteger(percent) && percent >= 0,
+        ),
+        'Invalid first exchange price change',
+        ErrorCode.GameConfig,
+    )
+    const result = {
+        resetHour,
+        limit,
+        increase,
+        currency: currency.resourceID,
+        items,
+        events,
+        currentRanges,
+        first,
+        firstChanges,
+    }
     catalogues.set(tables, result)
     return result
 }
@@ -388,11 +443,26 @@ export function ensureHomeExchange(tables, state, now, rng = randomInt) {
         'Invalid exchange storage',
         ErrorCode.GameConfig,
     )
-    if (exchange.market?.day !== clock.businessDay) {
-        const eligible = config.events.filter((row) => homeCondition(row.EventUnlock, state))
-        ensure(eligible.length, 'No unlocked exchange market event', ErrorCode.FunctionClosed)
+    const eligible = exchangeEligibleEvents(tables, state)
+    if (!eligible.length) {
+        exchange.marketUnavailable = true
+        exchange.marketChecked = exchangeMarketKey(tables, state, now)
+        return exchange
+    }
+    delete exchange.marketUnavailable
+    if (
+        exchange.market?.day !== clock.businessDay ||
+        !eligible.some((row) => row.EventId === exchange.market.eventId) ||
+        (config.currentRanges && exchange.marketSourceVersion !== exchangePolicy.resourceVersion)
+    ) {
         const pick = (rows) => rows[rng(0, rows.length)]
         const old = exchange.market
+        if (
+            old &&
+            (!config.events.some((row) => row.EventId === old.eventId) ||
+                (config.currentRanges && exchange.marketSourceVersion !== exchangePolicy.resourceVersion))
+        )
+            exchange.legacyMarket ??= structuredClone(old)
         const event =
             (old?.day === clock.businessDay - 1 && eligible.find((row) => row.EventId === old.nextEventId)) ||
             pick(eligible)
@@ -402,9 +472,55 @@ export function ensureHomeExchange(tables, state, now, rng = randomInt) {
         for (const row of config.items.values())
             if (list(row.Tag).some((tag) => tags.includes(tag)))
                 changes[row.id] = rng(config.increase[0], config.increase[1] + 1)
+        if (config.currentRanges && event.EventId === config.first[2]) {
+            for (const id of Object.keys(changes)) delete changes[id]
+            for (const [id, upper, percent] of config.firstChanges) changes[id] = upper ? percent : -percent
+        }
         exchange.market = { day: clock.businessDay, eventId: event.EventId, nextEventId: next.EventId, tags, changes }
+        exchange.marketSourceVersion = exchangePolicy.resourceVersion
     }
+    exchange.marketChecked = exchangeMarketKey(tables, state, now)
     return exchange
+}
+function exchangeEligibleEvents(tables, state) {
+    const config = exchangeCatalogue(tables)
+    const firstActive =
+        config.first.length &&
+        (state.tasks ?? []).some((task) => task.task_id === config.first[0]) &&
+        !(state.taskRecords ?? []).some((task) => task.task_id === config.first[0] && task.count > 0)
+    return config.events.filter(
+        (row) =>
+            exchangeEventUnlocked(tables, state, row) &&
+            (!config.currentRanges ||
+                (firstActive ? row.EventId === config.first[2] : row.EventId !== config.first[2])),
+    )
+}
+function exchangeMarketKey(tables, state, now) {
+    const first = exchangeCatalogue(tables).first[0]
+    const active =
+        (state.tasks ?? []).some((task) => task.task_id === first) &&
+        !(state.taskRecords ?? []).some((task) => task.task_id === first && task.count > 0)
+    return `${exchangeClock(tables, now).businessDay}:${exchangePolicy.eventUnlock}:${state.home?.level ?? 1}:${state.player.basic_info.lv}:${active}`
+}
+export function exchangeEventUnlocked(tables, state, row) {
+    if (!exchangeCatalogue(tables).currentRanges) return homeCondition(row.EventUnlock, state)
+    ensure(
+        ['home-level-inclusive-range', 'player-level-inclusive-range'].includes(exchangePolicy.eventUnlock),
+        'Unsupported exchange event policy',
+        ErrorCode.GameConfig,
+    )
+    const bounds = list(row.EventUnlock)
+    ensure(
+        bounds.length === 2 && bounds.every((n) => Number.isInteger(n) && n > 0) && bounds[0] <= bounds[1],
+        'Invalid exchange event level bounds',
+        ErrorCode.GameConfig,
+    )
+    const level =
+        exchangePolicy.eventUnlock === 'home-level-inclusive-range'
+            ? (state.home?.level ?? 1)
+            : state.player.basic_info.lv
+    ensure(Number.isSafeInteger(level) && level > 0, 'Invalid home level for exchange event', ErrorCode.GameConfig)
+    return level >= bounds[0] && level <= bounds[1]
 }
 export function exchangeWeeklyIncome(tables, state, now) {
     const { weekStart } = exchangeClock(tables, now)
@@ -424,6 +540,11 @@ function exchangeIncomeForWeek(state, weekStart) {
     return value
 }
 export function exchangeNewsSnapshot(state) {
+    ensure(
+        state.homeExchange?.market && !state.homeExchange.marketUnavailable,
+        'Exchange market is not open',
+        ErrorCode.FunctionClosed,
+    )
     const market = state.homeExchange.market
     return {
         nowEventId: market.eventId,

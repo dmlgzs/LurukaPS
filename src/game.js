@@ -1728,6 +1728,8 @@ export class Game {
                 if (!battleReport) validateRepeatFormation(this.tables, state, repeatRosterBefore)
                 if (['CSProtoWorldCheckpointOpen', 'CSProtoWorldCheckpointClose'].includes(e.name))
                     context.push('CSProtoWorldCheckpointSync', checkpointSnapshot(state))
+                if (!battleReport && !state.homeExchange && homeExchangeDue(this.tables, state, now))
+                    prepareHomeExchange(context)
                 const medicineCleanup = personalBuffFrames(takeMedicineCleanupPayload(state)).map((value) =>
                     this.packet('CSProtoWorldBuffSync', value),
                 )

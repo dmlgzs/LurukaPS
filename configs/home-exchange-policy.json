@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "resourceVersion": "3217420",
+    "eventUnlock": "home-level-inclusive-range",
+    "eventUnlockSource": "local inference: current list<int> bounds; official server level subject unavailable",
+    "orderUnlock": "player-level-inclusive-range-for-paired-2004",
+    "orderUnlockSource": "current table disjoint level bands, not an official backend capture",
+    "noEligibleEvent": "retain-ledger-and-escrow-without-opening-market",
+    "todo": [
+        "Verify EventUnlock level subject against official server",
+        "Verify paired orderUnlock upper-bound semantics against official server",
+        "Recover tutorial-only first-event activation beyond the current active task configuration"
+    ]
+}

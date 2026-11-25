@@ -8,6 +8,7 @@ import { parseRewards, grantRewards } from './rewards.js'
 import { spend } from './inventory.js'
 import { rewardSource } from './reward-source.js'
 import { recordHomeOrderCompletion } from './home-order-progress.js'
+import exchangePolicy from '../configs/home-exchange-policy.json' with { type: 'json' }
 const catalogues = new WeakMap()
 export function exchangeOrderCatalogue(tables) {
     if (catalogues.has(tables)) return catalogues.get(tables)
@@ -58,8 +59,8 @@ export function exchangeOrderWindow(tables, now) {
     const { businessDay } = exchangeClock(tables, now),
         weekday = ((businessDay + 3) % 7) + 1
     const hour = Number(tables.get('game').find((r) => r.title === 'DAILY_REFRESH_TIME').value)
-    // Local compatibility: interpret orderTime as ISO weekday. Current 3/6
-    // windows and their table periods cover the whole week without overlap.
+    // orderTime is interpreted as ISO weekday. Current 1.0.0 has all seven
+    // weekdays with one-day periods; explicit legacy sources keep their periods.
     const windows = exchangeOrderCatalogue(tables)
         .groups.map((group) => {
             const day = businessDay - ((weekday - group.weekday + 7) % 7),
@@ -72,8 +73,25 @@ export function exchangeOrderWindow(tables, now) {
 }
 export function orderCandidates(tables, state, level, exclude = new Set()) {
     return exchangeOrderCatalogue(tables).orders.filter(
-        (row) => row.orderLevel === level && !exclude.has(row.orderID) && homeCondition(row.orderUnlock, state),
+        (row) => row.orderLevel === level && !exclude.has(row.orderID) && exchangeOrderUnlocked(row.orderUnlock, state),
     )
+}
+export function exchangeOrderUnlocked(text, state) {
+    const match = /^2004#(\d+)\|2004#(\d+)$/.exec(String(text))
+    if (!match) return homeCondition(text, state)
+    ensure(
+        exchangePolicy.orderUnlock === 'player-level-inclusive-range-for-paired-2004',
+        'Unsupported exchange order unlock policy',
+        ErrorCode.GameConfig,
+    )
+    const lower = Number(match[1]),
+        upper = Number(match[2])
+    ensure(
+        Number.isSafeInteger(lower) && Number.isSafeInteger(upper) && lower > 0 && upper >= lower,
+        'Invalid exchange order level bounds',
+        ErrorCode.HomeOrderConfInvalid,
+    )
+    return state.player.basic_info.lv >= lower && state.player.basic_info.lv <= upper
 }
 function rememberOrderSequence(exchange, slots) {
     let next = exchange.nextOrderGuid === undefined ? 1 : exchange.nextOrderGuid
@@ -122,18 +140,28 @@ export function ensureExchangeOrderBoard(c) {
     const exchange = ensureHomeExchange(c.tables, c.state, c.now, c.randomInt),
         window = exchangeOrderWindow(c.tables, c.now)
     let board = exchange.board
-    if (!board || board.start !== window.start || board.end !== window.end) {
+    if (
+        !board ||
+        board.start !== window.start ||
+        board.end !== window.end ||
+        exchange.boardSourceVersion !== exchangePolicy.resourceVersion ||
+        board.offerVersion !== 1
+    ) {
         // Preserve unsubmitted old live identities before replacing the board;
         // a legacy missing counter must not make stale client requests reusable.
         rememberOrderSequence(exchange, board?.slots ?? [])
+        if (board && (exchange.boardSourceVersion !== exchangePolicy.resourceVersion || board.offerVersion !== 1))
+            exchange.legacyBoard ??= structuredClone(board)
         board = exchange.board = {
             start: window.start,
             end: window.end,
             refreshes: exchangeOrderCatalogue(c.tables).refreshes,
+            offerVersion: 1,
             slots: window.tiers
                 .toSorted((a, b) => a.orderLevel - b.orderLevel)
                 .flatMap((row) => Array.from({ length: row.orderNum }, () => ({ level: row.orderLevel }))),
         }
+        exchange.boardSourceVersion = exchangePolicy.resourceVersion
     }
     const used = new Set(board.slots.filter((s) => s.order_id).map((s) => s.order_id)),
         rng = c.randomInt ?? randomInt
@@ -144,6 +172,7 @@ export function ensureExchangeOrderBoard(c) {
         const row = pool[rng(0, pool.length)]
         slot.guid = allocate(exchange, board.slots)
         slot.order_id = row.orderID
+        slot.offeredLevel = c.state.player.basic_info.lv
         used.add(row.orderID)
     }
     return board
@@ -178,12 +207,19 @@ export function refreshExchangeOrder(c, r) {
         pool = orderCandidates(c.tables, c.state, slot.level, excluded)
     ensure(pool.length, 'No alternative unlocked order of this tier', ErrorCode.HomeOrderRefreshNoChange)
     slot.order_id = pool[(c.randomInt ?? randomInt)(0, pool.length)].orderID
+    slot.offeredLevel = c.state.player.basic_info.lv
     board.refreshes--
     return exchangeOrderSnapshot(c.state)
 }
-export function exchangeOrderPlan(tables, state, row, now) {
+export function exchangeOrderPlan(tables, state, row, now, offeredLevel) {
     ensure(row, 'Exchange order configuration unavailable', ErrorCode.HomeOrderConfigNotExists)
-    ensure(homeCondition(row.orderUnlock, state), 'Exchange order is locked', ErrorCode.HomeOrderNotOpen)
+    const eligibility = offeredLevel === undefined ? state : { player: { basic_info: { lv: offeredLevel } } }
+    ensure(
+        offeredLevel === undefined || (Number.isInteger(offeredLevel) && offeredLevel > 0),
+        'Invalid saved order offer level',
+        ErrorCode.GameConfig,
+    )
+    ensure(exchangeOrderUnlocked(row.orderUnlock, eligibility), 'Exchange order is locked', ErrorCode.HomeOrderNotOpen)
     const costs = parseRewards(row.orderNeedMaterials),
         rewards = parseRewards(row.orderReward),
         reputation = parseRewards(row.orderReputation)
@@ -231,7 +267,7 @@ export function submitExchangeOrder(c, r) {
     ensure(slot, 'Exchange order was not found', ErrorCode.HomeOrderNotExists)
     const row = exchangeOrderCatalogue(c.tables).byId.get(slot.order_id)
     ensure(row?.orderLevel === slot.level, 'Exchange order tier configuration changed', ErrorCode.HomeOrderConfInvalid)
-    const plan = exchangeOrderPlan(c.tables, c.state, row, c.now)
+    const plan = exchangeOrderPlan(c.tables, c.state, row, c.now, slot.offeredLevel)
     const costs = new Map()
     for (const cost of plan.costs) costs.set(cost.itemid, (costs.get(cost.itemid) ?? 0) + cost.itemnum)
     spend(c.state, costs, 0, c.now)
