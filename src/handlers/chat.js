@@ -147,9 +147,20 @@ export function registerChat(on, store, { runGM } = {}) {
         const peer = peerId(r.id)
         exists(peer)
         const last = store.chatHistory(c.id, peer, 1).at(-1)?.order ?? 0
-        ensure(Number.isInteger(r.order ?? 0) && (r.order ?? 0) <= last, 'Invalid chat read marker')
+        ensure(peer !== c.id && last > 0, 'Chat conversation does not exist for this player', ErrorCode.ChatNotFound)
+        // Current chatAction.req_readChatInfo sends only id. Mark the saved
+        // conversation as read through this transaction's latest message;
+        // explicitly supplied legacy cursors keep their bounded semantics.
+        const order = Object.hasOwn(r, 'order') ? r.order : last
+        ensure(Number.isInteger(order) && order >= 0 && order <= last, 'Invalid chat read marker')
+        const previous = c.state.chatReads?.[peer] ?? 0
+        ensure(
+            Number.isInteger(previous) && previous >= 0 && previous <= 0xffffffff,
+            'Invalid stored chat read marker',
+            ErrorCode.GameConfig,
+        )
         c.state.chatReads ??= {}
-        c.state.chatReads[peer] = Math.max(c.state.chatReads[peer] ?? 0, r.order ?? 0)
+        c.state.chatReads[peer] = Math.max(previous, order)
         c.push('CSProtoChatMsgCntSync', {
             msg_list: [{ id: peer, cnt: store.chatUnread(c.id, peer, c.state.chatReads[peer]) }],
         })
