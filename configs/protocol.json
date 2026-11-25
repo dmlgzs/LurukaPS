@@ -1329,7 +1329,12 @@
         "rsp": "cs.ProtoNullRsp",
         "desc": "大世界 检查区域buff"
     },
-    { "id": 9141, "name": "CSWorldObjAIHeroInfo", "reqUnknown": true, "rsp": "cs.SCWorldObjAIHeroInfoRsp" },
+    {
+        "id": 9141,
+        "name": "CSWorldObjAIHeroInfo",
+        "req": "cs.CSWorldObjAIHeroInfoReq",
+        "rsp": "cs.SCWorldObjAIHeroInfoRsp"
+    },
     {
         "id": 9142,
         "name": "SCProtoServerDamageModeSync",
@@ -1715,7 +1720,7 @@
     {
         "id": 9593,
         "name": "SCTeamPlayerSettlementInfoSync",
-        "reqUnknown": true,
+
         "rsp": "cs.SCTeamPlayerSettlementInfo"
     },
     { "id": 9594, "name": "SCProtoMultiCampaignComboStart", "req": "cs.ProtoNullRsp", "desc": "多人副本Combo开始" },
@@ -3371,18 +3376,18 @@
         "desc": "改变的enity当前仇恨值"
     },
     { "id": 11140, "name": "SCProtoBattleHateListSync", "rsp": "cs.HateListInfoChange", "desc": "" },
-    { "id": 11141, "name": "SCMonsterGroupWallActivesSync", "reqUnknown": true, "rsp": "cs.SCMonsterGroupWallActives" },
+    { "id": 11141, "name": "SCMonsterGroupWallActivesSync", "rsp": "cs.SCMonsterGroupWallActives" },
     {
         "id": 11142,
         "name": "SCMonsterGroupWallInactivesSync",
-        "reqUnknown": true,
+
         "rsp": "cs.SCMonsterGroupWallInactives"
     },
-    { "id": 11143, "name": "CSReboundBulletReq", "reqUnknown": true },
-    { "id": 11144, "name": "SCReboundBulletRsp", "reqUnknown": true, "rsp": "cs.CSReboundBullet" },
-    { "id": 11145, "name": "CSReboundBulletNtfReq", "reqUnknown": true },
-    { "id": 11146, "name": "SCReboundBulletNtfRsp", "reqUnknown": true, "rsp": "cs.SCReboundBulletNtf" },
-    { "id": 11147, "name": "SCServerRemoveSummonNtfRsp", "reqUnknown": true, "rsp": "cs.SCServerRemoveSummon" },
+    { "id": 11143, "name": "CSReboundBulletReq", "req": "cs.CSReboundBullet" },
+    { "id": 11144, "name": "SCReboundBulletRsp", "rsp": "cs.CSReboundBullet" },
+    { "id": 11145, "name": "CSReboundBulletNtfReq", "req": "cs.SCReboundBulletNtf" },
+    { "id": 11146, "name": "SCReboundBulletNtfRsp", "rsp": "cs.SCReboundBulletNtf" },
+    { "id": 11147, "name": "SCServerRemoveSummonNtfRsp", "rsp": "cs.SCServerRemoveSummon" },
     { "id": 11148, "name": "SCProtoCreateSummon", "rsp": "cs.SCCreateSummon", "desc": "创建召唤物" },
     {
         "id": 11149,

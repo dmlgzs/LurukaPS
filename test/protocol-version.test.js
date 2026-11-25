@@ -36,18 +36,29 @@ test('active 1.0.0 IDs expose only evidenced retirement and native request uncer
     assert.equal(protocol.clientVersion, '1.0.0')
     assert.equal(protocol.entries.length, 1021)
     assert.equal(protocol.retiredNames.size, 130)
-    assert.deepEqual(
-        [...protocol.unknownRequests],
-        [9141, 9593, 10760, 11141, 11142, 11143, 11144, 11145, 11146, 11147],
-    )
+    assert.deepEqual([...protocol.unknownRequests], [10760])
     assert.equal(protocol.byName.get('CSProtoStaminaBoxGiveUp').id, 9979)
     assert.equal(protocol.byName.get('CSProtoActivityGrowUpEventInfoReq').id, 10433)
     assert.equal(protocol.byName.get('CSProtoSetClientCustomOptions').id, 18060)
     assert.equal(protocol.byId.get(9976).name, 'CSProtoAnnivClientReport')
     assert.equal(protocol.byId.get(9902).req, 'cs.CSUint32')
-    assert.equal(protocol.byId.get(9141).reqUnknown, true)
-    assert.equal(Object.hasOwn(protocol.byId.get(9141), 'req'), false)
+    assert.equal(protocol.byId.get(9141).reqUnknown, undefined)
+    assert.equal(protocol.byId.get(9141).req, 'cs.CSWorldObjAIHeroInfoReq')
+    assert.deepEqual(
+        protocol.decode(
+            protocol.byId.get(9141).req,
+            protocol.encode(protocol.byId.get(9141).req, { enemy_pack_id: 123 }),
+        ),
+        { enemy_pack_id: 123 },
+    )
     assert.equal(protocol.byId.get(9141).rsp, 'cs.SCWorldObjAIHeroInfoRsp')
+    assert.equal(protocol.byId.get(11143).req, 'cs.CSReboundBullet')
+    assert.equal(protocol.byId.get(11145).req, 'cs.SCReboundBulletNtf')
+    for (const id of [9593, 11141, 11142, 11144, 11146, 11147]) {
+        assert.equal(protocol.byId.get(id).reqUnknown, undefined)
+        assert.equal(Object.hasOwn(protocol.byId.get(id), 'req'), false)
+        assert.ok(protocol.byId.get(id).rsp)
+    }
     assert.ok(protocol.retiredNames.has('CSProtoNoviceTaskFinish'))
     assert.ok(protocol.retiredNames.has('CSProtoShowJourneyStageWindow'))
     assert.equal(protocol.retiredNames.has('CSProtoJourneyTaskFinsh'), false)
@@ -64,7 +75,11 @@ test('generated IDL matches its file and schema fingerprints without raw descrip
     )
     assert.equal(protocol.source.idlFiles.length, 35)
     for (const file of protocol.source.idlFiles) {
-        const bytes = fs.readFileSync(path.join(schemaDirectory, file.name))
+        const raw = fs.readFileSync(path.join(schemaDirectory, file.name))
+        const bytes =
+            protocol.source.textFingerprint === 'utf8-lf'
+                ? Buffer.from(raw.toString('utf8').replaceAll('\r\n', '\n'))
+                : raw
         assert.equal(bytes.length, file.bytes, file.name)
         assert.equal(hash(bytes), file.sha256, file.name)
     }

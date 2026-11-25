@@ -3,7 +3,7 @@
     "active": true,
     "clientVersion": "1.0.0",
     "protocolEntries": 1021,
-    "protocolSha256": "d2c816fc62a64a2936ae71e97cf1258417599777f661c2bfa224fc925325751c",
+    "protocolSha256": "9b86dd2bbba3029118d5b7bec6f3a811d28010744eeb5bb717c6166200944731",
     "source": {
         "idEnum": "AzurPromiliaOBT/1.0.0/dump.cs:CSProtoIDType",
         "lua": "Tables/Lua/src/src/proto/MsgGenCode.lua",
@@ -142,30 +142,8 @@
         "SCProtoMultiCampaignTransferNtf",
         "SCProtoNestCoopStarlinkAbortReq"
     ],
-    "unknownRequestIds": [
-        9141,
-        9593,
-        10760,
-        11141,
-        11142,
-        11143,
-        11144,
-        11145,
-        11146,
-        11147
-    ],
-    "unknownRequestNames": [
-        "CSWorldObjAIHeroInfo",
-        "SCTeamPlayerSettlementInfoSync",
-        "WorldPlayerSwitchSvrReq",
-        "SCMonsterGroupWallActivesSync",
-        "SCMonsterGroupWallInactivesSync",
-        "CSReboundBulletReq",
-        "SCReboundBulletRsp",
-        "CSReboundBulletNtfReq",
-        "SCReboundBulletNtfRsp",
-        "SCServerRemoveSummonNtfRsp"
-    ],
+    "unknownRequestIds": [10760],
+    "unknownRequestNames": ["WorldPlayerSwitchSvrReq"],
     "confirmedNativeRequests": [
         {
             "id": 9902,
@@ -189,281 +167,211 @@
         {
             "name": "Abyss.pb",
             "sha256": "f16cdddb96af437f80eb1dedf40a5e0cefce56c936b33f9e3b5f09d01fcef462",
-            "files": [
-                "Abyss.proto"
-            ],
+            "files": ["Abyss.proto"],
             "bytes": 5083
         },
         {
             "name": "Act.pb",
             "sha256": "67a9079f5e83ad100b16e075c652083af2d9993d69c79e5e0854294a1cab4a77",
-            "files": [
-                "Act.proto"
-            ],
+            "files": ["Act.proto"],
             "bytes": 459
         },
         {
             "name": "Activity.pb",
             "sha256": "eb32fd1ebe12e6d497b7ee7df1a8a27d4a9df24ca96d79fec6c19fd9071541e8",
-            "files": [
-                "Activity.proto"
-            ],
+            "files": ["Activity.proto"],
             "bytes": 20996
         },
         {
             "name": "Anniversary.pb",
             "sha256": "672e4ca8107816e156795565f30063a47436b4010e1bb8bde2ed4aeeae15c0e2",
-            "files": [
-                "Anniversary.proto"
-            ],
+            "files": ["Anniversary.proto"],
             "bytes": 1338
         },
         {
             "name": "Battle.pb",
             "sha256": "dfdec9dc147bd95a01e636a71a6fbfc1e2d3960145e60ee83494141e8942b30e",
-            "files": [
-                "Battle.proto"
-            ],
+            "files": ["Battle.proto"],
             "bytes": 40298
         },
         {
             "name": "BattlePass.pb",
             "sha256": "d4bd673ace05be6c96d2a437590c898e7367d9772a81aee7a0058d67d41a6dcc",
-            "files": [
-                "BattlePass.proto"
-            ],
+            "files": ["BattlePass.proto"],
             "bytes": 1722
         },
         {
             "name": "CSCore.pb",
             "sha256": "d78d9b3e7010bfc5fefcb7621f42065a62b6744ab80745389492ed6ed18dd220",
-            "files": [
-                "CSCore.proto"
-            ],
+            "files": ["CSCore.proto"],
             "bytes": 17686
         },
         {
             "name": "Campaign.pb",
             "sha256": "b17a5bb4707b5b875d025b161279d8223c8db1746d26761e1d236749372f0562",
-            "files": [
-                "Campaign.proto"
-            ],
+            "files": ["Campaign.proto"],
             "bytes": 18943
         },
         {
             "name": "CommonMsg.pb",
             "sha256": "859c01c5ce747fd6a50d85098ff5b653c5a2801211ca225853229ff90c90106e",
-            "files": [
-                "CommonMsg.proto"
-            ],
+            "files": ["CommonMsg.proto"],
             "bytes": 40705
         },
         {
             "name": "Core.pb",
             "sha256": "ce6ffdc5c579eb6b4d9807b5f8a1a0b71797d0ff0a8e252ca4afe4110342fc1c",
-            "files": [
-                "Core.proto"
-            ],
+            "files": ["Core.proto"],
             "bytes": 1297
         },
         {
             "name": "DungeonCore.pb",
             "sha256": "fbf6082368b222c1f75279a28cd402d3db2e077b5c351aaf8a42105b6690842b",
-            "files": [
-                "DungeonCore.proto"
-            ],
+            "files": ["DungeonCore.proto"],
             "bytes": 1576
         },
         {
             "name": "DungeonMaterial.pb",
             "sha256": "2a4e8f81e3a9350384633403009893a6ea1af2fa8ab82367bb6d7e60c41d5b47",
-            "files": [
-                "DungeonMaterial.proto"
-            ],
+            "files": ["DungeonMaterial.proto"],
             "bytes": 361
         },
         {
             "name": "EscBg.pb",
             "sha256": "20c1a1a809fd4b8af210c460a4c2b7878cedeac9c0862a4278032fc0f4a2a2f6",
-            "files": [
-                "EscBg.proto"
-            ],
+            "files": ["EscBg.proto"],
             "bytes": 784
         },
         {
             "name": "ExOptions.pb",
             "sha256": "e2be196c70c7eddbfa0e50f1dca3ef8c88fdfc28d16da1336ced5bb0f53a2251",
-            "files": [
-                "ExOptions.proto"
-            ],
+            "files": ["ExOptions.proto"],
             "bytes": 2788
         },
         {
             "name": "GMMsg.pb",
             "sha256": "972f54b4a74ece5f88482a97004e527df0800085b8c85bd0f4850a2ea1212fe4",
-            "files": [
-                "GMMsg.proto"
-            ],
+            "files": ["GMMsg.proto"],
             "bytes": 1033
         },
         {
             "name": "Gacha.pb",
             "sha256": "71ed30f6f49db6ea52bdfe1af3b473c3df83b0a911b29322917edbb0416bf67a",
-            "files": [
-                "Gacha.proto"
-            ],
+            "files": ["Gacha.proto"],
             "bytes": 2272
         },
         {
             "name": "Handbook.pb",
             "sha256": "bf0cab9cfb06a61433e609c0529566942806436b68f062076d208da53aabfe91",
-            "files": [
-                "Handbook.proto"
-            ],
+            "files": ["Handbook.proto"],
             "bytes": 447
         },
         {
             "name": "Home.pb",
             "sha256": "3dfcf1e63a034f96f16e2897d1e5e79be953b424385b3c69cf2e4d801c0718f1",
-            "files": [
-                "Home.proto"
-            ],
+            "files": ["Home.proto"],
             "bytes": 25392
         },
         {
             "name": "Journey.pb",
             "sha256": "8df8be022477059993928d139e0a0fa44c94450f93aad9841ad544f7e261af9a",
-            "files": [
-                "Journey.proto"
-            ],
+            "files": ["Journey.proto"],
             "bytes": 1641
         },
         {
             "name": "KiboDuel.pb",
             "sha256": "45a4e7b86ddd27b3cdb0c0c135c9b9db2ffae392b95d826b2983f25792db8060",
-            "files": [
-                "KiboDuel.proto"
-            ],
+            "files": ["KiboDuel.proto"],
             "bytes": 7365
         },
         {
             "name": "KiboDuelArena.pb",
             "sha256": "c3097906a779ef94250531ee53d5a3f869ac599fa7d5027caa5f51c811fce95e",
-            "files": [
-                "KiboDuelArena.proto"
-            ],
+            "files": ["KiboDuelArena.proto"],
             "bytes": 3942
         },
         {
             "name": "Mail.pb",
             "sha256": "d7f2df9b6b4d3c799c6820faee57b2f10a176f8f5a67564951977dd6831f66c2",
-            "files": [
-                "Mail.proto"
-            ],
+            "files": ["Mail.proto"],
             "bytes": 5790
         },
         {
             "name": "Mall.pb",
             "sha256": "3affd3fb08ef46cd1dc515dcf0e9b36a26f83398085beb5e40ca86da4574da69",
-            "files": [
-                "Mall.proto"
-            ],
+            "files": ["Mall.proto"],
             "bytes": 5179
         },
         {
             "name": "NestCoop.pb",
             "sha256": "3f2d23175b1aa57cb0a3dd8dc9a031a5d55b4570da98309759156c31632a6351",
-            "files": [
-                "NestCoop.proto"
-            ],
+            "files": ["NestCoop.proto"],
             "bytes": 4703
         },
         {
             "name": "Pet.pb",
             "sha256": "99c1e53f05c12cf3ce0ad1bc22445c8c494e20fb7ed5fe29d22af54671508db2",
-            "files": [
-                "Pet.proto"
-            ],
+            "files": ["Pet.proto"],
             "bytes": 11050
         },
         {
             "name": "PopperParty.pb",
             "sha256": "24b1a1da9126ab4b60f430f025552e7730deab4c8489494c2d00cf6b64a3572a",
-            "files": [
-                "PopperParty.proto"
-            ],
+            "files": ["PopperParty.proto"],
             "bytes": 2832
         },
         {
             "name": "PoppingParty.pb",
             "sha256": "b497c4d75cf14219e65e2037be6c18ca521ec9869f6511479206699c622a4c13",
-            "files": [
-                "PoppingParty.proto"
-            ],
+            "files": ["PoppingParty.proto"],
             "bytes": 2733
         },
         {
             "name": "RogueLike.pb",
             "sha256": "0d60c8789933ea8c847e649c3a9b3a1d638dc19de602b221c69e93c12aa60656",
-            "files": [
-                "RogueLike.proto"
-            ],
+            "files": ["RogueLike.proto"],
             "bytes": 10465
         },
         {
             "name": "SceneSvr.pb",
             "sha256": "d51d7b2dc0d3a9cc732e0df2994812a519a1a5bdfd2d3e64cce06f0fe9b427f8",
-            "files": [
-                "SceneSvr.proto"
-            ],
+            "files": ["SceneSvr.proto"],
             "bytes": 3362
         },
         {
             "name": "Shop.pb",
             "sha256": "ede56b0debfa2c6b859e421aef815bcf63098491b49cdeea248433385dd9fc09",
-            "files": [
-                "Shop.proto"
-            ],
+            "files": ["Shop.proto"],
             "bytes": 1401
         },
         {
             "name": "Task.pb",
             "sha256": "1d51ccbaf5a9e688377126b67a280910469cc5a88b2f39e61a17bbd7a4955b20",
-            "files": [
-                "Task.proto"
-            ],
+            "files": ["Task.proto"],
             "bytes": 3138
         },
         {
             "name": "Team.pb",
             "sha256": "8a945e0b383e28a1de88ff07d729422a864deb3c4701d759440a826b2411891a",
-            "files": [
-                "Team.proto"
-            ],
+            "files": ["Team.proto"],
             "bytes": 8693
         },
         {
             "name": "WorldMap.pb",
             "sha256": "3f5305df9b87250e810ec51f8c60df274284e4452e0765566a2a27b6085ed4ce",
-            "files": [
-                "WorldMap.proto"
-            ],
+            "files": ["WorldMap.proto"],
             "bytes": 29367
         },
         {
             "name": "conf.pb",
             "sha256": "27a852897bd3dd632ae55440e853d74a308eeb0d7e99ced7498b93d61e4648da",
-            "files": [
-                "conf.proto"
-            ],
+            "files": ["conf.proto"],
             "bytes": 615
         },
         {
             "name": "descriptor.pb",
             "sha256": "2667c4a82fd349234bf73a058a9af4a9ab6979151c8fd74332800c8b41d77be8",
-            "files": [
-                "descriptor.proto"
-            ],
+            "files": ["descriptor.proto"],
             "bytes": 7566
         }
     ],
@@ -860,5 +768,106 @@
     "schemaOptionsSha256": "9c14e4a9000a3a61fb7f355c9ef7f76fc62a887c587cdc045e0a67f364ed714e",
     "schemaDefinitions": 2133,
     "customOptionCount": 131,
-    "textFingerprint": "utf8-lf"
+    "textFingerprint": "utf8-lf",
+    "requestBindingEvidence": [
+        {
+            "id": 9141,
+            "type": "cs.CSWorldObjAIHeroInfoReq",
+            "assembly": "Assembly-CSharp",
+            "resourceVersion": "3217420",
+            "assemblySha256": "7caa834e06c6b4bdc6a2d0300f20cc88314102895a9abbfd5342c339b3d74ae0",
+            "method": "Lens.Gameplay.Modules.BigWorld.AOIItemEnemy.CreateEnemy",
+            "token": "0600800c",
+            "factoryIL": "01f3",
+            "sendIdIL": "0270",
+            "sendIL": "0285",
+            "evidence": "work/obt-runtime-errors-20261126/semantic-audit/unknown-requests/"
+        },
+        {
+            "id": 11143,
+            "type": "cs.CSReboundBullet",
+            "method": "BulletService.SendReboundBulletReq",
+            "token": "06000701",
+            "sendIdIL": "0045",
+            "sendIL": "004e",
+            "assembly": "Assembly-CSharp",
+            "resourceVersion": "3217420",
+            "assemblySha256": "7caa834e06c6b4bdc6a2d0300f20cc88314102895a9abbfd5342c339b3d74ae0",
+            "evidence": "work/obt-runtime-errors-20261126/semantic-audit/unknown-requests/BulletService.IL.txt"
+        },
+        {
+            "id": 11145,
+            "type": "cs.SCReboundBulletNtf",
+            "method": "BulletService.OnReboundBulletRsp",
+            "token": "060006fc",
+            "sendIdIL": "00ad",
+            "sendIL": "00b6",
+            "assembly": "Assembly-CSharp",
+            "resourceVersion": "3217420",
+            "assemblySha256": "7caa834e06c6b4bdc6a2d0300f20cc88314102895a9abbfd5342c339b3d74ae0",
+            "evidence": "work/obt-runtime-errors-20261126/semantic-audit/unknown-requests/BulletService.IL.txt"
+        }
+    ],
+    "serverPushEvidence": [
+        {
+            "id": 9593,
+            "method": "ServerListener.InitializeListeners",
+            "token": "06014120",
+            "listenerIL": "07b5",
+            "assembly": "Assembly-CSharp",
+            "resourceVersion": "3217420",
+            "assemblySha256": "7caa834e06c6b4bdc6a2d0300f20cc88314102895a9abbfd5342c339b3d74ae0",
+            "evidence": "work/obt-runtime-errors-20261126/semantic-audit/unknown-requests/"
+        },
+        {
+            "id": 11141,
+            "method": "EntityService.Ctor_AirWall",
+            "token": "06028725",
+            "listenerIL": "000a",
+            "assembly": "Assembly-CSharp",
+            "resourceVersion": "3217420",
+            "assemblySha256": "7caa834e06c6b4bdc6a2d0300f20cc88314102895a9abbfd5342c339b3d74ae0",
+            "evidence": "work/obt-runtime-errors-20261126/semantic-audit/unknown-requests/"
+        },
+        {
+            "id": 11142,
+            "method": "EntityService.Ctor_AirWall",
+            "token": "06028725",
+            "listenerIL": "002a",
+            "assembly": "Assembly-CSharp",
+            "resourceVersion": "3217420",
+            "assemblySha256": "7caa834e06c6b4bdc6a2d0300f20cc88314102895a9abbfd5342c339b3d74ae0",
+            "evidence": "work/obt-runtime-errors-20261126/semantic-audit/unknown-requests/"
+        },
+        {
+            "id": 11144,
+            "method": "BulletService.InitService",
+            "token": "060006ea",
+            "listenerIL": "0062",
+            "assembly": "Assembly-CSharp",
+            "resourceVersion": "3217420",
+            "assemblySha256": "7caa834e06c6b4bdc6a2d0300f20cc88314102895a9abbfd5342c339b3d74ae0",
+            "evidence": "work/obt-runtime-errors-20261126/semantic-audit/unknown-requests/"
+        },
+        {
+            "id": 11146,
+            "method": "BulletService.InitService",
+            "token": "060006ea",
+            "listenerIL": "004b",
+            "assembly": "Assembly-CSharp",
+            "resourceVersion": "3217420",
+            "assemblySha256": "7caa834e06c6b4bdc6a2d0300f20cc88314102895a9abbfd5342c339b3d74ae0",
+            "evidence": "work/obt-runtime-errors-20261126/semantic-audit/unknown-requests/"
+        },
+        {
+            "id": 11147,
+            "method": "SummonService.InitService",
+            "token": "060007dd",
+            "listenerIL": "001d",
+            "assembly": "Assembly-CSharp",
+            "resourceVersion": "3217420",
+            "assemblySha256": "7caa834e06c6b4bdc6a2d0300f20cc88314102895a9abbfd5342c339b3d74ae0",
+            "evidence": "work/obt-runtime-errors-20261126/semantic-audit/unknown-requests/"
+        }
+    ]
 }
