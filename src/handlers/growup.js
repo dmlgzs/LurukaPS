@@ -2,13 +2,19 @@ import { archiveGrowupData } from '../growup-archive.js'
 import { ensure } from './common.js'
 import { preparePermanent } from '../growup-permanent.js'
 import { upgradePermanent } from '../growup-permanent-upgrade.js'
+import { pushPermanent } from '../growup-permanent.js'
+import { ErrorCode } from '../error-codes.js'
 export function registerGrowup(on, catalog) {
     on('ActivityGrowUpExcultivationReq', (c, r) => upgradePermanent(c, r, catalog))
     on('ArchiveGrowupData', (c, r) => archiveGrowupData(c, r, catalog))
     const system = catalog.growup
     const context = (c, r) => {
         const { row, entry } = catalog.require(c.state, c.now, r.activity_id, [60])
-        ensure(!row.guideTaskId || catalog.taskDone(c.state, row.guideTaskId), 'Complete cultivation guide task first')
+        ensure(
+            !row.guideTaskId || catalog.taskDone(c.state, row.guideTaskId),
+            'Complete cultivation guide task first',
+            ErrorCode.ActivityGrowUpCondLimit,
+        )
         return { row, entry, g: system.ensure(entry, row.systemId) }
     }
     const publish = (c, id, g, result) => {
@@ -24,6 +30,17 @@ export function registerGrowup(on, catalog) {
                 snapshot: result.daySnapshot ?? g.day_start_snapshot,
             })
     }
+    on('ActivityGrowUpEnterReq', (c, r) => {
+        // NewScenario/ContinueScenario send 10437 after selecting or restoring
+        // a run, before their separate scene-transfer / travel-info requests.
+        const { row, entry, g } = context(c, r)
+        ensure(g.cur_starting_id > 0, 'Cultivation run has not started', ErrorCode.ActivityGrowUpInvalidStage)
+        system.prepare(entry, row.systemId, c.randomInt)
+        pushPermanent(c, catalog)
+        catalog.syncGrowupHistory(c, true)
+        publish(c, row.id, g)
+        return {}
+    })
     on('ActivityGrowUpStartSelectReq', (c, r) => {
         const { entry, row } = context(c, r)
         preparePermanent(system, entry, row.systemId, c.id, c.now)

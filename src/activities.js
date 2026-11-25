@@ -1,5 +1,4 @@
 import { KiboTourSystem } from './kibo-tours.js'
-import fs from 'node:fs'
 import { createHash } from 'node:crypto'
 import { configTime } from './shops.js'
 import { taskNodeCompleted, TaskGraphs, nodeConditions, asList, acceptTask, taskUnlocked } from './tasks.js'
@@ -11,10 +10,10 @@ import { productionTables } from './production-tables.js'
 import { GrowupSystem } from './growup.js'
 import { activityAbyssStarValue } from './activity-abyss-star.js'
 import { activityRepeatStarValue } from './activity-repeat-star.js'
-import { staticTimeRow, staticTimeRows, shopTimeDefinitions, mergeCommonTime } from './time-definitions.js'
+import { staticTimeRows, shopTimeDefinitions, mergeCommonTime } from './time-definitions.js'
 import { mallCommonTimeDefinitions } from './mall-time-policy.js'
+import { activityWindow, activityUnlocked, activityGuideIssues } from './activity-access.js'
 
-const policy = JSON.parse(fs.readFileSync(new URL('../configs/activity-policy.json', import.meta.url)))
 export class ActivityCatalog {
     constructor(tables, { tourPolicy, cultRankReader } = {}) {
         this.cultRankReader = cultRankReader
@@ -29,30 +28,26 @@ export class ActivityCatalog {
         this.rewards = tables.get('game_events_reward')
         this.resetHour = Number(tables.get('game').find((r) => r.title === 'DAILY_REFRESH_TIME')?.value ?? 4)
         this.productionTargets = new Map()
+        this.guideIssues = new Map()
+        for (const row of this.rows) {
+            const issues = activityGuideIssues(tables, row)
+            if (issues.length) {
+                this.guideIssues.set(row.id, issues)
+                console.warn(
+                    '[activities]',
+                    JSON.stringify({ event: 'unavailable-guide-config', activity: row.id, issues }),
+                )
+            }
+        }
     }
     day(now) {
         return Math.floor((now + (8 - this.resetHour) * 3600) / 86400)
     }
     window(row, now) {
-        const limit = staticTimeRow(this.tables, row.timelimit)
-        const start = limit ? configTime(limit.startTime) : 0
-        let end = limit ? configTime(limit.endTime) : configTime(policy.missingTimeEndTime)
-        // Offline policy, not official scheduling. Several current event rows reference
-        // timelimit IDs absent from the exported table; don't invent their duration.
-        if (end && end < now) end = configTime(policy.expiredEndTime)
-        return { activity_id: row.id, start_time: start, end_time: end }
+        return activityWindow(this.tables, row, now)
     }
     unlocked(row, state) {
-        return String(row.condition || '')
-            .split('|')
-            .filter(Boolean)
-            .every((text) => {
-                const [kind, a, b] = text.split('#').map(Number)
-                if (kind === 2004) return state.player.basic_info.lv >= a
-                if (kind === 2007) return this.taskDone(state, a)
-                if (kind === 12045) return taskNodeCompleted(state, a, b)
-                return false // TODO: additional common_condition evaluators, never auto-complete unknown rules.
-            })
+        return activityUnlocked(row, state, this.tables)
     }
     taskDone(state, id) {
         return (state.taskRecords ?? []).some((r) => r.task_id === id && r.count > 0)
@@ -62,6 +57,7 @@ export class ActivityCatalog {
         for (const row of this.rows) {
             if (
                 !row.guideTaskId ||
+                this.guideIssues.has(row.id) ||
                 !this.active(row, state, now) ||
                 this.taskDone(state, row.guideTaskId) ||
                 (state.tasks ?? []).some((t) => t.task_id === row.guideTaskId)
@@ -76,7 +72,7 @@ export class ActivityCatalog {
     }
     guideReturnPoint(state, now, dungeonId) {
         for (const row of this.rows) {
-            if (!row.guideTaskId || !this.active(row, state, now)) continue
+            if (!row.guideTaskId || this.guideIssues.has(row.id) || !this.active(row, state, now)) continue
             const task = state.tasks?.find((x) => x.task_id === row.guideTaskId)
             if (!task || this.taskDone(state, row.guideTaskId)) continue
             const graph = this.graphs.get(row.guideTaskId)
@@ -249,9 +245,14 @@ export class ActivityCatalog {
             context?.state === state && context.now === now ? context : { state, now, id: context?.id },
         )
         state.activityDay = this.day(now)
-        const confs = this.rows.map((row) => this.tours.presentationWindow(this.window(row, now), state, row)),
+        const confs = this.rows
+                .filter((row) => !this.guideIssues.has(row.id))
+                .map((row) => this.tours.presentationWindow(this.window(row, now), state, row)),
             activitys = []
         for (const row of this.rows) {
+            // GameEventStore creates entries only from ActivitySync.confs.
+            // Neither a current static row nor CommonTime creates the card.
+            if (this.guideIssues.has(row.id)) continue
             if (!this.active(row, state, now) && !(row.type === 80 && this.tours.hasRuns(state.activities?.[row.id])))
                 continue
             const entry = this.entry(state, row.id)
@@ -299,9 +300,17 @@ export class ActivityCatalog {
                 })
             // Do not dereference null subtype data in the client's specialized stores.
             if (![8, 20, 40, 50, 130].includes(row.type))
-                activitys.push({ id: row.id, time: entry.opened, data, rewards })
+                activitys.push({
+                    id: row.id,
+                    time: entry.opened,
+                    data,
+                    rewards,
+                    quick_unlock_status: entry.quick_unlock_status ?? 0,
+                })
         }
-        return { confs, activitys }
+        // 10400's del_activitys also evicts a card cached before this capability
+        // restriction. This is a client projection, never deletion of save data.
+        return { confs, activitys, del_activitys: [...this.guideIssues.keys()] }
     }
     due(state, now) {
         return (!!state.activities && state.activityDay !== this.day(now)) || this.tours.due(state, now)
@@ -330,7 +339,7 @@ export class ActivityCatalog {
     }
     growupHistorySnapshots(state, now) {
         return this.rows
-            .filter((x) => x.type === 60 && this.active(x, state, now))
+            .filter((x) => x.type === 60 && !this.guideIssues.has(x.id) && this.active(x, state, now))
             .map((row) => this.growup.endQuery(this.growup.ensure(this.entry(state, row.id), row.systemId), row.id))
     }
     syncGrowupHistory(c, force = false) {
@@ -382,10 +391,25 @@ export class ActivityCatalog {
             .map((x) => ({ id: x.id, state: entry.nday_totals.includes(x.id) ? 2 : total_count >= x.count ? 1 : 0 }))
         return { unlock_day, total_count, target_infos, total_infos }
     }
+    requireGuideConfiguration(row) {
+        const issues = this.guideIssues.get(row.id) ?? []
+        ensure(
+            !issues.some((x) => x.table === 'task'),
+            'Activity guide task configuration unavailable',
+            ErrorCode.TaskConfFail,
+        )
+        ensure(
+            !issues.some((x) => x.table === 'dungeon'),
+            'Activity guide dungeon configuration unavailable',
+            ErrorCode.DungeonConfNotExist,
+        )
+        ensure(!issues.length, 'Activity cultivation configuration unavailable', ErrorCode.GrowUpConfNoExist)
+    }
     require(state, now, id, types) {
         const row = this.rows.find((x) => x.id === id)
-        ensure(row, 'Unknown activity')
-        ensure(this.active(row, state, now), 'Activity is locked or outside its time window')
+        ensure(row, 'Unknown activity', ErrorCode.ActivityNotFond)
+        ensure(this.active(row, state, now), 'Activity is locked or outside its time window', ErrorCode.ActivityNotOpen)
+        this.requireGuideConfiguration(row)
         if (types) ensure(types.includes(row.type), 'Wrong activity type')
         this.snapshot(state, now)
         return { row, entry: this.entry(state, id) }

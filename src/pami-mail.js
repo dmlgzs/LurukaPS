@@ -4,6 +4,7 @@ import { homeCondition } from './home-grid.js'
 import { grantRewards, parseRewards } from './rewards.js'
 import { rewardSource } from './reward-source.js'
 import policy from '../configs/pami-mail-policy.json' with { type: 'json' }
+import { activityValid } from './activity-access.js'
 const catalogs = new WeakMap()
 const warned = new Set()
 function warnRejected(row, reasons) {
@@ -51,8 +52,11 @@ function catalog(tables) {
             }
         }
         const rules = terms(row.condition)
-        if (rules.some((t) => ![13000, 12082, 2007].includes(t[0]) || t.some((v) => !Number.isSafeInteger(v))))
+        if (rules.some((t) => ![13000, 12082, 2007, 32005].includes(t[0]) || t.some((v) => !Number.isSafeInteger(v))))
             reasons.push('unsupported condition')
+        for (const [kind, id, ...extra] of rules)
+            if (kind === 32005 && (extra.length || !tables.find('game_events', id)))
+                reasons.push('missing/invalid activity condition')
         if (reasons.length) {
             rejected.push({ id: row.id, reasons })
             warnRejected(row, reasons)
@@ -70,7 +74,7 @@ function catalog(tables) {
         ensure(systems.has(category.systemId), 'Pami category unlock configuration missing', ErrorCode.GameConfig)
         letters.set(row.id, { ...row, group, category, first, rules })
     }
-    const result = { letters, groups, categories, texts, replies, systems, rejected, events }
+    const result = { tables, letters, groups, categories, texts, replies, systems, rejected, events }
     catalogs.set(tables, result)
     return result
 }
@@ -116,13 +120,14 @@ function eligible(data, state, row, now, completionPolicy) {
             ensure(p.length === 1 && p[0] > 0, 'Invalid Pami task condition', ErrorCode.PamiLetterTextConfFail)
             return (state.taskRecords ?? []).some((r) => r.task_id === p[0] && r.count > 0)
         }
+        if (kind === 32005) return activityValid(data.tables, data.tables.find('game_events', p[0]), state, now)
         ensure(p.length === 1 && p[0] > 0, 'Invalid Pami predecessor condition', ErrorCode.PamiLetterTextConfFail)
         if (completionPolicy === 'closed') return false
         const previous = stateData(state).letters[p[0]]
         return previous?.completed_at !== undefined && previous.completed_at <= now
     })
 }
-function signature(data, state) {
+function signature(data, state, now) {
     const heroes = new Map(state.player.heros_info.heros.filter((h) => !h.trail).map((h) => [h.conf_id, h]))
     const gates = [...data.categories.values()].map((c) =>
         homeCondition(data.systems.get(c.systemId)?.unlockCondi, state) ? 1 : 0,
@@ -133,12 +138,21 @@ function signature(data, state) {
     const taskIds = [
         ...new Set([...data.letters.values()].flatMap((r) => r.rules.filter((t) => t[0] === 2007).map((t) => t[1]))),
     ]
+    const activityIds = [
+        ...new Set([...data.letters.values()].flatMap((r) => r.rules.filter((t) => t[0] === 32005).map((t) => t[1]))),
+    ]
     return (
         gates.join(',') +
         '/' +
         favor.join(',') +
         '/' +
-        taskIds.map((id) => ((state.taskRecords ?? []).some((r) => r.task_id === id && r.count > 0) ? 1 : 0)).join(',')
+        taskIds
+            .map((id) => ((state.taskRecords ?? []).some((r) => r.task_id === id && r.count > 0) ? 1 : 0))
+            .join(',') +
+        '/' +
+        activityIds
+            .map((id) => Number(activityValid(data.tables, data.tables.find('game_events', id), state, now)))
+            .join(',')
     )
 }
 // TODO(pami-12082-official-completion): conservative local compatibility policy.
@@ -174,7 +188,7 @@ export function preparePamiMail(tables, state, now, options = {}) {
     const data = catalog(tables),
         ledger = stateData(state),
         mode = completionMode(options),
-        sig = signature(data, state) + '/' + ledger.revision + '/' + mode
+        sig = signature(data, state, now) + '/' + ledger.revision + '/' + mode
     if (ledger.observed === sig) return false
     let changed = false
     if (mode !== 'closed')
@@ -202,7 +216,7 @@ export function preparePamiMail(tables, state, now, options = {}) {
         changed = true
     }
     if (changed) ledger.revision++
-    ledger.observed = signature(data, state) + '/' + ledger.revision + '/' + mode
+    ledger.observed = signature(data, state, now) + '/' + ledger.revision + '/' + mode
     return changed
 }
 function visible(data, entry, now) {
@@ -276,7 +290,7 @@ export function pamiLetter(tables, state, id, now) {
     return { row, entry, data }
 }
 export function notifyPamiMail(c, name) {
-    if (!/(?:Task|Hero|PamiMail|GMCommand)/.test(name)) return
+    if (!/(?:Task|Hero|PamiMail|GMCommand|ActivityConditionOpen)/.test(name)) return
     if (preparePamiMail(c.tables, c.state, c.now))
         c.pushBefore('CSProtoPamiMailSync', pamiMailSnapshot(c.tables, c.state, c.now))
 }

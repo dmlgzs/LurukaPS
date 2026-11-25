@@ -8,6 +8,7 @@ import { WorldObjectCatalog } from '../world-objects.js'
 import { spend, spendCurrency } from '../inventory.js'
 import { rewardSource } from '../reward-source.js'
 import { rollActivityRewardDrop } from '../activity-drop-currency.js'
+import { activityConditionUnlocked } from '../activity-access.js'
 
 export function registerActivities(on, tables, options = {}) {
     const catalog = new ActivityCatalog(tables, options),
@@ -21,6 +22,48 @@ export function registerActivities(on, tables, options = {}) {
             c.pushBefore('CSProtoSyncPlayerData', { heros_info: c.state.player.heros_info })
         return rewards
     }
+    on('ActivityConditionOpen', (c, r) => {
+        const row = catalog.rows.find((x) => x.id === r.u32)
+        ensure(row, 'Unknown activity', ErrorCode.ActivityNotFond)
+        catalog.requireGuideConfiguration(row)
+        const window = catalog.window(row, c.now)
+        ensure(
+            c.now >= window.start_time && c.now <= window.end_time,
+            'Activity is outside its time window',
+            ErrorCode.ActivityNotOpen,
+        )
+        ensure(row.quickUnlock, 'Activity does not allow quick unlock', ErrorCode.ActivityQuickUnlockNotAllow)
+        for (const text of String(row.quickUnlock).split('|')) {
+            const rule = text.split('#').map(Number)
+            ensure(
+                [2004, 2007, 12045].includes(rule[0]),
+                'Activity quick unlock condition is not implemented',
+                ErrorCode.FunctionClosed,
+            )
+            ensure(
+                rule.length === (rule[0] === 12045 ? 3 : 2) &&
+                    rule.every((value) => Number.isSafeInteger(value) && value > 0),
+                'Invalid activity quick unlock condition',
+                ErrorCode.GameConfig,
+            )
+        }
+        const entry = catalog.entry(c.state, row.id)
+        if (entry.quick_unlock_status !== 1) {
+            ensure(
+                activityConditionUnlocked(row.quickUnlock, c.state),
+                'Activity quick unlock conditions are not met',
+                ErrorCode.ActivityQuickUnlockNotAllow,
+            )
+            ensure(
+                catalog.unlocked({ ...row, condition: row.quickUnlock }, c.state),
+                'Activity system is locked',
+                ErrorCode.ActivityNotOpen,
+            )
+            entry.quick_unlock_status = 1
+        }
+        publish(c)
+        return {}
+    })
     on('ActivityGet', (c) => {
         pushPermanent(c, catalog)
         // GlobalData's ending book is a separate client cache used by 80003/4/6.

@@ -41,7 +41,8 @@ export function permanentModel(system, id) {
                 .filter((x) => x.systemId === id)
                 .map((x) => x.AttrId),
         ),
-        groups = new Map()
+        groups = new Map(),
+        lockedRows = new Map()
     fail(
         aids.size > 0 && attrs.size > 0 && uint(config.maxAttr) && config.maxAttr > 0,
         'Missing permanent cultivation model',
@@ -54,9 +55,19 @@ export function permanentModel(system, id) {
             ErrorCode.FunctionClosed,
         )
         fail(
-            aids.has(rule[2]) && uint(row.type) && row.type > 0 && uint(row.lvl) && row.lvl > 0,
+            aids.has(rule[2]) && uint(row.type) && row.type > 0 && uint(row.lvl),
             'Invalid permanent cultivation row identity',
         )
+        // 1.0.0 adds a level-zero presentation row for every locked companion.
+        // It has no price or effect and is never an owned/default paid level.
+        if (row.lvl === 0) {
+            fail(
+                !row.cost && !row.effect && !lockedRows.has(row.type),
+                'Invalid locked permanent cultivation presentation',
+            )
+            lockedRows.set(row.type, rule[2])
+            continue
+        }
         const cost = String(row.cost).split('#').map(Number)
         fail(
             cost.length === 3 && cost[0] === 10 && uint(cost[1]) && cost[1] > 0 && uint(cost[2]) && cost[2] > 0,
@@ -89,6 +100,8 @@ export function permanentModel(system, id) {
         group.rows.set(row.lvl, { id: row.id, level: row.lvl, cost, attribute, bond, effectIds: list(row.effect) })
     }
     fail(groups.size > 0, 'Missing permanent cultivation levels')
+    for (const [type, assistant] of lockedRows)
+        fail(groups.get(type)?.assistant === assistant, 'Mismatched locked permanent cultivation presentation')
     for (const group of groups.values()) {
         const levels = [...group.rows.keys()].sort((a, b) => a - b)
         fail(
