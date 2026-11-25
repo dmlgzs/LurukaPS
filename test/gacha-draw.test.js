@@ -212,14 +212,21 @@ test('category probabilities need not be increasing thresholds, while overflowin
         (error) => error.code === ErrorCode.GameConfig,
     )
 })
-test('5200 publishes the explicit offline card-pool window on login and preserves it through activity refresh', () => {
+test('5200 publishes the explicit offline card-pool window on login and activity calendar aggregation preserves it', () => {
     const f = fixture('gacha-time-sync')
     try {
-        for (const packets of [f.login.packets, f.call('ActivityGet').packets]) {
-            const packet = packets.find((p) => p.id === 5200)
-            assert(packet)
-            const times = f.protocol.decode(f.protocol.byId.get(5200).rsp, packet.payload).data_list
-            for (const id of [90, 91, 92, 93, 94]) {
+        const packet = f.login.packets.find((p) => p.id === 5200)
+        assert(packet)
+        for (const times of [
+            f.protocol.decode(f.protocol.byId.get(5200).rsp, packet.payload).data_list,
+            f.game.activities.commonTimes(1790000000).data_list,
+        ]) {
+            for (const id of new Set(
+                gachaTables(f.tables)
+                    .get('gacha')
+                    .map((row) => row.timelimit)
+                    .filter(Boolean),
+            )) {
                 const row = times.find((t) => t.time_id === id)
                 assert.equal(row.start_time, '0')
                 assert.equal(row.end_time, '4102444800')
@@ -353,7 +360,7 @@ test('FIRST_FREE requires a single observation and its one-time fixed target is 
         f.store.close()
     }
 })
-test('missing schedules can be closed or explicitly overridden, while genuine time rows retain their actual dates', () => {
+test('missing current schedules can be closed or explicitly overridden without inventing a static calendar', () => {
     const f = fixture('gacha-closed', { gachaPolicy: { missing_schedule: 'closed' } })
     try {
         f.fund(501001, 1)
@@ -365,8 +372,12 @@ test('missing schedules can be closed or explicitly overridden, while genuine ti
         assert.deepEqual(f.state(), saved)
         const tables = gachaTables(f.tables),
             catalog = new GachaCatalog(tables),
-            engine = new GachaDrawEngine(catalog, tables)
+            engine = new GachaDrawEngine(catalog, tables, { missing_schedule: 'closed' })
         assert.equal(engine.open({ ...catalog.configuration(1001), timelimit: 1 }, 1790000000), false)
+        assert.equal(
+            new GachaDrawEngine(catalog, tables).open({ ...catalog.configuration(1001), timelimit: 1 }, 1790000000),
+            true,
+        )
     } finally {
         f.store.close()
     }

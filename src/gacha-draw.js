@@ -157,11 +157,7 @@ export class GachaDrawEngine {
                     'Invalid gacha guarantee configuration',
                     ErrorCode.GameConfig,
                 )
-                ensure(
-                    rule.guaranteeType <= 3 && rule.selfchoose === 0,
-                    'Gacha guarantee variant not implemented',
-                    ErrorCode.FunctionClosed,
-                )
+                ensure(rule.guaranteeType <= 3, 'Gacha guarantee variant not implemented', ErrorCode.FunctionClosed)
                 const buckets = String(rule.gacha_pool_type_list || '')
                     .split('|')
                     .filter(Boolean)
@@ -198,6 +194,28 @@ export class GachaDrawEngine {
                         return { field, weight, items }
                     })
                 ensure(buckets.length > 0, 'Gacha guarantee has no candidate buckets', ErrorCode.GameConfig)
+                if (rule.selfchoose) {
+                    // 1.0.0 type10 keeps the ordinary rarity guarantee and uses
+                    // 9707 aimed_item_ids to select its SSR soul candidate.
+                    // The local selected-SSR policy remains explicit; no new
+                    // unverified probability or separate fate counter is added.
+                    ensure(
+                        config.gachaType === 10 &&
+                            rule.guaranteeType === 2 &&
+                            buckets.every((b) => b.field === 'soulessence_SSR') &&
+                            this.policy.aimed_ssr_policy === 'selected',
+                        'Gacha selected guarantee variant not implemented',
+                        ErrorCode.FunctionClosed,
+                    )
+                    const targets = parseRewards(config.selfChooseuplist),
+                        members = new Set(buckets.flatMap((b) => b.items.map(identity)))
+                    ensure(
+                        targets.length > 0 &&
+                            targets.every((t) => t.itemtype === 9 && t.itemnum === 1 && members.has(identity(t))),
+                        'Gacha selected guarantee target configuration unavailable',
+                        ErrorCode.GameConfig,
+                    )
+                }
                 const members = new Set(buckets.flatMap((b) => b.items.map(identity)))
                 const minimum = Math.min(
                     ...buckets.flatMap((b) =>
@@ -505,8 +523,6 @@ export class GachaDrawEngine {
             'Gacha ticket configuration unavailable',
             ErrorCode.GameConfig,
         )
-        payGachaTickets(c, this.tables, type.costItem, fee)
-        this.inherit(c.state, config, entry, model.rules)
         const up = new Set(parseRewards(model.pool.UP_hero_SSR).map(identity)),
             results = []
         const targets = parseRewards(config.selfChooseuplist),
@@ -516,6 +532,15 @@ export class GachaDrawEngine {
             'Saved gacha target is no longer offered',
             ErrorCode.GameConfig,
         )
+        // GachaManager.IsGachaAimTargetReady (1.0.0 IL 06029836) gates
+        // all type10 draws, independently of the ordinary pity counter.
+        ensure(
+            config.gachaType !== 10 || aimed.length === 1,
+            'Choose a gacha target before drawing',
+            ErrorCode.InvalidArgument,
+        )
+        payGachaTickets(c, this.tables, type.costItem, fee)
+        this.inherit(c.state, config, entry, model.rules)
         let newHero = false
         for (let i = 0; i < request.draw_count; i++) {
             const roll = random(c.randomInt, model.scale)

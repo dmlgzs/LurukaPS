@@ -6,7 +6,7 @@ import { Tables } from '../src/player.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { gachaTables } from '../src/gacha-tables.js'
-import { grantRewards } from '../src/rewards.js'
+import { grantRewards, parseRewards } from '../src/rewards.js'
 import { ErrorCode } from '../src/error-codes.js'
 
 const config = configuration()
@@ -33,13 +33,15 @@ function fixture(name, rng = (maximum) => maximum - 1) {
         const packets = game.dispatch(session, request)
         return protocol.decode('SCDoGachaRsp', packets.find((packet) => packet.id === 9701).payload)
     }
-    return { store, edit, drawFrame, send, state: () => store.load(session.id).state }
+    const aim = (pool_id, item_id) => game.dispatch(session, frame('GachaAimTarget', { pool_id, item_id }))
+    return { store, edit, drawFrame, send, aim, state: () => store.load(session.id).state }
 }
 
 test('9701 returns present surprise objects for every result across all five actual card pools', () => {
     const f = fixture('gacha-presentation-all-pools')
     try {
         for (const row of current.get('gacha')) {
+            if (row.gachaType === 10) f.aim(row.gachaId, parseRewards(row.selfChooseuplist)[0].itemid)
             const count = row.onlyTenPull ? 10 : 1
             const reply = f.send(f.drawFrame(row.gachaId, count))
             assert.equal(reply.gacha_results.length, count)
