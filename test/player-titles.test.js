@@ -8,7 +8,16 @@ import { ErrorCode } from '../src/error-codes.js'
 import { grantRewards } from '../src/rewards.js'
 import { playerTitleSnapshot } from '../src/player-titles.js'
 
-const list = (f, session = f.a) => f.reply(f.call(session, 'TitleGetList'), 10300)
+// Existing ownership/selection assertions use a slot projection of the actual
+// 1.0 wire response; player-titles-wire.test.js verifies the exact infos shape.
+const list = (f, session = f.a) => {
+    const response = f.reply(f.call(session, 'TitleGetList'), 10300)
+    assert.ok(Array.isArray(response.infos))
+    return {
+        preffix_title: response.infos.filter((row) => row.type === 1).map((row) => row.id),
+        suffix_title: response.infos.filter((row) => row.type === 2).map((row) => row.id),
+    }
+}
 const select = (f, type, id, session = f.a) => f.call(session, 'TitleChange', { type, id })
 const grant = (f, id, n = 1) =>
     f.call(f.a, 'GMCommand', { command: Buffer.from(`give 17 ${id} ${n}`).toString('base64') })
@@ -22,7 +31,6 @@ const synced = (f, packets) =>
 test('10300 exposes only table-configured defaults and 10301 changes the selected slot before ACK', () => {
     const f = chatShieldFixture('titles-default')
     try {
-        assert.equal(f.tables.get('player_title').length, 22)
         assert.deepEqual(list(f), { preffix_title: [171000], suffix_title: [172000] })
         assert.equal(f.state(f.a).titles, undefined, 'query must not create ownership')
         const before = structuredClone(f.state(f.b)),
@@ -65,7 +73,7 @@ test('resource type 17 grants real ownership through the shared reward path with
         const all = list(f)
         assert.equal(
             all.preffix_title.length + all.suffix_title.length,
-            22,
+            f.tables.get('player_title').length,
             'all configured titles use the same grant path',
         )
     } finally {

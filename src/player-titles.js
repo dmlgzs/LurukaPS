@@ -56,6 +56,14 @@ export function playerTitleSnapshot(tables, state) {
         }),
     )
 }
+export function playerTitleWireSnapshot(tables, state) {
+    const owned = playerTitleSnapshot(tables, state)
+    return {
+        // 1.0 pagePlayerTitle consumes infos. Omit deadtime for permanent
+        // ownership: its Lua consumer adds one to any present deadtime, even 0.
+        infos: fields.flatMap((field, index) => owned[field].map((id) => ({ id, type: index + 1 }))),
+    }
+}
 export function playerTitleList(store, tables, id) {
     if (!views.has(store)) views.set(store, new Map())
     const entries = views.get(store),
@@ -72,7 +80,7 @@ export function playerTitleList(store, tables, id) {
         if (!entries.has(id) && entries.size >= 4096) entries.delete(entries.keys().next().value)
         entries.set(id, cached)
     }
-    return playerTitleSnapshot(tables, cached)
+    return playerTitleWireSnapshot(tables, cached)
 }
 export function changePlayerTitle(c, request) {
     ensure([1, 2].includes(request.type), 'Invalid player title slot', ErrorCode.TitleTypeFail)
