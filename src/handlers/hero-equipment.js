@@ -11,6 +11,7 @@ import { heroSkillUpgrade } from '../hero-skill-upgrades.js'
 import { nextHeroGrade } from '../hero-grade.js'
 import { nextHeroRank } from '../hero-rank.js'
 import { nextSoulRank } from '../soul-rank.js'
+import { soulLevelLimit } from '../soul-level.js'
 import { planSoulStar } from '../soul-star.js'
 import { soulDecomposePlan } from '../soul-decompose.js'
 import { nextOrnamentLevel } from '../ornament-upgrade.js'
@@ -519,16 +520,8 @@ export function registerHeroEquipment(on, publishEquipment) {
             .filter((row) => row.rarity === cfg.rarity)
             .sort((a, b) => a.lv - b.lv)
         const current = levels.find((row) => row.lv === target.lv)
-        const rank = c.tables
-            .get('soulessence_rank')
-            .find((row) => row.relatedId === target.id && row.rank === target.rank)
         ensure(current, 'Soul level unavailable', ErrorCode.SoulEssenceComCostSame)
-        ensure(rank, 'Soul rank unavailable', ErrorCode.SoulEssenceHadNotRank)
-        ensure(
-            Number.isInteger(rank.rankLevelLimit) && rank.rankLevelLimit > 0,
-            'Invalid soul rank level cap',
-            ErrorCode.GameConfig,
-        )
+        const limit = soulLevelLimit(c.tables, c.state, target)
         ensure(
             Number.isSafeInteger(current.exp_all) &&
                 current.exp_all >= 0 &&
@@ -537,7 +530,7 @@ export function registerHeroEquipment(on, publishEquipment) {
             'Invalid saved soul experience',
             ErrorCode.GameConfig,
         )
-        const cap = Math.min(rank.rankLevelLimit, levels.at(-1).lv)
+        const cap = Math.min(limit.cap, levels.at(-1).lv)
         ensure(target.lv < cap, 'Soul essence level cap reached', ErrorCode.SoulEssenceNoConfig)
         const setting = (name) => {
             const value = c.tables.get('game').find((row) => row.title === name)?.value
