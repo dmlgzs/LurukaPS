@@ -7,6 +7,18 @@ function tabs(tables) {
         catalogs.set(tables, new Map(tables.get('home_building_type').map((r) => [r.id, r.homeManageTab])))
     return catalogs.get(tables)
 }
+export function homeHubStationPets(state) {
+    const stationed = state.home?.stationPets ?? []
+    ensure(Array.isArray(stationed), 'Invalid home-hub stationed pets', ErrorCode.GameConfig)
+    // 1.0 keeps the hub list and each ranch's productPets in separate capacity
+    // domains. Project old overlapping memberships without cancelling jobs.
+    const producers = new Set()
+    for (const ranch of Object.values(state.home?.ranches ?? {})) {
+        ensure(Array.isArray(ranch.product_pets), 'Invalid ranch producer list', ErrorCode.GameConfig)
+        for (const row of ranch.product_pets) producers.add(row.pet_guid)
+    }
+    return stationed.filter((guid) => !producers.has(guid))
+}
 // The wire build_type is HomeHubTabType; each build_guid is the outer owned
 // WorldMapHomeBuild identity, including fixed ranch and world-collection records.
 export function homeHubPayload(tables, state, builds) {
@@ -40,7 +52,7 @@ export function homeHubPayload(tables, state, builds) {
         // back by the client. Removed buildings are absent; new ones append.
         pos_infos.push({ build_type: type, builds: ordered.map((build_guid, i) => ({ pos: i + 1, build_guid })) })
     }
-    return { pos_infos, station_pets: state.home.stationPets ?? [] }
+    return { pos_infos, station_pets: homeHubStationPets(state) }
 }
 export function changeHomeHubPosition(state, request, hub) {
     ensure([1, 2, 3, 4].includes(request.type), 'Unknown home-hub tab', ErrorCode.HomeHubPosErr)

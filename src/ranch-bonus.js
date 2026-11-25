@@ -62,12 +62,14 @@ export function ranchBonusCatalog(tables) {
         )
         return row
     })
-    // TODO: This approved bounded model covers the current 57 fixed-two base streams and four bonus definitions.
+    // Current HomeDrop min/max values define each committed batch. The bonus
+    // ledger counts item units, independently of the number of configured drops.
     ensure(
-        baseIds.size === 57 && baseDrops.every((row) => row.itemType === 3 && row.minValue === 2 && row.maxValue === 2),
-        'Unsupported ranch base-quantity schema',
+        baseDrops.length > 0 && baseDrops.every((row) => row.itemType === 3),
+        'Unsupported ranch base item category',
         ErrorCode.FunctionClosed,
     )
+    const maximumBaseQuantity = Math.max(...baseDrops.map((row) => row.maxValue))
     const definitions = []
     for (const row of tables.get('home_technology')) {
         const ids = list(row.buffId),
@@ -89,7 +91,7 @@ export function ranchBonusCatalog(tables) {
             ensure(tokens.every(uint), 'Invalid ranch bonus numeric parameters', ErrorCode.GameConfig)
             ensure(tokens[0] === 10000, 'Unsupported ranch bonus parameter schema', ErrorCode.FunctionClosed)
             const threshold = kind === 3006 ? tokens[2] : tokens[1]
-            ensure(positive(threshold) && threshold > 2, 'Invalid ranch bonus threshold', ErrorCode.GameConfig)
+            ensure(positive(threshold), 'Invalid ranch bonus threshold', ErrorCode.GameConfig)
             ensure(
                 kind === 3006 ? tokens.length === 3 : tokens.length >= 5 && tokens.length % 2 === 1 && tokens[2] === 0,
                 'Unsupported ranch bonus parameter shape',
@@ -167,7 +169,7 @@ export function ranchBonusCatalog(tables) {
     for (const kind of kinds) {
         const thresholds = definitions.filter((row) => row.kind === kind).map((row) => row.threshold)
         ensure(
-            Math.floor((Math.max(...thresholds) - 1 + 2) / Math.min(...thresholds)) <= 1,
+            Math.floor((Math.max(...thresholds) - 1 + maximumBaseQuantity) / Math.min(...thresholds)) <= 1,
             'Ranch bonus schema exceeds bounded pending model',
             ErrorCode.FunctionClosed,
         )
@@ -178,7 +180,13 @@ export function ranchBonusCatalog(tables) {
         seen.add(from)
         return list(tree.get(from)?.posttechnologyTypeId).some((next) => descends(next, to, seen))
     }
-    const result = { definitions, byId: new Map(definitions.map((row) => [row.id, row])), descends }
+    const result = {
+        definitions,
+        byId: new Map(definitions.map((row) => [row.id, row])),
+        baseDrops: new Map(baseDrops.map((row) => [row.id, row])),
+        maximumBaseQuantity,
+        descends,
+    }
     catalogs.set(tables, result)
     return result
 }
@@ -367,13 +375,18 @@ function roll(randomInt, maximum) {
 }
 export function recordRanchBaseCommit(tables, state, ranch, base, at, randomInt) {
     const ledger = validateRanchBonus(tables, ranch)
+    const source = ranchBonusCatalog(tables).baseDrops.get(base?.drop_id)
     ensure(
         ledger &&
             u64(base.pet_guid) &&
             positive(base.guid) &&
             positive(base.drop_id) &&
-            base.item.itemtype === 3 &&
-            base.item.itemnum === 2 &&
+            source &&
+            base.item.itemtype === source.itemType &&
+            list(source.itemId).includes(base.item.itemid) &&
+            positive(base.item.itemnum) &&
+            base.item.itemnum >= source.minValue &&
+            base.item.itemnum <= source.maxValue &&
             uint(at),
         'Invalid ranch base production fact',
         ErrorCode.GameConfig,

@@ -82,20 +82,23 @@ export function ranchWorkerLimit(tables, state, field = 'pasture_woker_max') {
         'Missing home worker capacity',
         ErrorCode.GameConfig,
     )
-    return (
-        level[field] +
-        tables
-            .get('home_freeworkposition')
-            .filter((row) => homeCondition(row.unlockCondition, state))
-            .reduce((sum, row) => {
-                ensure(
-                    Number.isSafeInteger(row.num) && row.num >= 0,
-                    'Invalid free worker capacity',
-                    ErrorCode.GameConfig,
-                )
-                return sum + row.num
-            }, 0)
+    // 1.0 HomeUtil.GetPetStationedWorkingLimit / GetRanchWorkingLimit:
+    // WorkerMax / PastureWokerMax + ConstType.HOME_KIBO_WORK_MANAGE_POSITION.
+    // The former condition-based free-work-position table is no longer used.
+    const rows = tables.get('game').filter((row) => row.title === 'HOME_KIBO_WORK_MANAGE_POSITION')
+    ensure(
+        rows.length === 1 && rows[0].type === 'int' && /^\d+$/.test(String(rows[0].value)),
+        'Missing or malformed home work-position capacity constant',
+        ErrorCode.GameConfig,
     )
+    const increment = Number(rows[0].value),
+        capacity = level[field] + increment
+    ensure(
+        Number.isSafeInteger(increment) && increment >= 0 && Number.isSafeInteger(capacity) && capacity <= 0xffffffff,
+        'Home worker capacity exceeds wire bounds',
+        ErrorCode.GameConfig,
+    )
+    return capacity
 }
 export function ranchPetDrops(tables, pet) {
     const data = ranchCatalog(tables),

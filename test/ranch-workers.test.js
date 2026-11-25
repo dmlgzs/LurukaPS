@@ -4,6 +4,12 @@ import { ranchFixture } from './ranch-fixture.js'
 import { ranchPetDrops, ranchSeconds, ranchWorkerLimit } from '../src/ranch.js'
 import { ErrorCode } from '../src/error-codes.js'
 
+const currentDrops = (f) =>
+    String(f.tables.find('pet_home_talent', 500001).farmProducts)
+        .split('|')
+        .map((id) => f.tables.find('home_drop', Number(id)))
+const firstPeriod = (f) => Math.min(...currentDrops(f).map((row) => row.dropTime))
+
 test('6162 assigns current role/slot and removes battle and mount bindings before home/pet sync', () => {
     const f = ranchFixture('ranch-assign')
     try {
@@ -31,28 +37,32 @@ test('6162 assigns current role/slot and removes battle and mount bindings befor
             .home_builds.find((b) => b.build_type === 53)
         assert.equal(wire.ranch_pet_work_info.block_id, 201)
         assert.equal(wire.ranch_pet_work_info.product_pets[0].slot, 1)
-        assert(wire.ranch_pet_work_info.product_pets[0].drop_times.every((c) => c.time === f.now() + 360))
-        const before = f.state()
+        assert(
+            wire.ranch_pet_work_info.product_pets[0].drop_times.every(
+                (c) => c.time === f.now() + f.tables.find('home_drop', c.drop_id).dropTime,
+            ),
+        )
         f.assign()
-        assert.deepEqual(f.state(), before)
+        assert(!f.state().home.ranches[201].product_pets.some((row) => row.pet_guid === f.pets[0]))
+        assert.equal(f.state().pets.find((pet) => pet.guid === f.pets[0]).work_status, 0)
     } finally {
         f.close()
     }
 })
 
 test('all current pet farmProducts rows use their real drops and the native capacity exceeds old petLimit=2', () => {
-    const f = ranchFixture('ranch-capacity', { pets: 6 })
+    const f = ranchFixture('ranch-capacity', { pets: 13 })
     try {
         const seen = new Set()
         for (const row of f.tables.get('pet_home_talent'))
             for (const drop of ranchPetDrops(f.tables, { config_id: row.id })) seen.add(drop.id)
-        assert.equal(seen.size, 57)
-        assert.equal(ranchWorkerLimit(f.tables, f.state()), 5)
-        for (let i = 0; i < 5; i++) f.assign(f.pets[i], i + 1)
-        assert.equal(f.state().home.ranches[201].product_pets.length, 5)
+        assert.equal(seen.size, 58)
+        assert.equal(ranchWorkerLimit(f.tables, f.state()), 12)
+        for (let i = 0; i < 12; i++) f.assign(f.pets[i], i + 1)
+        assert.equal(f.state().home.ranches[201].product_pets.length, 12)
         const before = f.store.load(f.session.id)
         assert.throws(
-            () => f.assign(f.pets[5], 6),
+            () => f.assign(f.pets[12], 13),
             (e) => e.code === ErrorCode.HomeRanchLvPosLimit,
         )
         assert.deepEqual(f.store.load(f.session.id), before)
@@ -67,14 +77,14 @@ test('ranch production is due only on its actual period, creates configured loot
         f.assign()
         const sql = () => f.store.db.prepare('select total_changes() as n').get().n
         const before = sql()
-        f.elapse(359)
+        f.elapse(firstPeriod(f) - 1)
         assert.deepEqual(f.tick(), [])
         assert.equal(sql(), before)
         f.elapse(1)
         const packets = f.tick()
         assert(packets.some((p) => p.id === 6102))
         const ranch = f.state().home.ranches[201],
-            expected = ranchPetDrops(f.tables, { config_id: 500001 })
+            expected = currentDrops(f).filter((row) => row.dropTime === firstPeriod(f))
         assert.equal(ranch.drops.length, expected.length)
         for (const drop of ranch.drops) {
             const row = expected.find((r) => r.id === drop.drop_id)
@@ -98,7 +108,7 @@ test('ranch production is due only on its actual period, creates configured loot
         assert.equal(new Set(full.drops.map((d) => d.guid)).size, full.drops.length)
         assert(calls <= 40, 'catch-up work is bounded by capacity, not elapsed intervals')
         calls = 0
-        f.elapse(360)
+        f.elapse(firstPeriod(f))
         f.tick()
         assert.equal(calls, 0)
     } finally {
@@ -106,14 +116,17 @@ test('ranch production is due only on its actual period, creates configured loot
     }
 })
 
-test('failed rolls produce no fake loot; labor and current technology determine the configured period', () => {
+test('production waits for the real current period; labor and technology adjust that configured period', () => {
     const f = ranchFixture('ranch-probability')
     try {
         f.setRoll((max) => max - 1)
         f.assign()
-        f.elapse(360)
+        f.elapse(firstPeriod(f) - 1)
         f.tick()
         assert.deepEqual(f.state().home.ranches[201].drops, [])
+        f.elapse(1)
+        f.tick()
+        assert(f.state().home.ranches[201].drops.length > 0)
         const s = f.state(),
             pet = s.pets.find((p) => p.guid === f.pets[0]),
             row = ranchPetDrops(f.tables, pet)[0]
@@ -136,21 +149,21 @@ test('failed rolls produce no fake loot; labor and current technology determine 
     }
 })
 
-test('the actual drop rate boundary is in ten-thousandths and failed periods do not accrue a fake reward', () => {
+test('current guaranteed base streams succeed at both ends of the valid RNG range', () => {
     const f = ranchFixture('ranch-rate-boundary')
     try {
         f.assign()
-        const row = ranchPetDrops(f.tables, { config_id: 500001 }).sort((a, b) => b.rate - a.rate)[0]
-        const below = Math.floor((row.rate / 10000) * 0x100000000 - 0.5)
-        f.setRoll(() => below)
-        f.elapse(360)
+        const row = currentDrops(f)[0]
+        assert.equal(row.rate, 10000)
+        f.setRoll(() => 0xffffffff)
+        f.elapse(row.dropTime)
         f.tick()
         const drops = f.state().home.ranches[201].drops.filter((drop) => drop.drop_id === row.id)
         assert.equal(drops.length, 1)
-        f.setRoll(() => below + 1)
-        f.elapse(360)
+        f.setRoll(() => 0)
+        f.elapse(row.dropTime)
         f.tick()
-        assert.equal(f.state().home.ranches[201].drops.filter((drop) => drop.drop_id === row.id).length, 1)
+        assert.equal(f.state().home.ranches[201].drops.filter((drop) => drop.drop_id === row.id).length, 2)
     } finally {
         f.close()
     }
@@ -160,14 +173,17 @@ test('changing the current technology period retains fractional progress rather 
     const f = ranchFixture('ranch-retiming')
     try {
         f.assign()
-        f.elapse(90)
+        const basePeriod = currentDrops(f)[0].dropTime
+        const elapsed = Math.floor(basePeriod / 4)
+        f.elapse(elapsed)
         f.store.transact(f.session.id, 0, (s) => {
             s.home.technology.levels[20087] = { level: 1 }
         })
         f.call('HomeTechnologyTypeInfo', { type: 2 })
         const clock = f.state().home.ranches[201].product_pets[0].drop_times[0]
-        assert.equal(clock.seconds, 327)
-        assert.equal(clock.time, f.now() + Math.ceil((270 / 360) * 327))
+        const seconds = Math.floor(basePeriod * (1 - 909 / 10000))
+        assert.equal(clock.seconds, seconds)
+        assert.equal(clock.time, f.now() + Math.ceil(((basePeriod - elapsed) / basePeriod) * seconds))
         f.elapse(clock.time - f.now() - 1)
         assert.deepEqual(f.tick(), [])
         f.elapse(1)
@@ -233,7 +249,7 @@ test('locked ranch, foreign pets, bad roles and encoding failure leave worker an
         assert.deepEqual(f.store.load(f.session.id), before)
         f.game.packet = packet
         f.assign()
-        f.elapse(360)
+        f.elapse(firstPeriod(f))
         before = f.store.load(f.session.id)
         f.game.packet = function (name, ...args) {
             if (name === 'CSProtoHomeSync') throw Error('ranch tick failed')

@@ -5,7 +5,7 @@ import { ensure, textValue, pet } from './common.js'
 import { ensurePetName } from '../pets.js'
 import { caressPet } from '../pet-caress.js'
 import { ensureHome, homePayload } from '../home.js'
-import { changeHomeHubPosition } from '../home-hub.js'
+import { changeHomeHubPosition, homeHubStationPets } from '../home-hub.js'
 import { homeTreePayload, homeTreeState, upgradeHomeTree } from '../home-tree.js'
 import { reconcileFormationPets } from '../formation-pets.js'
 import { mountPayload, repairMountSelection } from '../mounts.js'
@@ -75,14 +75,15 @@ export function registerHome(on, tables) {
     on('PetStationInHomeHub', (c, r) => {
         const p = pet(c.state, r.pet_guid),
             home = ensureHome(tables, c.state),
-            station = (home.stationPets ??= [])
+            station = homeHubStationPets(c.state)
         ensure(r.type === 0 || r.type === 1, 'Invalid home-hub pet action')
         if (r.type === 0) {
             requirePetModel(tables, p)
             if (station.includes(p.guid)) return {}
             const unlocked = ranchWorkerLimit(tables, c.state, 'worker_max')
             ensure(station.length < unlocked, 'Home-hub pet slots are full', ErrorCode.HomeHubFull)
-            ensure(!p.work_status || p.work_status === 7, 'Pet is working elsewhere')
+            ensure(!p.work_status || [6, 7].includes(p.work_status), 'Pet is working elsewhere')
+            if (p.work_status === 6) clearRanchPetSlots(c.state, p.guid)
             const bound = c.state.player.heros_info.heros.filter((hero) => hero.pet_id === p.guid)
             for (const hero of bound) hero.pet_id = '0'
             if (bound.length || (p.hero_id && p.hero_id !== '0')) {
@@ -115,6 +116,7 @@ export function registerHome(on, tables) {
                 p.capacity_id = 0
             }
         }
+        home.stationPets = station
         c.state.petRevision = (c.state.petRevision || 0) + 1
         if (repairMountSelection(tables, c.state)) c.push('CSProtoRideMountInfo', mountPayload(tables, c.state))
         change(c)

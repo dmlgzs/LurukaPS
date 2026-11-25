@@ -29,14 +29,18 @@ function altered({ drop, params } = {}) {
     }
 }
 
-test('catalog separates missing or malformed base definitions from legal unsupported quantities', () => {
+test('catalog validates base definitions and derives bounded quantity support from current drop ranges', () => {
     for (const drop of [() => undefined, (row) => ({ ...row, minValue: NaN }), (row) => ({ ...row, maxValue: -1 })])
         assert.throws(
             () => ranchBonusCatalog(altered({ drop })),
             (error) => error.code === ErrorCode.GameConfig,
         )
+    assert.equal(
+        ranchBonusCatalog(altered({ drop: (row) => ({ ...row, minValue: 1, maxValue: 3 }) })).maximumBaseQuantity,
+        3,
+    )
     assert.throws(
-        () => ranchBonusCatalog(altered({ drop: (row) => ({ ...row, minValue: 3, maxValue: 3 }) })),
+        () => ranchBonusCatalog(altered({ drop: (row) => ({ ...row, minValue: 1, maxValue: 400 }) })),
         (error) => error.code === ErrorCode.FunctionClosed,
     )
 })

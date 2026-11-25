@@ -21,6 +21,34 @@ import { ranchStoreItems } from '../ranch-items.js'
 import { grantRewards } from '../rewards.js'
 import { rewardSource } from '../reward-source.js'
 import { playerIsInBattle } from '../player-battle-state.js'
+import { homeHubStationPets } from '../home-hub.js'
+import { createHash } from 'node:crypto'
+
+function workReceipt(c, request) {
+    if (!c.requestKey) return { repeated: false, commit() {} }
+    const hash = (value) => createHash('sha256').update(value).digest('hex')
+    const key = hash(c.requestKey),
+        payload = hash(JSON.stringify(request)),
+        rows = c.state.ranchWorkReceipts ?? []
+    ensure(
+        Array.isArray(rows) &&
+            rows.every((row) => /^[a-f0-9]{64}$/.test(row?.key) && /^[a-f0-9]{64}$/.test(row?.payload)),
+        'Invalid ranch work request receipts',
+        ErrorCode.GameConfig,
+    )
+    const previous = rows.find((row) => row.key === key)
+    ensure(
+        !previous || previous.payload === payload,
+        'Ranch work sequence reused with different payload',
+        ErrorCode.InvalidPacket,
+    )
+    return {
+        repeated: !!previous,
+        commit() {
+            c.state.ranchWorkReceipts = [...rows, { key, payload }].slice(-256)
+        },
+    }
+}
 
 export function ranchContext(c, block) {
     const map = ranchCatalog(c.tables).constants.get('HOME_ID')
@@ -109,6 +137,8 @@ export function registerRanch(on, tables) {
         return {}
     })
     on('RanchSetPetOption', (c, request) => {
+        const receipt = workReceipt(c, request)
+        if (receipt.repeated) return {}
         let ranch = ranchDispatchContext(c, request.block_id)
         const data = ranchCatalog(tables)
         ensure([1, 2].includes(request.work_type), 'Invalid ranch work role', ErrorCode.InvalidArgument)
@@ -120,7 +150,7 @@ export function registerRanch(on, tables) {
             'Ranch work slot is locked',
             ErrorCode.HomeRanchLvPosLimit,
         )
-        const id = String(request.pet_guid ?? '0'),
+        let id = String(request.pet_guid ?? '0'),
             chosen = id === '0' ? null : c.state.pets.find((pet) => pet.guid === id)
         ensure(id === '0' || chosen, 'Ranch pet is not owned', ErrorCode.PetNotExist)
         const capacity = data.constants.get(
@@ -129,6 +159,13 @@ export function registerRanch(on, tables) {
         const existing = producer
             ? (ranch.product_pets.find((entry) => entry.slot === slot)?.pet_guid ?? '0')
             : ranch.harvest_pet
+        // Current UI sends the same slot and GUID for removal (6162), not a
+        // zero GUID. A new sequence is a new click; exact sequence replays above
+        // must not toggle the worker a second time.
+        if (producer && chosen && existing === id) {
+            chosen = null
+            id = '0'
+        }
         if (chosen) {
             requirePetModel(tables, chosen)
             ensure(
@@ -157,23 +194,25 @@ export function registerRanch(on, tables) {
                     'Pet lacks ranch harvesting ability',
                     ErrorCode.BuildPetAutoWorkInvalid,
                 )
-            const home = c.state.home,
-                stationed = home.stationPets ?? []
+            const stationed = homeHubStationPets(c.state)
             const freed =
                 request.out_hub && existing !== '0' && existing !== chosen.guid && stationed.includes(existing) ? 1 : 0
-            ensure(
-                stationed.includes(chosen.guid) ||
-                    stationed.length - freed < ranchWorkerLimit(tables, c.state, 'worker_max'),
-                'Home hub worker capacity exceeded',
-                ErrorCode.HomeRanchLvPosLimit,
-            )
+            if (!producer)
+                ensure(
+                    stationed.includes(chosen.guid) ||
+                        stationed.length - freed < ranchWorkerLimit(tables, c.state, 'worker_max'),
+                    'Home hub worker capacity exceeded',
+                    ErrorCode.HomeRanchLvPosLimit,
+                )
         }
         if (
             existing === id &&
             (!chosen ||
                 (chosen.work_status === 6 && chosen.work_build === ranch.block_id && chosen.capacity_id === capacity))
-        )
+        ) {
+            receipt.commit()
             return {}
+        }
         settleRanches(tables, c.state, c.now, c.randomInt)
         // Settlement owns a COW ranch branch; do not continue writing the old reference.
         ranch = c.state.home.ranches[request.block_id]
@@ -181,18 +220,22 @@ export function registerRanch(on, tables) {
             const previous = c.state.pets.find((pet) => pet.guid === existing)
             ensure(previous, 'Missing previous ranch worker', ErrorCode.GameConfig)
             clearRanchPetSlots(c.state, existing)
-            previous.work_status = request.out_hub ? 0 : 7
+            previous.work_status = producer || request.out_hub ? 0 : 7
             previous.work_build = 0
             previous.capacity_id = 0
-            if (request.out_hub)
+            if (producer || request.out_hub)
                 c.state.home.stationPets = (c.state.home.stationPets || []).filter((guid) => guid !== existing)
         }
         if (chosen) {
             clearFarmPetSlots(c.state, chosen.guid)
             clearProductionPetSlots(c.state, chosen.guid, c.now)
             clearRanchPetSlots(c.state, chosen.guid)
-            const stationed = (c.state.home.stationPets ??= [])
-            if (!stationed.includes(chosen.guid)) stationed.push(chosen.guid)
+            if (producer)
+                c.state.home.stationPets = (c.state.home.stationPets ?? []).filter((guid) => guid !== chosen.guid)
+            else {
+                const stationed = (c.state.home.stationPets ??= [])
+                if (!stationed.includes(chosen.guid)) stationed.push(chosen.guid)
+            }
             const bound = c.state.player.heros_info.heros.filter((hero) => hero.pet_id === chosen.guid)
             for (const hero of bound) hero.pet_id = '0'
             if (bound.length || (chosen.hero_id && chosen.hero_id !== '0')) {
@@ -225,6 +268,7 @@ export function registerRanch(on, tables) {
         }
         c.state.petRevision = (c.state.petRevision || 0) + 1
         c.state.homeRevision = (c.state.homeRevision || 0) + 1
+        receipt.commit()
         return {}
     })
 }
