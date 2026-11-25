@@ -267,6 +267,7 @@ import { ensureAppearance, clothesSnapshot, heroSkinsSnapshot } from './appearan
 import { registerCollection } from './handlers/collection.js'
 import { registerWorld, repairLegacyMountState } from './handlers/world.js'
 import { registerMail } from './handlers/mail.js'
+import { mailboxLegacyPush } from './mailbox.js'
 import { registerGiftCodes } from './gift-codes.js'
 const deferredTaskProgress = new Set([
     'CSProtoTaskClientBefore',
@@ -1398,6 +1399,10 @@ export class Game {
                 const bagBefore = JSON.stringify(state.player.sbag_infos)
                 upgradeInventory(state)
                 const statePacket = (name, value, meta = {}) => {
+                    if (name === 'CSProtoMailSync' && this.protocol.retiredNames.has(name)) {
+                        const delta = mailboxLegacyPush(this.tables, state, now)
+                        return delta ? this.packet('SCProtoMailboxDelta', delta, meta) : null
+                    }
                     if (name === 'CSProtoWorldBuffSync') preparePersonalBuffPacket(state, this.tables, value)
                     if (name === 'CSProtoPetInfoSync') value = taskPetPresentation(this.tables, state, value)
                     if (name === 'CSProtoSyncPlayerData' && value) {

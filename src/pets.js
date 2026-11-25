@@ -214,10 +214,8 @@ export function createPets(tables, state, configId, count, builderRuleId = 1001,
         'Invalid pet box limits',
         ErrorCode.GameConfig,
     )
-    ensure(
-        Number.isInteger(count) && count > 0 && state.pets.length + count <= boxCount * boxSize,
-        'Pet boxes are full',
-    )
+    ensure(Number.isInteger(count) && count > 0, 'Invalid pet creation count')
+    ensure(state.pets.length + count <= boxCount * boxSize, 'Pet boxes are full', ErrorCode.BagPetFullForAdd)
     const used = new Set(state.pets.map((p) => p.box_id)),
         locked = new Set(lockedPetBoxes(tables, state)),
         slots = []

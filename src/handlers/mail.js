@@ -5,7 +5,9 @@ import { ensure, syncPlayer } from './common.js'
 import languageCodes from '../../configs/client-language-codes.json' with { type: 'json' }
 import { mailQuestionLink } from '../mail-question-links.js'
 import { selectMailRewards } from '../mail-lifetime.js'
+import { registerMailbox } from '../mailbox.js'
 export function registerMail(on) {
+    registerMailbox(on)
     on('GetQuestionLink', mailQuestionLink)
     const languages = new Set(Object.values(languageCodes))
     ensure(
