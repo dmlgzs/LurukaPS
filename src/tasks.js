@@ -1,6 +1,7 @@
 import { verifiedStoryCampaignStoryClear } from './story-campaign-story-receipts.js'
 import { hasHistoricalParentDungeonClear } from './story-clear-proof-migration.js'
 import { ErrorCode } from './error-codes.js'
+import { guideGroupComplete } from './guide-progress.js'
 import { WorldObjectCatalog } from './world-objects.js'
 import { deliveryComplete, deliveryKey } from './task-delivery.js'
 import { taskItemSnapshot } from './task-items.js'
@@ -91,7 +92,7 @@ export function conditionValue(condition, state, context) {
     if (condition.conditionId === 2505) return state.characterCustomized ? 1 : 0
     if (condition.conditionId === 2504) {
         const id = base.__type_TaskCondGuideData?.guideId
-        return state.player.guide_infos?.infos?.some((g) => g.id === id && g.complete) ? 1 : 0
+        return guideGroupComplete(state, id) ? 1 : 0
     }
     if (condition.conditionId === 2507) {
         const open = base.__type_TaskCondStoryOpenTaskData

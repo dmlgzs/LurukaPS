@@ -71,9 +71,21 @@ test('HavePet condition 12040 respects group, optional exact ID, and advances ow
     const limited = { pets: [{ config_id: 500156 }, { config_id: 500213 }] }
     assert.equal(guidedConditionValue(1060103, limited), 1)
     assert.equal(guidedConditionValue(1060104, limited), 1)
+    assert.equal(
+        tables.find('task_condition', 71301),
+        undefined,
+        'removed CBT3 condition has no current table fallback',
+    )
     assert.equal(guidedConditionValue(71301, limited), 0)
+    // Exercise the retained optional exact-species predicate explicitly;
+    // this synthetic rule is not a restored current table row.
+    const exactGroup = tables.get('pet_rank').find((row) => row.petId === 500158)?.petGroup
+    assert(Number.isInteger(exactGroup) && exactGroup > 0)
+    const exact = { condition: ['12040', exactGroup, 500158, 1].join('|'), param: 1 }
+    assert.equal(guidedConditionValue(1060103, limited, undefined, exact), 0)
     limited.pets.push({ config_id: 500158 })
-    assert.equal(guidedConditionValue(71301, limited), 1)
+    assert.equal(guidedConditionValue(71301, limited), 0)
+    assert.equal(guidedConditionValue(1060103, limited, undefined, exact), 1)
     const store = new Store(':memory:'),
         game = new Game(protocol, store, tables),
         session = {}
@@ -112,7 +124,8 @@ test('HavePet condition 12040 respects group, optional exact ID, and advances ow
         call('TaskClientCondAfter', { task_id: 106010, node_id: 185, indexes: [0] })
         call('TaskClientAfter', { task_id: 106010, node_id: 185 })
         node = store.load(session.id).state.tasks[0].nodes[0]
-        assert.equal(node.node_id, 152)
+        assert.deepEqual(graph.nodes.get(185).nextNodeIdList, [153])
+        assert.equal(node.node_id, 153)
     } finally {
         store.close()
     }

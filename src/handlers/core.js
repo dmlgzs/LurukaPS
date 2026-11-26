@@ -5,6 +5,7 @@ import { ensureAppearance, appearanceCatalog, normalizeClothes } from '../appear
 import { initializeCharacterFormation } from '../character-creation.js'
 import { repairMainHeroType } from '../main-hero.js'
 import { mergeWardrobeInfo } from '../appearance-wardrobe.js'
+import { recordGuideStep, setGuideSkipChoice } from '../guide-progress.js'
 export function registerCore(on) {
     on('PresetWardrobeReq', (c, r) => {
         ensure([1, 2].includes(r.sex), 'Invalid preset sex')
@@ -45,7 +46,7 @@ export function registerCore(on) {
         return {}
     })
     on('SkipGuide', (c, r) => {
-        c.state.player.basic_info.skip_guide = r.u32 ?? 1
+        setGuideSkipChoice(c.state, r.u32, c.now)
         syncPlayer(c, { basic_info: c.state.player.basic_info })
         return {}
     })
@@ -129,15 +130,7 @@ export function registerCore(on) {
         for (const entry of entries) options.set(entry.key, entry.val)
         c.state.player.custom_options = { entries: [...options].map(([key, val]) => ({ key, val })) }
     })
-    on('GuideUpdate', (c, r) => {
-        ensure(r.id > 0, 'Missing guide id')
-        const a = c.state.player.guide_infos.infos
-        const v = { id: r.id, sub_id: r.sub_id || 0, complete: true }
-        const i = a.findIndex((g) => g.id === r.id)
-        if (i < 0) a.push(v)
-        else a[i] = v
-        return v
-    })
+    on('GuideUpdate', (c, r) => recordGuideStep(c.tables, c.state, r))
     on('RedPointSet', (c, r) => {
         c.state.flags[`red:${r.id}:${r.sub_id || 0}`] = !!r.flag
         return {}

@@ -124,7 +124,7 @@ export function seedPlayer(tables, id, openId) {
                 language: 1,
                 birthday: { month: 1, day: 1 },
                 is_created: true,
-                skip_guide: 1,
+                skip_guide: 0,
                 nest_guide_finish: 1,
                 apparel_info: {},
                 clothes_info: {},
