@@ -26,7 +26,11 @@ function ownsFractalPet(c, data) {
             .map(Number)
     ensure(ids.length === 1, 'Task catch pet group unavailable', ErrorCode.GameConfig)
     const petId = petTables.enemy.find((r) => r.id === ids[0])?.petId,
-        petGroup = petTables.pet_rank.find((r) => r.petId === petId)?.petGroup
+        customized = c.tables.find('pet_customized', petId),
+        // Current TaskPetConditionHelper0602f203 probes pet_customized by
+        // key before resolving pet_rank; owned profiles use the base species.
+        basePetId = customized ? customized.petId : petId,
+        petGroup = petTables.pet_rank.find((r) => r.petId === basePetId)?.petGroup
     ensure(Number.isInteger(petGroup) && petGroup > 0, 'Task catch pet configuration unavailable', ErrorCode.GameConfig)
     return c.state.pets.some((p) => petTables.pet_rank.some((r) => r.petId === p.config_id && r.petGroup === petGroup))
 }

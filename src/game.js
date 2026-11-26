@@ -1223,7 +1223,7 @@ export class Game {
         if (e.name === 'CSProtoChatInfoSync' || e.name === 'CSProtoChatSyncNew')
             return this.store.read(session.id, (state) => [reply(handler({ id: session.id, state }, r))])
         if (e.name === 'CSProtoTitleGetList') return [reply(handler({ id: session.id, tables: this.tables }, r))]
-        if (e.name === 'CSProtoWorldObjSearch')
+        if (e.name === 'CSProtoWorldObjSearch' || e.name === 'CSProtoKiboCatchProbability')
             return this.store.read(session.id, (state) => [reply(handler({ state, tables: this.tables }, r))])
         if (e.name === 'CSProtoTrackPetReq')
             return this.store.read(session.id, (state) => {

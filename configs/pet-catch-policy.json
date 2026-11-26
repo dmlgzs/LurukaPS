@@ -1,0 +1,11 @@
+{
+    "version": 1,
+    "origin": "LOCAL",
+    "notOfficial": true,
+    "clientVersion": "1.0.0",
+    "strategy": "guaranteed-success",
+    "probability": 10000,
+    "probabilityUnit": "basis-points",
+    "description": "保留离线服现有合法捕捉必成策略；概率查询与捕捉结算共用，非官方概率模型。",
+    "todo": "当前客户端有完整本地概率计算，但服务端尚未闭合其权威捕捉修正、弧度、食物幸运、调查系数及逐目标逐卡失败保底输入；恢复官方模型时必须同时实现失败结算与历史，不能仅降低查询显示值。"
+}
