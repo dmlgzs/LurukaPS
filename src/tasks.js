@@ -1,3 +1,4 @@
+import { verifiedStoryCampaignStoryClear } from './story-campaign-story-receipts.js'
 import { ErrorCode } from './error-codes.js'
 import { WorldObjectCatalog } from './world-objects.js'
 import { deliveryComplete, deliveryKey } from './task-delivery.js'
@@ -553,6 +554,7 @@ export function hasVerifiedTaskDungeonClear(tables, state, dungeonId) {
     const [kind, victoryTask] = String(dungeon?.victoryCondition ?? '')
         .split('#')
         .map(Number)
+    if (kind === 2506) return verifiedStoryCampaignStoryClear(tables, state, dungeonId)
     if (kind !== 2007 || !ids.length || ids.at(-1) !== victoryTask) return false
     const proof = clear.task_proof
     if (

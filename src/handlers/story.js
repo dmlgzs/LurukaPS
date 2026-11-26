@@ -1,3 +1,5 @@
+import { recordStoryCampaignStoryReceipt } from '../story-campaign-story-receipts.js'
+import { settleStoryCampaignStory } from './story-campaign.js'
 import { ensure } from './common.js'
 import { registerStoryBattle } from '../story-battle.js'
 import { flushTaskSyncAfterStories } from '../tasks.js'
@@ -24,8 +26,10 @@ export function registerStory(on, tables) {
             full_watch: !!old?.full_watch || !r.is_skip,
             click_count: r.param || 0,
         }
+        recordStoryCampaignStoryReceipt(c, r)
         c.push('CSProtoStorySync', { infos: { infos: [r.story_id] } })
         flushTaskSyncAfterStories(c.tables, c.state, (snapshot) => c.push('CSProtoTaskSync', snapshot))
+        settleStoryCampaignStory(c)
         return { u32: r.story_id }
     })
 }

@@ -1,3 +1,4 @@
+import { storyCampaignStorySatisfied } from './story-campaign-story-receipts.js'
 import { localPlayableCampaignRoute, localCampaignSatisfied } from './campaign-playable-route.js'
 import { combatEntityStates } from './combat-enemy-lifecycle.js'
 import { activateSceneCombatGroup } from './scene-combat-group-lifecycle.js'
@@ -452,6 +453,7 @@ export function storySceneDefeated(tables, state) {
     if (run?.task_ids?.length) {
         const dungeon = tables.find('dungeon', run.dungeon_id)
         const [kind, taskId] = String(dungeon.victoryCondition).split('#').map(Number)
+        if (kind === 2506) return storyCampaignStorySatisfied(tables, state)
         return (
             kind === 2007 &&
             run.task_ids.includes(taskId) &&

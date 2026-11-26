@@ -1,3 +1,8 @@
+import {
+    storyCampaignStoryRule,
+    storyCampaignStorySatisfied,
+    storyCampaignStoryProof,
+} from '../story-campaign-story-receipts.js'
 import { pushSceneMode } from '../scene-mode.js'
 import { resetCampaignPlayableEntry } from '../campaign-playable-ledger.js'
 import { combatEntityStates } from '../combat-enemy-lifecycle.js'
@@ -313,6 +318,7 @@ function creditStoryCampaign(c, dungeonId) {
         ids.every((id) => (c.state.taskRecords ?? []).some((record) => record.task_id === id && record.count > 0))
     )
         clear.task_proof = { victory_task_id: victoryTask, task_ids: ids }
+    if (kind === 2506) clear.story_proof = storyCampaignStoryProof(c.tables, c.state)
     const graphs = new TaskGraphs(c.tables)
     for (const task of campaignEntryTasks(c.tables, c.state, dungeonId))
         for (const node of task.nodes) reconcileClearedDungeonBefore(c.tables, graphs.get(task.task_id), node, c.state)
@@ -323,6 +329,23 @@ function creditStoryCampaign(c, dungeonId) {
         if (c.state.storyCampaign) c.state.storyCampaign.rewards = rewards
         c.pushBefore?.('CSProtoSyncPlayerData', { basic_info: c.state.player.basic_info })
     }
+    return true
+}
+
+export function settleStoryCampaignStory(c) {
+    const run = c.state.storyCampaign
+    if (
+        !run ||
+        run.status !== 2 ||
+        !storyCampaignStoryRule(c.tables, run.dungeon_id) ||
+        !storyCampaignStorySatisfied(c.tables, c.state)
+    )
+        return false
+    run.completed_scenes = [...run.scenes]
+    run.status = 3
+    run.end_time = c.now
+    creditStoryCampaign(c, run.dungeon_id)
+    c.push('CSProtoCampaignInfoSync', storyCampaignSnapshot(c.state))
     return true
 }
 
@@ -433,6 +456,10 @@ export function advanceStoryCampaignTask(c, taskId) {
     const config = storyCampaignConfig(c.tables, run.group_id, run.difficulty)
     const nextIndex = run.task_ids.indexOf(taskId) + 1
     if (nextIndex === run.task_ids.length) {
+        if (storyCampaignStoryRule(c.tables, run.dungeon_id)) {
+            settleStoryCampaignStory(c)
+            return
+        }
         ensure(storySceneDefeated(c.tables, c.state), 'Dungeon victory task is incomplete')
         run.completed_scenes = [...run.scenes]
         run.status = 3
