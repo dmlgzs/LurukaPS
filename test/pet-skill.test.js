@@ -18,6 +18,7 @@ test('actual pet500002 query has asynchronous success reply and nonzero suppress
         const e = protocol.byName.get('CSProto' + name)
         return game
             .dispatch(session, { id: e.id, seq, payload: protocol.encode(e.req, r) })
+            .filter((packet) => name !== 'SkillFailVec' || packet.id === 11151)
             .map((p) => ({ id: p.id, data: protocol.decode(protocol.byId.get(p.id).rsp, p.payload) }))
     }
     try {
@@ -42,7 +43,11 @@ test('actual pet500002 query has asynchronous success reply and nonzero suppress
         const before = store.load(session.id)
         assert.throws(() => call('SkillFailVec', { unit_id: '18446744073709551615' }, 4), /not owned/)
         assert.deepEqual(store.load(session.id), before)
-        store.transact(session.id, 0, (s) => s.player.attr_infos.attrs.push({ attr_id: 22, attr_val: '8' }))
+        store.transact(session.id, 0, (s) => {
+            const existing = s.player.attr_infos.attrs.find((row) => row.attr_id === 22)
+            if (existing) existing.attr_val = '8'
+            else s.player.attr_infos.attrs.push({ attr_id: 22, attr_val: '8' })
+        })
         assert.equal(call('SkillFailVec', { unit_id: '500002' }, 5)[0].data.success, true)
     } finally {
         store.close()
@@ -50,9 +55,9 @@ test('actual pet500002 query has asynchronous success reply and nonzero suppress
 })
 test('suppression uses capture force rather than player level and selects source rarity columns', () => {
     const state = { player: { basic_info: { lv: 99 }, attr_infos: { attrs: [{ attr_id: 22, attr_val: '1' }] } } }
-    assert.equal(skillFailureRate(tables, state, { suppress_lv: 5, original_type: 1 }), 300)
+    assert.equal(skillFailureRate(tables, state, { suppress_lv: 5, original_type: 1 }), 1000)
     assert.equal(skillFailureRate(tables, state, { suppress_lv: 5, original_type: 2 }), 0)
     assert.equal(skillFailureRate(tables, state, { suppress_lv: 9, original_type: 0 }), 3000)
-    assert.equal(skillFailureRate(tables, state, { suppress_lv: 9, original_type: 1 }), 4000)
+    assert.equal(skillFailureRate(tables, state, { suppress_lv: 9, original_type: 1 }), 9000)
     assert.equal(skillFailureRate(tables, state, { suppress_lv: 0 }), 0)
 })

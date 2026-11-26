@@ -14,16 +14,17 @@ import { createPets } from './pets.js'
 import { hatchSeconds } from './hatching-time.js'
 export function hatchBuilding(state, guid) {
     const b = state.home?.builds.find((b) => b.guid === guid)
-    ensure(b?.build_type === 12, 'An owned, placed hatch building is required')
-    ensure([1, 4].includes(b.status), 'Hatch building is unavailable')
+    ensure(b, 'An owned hatch building is required', ErrorCode.HomeNoBuild)
+    ensure(b.build_type === 12, 'Building is not an incubator', ErrorCode.BuildTypeNotMatch)
+    ensure([1, 4].includes(b.status), 'Hatch building is unavailable', ErrorCode.HomeBuildInvalidStatus)
     return b
 }
 export function startHatch(c, buildGuid, eggGuid) {
     const b = hatchBuilding(c.state, buildGuid)
     const egg = (c.state.petEggs || []).find((e) => e.guid === eggGuid)
-    ensure(egg, 'Pet egg not owned')
-    ensure(!egg.lock_state, 'Pet egg is locked')
-    ensure(!egg.hatch_state && !egg.hatch_build_guid, 'Pet egg is already assigned')
+    ensure(egg, 'Pet egg not owned', ErrorCode.EggNotExist)
+    ensure(!egg.lock_state, 'Pet egg is locked', ErrorCode.EggIsLock)
+    ensure(!egg.hatch_state && !egg.hatch_build_guid, 'Pet egg is already assigned', ErrorCode.EggInHatch)
     const generation = hatchGenerationVersion(c.state, eggGuid, true)
     validateHatchEffects(c.tables, egg, c.state.eggHatchConstraints?.[eggGuid], { baseEnabled: generation === 2 })
     const config = c.tables.find('pet_egg', egg.configid),
@@ -35,10 +36,16 @@ export function startHatch(c, buildGuid, eggGuid) {
     const home = c.state.home
     home.productionJobs ??= {}
     const jobs = home.productionJobs[b.guid] || []
-    ensure(jobs.length < station.productionQueueNum, 'Hatch queue is full')
+    ensure(
+        Number.isSafeInteger(station.productionQueueNum) && station.productionQueueNum > 0 && Array.isArray(jobs),
+        'Invalid hatch queue configuration or saved queue',
+        ErrorCode.GameConfig,
+    )
+    ensure(jobs.length < station.productionQueueNum, 'Hatch queue is full', ErrorCode.ProductQueueFull)
     ensure(
         jobs.every((j) => j.kind === 'hatch'),
         'Station has a different production queue',
+        ErrorCode.GameConfig,
     )
     c.state.eggOutcomes ??= {}
     if (!c.state.eggOutcomes[eggGuid])
@@ -72,9 +79,9 @@ export function startHatch(c, buildGuid, eggGuid) {
     c.state.eggRevision = (c.state.eggRevision || 0) + 1
 }
 export function claimHatch(c, job) {
-    ensure(c.now >= job.start + job.seconds, 'Egg has not finished hatching')
+    ensure(c.now >= job.start + job.seconds, 'Egg has not finished hatching', ErrorCode.HatchNotFinish)
     const egg = (c.state.petEggs || []).find((e) => e.guid === job.eggGuid)
-    ensure(egg && egg.hatch_build_guid, 'Hatch egg missing')
+    ensure(egg && egg.hatch_build_guid, 'Hatch egg missing', ErrorCode.EggNotExist)
     const builderRuleId = c.tables.find('pet_egg', egg.configid)?.petBuilderRuleId
     ensure(c.tables.find('pet_builder_rule', builderRuleId), 'Missing egg pet builder', ErrorCode.GameConfig)
     const generation = hatchGenerationVersion(c.state, job.eggGuid),
@@ -82,7 +89,14 @@ export function claimHatch(c, job) {
             baseEnabled: generation === 2,
         }),
         rng = hatchRandom(hatchSeed(c, job.eggGuid, job))
-    const [pet] = createPets(c.tables, c.state, job.petId, 1, builderRuleId, rng)
+    let pets
+    try {
+        pets = createPets(c.tables, c.state, job.petId, 1, builderRuleId, rng)
+    } catch (error) {
+        ensure(error.code !== ErrorCode.BagPetFullForAdd, error.message, ErrorCode.BagPetFullForHatch)
+        throw error
+    }
+    const [pet] = pets
     const appearance = applyHatchEffects(c.tables, pet, plan, rng)
     recordHatchReceipt(c.state, {
         buildGuid: egg.hatch_build_guid,
@@ -105,7 +119,7 @@ export function claimHatch(c, job) {
 }
 export function cancelHatch(c, job) {
     const egg = (c.state.petEggs || []).find((e) => e.guid === job.eggGuid)
-    ensure(egg, 'Hatch egg missing')
+    ensure(egg, 'Hatch egg missing', ErrorCode.EggNotExist)
     retainHatchSeed(c, job.eggGuid, job)
     egg.hatch_state = 0
     egg.hatch_build_guid = 0
