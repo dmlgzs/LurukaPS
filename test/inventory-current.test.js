@@ -50,6 +50,22 @@ function seed(f, rewards) {
     const client = f.login()
     Object.assign(f.client, client)
 }
+function qualifyFavorHeroes(f, count) {
+    // These endpoints test gifts/equipment on acquired heroes. Keep the
+    // account normal and grant only the recipients this vector requires.
+    const eligible = tables.get('hero').filter((row) => row.isUsable === 1 && row.favor === 1)
+    const furnitureHero = tables
+        .get('home_dorm_furniture')
+        .map((row) => eligible.find((hero) => hero.id === row.heroId))
+        .find(Boolean)
+    assert(furnitureHero)
+    const chosen = [furnitureHero, ...eligible.filter((hero) => hero.id !== furnitureHero.id)].slice(0, count)
+    assert.equal(chosen.length, count)
+    seed(
+        f,
+        chosen.map((hero) => ({ itemtype: 1, itemid: hero.id, itemnum: 1 })),
+    )
+}
 const heroById = (f, id) => f.state().player.heros_info.heros.find((hero) => hero.conf_id === id)
 const heroPair = (f) =>
     f
@@ -108,6 +124,7 @@ test('current6030/6039 selectable-box requests keep each choice, update inventor
 test('current6610 normal and furniture gifts consume the bag before the callback reads updated favor; retries and relog agree', () => {
     const f = fixture('gift')
     try {
+        qualifyFavorHeroes(f, 1)
         const furniture = tables.get('home_dorm_furniture').find((row) => heroById(f, row.heroId))
         assert(furniture)
         const gift = tables
@@ -162,6 +179,7 @@ test('current6610 normal and furniture gifts consume the bag before the callback
 test('current6046 spirit transfer refreshes both ownership caches and battle modules before the equip callback', () => {
     const f = fixture('soul')
     try {
+        qualifyFavorHeroes(f, 2)
         const [first, second] = heroPair(f)
         assert(first && second)
         const definition = tables.get('soulessence').find((row) => !row.validProfession)
@@ -202,6 +220,7 @@ test('current6046 spirit transfer refreshes both ownership caches and battle mod
 test('current6020 and6027 accessory transfer and removal update the cache and effective battle modules before callbacks', () => {
     const f = fixture('accessory')
     try {
+        qualifyFavorHeroes(f, 2)
         const [first, second] = heroPair(f)
         const custom = tables
             .get('accessory_customed')
