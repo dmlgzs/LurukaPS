@@ -35,9 +35,20 @@ function fixture(name, options = {}) {
     const claim = (item_id = 107002, pool_id = 9001) => call('GachaGetNewPlayerHero', { pool_id, item_id })
     return { tables, protocol, store, session, frame, dispatch, call, state, pool, count, claim }
 }
+
+// Default normal grants no target hero. Establish only this test's owned-copy
+// premise through the real current public reward producer, not a sandbox roster.
+function ownHero(f, id) {
+    assert(!f.state().player.heros_info.heros.some((h) => h.conf_id === id && !h.trail))
+    f.call('GMCommand', { command: Buffer.from('give 1 ' + id + ' 1').toString('base64') })
+    assert(f.state().player.heros_info.heros.some((h) => h.conf_id === id && !h.trail))
+    assert.equal(f.state().heroAcquisitionCounts[id], 1)
+}
+
 test('real 9701 observations unlock 9704 once; owned choice delivers a shard without new draws, pity resets or extra currency', () => {
     const f = fixture('self-choice-real-draws', { rng: (max) => max - 1 })
     try {
+        ownHero(f, 107002)
         f.store.transact(f.session.id, 0, (s) =>
             grantRewards(f.tables, s, [{ itemtype: 3, itemid: 501000, itemnum: 50 }]),
         )
@@ -125,6 +136,7 @@ test('the current candidate list and threshold are enforced and failed conversio
         hero = f.tables.find('hero', 107002),
         original = hero.gradeUpItem
     try {
+        ownHero(f, 107002)
         f.call('GachaData')
         assert.throws(
             () => f.claim(101010, 1001),

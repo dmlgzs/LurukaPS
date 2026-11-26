@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
-import { Tables } from '../src/player.js'
+import { Tables, heroData } from '../src/player.js'
 import { Protocol } from '../src/protocol.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
@@ -55,6 +55,15 @@ function wallet(f, diamond, paid = 0, bonus = 0) {
             else s.player.attr_infos.attrs.push({ attr_id: id, attr_val: String(value) })
         }
     })
+}
+
+// Default normal grants no target hero. Establish only this test's owned-copy
+// premise through the real current public reward producer, not a sandbox roster.
+function ownHero(f, id) {
+    assert(!f.state().player.heros_info.heros.some((h) => h.conf_id === id && !h.trail))
+    f.call('GMCommand', { command: Buffer.from('give 1 ' + id + ' 1').toString('base64') })
+    assert(f.state().player.heros_info.heros.some((h) => h.conf_id === id && !h.trail))
+    assert.equal(f.state().heroAcquisitionCounts[id], 1)
 }
 
 test('the confirmed 9701 buys only missing tickets and replay never spends diamonds again', () => {
@@ -239,6 +248,7 @@ test('5200 publishes the explicit offline card-pool window on login and activity
 test('a real SSR draw spends the correct ticket, transforms an owned hero, grants table extras and writes queryable history', () => {
     const f = fixture('gacha-real-up', { rng: () => 0 })
     try {
+        ownHero(f, 101010)
         f.fund(501001, 2)
         const shard = f.count(1100005),
             extra = f.count(502001),
@@ -496,6 +506,7 @@ test('history allocation remains exact above 2^53 and a uint64 exhaustion rolls 
 test('actual draw counters unlock existing 9702 and 9703 claims, including duplicate UP heroes', () => {
     const f = fixture('gacha-claims', { rng: () => 0 })
     try {
+        ownHero(f, 101010)
         f.fund(501001, 10)
         f.draw(1001, 10)
         assert.equal(f.count(502001), 320)
@@ -641,6 +652,7 @@ test('four-star category weights select the declared UP, ordinary-hero and soul 
 test('central hero rewards contribute to the same acquisition counter used by gacha extra reward bands', () => {
     const f = fixture('gacha-cross-source-count', { rng: () => 0 })
     try {
+        ownHero(f, 101010)
         f.store.transact(f.session.id, 0, (s) => {
             for (let i = 0; i < 6; i++) grantRewards(f.tables, s, [{ itemtype: 1, itemid: 101010, itemnum: 1 }])
         })
@@ -657,16 +669,24 @@ test('central hero rewards contribute to the same acquisition counter used by ga
         f.store.close()
     }
 })
-test('a legacy trial actor is not mistaken for a permanent owned hero during acquisition', () => {
+test('a current template-backed saved trial actor is not mistaken for a permanent owned hero during acquisition', () => {
     const f = fixture('gacha-trial-ownership', { rng: () => 0 })
     try {
         f.store.transact(f.session.id, 0, (s) => {
-            const h = s.player.heros_info.heros.find((h) => h.conf_id === 101010)
+            const h = heroData(101010, s.player.basic_info.id),
+                template = f.tables.get('hero_interim').find((row) => row.heroId === h.conf_id)
             s.player.heros_info.heros = s.player.heros_info.heros.filter((h) => h.conf_id !== 101010)
             s.player.heros_info.heros.push({
                 ...h,
+                // Saved-actor ownership negative, not an authorized trial-open E2E.
+                hero_lv: template.level,
+                hero_rank: template.rank,
+                hero_star: template.starLevel,
+                hero_grade: template.gradeLevel,
+                type: template.heroType,
+                system_skill_levels: String(template.skilllevel).split('|').map(Number),
                 trail: true,
-                guid: ((5n << 56n) | (101010n << 32n) | 777n).toString(),
+                guid: ((5n << 56n) | (BigInt(template.id) << 32n) | BigInt(s.player.basic_info.id)).toString(),
             })
         })
         f.session.syncCache.clear()
