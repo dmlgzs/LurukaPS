@@ -41,6 +41,50 @@ test('219-pet snapshots become one changed GUID, delete invalidates the cache an
     assert.deepEqual(data(removal[0]).pet_infos.guid, [gone.guid])
     assert.equal(data(optimize(session, [message()])[0]).pet_infos.pets[0].guid, gone.guid)
 })
+test('current pet rows precede same-packet removal and identical restoration reaches both client caches', () => {
+    for (const warm of [false, true]) {
+        const session = { id: 1 },
+            row = pets()[0],
+            native = new Map(),
+            lua = new Map(),
+            boxIndexes = new Set()
+        // Native SyncPetBaseInfo0601c4ea and Lua rsp_syncPet both apply rows
+        // first. Lua removePet then dereferences an already created box index.
+        const consume = (packets) => {
+            for (const p of packets) {
+                const bag = data(p).pet_infos
+                for (const pet of bag?.pets ?? []) {
+                    native.set(pet.guid, pet)
+                    lua.set(pet.guid, pet)
+                    boxIndexes.add(pet.guid)
+                }
+                for (const id of bag?.guid ?? []) {
+                    assert(boxIndexes.has(id), 'Lua cannot delete an unseen pet without its box index')
+                    native.delete(id)
+                    lua.delete(id)
+                }
+            }
+        }
+        if (warm) consume(optimize(session, [packet('CSProtoPetInfoSync', { pet_infos: { pets: [row] } })]))
+        const hidden = optimize(session, [
+            packet('CSProtoPetInfoSync', { pet_infos: { pets: [row], guid: [row.guid] } }),
+        ])
+        assert.deepEqual(
+            data(hidden[0]).pet_infos.pets.map((p) => p.guid),
+            [row.guid],
+        )
+        consume(hidden)
+        assert.equal(native.size, 0)
+        assert.equal(lua.size, 0)
+        const restored = optimize(session, [packet('CSProtoPetInfoSync', { pet_infos: { pets: [row] } })])
+        assert.equal(restored.length, 1, 'deleted rows must not suppress an identical later restoration')
+        consume(restored)
+        assert.equal(native.get(row.guid).config_id, row.config_id)
+        assert.equal(lua.get(row.guid).config_id, row.config_id)
+        assert.deepEqual(optimize(session, [packet('CSProtoPetInfoSync', { pet_infos: { pets: [row] } })]), [])
+    }
+})
+
 test('player fields, zero currency and one hero update retain their presence semantics', () => {
     const session = { id: 1 },
         value = {

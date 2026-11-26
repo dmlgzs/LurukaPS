@@ -160,6 +160,10 @@ class Delta {
                 [rowsField]: this.rows(name + '.rows', rows, 'guid', guid),
                 ...(guid.length ? { guid } : {}),
             }
+            // Current native SyncPetBaseInfo0601c4ea and Lua rsp_syncPet
+            // apply rows before removals. A real row can establish the Lua
+            // box index before hiding that same GUID in this packet.
+            if (name === 'CSProtoPetInfoSync') for (const id of guid) this.bucket(name + '.rows').delete(String(id))
             if (guid.length) Object.assign(out, other)
             if (nonempty(value)) out[field] = value
         }
