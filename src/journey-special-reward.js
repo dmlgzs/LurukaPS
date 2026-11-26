@@ -1,6 +1,11 @@
+import {
+    journeySelectionSource,
+    selectJourneySoulReward,
+    requireJourneySoulCapacity,
+} from './journey-selection-source.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
-import { grantRewards, parseRewards } from './rewards.js'
+import { grantRewards } from './rewards.js'
 import { rewardSource } from './reward-source.js'
 import { journeyModel, journeyLedger, journeyPoints, observeJourney, publishJourney } from './journey.js'
 import { journeyPointRows, hasJourneyPointClaim, markJourneyPointClaim } from './journey-point-rewards.js'
@@ -24,24 +29,8 @@ export function claimJourneySpecialReward(c, r) {
     // Do not silently invent an ordering rule for multiple future big boxes.
     ensure(bigRows.length === 1, 'Ambiguous journey special reward configuration', ErrorCode.JourneyConfError)
     const row = bigRows[0]
-    ensure(
-        row.rewards.length === 1 && row.rewards[0].itemtype === 3 && row.rewards[0].itemnum === 1,
-        'Journey special reward is not a configured selection box',
-        ErrorCode.JourneyConfError,
-    )
-    const box = c.tables.find('common_item', row.rewards[0].itemid)
-    ensure(
-        box?.useType === 3 && box.giftBagReward,
-        'Journey selection box configuration is unavailable',
-        ErrorCode.JourneyConfError,
-    )
-    const options = parseRewards(box.giftBagReward)
-    const chosen = options.find((option) => option.itemid === itemid && option.itemtype === itemtype)
-    ensure(
-        chosen && chosen.itemtype === 9 && chosen.itemnum === 1 && c.tables.find('soulessence', chosen.itemid),
-        'Reward is not in the configured journey selection box',
-        ErrorCode.InvalidArgument,
-    )
+    const definition = journeySelectionSource(c.tables, row)
+    const chosen = selectJourneySoulReward(c.tables, definition, itemid, itemtype)
     ensure(points >= row.point, 'Journey special reward point condition is unmet', ErrorCode.JourneyContReward)
     if (hasJourneyPointClaim(ledger, row)) {
         ensure(
@@ -51,6 +40,7 @@ export function claimJourneySpecialReward(c, r) {
         )
         return { rewards: [] }
     }
+    requireJourneySoulCapacity(c.tables, c.state, chosen)
     const rewards = grantRewards(c.tables, c.state, [chosen])
     ensure(
         rewards.length === 1 && rewards[0].guid,
@@ -59,6 +49,7 @@ export function claimJourneySpecialReward(c, r) {
     )
     ledger.specialItem = { ...rewards[0] }
     markJourneyPointClaim(ledger, row)
+    c.pushBefore('CSProtoSyncPlayerData', { soulessence_infos: c.state.player.soulessence_infos })
     publishJourney(c)
     return { rewards, src: rewardSource(c.tables, 'journeySpecialReward') }
 }

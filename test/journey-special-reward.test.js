@@ -1,25 +1,37 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { achievementFixture } from './achievement-fixture.js'
-import { journeyModel, journeyLedger } from '../src/journey.js'
+import { fixture, trustedClaimedPoints, selectionDefinition } from './journey-special-fixture.js'
 import { ErrorCode } from '../src/error-codes.js'
 
+function achievementFixture(name) {
+    const f = fixture(name),
+        call = f.call
+    return {
+        ...f,
+        call(name, data) {
+            call(name, data)
+            return f.packets()
+        },
+        reply(packets, id) {
+            const e = f.protocol.byId.get(id)
+            return f.protocol.decode(e.rsp, packets.find((p) => p.id === id).payload)
+        },
+    }
+}
+// Explicit trusted saved-claim boundary, not naturally earned300 points.
 function ready(f) {
-    // Authoritative future/imported completion receipts isolate this reward
-    // boundary; unsupported event producers are not implemented by this test.
-    f.store.transact(f.session.id, 0, (s) => {
-        const model = journeyModel(f.tables),
-            ledger = journeyLedger(s)
-        for (const row of model.targets)
-            if (model.owner.has(row.id))
-                ledger.targets[row.id] = { value: row.targetParam, complete: true, claimed: true }
-    })
+    trustedClaimedPoints(f)
 }
 test('journey special selection creates the exact configured soul essence and consumes only its entitlement', () => {
     const f = achievementFixture('journey-special')
     try {
         ready(f)
-        const choice = f.tables.find('common_item', 1520901).giftBagReward.split('|')[0].split('#').map(Number)
+        const definition = selectionDefinition(f.tables),
+            choice = [definition.choices[0].itemtype, definition.choices[0].itemid]
+        const oldBoxCount = f
+            .state()
+            .player.sbag_infos.items.filter((i) => i.itemid === definition.box.id)
+            .reduce((n, i) => n + i.itemnum, 0)
         const before = f.state().player.soulessence_infos.soulessences.length
         const packets = f.call('JourneyReceiveSpecialReward', { u32s: [choice[1], choice[0]] })
         const reply = f.reply(packets, 11883),
@@ -45,8 +57,11 @@ test('journey special selection creates the exact configured soul essence and co
             [],
         )
         assert.equal(
-            f.state().player.sbag_infos.items.some((i) => i.itemid === 1520901),
-            false,
+            f
+                .state()
+                .player.sbag_infos.items.filter((i) => i.itemid === definition.box.id)
+                .reduce((n, i) => n + i.itemnum, 0),
+            oldBoxCount,
         )
     } finally {
         f.store.close()
@@ -55,10 +70,7 @@ test('journey special selection creates the exact configured soul essence and co
 test('journey special rejects unearned, wrong-order, foreign and changed selections', () => {
     const f = achievementFixture('journey-special-negative')
     try {
-        const choices = f.tables
-            .find('common_item', 1520901)
-            .giftBagReward.split('|')
-            .map((s) => s.split('#').map(Number))
+        const choices = selectionDefinition(f.tables).choices.map((r) => [r.itemtype, r.itemid])
         const [type, id] = choices[0]
         assert.throws(
             () => f.call('JourneyReceiveSpecialReward', { u32s: [id, type] }),
@@ -83,7 +95,9 @@ test('journey special rolls back instance creation and bitmask when Rewards enco
     const f = achievementFixture('journey-special-codec')
     try {
         ready(f)
-        const [type, id] = f.tables.find('common_item', 1520901).giftBagReward.split('|')[0].split('#').map(Number)
+        const selected = selectionDefinition(f.tables).choices[0],
+            type = selected.itemtype,
+            id = selected.itemid
         const before = f.state(),
             encode = f.protocol.encode.bind(f.protocol)
         f.protocol.encode = (name, value) => {
