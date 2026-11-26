@@ -193,6 +193,8 @@ import { registerProfileQueries } from './handlers/profile-queries.js'
 import { registerPlayerCard } from './handlers/player-card.js'
 import { registerSceneShowcase } from './handlers/scene-showcase.js'
 import { registerWorldObjects, reconcileWorldCollectionFinalDrops } from './handlers/world-objects.js'
+import { registerWorldObjectAoi } from './handlers/world-object-aoi.js'
+import { resetWorldObjectAoiSession } from './world-object-aoi.js'
 import { registerTransform } from './handlers/transform.js'
 import { registerWorldCombat } from './handlers/world-combat.js'
 import { registerWorldSearch } from './handlers/world-search.js'
@@ -666,6 +668,7 @@ export class Game {
         registerPlayerCard(on, tables)
         registerSceneShowcase(on, tables)
         registerWorldObjects(on, tables)
+        registerWorldObjectAoi(on, tables)
         registerWorldCombat(on)
         registerTransform(on, tables, store)
         registerWorldSearch(on, tables)
@@ -909,6 +912,7 @@ export class Game {
                 requireProductionWorkModel(state, this.productionWorkPolicy)
                 migratePetGuidIdentity(this.tables, state, this.protocol)
                 bootstrapStoryClearProofs(this.tables, state)
+                resetWorldObjectAoiSession(state, session.token)
                 suspendUnavailableTasks(this.tables, state)
                 this.legacyMatchTeams.onLogin(session.id)
                 const previousMapId = state.world.map_id
