@@ -267,6 +267,7 @@ import { ensureAppearance, clothesSnapshot, heroSkinsSnapshot } from './appearan
 import { registerCollection } from './handlers/collection.js'
 import { registerWorld, repairLegacyMountState } from './handlers/world.js'
 import { registerMail } from './handlers/mail.js'
+import { registerAppearancePresets, clothesPresetsSnapshot } from './appearance-presets.js'
 import { registerBulletRebounds } from './bullet-rebound.js'
 import { registerVehicles, vehicleSnapshot, vehicleBattleAttributes } from './vehicles.js'
 import { mailboxLegacyPush } from './mailbox.js'
@@ -615,6 +616,7 @@ export class Game {
         registerRepeatEvent(on)
         registerPetEvolution(on)
         registerPetCosmetics(on)
+        registerAppearancePresets(on)
         registerVehicles(on)
         registerPlayableLifecycle(on, tables)
         const runGM = registerGM(on, { enabled: gmEnabled })
@@ -2203,6 +2205,7 @@ export class Game {
             this.packet('CSProtoStandPlatesBagInfo', playerCardSnapshot(this.tables, state)),
             this.packet('SCProtoClothesInfoSync', clothesSnapshot(this.tables, state)),
             this.packet('SCProtoPresetWardrobeSync', { info_list: state.wardrobePresets ?? [] }),
+            this.packet('SCProtoPresetClothesInfoSync', clothesPresetsSnapshot(this.tables, state)),
             this.packet('SCProtoHeroSkinMessageSync', heroSkinsSnapshot(this.tables, state)),
             this.packet('CSProtoAllEquipOrnamentSync', {
                 ornaments: state.ornaments || [],
