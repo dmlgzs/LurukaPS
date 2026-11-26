@@ -277,9 +277,19 @@ export function optimizeSyncPackets(protocol, session, packets, requestName = ''
         return decoded.get(packet)
     }
     const scene = packets.some(
-        (p) => protocol.byId.get(p.id)?.name === 'CSProtoWorldMapSync' && [256, 49].includes(sceneCommand(protocol, p)),
+        (p) =>
+            !p.audience &&
+            (!p.recipient || p.recipient === session.id) &&
+            protocol.byId.get(p.id)?.name === 'CSProtoWorldMapSync' &&
+            [256, 49].includes(sceneCommand(protocol, p)),
     )
-    const allPlay = packets.some((p) => protocol.byId.get(p.id)?.name === 'CSProtoPlayableSync' && read(p).all_sync)
+    const allPlay = packets.some(
+        (p) =>
+            !p.audience &&
+            (!p.recipient || p.recipient === session.id) &&
+            protocol.byId.get(p.id)?.name === 'CSProtoPlayableSync' &&
+            read(p).all_sync,
+    )
     const force = forceRequests.has(requestName) || scene || allPlay
     const login = ['CSProtoEnterGame', 'CSProtoRenterGame', 'CSProtoCreatePlayer'].includes(requestName)
     const cache = login ? new Map() : (session.syncCache ?? new Map()),
@@ -294,12 +304,14 @@ export function optimizeSyncPackets(protocol, session, packets, requestName = ''
         for (const key of cache.keys()) {
             if (key.startsWith('playable.') || (scene && key.startsWith('battle.'))) cache.delete(key)
         }
+    let restoreBattleCache = requestName === 'CSProtoMapLoadFinish'
     for (const packet of packets) {
         const name = protocol.byId.get(packet.id)?.name
         if (packet.audience || (packet.recipient && packet.recipient !== session.id)) {
             result.push(packet)
             continue
         }
+        if (name === 'CSProtoWorldMapSync') restoreBattleCache = true
         if (['CSProtoEnterGame', 'CSProtoRenterGame', 'CSProtoCreatePlayer'].includes(name)) {
             const data = read(packet).data
             if (data) delta.player(data)
@@ -314,7 +326,9 @@ export function optimizeSyncPackets(protocol, session, packets, requestName = ''
             output = delta.apply(name, input)
         // Combat events already contain only changed UUIDs; keep their event
         // semantics while updating the cache without copying the whole map.
-        const keep = force || (name === 'CSProtoObjBattleInfoSync' && requestName === 'CSProtoBattleInfoReduce')
+        const keep =
+            force ||
+            (name === 'CSProtoObjBattleInfoSync' && (requestName === 'CSProtoBattleInfoReduce' || restoreBattleCache))
         if (keep) result.push(packet)
         else if (nonempty(output))
             result.push({ ...packet, payload: protocol.encode(protocol.byId.get(packet.id).rsp, output) })

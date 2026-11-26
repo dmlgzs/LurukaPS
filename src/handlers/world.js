@@ -1,9 +1,14 @@
 import { observeAcceptedHeroVitals, invalidateTrackedHeroes, invalidateMedicineContext } from '../medicine-state.js'
+import { pushSceneMode } from '../scene-mode.js'
+import { isCurrentSavedWorldObject } from '../world-repairs.js'
 import { beginMountActionLifecycle, endMountActionLifecycle, isExitedMountAction } from '../mount-action-lifecycle.js'
 import { recoverFallPosition, acceptFallRecoveryMovement, resetFallRecoveryScope } from '../fall-recovery.js'
-import { resetPlayerBattleRelations } from './world-combat.js'
+import {
+    resetPlayerBattleRelations,
+    publishCombatEnemyActivations,
+    replayCombatEnemyTerminals,
+} from './world-combat.js'
 import { ErrorCode } from '../error-codes.js'
-import { isCurrentSavedWorldObject } from '../world-repairs.js'
 import { checkpointSnapshot } from '../world-checkpoints.js'
 import { clearAbyssRuntime, publishAbyssExit } from '../abyss-flow.js'
 import { abyssHeroMapElements } from '../abyss-buffs.js'
@@ -258,13 +263,21 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
             players: [mapPlayer(c)],
         },
     })
+    if (!c.combatSnapshotsHandled) {
+        pushSceneMode(c)
+        // 9103 can discard the client's nonbattle EntitySyncBlock cache.
+        // Restore destination state after that packet, in the same stream.
+        const ready = { ...c, pushBefore: c.push }
+        publishCombatEnemyActivations(ready)
+        replayCombatEnemyTerminals(ready)
+    }
     if ([WORLD_MAP_CMD_ENTER, 49].includes(cmd)) c.push('CSProtoWorldCheckpointSync', checkpointSnapshot(s))
     // CutWorld creates the destination SceneProxy synchronously before its
     // loading flow. Retain the dungeon AOI/preload protocol on reconnect;
     // the entrust handler assigns the active group's control separately.
     if ([WORLD_MAP_CMD_ENTER, 49].includes(cmd) && s.entrust?.run?.map_id === w.map_id) {
         const single = c.tables.find('world_city', w.map_id)?.type === 2
-        c.push('CSProtoOnlineModeChange', { mode: single ? 5 : 4 })
+        pushSceneMode(c, { multiplayer: !single })
         // Disposing the previous scene can clear DungeonManager's cached
         // server info. Rebind it after CutWorld selected the destination.
         if (single) {
@@ -273,15 +286,14 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
         }
     }
     if ([WORLD_MAP_CMD_ENTER, 49].includes(cmd) && s.storyCampaign?.map_id === w.map_id) {
-        c.push('CSProtoOnlineModeChange', { mode: 5 })
+        pushSceneMode(c)
         c.push('CSProtoCampaignInfoSync', storyCampaignSnapshot(s))
     }
     if ([WORLD_MAP_CMD_ENTER, 49].includes(cmd) && s.cultTrial?.map_id === w.map_id) {
-        c.push('CSProtoOnlineModeChange', { mode: 5 })
+        pushSceneMode(c)
         c.push('CSProtoCampaignInfoSync', cultTrialSnapshot(s, { entering: true }))
     }
-    if ([WORLD_MAP_CMD_ENTER, 49].includes(cmd) && s.abyssRun?.map_id === w.map_id)
-        c.push('CSProtoOnlineModeChange', { mode: 5 })
+    if ([WORLD_MAP_CMD_ENTER, 49].includes(cmd) && s.abyssRun?.map_id === w.map_id) pushSceneMode(c)
     if (leavingAbyss) {
         ensure(abyssExit, 'Abyss departure synchronization plan is missing', ErrorCode.GameConfig)
         for (const [name, value] of deferredGroups) {

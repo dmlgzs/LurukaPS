@@ -11,6 +11,7 @@ export function achievementStateRule([kind, ...args]) {
     if ([12046, 12072].includes(kind)) return args.length === 2 && args[0] === 0 && uint(args[1]) && args[1] > 0
     if (kind === 13104) return args.length === 2 && args.every((value) => uint(value) && value > 0)
     if (kind === 15017) return args.length === 1 && uint(args[0]) && args[0] > 0
+    if (kind === 16022) return args.length === 1 && uint(args[0]) && args[0] > 0
     return false
 }
 
@@ -29,6 +30,7 @@ export function achievementStateValue(tables, state, tokens, facts) {
         ensure(matching.length <= 1, 'Duplicate achievement exploration map', ErrorCode.GameConfig)
         value = matching[0]?.lv ?? 0
     } else if (kind === 15017) value = state.home?.level ?? 0
+    else if (kind === 16022) value = state.petCaressProgress?.maximum ?? 0
     ensure(uint(value), 'Invalid achievement state progress', ErrorCode.GameConfig)
     facts.set(key, value)
     return value

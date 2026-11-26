@@ -267,13 +267,15 @@ import { ensureAppearance, clothesSnapshot, heroSkinsSnapshot } from './appearan
 import { registerCollection } from './handlers/collection.js'
 import { registerWorld, repairLegacyMountState } from './handlers/world.js'
 import { registerMail } from './handlers/mail.js'
+import { registerBulletRebounds } from './bullet-rebound.js'
+import { registerVehicles, vehicleSnapshot, vehicleBattleAttributes } from './vehicles.js'
+import { mailboxLegacyPush } from './mailbox.js'
+import { registerClientReports } from './client-reports.js'
 import { sceneModePayload } from './scene-mode.js'
 import { projectCurrentHeroes, suspendUnavailableHeroFormations } from './hero-compatibility.js'
 import { suspendUnavailableTasks } from './task-compatibility.js'
 import { registerAppearancePresets, clothesPresetsSnapshot } from './appearance-presets.js'
-import { registerBulletRebounds } from './bullet-rebound.js'
-import { registerVehicles, vehicleSnapshot, vehicleBattleAttributes } from './vehicles.js'
-import { mailboxLegacyPush } from './mailbox.js'
+import { publishCombatEnemyActivations, replayCombatEnemyTerminals } from './handlers/world-combat.js'
 import { registerGiftCodes } from './gift-codes.js'
 const unchangedReadQueries = new Set([
     'CSProtoGetMailboxSummary',
@@ -624,6 +626,7 @@ export class Game {
         registerPlayableLifecycle(on, tables)
         const runGM = registerGM(on, { enabled: gmEnabled })
         registerCore(on)
+        registerClientReports(on, protocol)
         registerDownloadStartCompatibility(on)
         this.gacha = registerGacha(on, tables, { policy: gachaPolicy })
         on('AnnounceRequest', (c) => announcementSnapshot(this.announcementBaseUrl, c.now))
@@ -1445,6 +1448,24 @@ export class Game {
                 const emit = (target, name, value, meta) => {
                     const p = statePacket(name, value, meta)
                     if (p) target.push(p)
+                    if (
+                        name === 'CSProtoWorldMapSync' &&
+                        !meta?.audience &&
+                        (!meta?.recipient || meta.recipient === session.id) &&
+                        Number(value.map_id || value.map_info?.map_id || state.world.map_id) === state.world.map_id
+                    ) {
+                        const mode = sceneModePayload(this.tables, state)
+                        if (mode) target.push(this.packet('CSProtoSceneModeChange', mode, meta))
+                        const ready = {
+                            state,
+                            tables: this.tables,
+                            now,
+                            combatSnapshotStream: target,
+                            pushBefore: (key, data) => emit(target, key, data, meta),
+                        }
+                        publishCombatEnemyActivations(ready)
+                        replayCombatEnemyTerminals(ready)
+                    }
                 }
                 const petIdsBefore = state.pets.map((p) => p.guid)
                 const eggIdsBefore = (state.petEggs || []).map((e) => e.guid)
@@ -1470,6 +1491,7 @@ export class Game {
                 const pushes = []
                 const context = {
                     id: session.id,
+                    combatSnapshotsHandled: true,
                     editPlayer: transaction?.editPlayer,
                     previousMapId: state.world.map_id,
                     combatSessionId: session.token,
@@ -1496,8 +1518,12 @@ export class Game {
                           }
                         : {}),
                     broadcast: (audience, name, value) => pushes.push(this.packet(name, value, { audience })),
-                    pushBefore: (name, value) => emit(before, name, value),
-                    push: (name, value) => emit(pushes, name, value, { pushSeq: frame.pushSeq }),
+                    pushBefore: Object.assign((name, value) => emit(before, name, value), {
+                        combatSnapshotStream: before,
+                    }),
+                    push: Object.assign((name, value) => emit(pushes, name, value, { pushSeq: frame.pushSeq }), {
+                        combatSnapshotStream: pushes,
+                    }),
                     reconcileProductionWork: this.productionWorkPolicy
                         ? () => this.reviewProduction(state, now, 'reconcile', { home: homeRevision, pet: petRevision })
                         : undefined,

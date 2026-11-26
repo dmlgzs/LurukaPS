@@ -9,6 +9,8 @@ import { abyssTables } from './abyss-catalog.js'
 import { abyssEnemyHpScale } from './abyss-battle-config.js'
 import { worldCondition } from './handlers/world-objects.js'
 import { trackingConditionResult } from './pet-tracking-conditions.js'
+import { ErrorCode } from './error-codes.js'
+import { ensure } from './handlers/common.js'
 const catalogs = new WeakMap()
 export function enemyDefinition(tables, state, uuid) {
     if (state.abyssRun?.map_id === state.world.map_id) tables = abyssTables(tables)
@@ -33,7 +35,7 @@ export function enemyDefinition(tables, state, uuid) {
         cached = { world: new WorldObjectCatalog(tables, tables.abyss_directory), graphs: new TaskGraphs(tables) }
         catalogs.set(tables, cached)
     }
-    let packId, worldRow, taskConfig, groupSize, taskGroup, livePack
+    let packId, worldRow, taskConfig, groupSize, taskGroup, livePack, taskSourceId, taskSourceNode, activationSource
     if (kind === 7) {
         for (const [key, entry] of Object.entries(state.playableEnemies ?? {})) {
             if (!key.startsWith(state.world.map_id + ':')) continue
@@ -58,6 +60,8 @@ export function enemyDefinition(tables, state, uuid) {
                             groupId = data.__type_TaskEnemiesOverrideData?.enemiesGroupId
                             taskGroup = data
                             taskConfig = cached.graphs.get(task.task_id).config
+                            taskSourceId = task.task_id
+                            taskSourceNode = node.node_id
                         }
                 }
             }
@@ -67,6 +71,7 @@ export function enemyDefinition(tables, state, uuid) {
                 groupId = configured.groupId
                 taskGroup = configured.data
                 taskConfig = configured.taskConfig
+                taskSourceId = configured.taskId
             }
         }
         if (!groupId && kind === 3) {
@@ -137,6 +142,40 @@ export function enemyDefinition(tables, state, uuid) {
             }
         }
         if (groupId) {
+            if (kind === 4) {
+                const controller = taskEnemyGroups(tables, state).find(
+                    (entry) =>
+                        entry.objectId === object &&
+                        entry.groupId === groupId &&
+                        (taskSourceId === undefined || entry.taskId === taskSourceId),
+                )
+                if (controller) taskSourceId = controller.taskId
+                if (taskSourceId !== undefined && (controller || taskSourceNode !== undefined)) {
+                    ensure(
+                        state.taskEpochs === undefined ||
+                            (state.taskEpochs &&
+                                typeof state.taskEpochs === 'object' &&
+                                !Array.isArray(state.taskEpochs)),
+                        'Invalid task epoch map for combat source',
+                        ErrorCode.GameConfig,
+                    )
+                    const epoch = state.taskEpochs?.[taskSourceId]
+                    ensure(
+                        epoch === undefined || (Number.isSafeInteger(epoch) && epoch >= 0),
+                        'Invalid task epoch for combat source',
+                        ErrorCode.GameConfig,
+                    )
+                    // Local deliveryKey already uses baseline epoch0 for old
+                    // task records. A controller ordinal is stable while its
+                    // override-node activation filter changes across nodes.
+                    activationSource = {
+                        task_id: taskSourceId,
+                        task_epoch: epoch ?? 0,
+                        owner_kind: controller ? 'controller' : 'node',
+                        owner_id: controller ? controller.controllerIndex : taskSourceNode,
+                    }
+                }
+            }
             const group = tables.find('world_enemy_group', groupId)
             const packs = taskGroup
                 ? taskEnemyPacks(tables, taskGroup)
@@ -217,5 +256,6 @@ export function enemyDefinition(tables, state, uuid) {
         object_id: object,
         slot,
         group_size: groupSize,
+        ...(activationSource ? { activation_source: activationSource } : {}),
     }
 }

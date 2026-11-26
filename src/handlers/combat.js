@@ -31,9 +31,17 @@ import { advanceCultTrialCombat } from '../cult-trial.js'
 import { advanceAbyssCombat, updateAbyssPetHealth } from '../abyss-battle.js'
 import { isRetiredTrialActor, temporaryHeroes, temporaryPets, activeFormationManager } from '../trial-actors.js'
 import { ensure } from './common.js'
+import { ErrorCode } from '../error-codes.js'
 import { heroModules, heroBattleLimits, heroBattleConfig, petModules, pairs } from '../battle.js'
 import { u64, expandBattleReport, combatState, boundedSet } from '../combat-state.js'
 import { refreshHeroGradeElements } from '../hero-grade-elements.js'
+import {
+    activateCombatGroup,
+    combatEnemyRoot,
+    combatEnemyReportIsCurrent,
+    recordCombatEnemyDeath,
+    rememberCombatEnemyPresentation,
+} from '../combat-enemy-lifecycle.js'
 export function actor(c, value) {
     const id = u64(value)
     ensure(id !== '0', 'Missing combat actor')
@@ -98,6 +106,14 @@ function recordedFormationPassive(c, skillId, index) {
     }
     return Object.entries(battle.skills ?? {}).some(([key, cast]) => matches(key, cast))
 }
+function localSkillSource(verify) {
+    const sourceType = verify?.source_type ?? 0
+    ensure(verify && Number.isInteger(sourceType) && sourceType >= 0 && sourceType <= 13, 'Invalid local skill source')
+    // SWaitClient is only observed being copied from server SCElementInfo.
+    // Its source_id is opaque server provenance, not ownership of a local
+    // item/passive cast; no current local issuance/admission path is recovered.
+    ensure(sourceType !== 13, 'Server-wait local skill provenance is unavailable', ErrorCode.FunctionClosed)
+}
 function skillActorKey(c, request, skillId, stopping = false) {
     if (u64(request.unit_id) !== '0') return actor(c, request.unit_id)
     let skills = itemSkillCatalogs.get(c.tables)
@@ -117,11 +133,7 @@ function skillActorKey(c, request, skillId, stopping = false) {
     // Battle.proto SkillVerifyType describes the trigger (skill, effect,
     // bullet, behavior, etc.), not actor ownership. Chained item casts use
     // Skill=1 and related_index; source_id is provenance, not a unit GUID.
-    const sourceType = verify?.source_type ?? 0
-    ensure(
-        verify && Number.isInteger(sourceType) && sourceType >= 0 && sourceType <= 12,
-        'Invalid local item skill source',
-    )
+    localSkillSource(verify)
     const index = u64(stopping ? verify.related_index : verify.battle_index)
     ensure(index !== '0', 'Missing local item skill index')
     return passive ? `local-passive:${skillId}:${index}` : `local-item:${index}`
@@ -259,11 +271,7 @@ export function registerCombat(on) {
             u64(r.verify_info.battle_index) === '0' &&
             u64(r.verify_info.related_index) === '0'
         ) {
-            const sourceType = r.verify_info.source_type ?? 0
-            ensure(
-                Number.isInteger(sourceType) && sourceType >= 0 && sourceType <= 12,
-                'Invalid local passive skill source',
-            )
+            localSkillSource(r.verify_info)
             const battle = combatState(c.state, c.now)
             for (const [key, cast] of Object.entries(battle.skills))
                 if (key.startsWith('local-passive:' + skillId + ':') && cast.unit_id === '0') delete battle.skills[key]
@@ -341,6 +349,71 @@ export function registerCombat(on) {
                 : null
         let entrustDamageChanged = false
         const reportSp = advanceEnergy(c, battle, changed)
+        const preparedGroups = new Set()
+        const prepareEnemy = (id) => {
+            let definition = enemyDefinition(c.tables, c.state, id)
+            const root = combatEnemyRoot(id)
+            if (!definition || definition.npc_duel || !root || preparedGroups.has(root)) return definition
+            const count = definition.group_size ?? 1
+            if (!Number.isSafeInteger(count) || count < 1 || count > 256) return definition
+            const packIds = Array.from(
+                { length: count },
+                (_, slot) =>
+                    enemyDefinition(c.tables, c.state, (BigInt(root) | (BigInt(slot) << 32n)).toString())?.pack_id,
+            )
+            // An incomplete actor source cannot establish an encounter roster.
+            // Keep its existing damage path rather than inventing other slots.
+            if (!packIds.every((pack) => Number.isSafeInteger(pack) && pack > 0)) return definition
+            const current = battle.enemyActivations?.[root]
+            let sourceScope = current?.scopeKey,
+                sourceTime = current ? Math.floor(c.now * 1000) : 0,
+                sourceKind = current?.sourceKind ?? 'explicit'
+            const automatic = !current || current.sourceKind !== 'explicit'
+            if (automatic && BigInt(id) >> 56n === 3n) {
+                sourceScope = `runtime:${battle.runtimeEpoch}:world:${battle.map_id}:${root}`
+                sourceTime = battle.runtimeActivatedAtMs
+                sourceKind = 'runtime'
+            }
+            if (automatic && BigInt(id) >> 56n === 4n && definition.activation_source) {
+                const source = definition.activation_source
+                sourceScope = `task:${source.task_id}:${source.task_epoch}:${source.owner_kind}:${source.owner_id}:${battle.map_id}:${root}`
+                sourceKind = 'task'
+            }
+            if (automatic && BigInt(id) >> 56n === 7n) {
+                for (const [key, entry] of Object.entries(c.state.playableEnemies ?? {})) {
+                    if (!key.startsWith(battle.map_id + ':')) continue
+                    const source = entry.entities?.find((entity) => entity.uuid === id)
+                    if (
+                        !source ||
+                        source.container !== Number(BigInt(root) & 0xffffffffn) ||
+                        !Number.isSafeInteger(entry.created_at) ||
+                        entry.created_at <= 0 ||
+                        typeof entry.config_fingerprint !== 'string' ||
+                        !entry.config_fingerprint
+                    )
+                        continue
+                    // registerPlayableEnemies allocates a fresh durable container
+                    // for a new activation; reconnecting the same entry reuses it.
+                    sourceScope = `playable:${key}:${source.container}:${entry.created_at}:${entry.config_fingerprint}`
+                    sourceTime = entry.created_at * 1000
+                    sourceKind = 'playable'
+                    break
+                }
+            }
+            if (!sourceScope) return definition
+            activateCombatGroup(c.state, {
+                root,
+                scopeKey: sourceScope,
+                packIds,
+                active: current?.active ?? true,
+                activatedAtMs: sourceTime,
+                adoptExisting: !current,
+                sourceKind,
+            })
+            preparedGroups.add(root)
+            definition = enemyDefinition(c.tables, c.state, id)
+            return definition
+        }
         const update = (id, values, source, applyHp = true) => {
             if (id === '0') return
             const abyssPet = values.delta !== undefined && updateAbyssPetHealth(c, id, values.delta)
@@ -371,8 +444,8 @@ export function registerCombat(on) {
                     entrustRun.hero_deaths++
                 changed.set(id, { uuid: id, hp: saved.hp, sp: saved.sp, alive_state: saved.alive_state, reason: 0 })
             } else {
-                const previous = battle.entities[id] ?? { uuid: id },
-                    definition = enemyDefinition(c.tables, c.state, id)
+                const definition = prepareEnemy(id)
+                const previous = battle.entities[id] ?? { uuid: id }
                 if (definition?.npc_duel && !battle.npcDuel.in_fight[id]) return
                 const introRun = c.state.entrust?.run
                 if (
@@ -400,12 +473,14 @@ export function registerCombat(on) {
                     if (died) deadGroups.add(id)
                     if (died) recordTrackingDeath(c.tables, c.state, value, c.now)
                     if (died && source && source !== '0') value.final_blow_guid = source
+                    if (died && !definition.npc_duel) recordCombatEnemyDeath(c.state, id, value)
                     const lost = Math.max(0, (previous.hp ?? definition.max_hp) - hp)
                     if (entrustRun && lost > 0 && isPlayerDamageSource(c.state, source)) {
                         entrustRun.damage_total = String(BigInt(entrustRun.damage_total ?? '0') + BigInt(lost))
                         entrustDamageChanged = true
                     }
                     boundedSet(battle.entities, id, value, 512)
+                    rememberCombatEnemyPresentation(c.state, id, definition.pack_id)
                     if (definition.npc_duel)
                         recordArenaHpStatistics(c, id, source, previous.hp ?? definition.max_hp, hp)
                     if (died && !definition.npc_duel && recordGuidedKill(c.tables, c.state, value, c.now))
@@ -432,6 +507,14 @@ export function registerCombat(on) {
             if (actors.some((id) => id && isRetiredTrialActor(c.state, id))) continue
             if (row.hurt_info) {
                 const h = row.hurt_info
+                prepareEnemy(h.tar_id)
+                prepareEnemy(h.from_id)
+                const eventTime = h.verify_info?.op_time ?? r.base_time ?? '0'
+                if (
+                    !combatEnemyReportIsCurrent(c.state, h.tar_id, eventTime) ||
+                    !combatEnemyReportIsCurrent(c.state, h.from_id, eventTime)
+                )
+                    continue
                 if (c.state.petCaptureResults?.[h.from_id] || c.state.petCaptureResults?.[h.tar_id]) continue
                 if (h.tar_id !== '0') actor(c, h.tar_id)
                 if (h.from_id !== '0') actor(c, h.from_id)
@@ -541,9 +624,23 @@ export function registerCombat(on) {
                 const e = row.element_info
                 if (c.state.petCaptureResults?.[e.tar_id] || c.state.petCaptureResults?.[e.buff?.creator_id]) continue
                 if (e.tar_id !== '0') actor(c, e.tar_id)
-                ensure(e.op >= 1 && e.op <= 10, 'Unknown element operation')
+                // Current1.0 BuffService emits1..9 plus AddRemoteElement10.
+                // BornElement11/RemoteDel12 have no recovered sender or receiver
+                // branch; enum names alone do not define an executable action.
+                ensure(Number.isInteger(e.op) && e.op >= 1 && e.op <= 12, 'Unknown element operation')
+                ensure(
+                    e.op <= 10,
+                    'Current element operation has no supported execution path',
+                    ErrorCode.FunctionClosed,
+                )
                 const id = e.uniqueId,
                     priorTeachingElement = battle.elements[id]
+                // FreeElementByUniqueID/ChangeElementNumberLayers operate on
+                // the target entity's element system, not a global GUID bag.
+                ensure(
+                    !priorTeachingElement || priorTeachingElement.tar_id === e.tar_id,
+                    'Element belongs to another combat target',
+                )
                 if (e.op === 2) delete battle.elements[id]
                 else if ([1, 7, 10].includes(e.op)) {
                     ensure(id !== '0' && e.buff, 'Missing element data')
@@ -559,7 +656,16 @@ export function registerCombat(on) {
             }
         }
         battle.report_count++
-        battle.last_base_time = u64(r.base_time)
+        const receivedBase = u64(r.base_time)
+        if (battle.last_base_time === undefined || BigInt(receivedBase) > BigInt(battle.last_base_time))
+            battle.last_base_time = receivedBase
+        // Primitive copy-on-write state survives scene exits that deliberately
+        // delete combat, while a failed deferred/encoded report rolls it back.
+        if (
+            c.state.combatReportHighWaterMs === undefined ||
+            BigInt(receivedBase) > BigInt(c.state.combatReportHighWaterMs)
+        )
+            c.state.combatReportHighWaterMs = receivedBase
         // HurtInfo updates HP only; publish alive state before its HP callback.
         if (changed.size) c.push('CSProtoObjBattleInfoSync', { infos: [...changed.values()] })
         if (enemyHurts.length)

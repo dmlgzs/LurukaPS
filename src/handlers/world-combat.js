@@ -8,6 +8,13 @@ import { recordBossFirstClear } from '../boss-first-chests.js'
 import { inactiveCampaignEnemyGroup } from '../inactive-campaign-enemies.js'
 import { arenaNativeSummonOwner } from '../npc-kibo-unit-grade.js'
 import { requirePetModel } from '../pet-model-eligibility.js'
+import { enemyDefinition } from '../enemy-state.js'
+import { combatEntityStates, combatEnemyRoot, rememberCombatEnemyPresentation } from '../combat-enemy-lifecycle.js'
+import {
+    beginCombatSnapshotPublication,
+    plannedCombatInitialization,
+    recordCombatInitialization,
+} from '../combat-scene-snapshots.js'
 function runtime(c) {
     const state = combatState(c.state, c.now)
     state.summons ??= {}
@@ -143,6 +150,87 @@ export function finishEnemyGroupRelations(c, id) {
     c.push('CSProtoHatredResetSync', { is_player: false, obj_id: group.root })
     recordBossFirstClear(c, id)
     return true
+}
+// Public scene-ready/rebuild hook. EntityService caches10009 even before an
+// actor is recreated, including killerUID; do not replay a stale activation.
+export function replayCombatEnemyTerminals(c) {
+    const battle = c.state.combat
+    if (battle?.map_id !== c.state.world.map_id) return 0
+    const states = combatEntityStates(battle),
+        infos = []
+    for (const [id, terminal] of Object.entries(battle.enemyTerminals ?? {})) {
+        const activation = battle.enemyActivations?.[combatEnemyRoot(id)]
+        if (!activation?.active || activation.generation !== terminal.generation || states[id]?.hp !== 0) continue
+        const current = enemyDefinition(c.tables, c.state, id)
+        if (!current || current.npc_duel || current.pack_id !== terminal.pack_id) continue
+        infos.push({
+            uuid: id,
+            hp: 0,
+            sp: terminal.sp ?? 0,
+            alive_state: 1,
+            reason: 0,
+            ...(terminal.final_blow_guid ? { final_blow_guid: terminal.final_blow_guid } : {}),
+        })
+    }
+    for (let index = 0; index < infos.length; index += 256)
+        c.pushBefore('CSProtoObjBattleInfoSync', { infos: infos.slice(index, index + 256) })
+    return infos.length
+}
+// Call after destination WorldMapSync/SceneMode in the same output stream:
+// EntityService.RemoveCacheBy9103Call can discard earlier10009 cold blocks.
+// Terminal replay remains a separate, later scene-ready step.
+export function publishCombatEnemyActivations(c) {
+    beginCombatSnapshotPublication(c)
+    if (c.state.combat) c.state.combat = { ...c.state.combat, bullets: { ...c.state.combat.bullets } }
+    const battle = combatState(c.state, c.now),
+        pending = { ...battle.enemyAlivePending }
+    for (const [id, entry] of Object.entries(c.state.combatEnemyPresentations?.[battle.map_id] ?? {}))
+        if (entry.runtimeEpoch !== battle.runtimeEpoch && pending[id] === undefined) pending[id] = { runtime: true }
+    const states = combatEntityStates(battle),
+        infos = [],
+        consumed = []
+    for (const [id, event] of Object.entries(pending)) {
+        const activation = battle.enemyActivations?.[combatEnemyRoot(id)]
+        consumed.push(id)
+        if (
+            activation &&
+            (!activation.active || (event.generation !== undefined && event.generation !== activation.generation))
+        )
+            continue
+        const definition = enemyDefinition(c.tables, c.state, id)
+        if (!definition || definition.npc_duel) continue
+        if (c.state.petCaptureResults?.[id]?.map_id === battle.map_id) continue
+        const object = c.state.worldObjects?.[`${battle.map_id}:${definition.object_id}`]
+        if (object?.complete || object?.state_data?.complete || object?.active === false) continue
+        const cached = states[id]
+        // A real death in this new generation supersedes an unflushed alive
+        // notification. Never revive it or heal already accepted new damage.
+        if (cached?.hp === 0 && cached.alive_state === 1) continue
+        const hp = cached?.pack_id === definition.pack_id && cached.hp !== undefined ? cached.hp : definition.max_hp
+        ensure(
+            Number.isSafeInteger(hp) && hp > 0 && hp <= 0xffffffff,
+            'Invalid fresh combat activation HP',
+            ErrorCode.GameConfig,
+        )
+        const sp = cached?.pack_id === definition.pack_id ? (cached.sp ?? 0) : 0
+        ensure(
+            Number.isSafeInteger(sp) && sp >= 0 && sp <= 0xffffffff,
+            'Invalid fresh combat activation SP',
+            ErrorCode.GameConfig,
+        )
+        infos.push(
+            plannedCombatInitialization(c, { uuid: id, hp, sp, alive_state: 0, final_blow_guid: '0', reason: 0 }),
+        )
+        rememberCombatEnemyPresentation(c.state, id, definition.pack_id)
+    }
+    battle.enemyAlivePending = { ...battle.enemyAlivePending }
+    for (const id of consumed) delete battle.enemyAlivePending[id]
+    for (let index = 0; index < infos.length; index += 256) {
+        const chunk = infos.slice(index, index + 256)
+        c.pushBefore('CSProtoObjBattleInfoSync', { infos: chunk })
+        recordCombatInitialization(c, chunk)
+    }
+    return infos.length
 }
 export function registerWorldCombat(on) {
     on('SwitchPetAction', (c, r) => {
