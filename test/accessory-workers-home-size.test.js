@@ -173,12 +173,20 @@ test('missing or malformed home size and unsupported size fail atomically before
     const f = setup(),
         find = tables.find
     try {
+        // Current20241 accepts sizes1..4. Use the actual lower forge20051
+        // (same labor11/attribute4002, sizes1|2) for a real size mismatch.
+        f.store.transact(f.session.id, 0, (state) => {
+            state.home.builds.find((build) => build.guid === 20).build_id = 20051
+        })
+        assert.equal(tables.find('home_building_production', 20051).petSize, '1|2')
+        const unsupported = tables.find('pet_home_talent', 500185)
+        assert.equal(unsupported.sizeType, 3)
         station(f, 500181)
         for (const [replacement, code] of [
             [undefined, ErrorCode.PetHomeConfNotExist],
             [{ sizeType: '2' }, ErrorCode.GameConfig],
             [{ sizeType: 99 }, ErrorCode.GameConfig],
-            [{ sizeType: 4 }, ErrorCode.InvalidArgument],
+            [unsupported, ErrorCode.InvalidArgument],
         ]) {
             tables.find = function (name, id) {
                 return name === 'pet_home_talent' && id === 500185 ? replacement : find.call(this, name, id)
@@ -189,10 +197,10 @@ test('missing or malformed home size and unsupported size fail atomically before
             tables.find = find
         }
         f.store.transact(f.session.id, 0, (s) => {
-            s.pets.find((pet) => pet.guid === f.worker(500185)).labor_infos = [{ labor_id: 2, labor_grade: 20 }]
+            s.pets.find((pet) => pet.guid === f.worker(500306)).labor_infos = [{ labor_id: 2, labor_grade: 20 }]
         })
         const before = db(f)
-        assert.throws(() => station(f, 500185), error(ErrorCode.PetLaborNotMatch))
+        assert.throws(() => station(f, 500306), error(ErrorCode.PetLaborNotMatch))
         assert.deepEqual(db(f), before)
     } finally {
         tables.find = find

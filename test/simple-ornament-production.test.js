@@ -10,7 +10,7 @@ import { productionTables } from '../src/production-tables.js'
 import { grantRewards, parseRewards } from '../src/rewards.js'
 import { ErrorCode } from '../src/error-codes.js'
 
-test('current 11010 and retained 11013 queue actual quick ornaments and sync GUID instances before rewards', () => {
+test('current11010 queues actual quick ornaments and synchronizes GUID instances before reward presentation', () => {
     const cfg = configuration(),
         tables = new Tables(cfg.tables),
         current = productionTables(tables),
@@ -46,18 +46,26 @@ test('current 11010 and retained 11013 queue actual quick ornaments and sync GUI
                 { itemtype: 3, itemid: 317001, itemnum: 30 },
             ])
         })
-        const request = { product_id: 200001, build_guid: 0, count: 1 }
+        const request = { product_id: 200001, build_guid: 0, count: 1, select_material: [] }
         const before = structuredClone(state())
         for (const bad of [
-            { ...request, count: 2 },
-            { ...request, product_id: 501001 },
+            { ...request, count: current.find('products', request.product_id).numberLimit + 1 },
+            { ...request, product_id: 0xffffffff },
+            { ...request, build_guid: 20 },
+        ]) {
+            assert.throws(
+                () => call('SimpleProductStart', bad),
+                (error) => error.code === ErrorCode.InvalidArgument,
+            )
+            assert.deepEqual(state(), before)
+        }
+        for (const bad of [
             { ...request, ornament_guid: 1 },
             { ...request, designated_item_id: 0xffffffff },
         ]) {
-            assert.throws(
-                () => call('SimpleProductOrnamentStart', bad),
-                (error) => error.code === ErrorCode.InvalidArgument,
-            )
+            // Retired11013 fields are absent from the actual11010 request.
+            // Keep their rejection at the schema boundary, not a fake ACK.
+            assert.throws(() => call('SimpleProductStart', bad), /Unknown field/)
             assert.deepEqual(state(), before)
         }
         const actual = { product_id: 200001, count: 1 }
@@ -72,7 +80,7 @@ test('current 11010 and retained 11013 queue actual quick ornaments and sync GUI
         assert.equal(count(317001), 20)
         const job = state().simpleProducts[0]
         now++
-        call('SimpleProductOrnamentStart', request)
+        call('SimpleProductStart', request)
         const pending = state().simpleProducts.find((item) => item.guid !== job.guid)
         assert.equal(count(300000), 10)
         assert.equal(count(317001), 10)
@@ -99,7 +107,7 @@ test('current 11010 and retained 11013 queue actual quick ornaments and sync GUI
         assert.equal(state().ornaments.length, 1)
         call('SimpleProductCancel', { u32: pending.guid })
         assert.equal(count(300000), 20)
-        call('SimpleProductOrnamentStart', { product_id: 200002 })
+        call('SimpleProductStart', { product_id: 200002, count: 1, select_material: [] })
         now += 10
         const login = call('EnterGame', { open_id: 'quick-ornament' }, {})
         const all = login.find((packet) => packet.id === protocol.byName.get('CSProtoAllEquipOrnamentSync').id)
