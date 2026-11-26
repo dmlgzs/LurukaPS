@@ -1,3 +1,4 @@
+import { SystemUnlocks, systemUnlockPersistence, systemUnlockPlayerPacket } from './system-unlocks.js'
 import { bootstrapHomeWishlistIdentity } from './home-wishlist.js'
 import { currentMapMember } from './current-map-member.js'
 import {
@@ -599,6 +600,7 @@ export class Game {
         this.protocol = protocol
         this.store = store
         this.tables = tables
+        this.systemUnlocks = new SystemUnlocks(tables)
         this.taskEventDiagnosticsFile = taskEventDiagnosticsFile
         this.handlers = new Map()
         this.unavailableProtocolHandlers = new Map()
@@ -1448,6 +1450,8 @@ export class Game {
                     if (name === 'CSProtoWorldBuffSync') preparePersonalBuffPacket(state, this.tables, value)
                     if (name === 'CSProtoPetInfoSync') value = petSyncPresentation(this.tables, state, value)
                     if (name === 'CSProtoSyncPlayerData' && value) {
+                        if (!meta.audience && (!meta.recipient || meta.recipient === session.id))
+                            value = systemUnlockPlayerPacket(state, value)
                         value = projectCurrentHeroes(this.tables, state, value)
                         syncCurrencyMirrors(state.player)
                         const { sbag_infos, soulessence_infos, ...other } = value
@@ -1802,7 +1806,8 @@ export class Game {
                 const medicineCleanup = personalBuffFrames(takeMedicineCleanupPayload(state)).map((value) =>
                     this.packet('CSProtoWorldBuffSync', value),
                 )
-                return [
+                const systemPlan = state.systemUnlockProgress === undefined ? null : this.systemUnlocks.observe(state)
+                const systemPackets = [
                     ...medicineCleanup,
                     ...((state.appearanceRevision ?? 0) !== appearanceRevision
                         ? [
@@ -1836,8 +1841,11 @@ export class Game {
                     ...packets,
                     ...pushes,
                 ]
+                return this.systemUnlocks.deliver(state, systemPackets, systemPlan, (name, value) =>
+                    this.packet(name, value),
+                )
             },
-            {
+            systemUnlockPersistence({
                 defer: deferredMessages.has(e.name),
                 skipUnchanged: unchangedReadQueries.has(e.name),
                 // Pure phase/trace acknowledgments do not require a disk commit.
@@ -1867,7 +1875,7 @@ export class Game {
                         : deferredMessages.has(e.name)
                           ? forkWithoutPets
                           : undefined,
-            },
+            }),
         )
     }
     tick(id, session) {
@@ -2165,15 +2173,16 @@ export class Game {
                         handbookBonusesBefore,
                     )
                 }
-                return packets
+                const systemPlan = state.systemUnlockProgress === undefined ? null : this.systemUnlocks.observe(state)
+                return this.systemUnlocks.deliver(state, packets, systemPlan, (name, value) => this.packet(name, value))
             },
-            {
+            systemUnlockPersistence({
                 defer: !durable,
                 fork: durable ? undefined : forkNpcArenaRuntime,
                 persistWhen: !durable
                     ? (draft, base) => !!draft.combat?.npcDuel?.result && !base.combat?.npcDuel?.result
                     : undefined,
-            },
+            }),
         )
     }
     loginPackets(state, session, r, frame, id) {
@@ -2202,6 +2211,7 @@ export class Game {
         preparePamiMail(this.tables, state, now)
         prepareSocialWheel(this.tables, state)
         prepareEscBackground(this.tables, state)
+        this.systemUnlocks.prepare(state)
         return [
             this.packet('CSProtoEnterGameCallbackStart', {
                 reconnect: !!r.reconnect,

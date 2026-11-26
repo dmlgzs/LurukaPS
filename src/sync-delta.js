@@ -125,7 +125,12 @@ class Delta {
         const out = this.fields('player.other', other)
         if (basic_info) {
             const b = this.fields('player.basic', basic_info)
-            if (nonempty(b)) out.basic_info = b
+            if (nonempty(b)) {
+                // lock_system is a full bitmap, not a keyed/scalar merge. Keep
+                // an explicitly supplied snapshot with an otherwise real delta.
+                if (Array.isArray(basic_info.lock_system)) b.lock_system = [...basic_info.lock_system]
+                out.basic_info = b
+            }
         }
         if (attr_infos) {
             const { attrs = [], ...extra } = attr_infos,

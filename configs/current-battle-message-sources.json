@@ -1,0 +1,61 @@
+{
+    "schemaVersion": 1,
+    "clientVersion": "1.0.0",
+    "packageVersion": "3217420",
+    "origin": "CURRENT_CLIENT_STATIC",
+    "authority": "LOCAL-published-current-world-task-battle",
+    "producer": "TaskGuideSeverAction06012bac",
+    "conditionId": 61009,
+    "systems": [
+        {
+            "id": 3002,
+            "expression": "61009#3002#1"
+        },
+        {
+            "id": 3003,
+            "expression": "61009#3003#1"
+        }
+    ],
+    "scannedCurrentFsms": 84,
+    "uninspectedMissingAssets": [
+        {
+            "battleFsmType": 2,
+            "path": "Config/Battle/NCFsm/ast_fsm_2000_4.asset"
+        },
+        {
+            "battleFsmType": 3,
+            "path": "Config/Battle/NCFsm/ast_fsm_2000_2.asset"
+        },
+        {
+            "battleFsmType": 4,
+            "path": "Config/Battle/NCFsm/ast_fsm_2000_1.asset"
+        }
+    ],
+    "fsms": [
+        {
+            "id": 102,
+            "path": "Config/Battle/NCFsm/ast_fsm_prologue_boss.asset",
+            "assetSha256": "3fcbd098d2c0b6f9000b5724ad5a6054e1dd769337d8d09a356cd3fa22402265",
+            "messages": [
+                {
+                    "key": 61009,
+                    "args": [3003, 1],
+                    "nodeId": "10",
+                    "path": "$.nodes.10._actionList.actions.1.paramList.0"
+                },
+                {
+                    "key": 61009,
+                    "args": [3003, 1],
+                    "nodeId": "12",
+                    "path": "$.nodes.12._actionList.actions.3.paramList.0"
+                },
+                {
+                    "key": 61009,
+                    "args": [3002, 1],
+                    "nodeId": "34",
+                    "path": "$.nodes.34._actionList.actions.1.paramList.0"
+                }
+            ]
+        }
+    ]
+}
