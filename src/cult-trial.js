@@ -13,6 +13,7 @@ import { recordCultArchiveResult, cultArchiveEnemyDefinition } from './cult-arch
 import { growupArchiveSnapshot } from './growup-archive.js'
 import { recordCultTrialHistory } from './cult-trial-history.js'
 import { cultActivityAttrExtra } from './cult-activity-attributes.js'
+import { cultExecutionPlan, validateCultExecutionRun } from './cult-execution.js'
 const routes = new Map(
     JSON.parse(fs.readFileSync(new URL('../configs/cult-trial-routes.json', import.meta.url))).routes.map((x) => [
         x.trial_id,
@@ -26,6 +27,11 @@ function currentTables(tables) {
     if (!current) scoreTables.set(tables, (current = activityTables(tables)))
     return current
 }
+function executionFor(tables, run) {
+    const plan = cultExecutionPlan(tables, routes.get(run.trial_id))
+    validateCultExecutionRun(plan, run)
+    return plan
+}
 export function cultTrialStarMask(goals, score) {
     const thresholds = String(goals).split('|').map(Number)
     ensure(
@@ -36,8 +42,11 @@ export function cultTrialStarMask(goals, score) {
     return thresholds.reduce((mask, goal, index) => mask + (score >= goal ? 2 ** index : 0), 0)
 }
 export function refreshCultTrialResult(tables, state) {
-    const run = state.cultTrial
+    let run = state.cultTrial
     if (!run || run.map_id !== state.world.map_id || !run.current_wave) return false
+    const execution = executionFor(tables, run)
+    run = state.cultTrial = { ...run }
+    if (execution) run.execution_fingerprint = execution.fingerprint
     const current = currentTables(tables),
         trial = current.get('game_events_cul_trial').find((x) => x.trialId === run.trial_id),
         growup = run.archive ?? state.activities[run.activity_id].growup
@@ -48,7 +57,10 @@ export function refreshCultTrialResult(tables, state) {
         run.score_rate = rank.coefficient
     }
     let base = 0
-    for (const wave of current.get('game_events_cul_trial_wave').filter((x) => x.trialId === run.trial_id)) {
+    const scoring =
+        execution?.scoreRows ?? current.get('game_events_cul_trial_wave').filter((x) => x.trialId === run.trial_id)
+    const completed = execution?.waves.findIndex((wave) => wave.wave_id === (run.completed_waves ?? 0))
+    for (const [index, wave] of scoring.entries()) {
         const objects = String(wave.worldMapId).split('|').map(Number)
         for (const id of objects) {
             const members = Object.values(state.combat?.entities ?? {}).filter(
@@ -60,7 +72,7 @@ export function refreshCultTrialResult(tables, state) {
                 base += wave[type === 1 ? 'bossScore' : type === 2 ? 'eliteScore' : 'commonScore']
             }
         }
-        if (wave.waveId <= (run.completed_waves ?? 0)) base += wave.waveScore
+        if (execution ? index <= completed : wave.waveId <= (run.completed_waves ?? 0)) base += wave.waveScore
     }
     const score = Math.trunc((base * run.score_rate) / 10000),
         old = run.score
@@ -115,6 +127,7 @@ export function cultTrialRoute(tables, catalog, activityId, trialId) {
         'Cultivation trial scene mapping unavailable',
         ErrorCode.InstanceSceneConfNotExist,
     )
+    cultExecutionPlan(tables, route)
     return { activity, trial, route, dungeon, point }
 }
 export function cultTrialSnapshot(state, { entering = false } = {}) {
@@ -138,8 +151,12 @@ export function cultTrialSnapshot(state, { entering = false } = {}) {
     }
 }
 export function ensureCultTrialScene(tables, state, now) {
-    const run = state.cultTrial
+    let run = state.cultTrial
     if (!run || state.world.map_id !== run.map_id) return false
+    const waves = cultTrialWaves(tables, run),
+        execution = executionFor(tables, run)
+    run = state.cultTrial = { ...run }
+    if (execution) run.execution_fingerprint = execution.fingerprint
     if (run.archive_id && run.status === 2 && run.real_start_time && !run.battle_complete) {
         const timed = String(tables.find('dungeon', run.dungeon_id)?.failCondition ?? '')
                 .split('||')
@@ -153,14 +170,18 @@ export function ensureCultTrialScene(tables, state, now) {
     }
     const world = new WorldObjectCatalog(tables),
         rows = world.get('worldmap_' + run.map_id),
-        records = (state.worldObjects ??= {})
+        records = (state.worldObjects = { ...state.worldObjects })
+    for (const row of rows) {
+        const key = run.map_id + ':' + row.id
+        if (records[key]) records[key] = { ...records[key] }
+    }
     if (!run.initialized) {
         for (const key of Object.keys(records)) if (key.startsWith(run.map_id + ':')) delete records[key]
         delete state.combat
         run.initialized = true
     }
     const battle = combatState(state, now)
-    const waves = cultTrialWaves(tables, run)
+    const executableIds = waves.flatMap((wave) => wave.object_ids)
     for (const row of rows) {
         const key = run.map_id + ':' + row.id,
             values = String(row.position)
@@ -183,7 +204,7 @@ export function ensureCultTrialScene(tables, state, now) {
         // Also repair an older cached object, not just a newly-created row.
         record.time = run.start_time
         record.next_time = 0
-        if (!run.object_ids.includes(row.id)) continue
+        if (!executableIds.includes(row.id)) continue
         const wave = waves.find((x) => x.object_ids.includes(row.id))
         record.complete = !!wave && wave.wave_id <= (run.completed_waves ?? 0)
         record.active =
@@ -229,6 +250,7 @@ export function ensureCultTrialScene(tables, state, now) {
         }
     }
     refreshCultTrialResult(tables, state)
+    run = state.cultTrial
     if (run.battle_complete && run.status === 3) {
         // The scene's tagged chest is created by the client's victory graph.
         // Keep its server snapshot active so refresh cannot hide it again.
@@ -250,6 +272,8 @@ export function ensureCultTrialScene(tables, state, now) {
 }
 
 function cultTrialWaves(tables, run) {
+    const execution = executionFor(tables, run)
+    if (execution) return execution.waves
     let rows = waveTables.get(tables)
     if (!rows) waveTables.set(tables, (rows = activityTables(tables).get('game_events_cul_trial_wave')))
     const waves = rows
@@ -269,8 +293,8 @@ function cultTrialWaves(tables, run) {
 }
 
 export function syncCultTrialWave(c) {
-    const run = c.state.cultTrial
     ensureCultTrialScene(c.tables, c.state, c.now)
+    const run = c.state.cultTrial
     if (run.archive_id && run.battle_complete) publishCultTrialResult(c)
     pushCultTrialLiveScore(c)
     if (run.attr_changes?.length)
@@ -288,7 +312,8 @@ export function syncCultTrialWave(c) {
         map_info: { creator_id: c.id, map_id: run.map_id, objs: run.scene_objects },
     })
     const infos = []
-    for (const object of run.scene_objects.filter((x) => x.active && run.object_ids.includes(x.obj_id))) {
+    const executableIds = cultTrialWaves(c.tables, run).flatMap((wave) => wave.object_ids)
+    for (const object of run.scene_objects.filter((x) => x.active && executableIds.includes(x.obj_id))) {
         const monsters = object.expand_data.battle_group.monsters.filter((x) => x.hp > 0)
         if (!monsters.length) continue
         // SinglePlayerDungeon owns its static groups locally. Multiplayer AOI
@@ -304,13 +329,15 @@ function pushCultTrialLiveScore(c) {
 }
 
 export function startCultTrialBattle(c) {
-    const run = c.state.cultTrial
+    let run = c.state.cultTrial
     ensure(
         run && run.map_id === c.state.world.map_id && [2, 3, 4].includes(run.status),
         'No active cultivation trial loading',
     )
+    const waves = cultTrialWaves(c.tables, run)
+    run = c.state.cultTrial = { ...run }
     if (!run.current_wave && !run.battle_complete) {
-        run.current_wave = cultTrialWaves(c.tables, run)[0].wave_id
+        run.current_wave = waves[0].wave_id
         run.real_start_time = c.now
     }
     run.loading_complete_at ??= c.now
@@ -322,7 +349,7 @@ export function startCultTrialBattle(c) {
 }
 
 export function advanceCultTrialCombat(c) {
-    const run = c.state.cultTrial
+    let run = c.state.cultTrial
     if (!run || run.map_id !== c.state.world.map_id || run.status !== 2 || !run.current_wave || run.battle_complete)
         return false
     const waves = cultTrialWaves(c.tables, run),
@@ -340,8 +367,9 @@ export function advanceCultTrialCombat(c) {
     }
     // Fork only the few scene records on a completed wave. Ordinary hits keep
     // the existing in-memory combat path and do not persist or copy the world.
+    run = c.state.cultTrial = { ...run }
     c.state.worldObjects = { ...c.state.worldObjects }
-    for (const id of run.object_ids) {
+    for (const id of waves.flatMap((wave) => wave.object_ids)) {
         const key = run.map_id + ':' + id
         c.state.worldObjects[key] = { ...c.state.worldObjects[key] }
     }

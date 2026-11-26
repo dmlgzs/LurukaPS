@@ -1,24 +1,216 @@
 {
-  "version": "2451868",
-  "manifest": "\\\\vmware-host\\Shared Folders\\AzurPromilia_Game\\AzurPromilia_Data\\.res\\raw_base_package\\ManifestFiles\\30_raw_base_package_2451868.bytes",
-  "resources": [
-    {
-      "name": "rd_assets_resourcesassets_config_vstring_vstring_bytes",
-      "source": "\\\\vmware-host\\Shared Folders\\AzurPromilia_Game\\AzurPromilia_Data\\.res\\raw_base_package\\BundleFiles\\nvhebgwzftpy2jav9cujtg.r",
-      "sha256": "0f032fbbdedc5f758fd17f08882695fb8952d6c6910a73fdf2e66f9f614e3b41",
-      "crc32": 2855464684
+  "version": "3217420",
+  "packageVersions": {
+    "raw_base_package": "3217420",
+    "raw_streaming_package": "3217420",
+    "raw_nostreaming_package": "3217420"
+  },
+  "source": {
+    "table_index_sha256": "38dbdf84a0575a0990f9cd7ac39226e46a51522791006e7259854a350d20e665",
+    "sourceMMapSha256": {
+      "table_data": "fd7cee5386f4f740de2a06eef837ef91f0e160e44a721900838c0c0b21edb9b5",
+      "vstring": "cf8b8516e6e98ee7ca860f189e9248538e9264a44c0d4c7598d0fbf5d7eaaac1"
     },
-    {
-      "name": "rs_assets_resourcesassets_config_newtablemmap_table_data_bytes",
-      "source": "\\\\vmware-host\\Shared Folders\\AzurPromilia_Game\\AzurPromilia_Data\\.res\\raw_streaming_package\\BundleFiles\\vo2kachbxcjtbtmcmmia.r",
-      "sha256": "032bd31939acf6b253e62364abac8bb8bdaf4077b12c5621d5b42b7f5c696d35",
-      "crc32": 2542945056
+    "tables": [
+      {
+        "table": "dungeon",
+        "rows": 1600,
+        "sha256": "fd940e82709a9b000f70b69b0f7e693a3b29e9fdafbdb4ba3aaa95b5b8624564"
+      },
+      {
+        "table": "dungeon_scene",
+        "rows": 1056,
+        "sha256": "f1a245020764c0fb6d14ae9a22edc319eba27fbf7e7ba722113acbc3ba406a89"
+      },
+      {
+        "table": "world_city",
+        "rows": 742,
+        "sha256": "de4c03d2c8907f0827395c870ad54edd966331be29a44e6cba19f97a94c6bed7"
+      },
+      {
+        "table": "world_enemy_group",
+        "rows": 3160,
+        "sha256": "bc91245ed99b92a5b7116fa3106b2788ff3e4dd05c3469d5e1b4352fedf06142"
+      },
+      {
+        "table": "enemy_pack",
+        "rows": 1271,
+        "sha256": "5feb50b06ef052d7279caddce2a8ca0a3562970b68c056216b26248482a45e1c"
+      },
+      {
+        "table": "world_borthpos",
+        "rows": 1418,
+        "sha256": "e4cfdecf8915199a73b5facd7673dd9c79396964623694ed5327fa1515b99442"
+      },
+      {
+        "table": "game_events_cul_trial",
+        "rows": 27,
+        "sha256": "1f34614b326dfbe2b421e8f27d93774f61d9436b303dc68681c897e07f40be1c"
+      },
+      {
+        "table": "game_events_cul_trial_wave",
+        "rows": 153,
+        "sha256": "8f003a55dd1a86309efe61d7ad10fcc32fa4d25a4f4cbbedb1b3c4c07d415f93"
+      },
+      {
+        "table": "worldmap_6550",
+        "rows": 6,
+        "sha256": "23fbb8796c9919c1dbc4e016231941673e82e1461a5ad679ffafb494dbf51b75"
+      },
+      {
+        "table": "world_blueprint",
+        "rows": 456,
+        "sha256": "69111650ccfccf4c21869aba4306f810d141d2fab441caedb1d9bcde0f58cd27"
+      },
+      {
+        "table": "world_spawner",
+        "rows": 2571,
+        "sha256": "18a03b14bebf8da37fa95322ab9c4bfa3e44a1b17119bd84a72d5ddb24d0ea12"
+      },
+      {
+        "table": "worldmap_6551",
+        "rows": 6,
+        "sha256": "27e458fbb4bbaf79d7f7e21c898b83a670bd580864072efa9a9aa1e3d55bd352"
+      },
+      {
+        "table": "worldmap_6552",
+        "rows": 6,
+        "sha256": "c3c2f1b5b8a121926c129c5d3c32f4a7d7d131722d9efa0032d69a5b45e9e2da"
+      },
+      {
+        "table": "worldmap_6553",
+        "rows": 6,
+        "sha256": "975daeb98f12e661d101172ac35e7736c673ecd765f1975b33b1932d3b5c97bc"
+      },
+      {
+        "table": "worldmap_6554",
+        "rows": 6,
+        "sha256": "dd1dbdfbd6f5e4851099db0e26c2adf846f1e0a711d14ed47c08b605c7914621"
+      },
+      {
+        "table": "worldmap_6570",
+        "rows": 7,
+        "sha256": "3584211d15baaebf2f6710f10c06fb77f0d3e27cbbb4d2b3a4cb091ad58c44a2"
+      },
+      {
+        "table": "worldmap_6571",
+        "rows": 7,
+        "sha256": "fe5bd0c6fd683c7930c4dee574e997b2336a6d7dbad30eab486f8a5e5b453ab1"
+      },
+      {
+        "table": "worldmap_6572",
+        "rows": 7,
+        "sha256": "23dcb92eb8bf66f9b26e4f26e8e3195eec00d63b062a75a312ef1bc5516ac5ce"
+      },
+      {
+        "table": "worldmap_6573",
+        "rows": 7,
+        "sha256": "cdfe8a1f335e0139f3c42a200447c456214c47e5d6877230737c858cecb7bcbe"
+      },
+      {
+        "table": "worldmap_6574",
+        "rows": 7,
+        "sha256": "70f95b1a1cc560d35009ca93e4b4b9858d101e768252f84157709014b07d8793"
+      },
+      {
+        "table": "worldmap_6575",
+        "rows": 7,
+        "sha256": "2195d6c06ab59783fc2e5d6fdc3527d6ed2231961c164562f16541c83b3c418a"
+      },
+      {
+        "table": "worldmap_6576",
+        "rows": 7,
+        "sha256": "21f1eb6663e0d82dd58a04d5833c7761d7cc19c4e2ec2f410991ca38fa2e9614"
+      },
+      {
+        "table": "worldmap_6577",
+        "rows": 7,
+        "sha256": "761974af2992c3082d998f8fa121d65cc7c583ed21c4b93412d66b538543e95c"
+      },
+      {
+        "table": "worldmap_6578",
+        "rows": 7,
+        "sha256": "46886740c9d526224b7e7cb7a6b883651fdfabed412cb3e76f0deb0743d67efd"
+      },
+      {
+        "table": "worldmap_6579",
+        "rows": 7,
+        "sha256": "e7172a4678919705ff334196fd62dd2689b3650272441e8930bbeae9b6950419"
+      },
+      {
+        "table": "worldmap_6580",
+        "rows": 7,
+        "sha256": "d8c803b838617ca13e1ef127c0d930cf1d3959486fdcae711278817c45cd480e"
+      },
+      {
+        "table": "worldmap_6581",
+        "rows": 7,
+        "sha256": "8c4d3c412b12b5c529ecb4cffc7c3ca794f7cdc931e072650e0649fc4bd619c9"
+      },
+      {
+        "table": "worldmap_6582",
+        "rows": 7,
+        "sha256": "eb7516d3d3ce08b5aa7cb096f13dc4ded672380371374ed0e1c4798fbc0c4441"
+      },
+      {
+        "table": "worldmap_6583",
+        "rows": 7,
+        "sha256": "86a57ad85a4f443b6f3e60886254d88a29e532b9cf5a11060b008eb827869c06"
+      },
+      {
+        "table": "worldmap_6584",
+        "rows": 7,
+        "sha256": "1ed0b6d6694fe6e29218c6c61ec0b6b5972f97e688774738d54cc5f6b4e81a48"
+      },
+      {
+        "table": "worldmap_6585",
+        "rows": 7,
+        "sha256": "9af2115c69f44868abfa9685bdc8e8d5f420bf5403fb92fcee6f256b1057993d"
+      },
+      {
+        "table": "worldmap_6555",
+        "rows": 5,
+        "sha256": "1e5730537ab055f69d133e9734e96b24ac47d1e0b08938bf98169afe7143dfba"
+      },
+      {
+        "table": "worldmap_6556",
+        "rows": 5,
+        "sha256": "87ba310aea98997fed1c28c12abfdfbfd874d1ee851fcdb07c0ff5889e6beef6"
+      },
+      {
+        "table": "worldmap_6586",
+        "rows": 6,
+        "sha256": "19fd88710eed21a475b724b56b8a1e74e1c052b98e6ce272235b4705bb3aceb9"
+      },
+      {
+        "table": "worldmap_6557",
+        "rows": 43,
+        "sha256": "1ebd746ccb265b2210b0d5589dadf6a4ebd5f60f16e1cbdf20cf779e297181f3"
+      },
+      {
+        "table": "worldmap_6587",
+        "rows": 43,
+        "sha256": "256cb393041316b5a98d7accc360a2d1e5cc3442da823a4bf3daba7d9002f5d4"
+      }
+    ]
+  },
+  "executionContracts": {
+    "schemaVersion": 1,
+    "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+    "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+    "contractSha256": "c73c7170b483bab642da8126004dc9aed6f5487258ba20b4149bd2230b830c2b",
+    "policy": {
+      "id": "current-cult-static-visible-score-join-v1",
+      "origin": "LOCAL",
+      "waveOrder": "current score wave_id exact join, not Native activation order",
+      "modeIsCreator": false
     }
-  ],
-  "basis": "Equal victory, wave objects and population; exact roster preferred, unique majority fallback is local compatibility pending official route verification",
+  },
+  "basis": "Current external tables; matching remains an explicit local compatibility policy, not an official route claim",
   "compatibility_policy": {
     "minimum_overlap": 0.6,
-    "minimum_margin": 0.3
+    "minimum_margin": 0.3,
+    "endless": "all wave objects; summary population may differ, roster overlap and margin still required"
   },
   "routes": [
     {
@@ -34,7 +226,343 @@
       ],
       "match": "exact-roster",
       "overlap": 1,
-      "roster_differences": []
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
+        },
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6550,
+        "map_id": 6550,
+        "blueprint_id": 300310,
+        "trial_id": 101,
+        "dungeon_id": 32210,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 1
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 2
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 3
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6550",
+            "rows": 6,
+            "canonicalSha256": "12e38d5f4cdb31878856009414eed5f16dcdc4027db177e17d63806a062ca582"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
+    },
+    {
+      "trial_id": 113,
+      "dungeon_id": 32430,
+      "group_id": 451,
+      "scene_id": 6572,
+      "point_id": 657201,
+      "object_ids": [
+        5,
+        6,
+        7
+      ],
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
+        },
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6572,
+        "map_id": 6572,
+        "blueprint_id": 300310,
+        "trial_id": 113,
+        "dungeon_id": 32430,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 68
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 69
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 70
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6572",
+            "rows": 7,
+            "canonicalSha256": "55ac5b8d3db12825dad7a9ae59ca36a77c894fcfbb852761d49aaca4b4a43e46"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
+    },
+    {
+      "trial_id": 114,
+      "dungeon_id": 32440,
+      "group_id": 452,
+      "scene_id": 6573,
+      "point_id": 657301,
+      "object_ids": [
+        5,
+        6,
+        7
+      ],
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
+        },
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6573,
+        "map_id": 6573,
+        "blueprint_id": 300310,
+        "trial_id": 114,
+        "dungeon_id": 32440,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 71
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 72
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 73
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6573",
+            "rows": 7,
+            "canonicalSha256": "ab61b7da8ed6094b1d396127426dbcf2d5948d8a0cccb0d3b303e940a29a4b66"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
     },
     {
       "trial_id": 201,
@@ -47,25 +575,579 @@
         6,
         7
       ],
-      "match": "unique-majority-roster",
-      "overlap": 0.6,
-      "roster_differences": [
-        {
-          "enemy_id": 310863,
-          "dungeon_count": 4,
-          "scene_count": 8
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
         },
-        {
-          "enemy_id": 310864,
-          "dungeon_count": 8,
-          "scene_count": 0
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6551,
+        "map_id": 6551,
+        "blueprint_id": 300310,
+        "trial_id": 201,
+        "dungeon_id": 32220,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 4
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 5
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 6
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6551",
+            "rows": 6,
+            "canonicalSha256": "732fe6eaeb0903ff6b1185c55dae165234ddc179540b588ea7d3e6c6ef574ab0"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
+    },
+    {
+      "trial_id": 211,
+      "dungeon_id": 32450,
+      "group_id": 453,
+      "scene_id": 6574,
+      "point_id": 657401,
+      "object_ids": [
+        5,
+        6,
+        7
+      ],
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
         },
-        {
-          "enemy_id": 300071,
-          "dungeon_count": 0,
-          "scene_count": 4
-        }
-      ]
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6574,
+        "map_id": 6574,
+        "blueprint_id": 300310,
+        "trial_id": 211,
+        "dungeon_id": 32450,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 74
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 75
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 76
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6574",
+            "rows": 7,
+            "canonicalSha256": "e734f7251f2e68407ce514a1d0a9461194faf5c1f978ef86ce8859658c0dd67a"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
+    },
+    {
+      "trial_id": 212,
+      "dungeon_id": 32460,
+      "group_id": 454,
+      "scene_id": 6575,
+      "point_id": 657501,
+      "object_ids": [
+        5,
+        6,
+        7
+      ],
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
+        },
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6575,
+        "map_id": 6575,
+        "blueprint_id": 300310,
+        "trial_id": 212,
+        "dungeon_id": 32460,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 77
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 78
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 79
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6575",
+            "rows": 7,
+            "canonicalSha256": "00dc09ed7b5d9cab921e384df08d9d87d10d0175f9b8cfd0c4385c5da033d11a"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
+    },
+    {
+      "trial_id": 213,
+      "dungeon_id": 32470,
+      "group_id": 455,
+      "scene_id": 6576,
+      "point_id": 657601,
+      "object_ids": [
+        5,
+        6,
+        7
+      ],
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
+        },
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6576,
+        "map_id": 6576,
+        "blueprint_id": 300310,
+        "trial_id": 213,
+        "dungeon_id": 32470,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 80
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 81
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 82
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6576",
+            "rows": 7,
+            "canonicalSha256": "551f62be9f7e28ac3c49faddcd2cfb17dc94e6784a2a318d7869919f42ac03f8"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
+    },
+    {
+      "trial_id": 214,
+      "dungeon_id": 32480,
+      "group_id": 456,
+      "scene_id": 6577,
+      "point_id": 657701,
+      "object_ids": [
+        5,
+        6,
+        7
+      ],
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
+        },
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6577,
+        "map_id": 6577,
+        "blueprint_id": 300310,
+        "trial_id": 214,
+        "dungeon_id": 32480,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 83
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 84
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 85
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6577",
+            "rows": 7,
+            "canonicalSha256": "696fefd4e42c5a9f6ad41743f1fe5e53cf935c8cc2ec78cbd7b6ac2f26de660b"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
     },
     {
       "trial_id": 301,
@@ -78,20 +1160,111 @@
         6,
         7
       ],
-      "match": "unique-majority-roster",
-      "overlap": 0.9090909090909091,
-      "roster_differences": [
-        {
-          "enemy_id": 310327,
-          "dungeon_count": 2,
-          "scene_count": 0
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
         },
-        {
-          "enemy_id": 310152,
-          "dungeon_count": 0,
-          "scene_count": 2
-        }
-      ]
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6552,
+        "map_id": 6552,
+        "blueprint_id": 300310,
+        "trial_id": 301,
+        "dungeon_id": 32230,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 7
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 8
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 9
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6552",
+            "rows": 6,
+            "canonicalSha256": "c6a425c1b76a7ea352a73958db49c8b44dcfd562f670b080b594442306aeb3a1"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
     },
     {
       "trial_id": 302,
@@ -104,20 +1277,111 @@
         6,
         7
       ],
-      "match": "unique-majority-roster",
-      "overlap": 0.8181818181818182,
-      "roster_differences": [
-        {
-          "enemy_id": 310787,
-          "dungeon_count": 12,
-          "scene_count": 8
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
         },
-        {
-          "enemy_id": 310786,
-          "dungeon_count": 0,
-          "scene_count": 4
-        }
-      ]
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6553,
+        "map_id": 6553,
+        "blueprint_id": 300310,
+        "trial_id": 302,
+        "dungeon_id": 32240,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 10
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 11
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 12
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6553",
+            "rows": 6,
+            "canonicalSha256": "3f27da4d232b05087881b09e055e0901e46648d9c4320a51d570a4c6749697d4"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
     },
     {
       "trial_id": 303,
@@ -132,7 +1396,109 @@
       ],
       "match": "exact-roster",
       "overlap": 1,
-      "roster_differences": []
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
+        },
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6554,
+        "map_id": 6554,
+        "blueprint_id": 300310,
+        "trial_id": 303,
+        "dungeon_id": 32250,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 13
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 14
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 15
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6554",
+            "rows": 6,
+            "canonicalSha256": "b9102211a128847fb893adb176212d0845b7e770e9724dc9b9ef6e6ffd923a06"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
     },
     {
       "trial_id": 304,
@@ -142,8 +1508,7 @@
       "point_id": 655501,
       "object_ids": [
         5,
-        6,
-        7
+        6
       ],
       "match": "exact-roster",
       "overlap": 1,
@@ -157,12 +1522,114 @@
       "point_id": 655601,
       "object_ids": [
         5,
-        6,
-        7
+        6
       ],
       "match": "exact-roster",
       "overlap": 1,
-      "roster_differences": []
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
+        },
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6556,
+        "map_id": 6556,
+        "blueprint_id": 300310,
+        "trial_id": 305,
+        "dungeon_id": 32270,
+        "enemyObjectIds": [
+          5,
+          6
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 19
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 20
+          }
+        ],
+        "metadataOnlyWaves": [
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 21,
+            "reason": "not selected as executable current enemies"
+          }
+        ],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6556",
+            "rows": 5,
+            "canonicalSha256": "ed1c7a6f2cf908d47150cd4695c8c88ced96d03c6d180853f32abcb257e85799"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
     },
     {
       "trial_id": 306,
@@ -212,9 +1679,2846 @@
         43,
         44
       ],
-      "match": "unique-victory-and-all-wave-objects",
-      "basis": "Current wave tables define the executable roster. Dungeon summary roster differs; local compatibility uses the unique matching victory scene and all 40 configured wave objects."
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": []
+    },
+    {
+      "trial_id": 311,
+      "dungeon_id": 32490,
+      "group_id": 457,
+      "scene_id": 6578,
+      "point_id": 657801,
+      "object_ids": [
+        5,
+        6,
+        7
+      ],
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
+        },
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6578,
+        "map_id": 6578,
+        "blueprint_id": 300310,
+        "trial_id": 311,
+        "dungeon_id": 32490,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 86
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 87
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 88
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6578",
+            "rows": 7,
+            "canonicalSha256": "732b09c1e9a94632431f8ad2a4164d0293e1bfd2cf8fa35ecb1dab1235cde1c5"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
+    },
+    {
+      "trial_id": 312,
+      "dungeon_id": 32540,
+      "group_id": 462,
+      "scene_id": 6583,
+      "point_id": 658301,
+      "object_ids": [
+        5,
+        6,
+        7
+      ],
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
+        },
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6583,
+        "map_id": 6583,
+        "blueprint_id": 300310,
+        "trial_id": 312,
+        "dungeon_id": 32540,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 89
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 90
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 91
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6583",
+            "rows": 7,
+            "canonicalSha256": "02a40e03cd42ccf3568e6464c87d12950842f53535ad19fe04074b58b0d7e8ae"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
+    },
+    {
+      "trial_id": 313,
+      "dungeon_id": 32520,
+      "group_id": 460,
+      "scene_id": 6581,
+      "point_id": 658101,
+      "object_ids": [
+        5,
+        6,
+        7
+      ],
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
+        },
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6581,
+        "map_id": 6581,
+        "blueprint_id": 300310,
+        "trial_id": 313,
+        "dungeon_id": 32520,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 92
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 93
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 94
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6581",
+            "rows": 7,
+            "canonicalSha256": "15f14d8278f0f48e50887a884b09405720f9234ee6fceb8df359497d8938a77b"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
+    },
+    {
+      "trial_id": 314,
+      "dungeon_id": 32500,
+      "group_id": 458,
+      "scene_id": 6579,
+      "point_id": 657901,
+      "object_ids": [
+        5,
+        6,
+        7
+      ],
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
+        },
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6579,
+        "map_id": 6579,
+        "blueprint_id": 300310,
+        "trial_id": 314,
+        "dungeon_id": 32500,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 95
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 96
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 97
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6579",
+            "rows": 7,
+            "canonicalSha256": "961e1735f692112289fe108cef9871ef3566e615411d57ddd097dd68e1c80d15"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
+    },
+    {
+      "trial_id": 315,
+      "dungeon_id": 32560,
+      "group_id": 464,
+      "scene_id": 6585,
+      "point_id": 658501,
+      "object_ids": [
+        5,
+        6,
+        7
+      ],
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
+        },
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6585,
+        "map_id": 6585,
+        "blueprint_id": 300310,
+        "trial_id": 315,
+        "dungeon_id": 32560,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 98
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 99
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 100
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6585",
+            "rows": 7,
+            "canonicalSha256": "cb303fc30ccb2ef19f12c4109501f66b1209072c81d48e4311772df729ed4721"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
+    },
+    {
+      "trial_id": 316,
+      "dungeon_id": 32550,
+      "group_id": 463,
+      "scene_id": 6584,
+      "point_id": 658401,
+      "object_ids": [
+        5,
+        6,
+        7
+      ],
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
+        },
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6584,
+        "map_id": 6584,
+        "blueprint_id": 300310,
+        "trial_id": 316,
+        "dungeon_id": 32550,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 101
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 102
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 103
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6584",
+            "rows": 7,
+            "canonicalSha256": "1f263d8a2c8e25a1dc1f3637347b76cf7d1d1cefe1a577afa43267186da41758"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
+    },
+    {
+      "trial_id": 317,
+      "dungeon_id": 32530,
+      "group_id": 461,
+      "scene_id": 6582,
+      "point_id": 658201,
+      "object_ids": [
+        5,
+        6,
+        7
+      ],
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
+        },
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6582,
+        "map_id": 6582,
+        "blueprint_id": 300310,
+        "trial_id": 317,
+        "dungeon_id": 32530,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 104
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 105
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 106
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6582",
+            "rows": 7,
+            "canonicalSha256": "9816fe339bd4ac6aba86692b9a7737c32e39fc7ca462f36163e35635d1a2ca13"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
+    },
+    {
+      "trial_id": 318,
+      "dungeon_id": 32510,
+      "group_id": 459,
+      "scene_id": 6580,
+      "point_id": 658001,
+      "object_ids": [
+        5,
+        6,
+        7
+      ],
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
+        },
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6580,
+        "map_id": 6580,
+        "blueprint_id": 300310,
+        "trial_id": 318,
+        "dungeon_id": 32510,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 107
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 108
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 109
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6580",
+            "rows": 7,
+            "canonicalSha256": "161192ffbd02eaf40cb2f0927cfd0cfd166c96a43978199d0c1aea14531b13a1"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
+    },
+    {
+      "trial_id": 319,
+      "dungeon_id": 32570,
+      "group_id": 465,
+      "scene_id": 6586,
+      "point_id": 658601,
+      "object_ids": [
+        5,
+        6
+      ],
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
+        },
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6586,
+        "map_id": 6586,
+        "blueprint_id": 300310,
+        "trial_id": 319,
+        "dungeon_id": 32570,
+        "enemyObjectIds": [
+          5,
+          6
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 110
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 111
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6586",
+            "rows": 6,
+            "canonicalSha256": "fccdff66725150c322916a69850c9b111a964c448ade00783f22496a4e27df5f"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
+    },
+    {
+      "trial_id": 320,
+      "dungeon_id": 32580,
+      "group_id": 466,
+      "scene_id": 6587,
+      "point_id": 658701,
+      "object_ids": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44
+      ],
+      "match": "unique-majority-roster",
+      "overlap": 0.9857142857142858,
+      "roster_differences": [
+        {
+          "enemy_id": 310366,
+          "dungeon_count": 6,
+          "scene_count": 8
+        },
+        {
+          "enemy_id": 400116,
+          "dungeon_count": 5,
+          "scene_count": 4
+        },
+        {
+          "enemy_id": 320023,
+          "dungeon_count": 1,
+          "scene_count": 0
+        },
+        {
+          "enemy_id": 310102,
+          "dungeon_count": 0,
+          "scene_count": 1
+        },
+        {
+          "enemy_id": 310327,
+          "dungeon_count": 0,
+          "scene_count": 2
+        }
+      ]
+    },
+    {
+      "trial_id": 321,
+      "dungeon_id": 32491,
+      "group_id": 789,
+      "scene_id": 6578,
+      "point_id": 657801,
+      "object_ids": [
+        5,
+        6,
+        7
+      ],
+      "match": "exact-roster",
+      "overlap": 1,
+      "roster_differences": [],
+      "execution": {
+        "schemaVersion": 1,
+        "kind": "current-cult-route-execution-v1",
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "policy": {
+          "id": "current-cult-static-visible-score-join-v1",
+          "origin": "LOCAL",
+          "waveOrder": "current score wave_id exact join, not Native activation order",
+          "modeIsCreator": false
+        },
+        "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+        "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+        "scene_id": 6578,
+        "map_id": 6578,
+        "blueprint_id": 300310,
+        "trial_id": 321,
+        "dungeon_id": 32491,
+        "enemyObjectIds": [
+          5,
+          6,
+          7
+        ],
+        "waveBindings": [
+          {
+            "wave_id": 1,
+            "object_ids": [
+              5
+            ],
+            "row_id": 152
+          },
+          {
+            "wave_id": 2,
+            "object_ids": [
+              6
+            ],
+            "row_id": 153
+          },
+          {
+            "wave_id": 3,
+            "object_ids": [
+              7
+            ],
+            "row_id": 154
+          }
+        ],
+        "metadataOnlyWaves": [],
+        "tableFingerprints": [
+          {
+            "table": "dungeon_scene",
+            "rows": 1056,
+            "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+          },
+          {
+            "table": "world_city",
+            "rows": 742,
+            "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+          },
+          {
+            "table": "world_blueprint",
+            "rows": 456,
+            "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+          },
+          {
+            "table": "worldmap_6578",
+            "rows": 7,
+            "canonicalSha256": "732b09c1e9a94632431f8ad2a4164d0293e1bfd2cf8fa35ecb1dab1235cde1c5"
+          },
+          {
+            "table": "world_spawner",
+            "rows": 2571,
+            "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+          },
+          {
+            "table": "world_enemy_group",
+            "rows": 3160,
+            "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+          },
+          {
+            "table": "enemy_pack",
+            "rows": 1271,
+            "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+          },
+          {
+            "table": "game_events_cul_trial",
+            "rows": 27,
+            "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+          },
+          {
+            "table": "game_events_cul_trial_wave",
+            "rows": 153,
+            "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+          },
+          {
+            "table": "dungeon",
+            "rows": 1600,
+            "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+          }
+        ],
+        "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+        "nativeActivationOrderRecovered": false
+      }
     }
   ],
-  "missing": []
+  "missing": [
+    111,
+    112
+  ],
+  "unresolved": [
+    {
+      "trial_id": 111,
+      "phase": 1,
+      "expected": [
+        [
+          310026,
+          2
+        ],
+        [
+          310642,
+          2
+        ],
+        [
+          310439,
+          2
+        ],
+        [
+          310088,
+          2
+        ],
+        [
+          310089,
+          1
+        ]
+      ],
+      "candidates": [
+        {
+          "trial_id": 111,
+          "dungeon_id": 32410,
+          "group_id": 449,
+          "scene_id": 6570,
+          "point_id": 657001,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "exact-roster",
+          "overlap": 1,
+          "roster_differences": [],
+          "execution": {
+            "schemaVersion": 1,
+            "kind": "current-cult-route-execution-v1",
+            "clientVersion": "1.0.0",
+            "packageVersion": "3217420",
+            "policy": {
+              "id": "current-cult-static-visible-score-join-v1",
+              "origin": "LOCAL",
+              "waveOrder": "current score wave_id exact join, not Native activation order",
+              "modeIsCreator": false
+            },
+            "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+            "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+            "scene_id": 6570,
+            "map_id": 6570,
+            "blueprint_id": 300310,
+            "trial_id": 111,
+            "dungeon_id": 32410,
+            "enemyObjectIds": [
+              5,
+              6,
+              7
+            ],
+            "waveBindings": [
+              {
+                "wave_id": 1,
+                "object_ids": [
+                  5
+                ],
+                "row_id": 62
+              },
+              {
+                "wave_id": 2,
+                "object_ids": [
+                  6
+                ],
+                "row_id": 63
+              },
+              {
+                "wave_id": 3,
+                "object_ids": [
+                  7
+                ],
+                "row_id": 64
+              }
+            ],
+            "metadataOnlyWaves": [],
+            "tableFingerprints": [
+              {
+                "table": "dungeon_scene",
+                "rows": 1056,
+                "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+              },
+              {
+                "table": "world_city",
+                "rows": 742,
+                "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+              },
+              {
+                "table": "world_blueprint",
+                "rows": 456,
+                "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+              },
+              {
+                "table": "worldmap_6570",
+                "rows": 7,
+                "canonicalSha256": "ff98f2acb6deeddd00c74698f2b3c4640c527e27dee5dc30d1c27721e0035b0a"
+              },
+              {
+                "table": "world_spawner",
+                "rows": 2571,
+                "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+              },
+              {
+                "table": "world_enemy_group",
+                "rows": 3160,
+                "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+              },
+              {
+                "table": "enemy_pack",
+                "rows": 1271,
+                "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+              },
+              {
+                "table": "game_events_cul_trial",
+                "rows": 27,
+                "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+              },
+              {
+                "table": "game_events_cul_trial_wave",
+                "rows": 153,
+                "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+              },
+              {
+                "table": "dungeon",
+                "rows": 1600,
+                "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+              }
+            ],
+            "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+            "nativeActivationOrderRecovered": false
+          }
+        },
+        {
+          "trial_id": 111,
+          "dungeon_id": 32410,
+          "group_id": 449,
+          "scene_id": 6571,
+          "point_id": 657101,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "exact-roster",
+          "overlap": 1,
+          "roster_differences": [],
+          "execution": {
+            "schemaVersion": 1,
+            "kind": "current-cult-route-execution-v1",
+            "clientVersion": "1.0.0",
+            "packageVersion": "3217420",
+            "policy": {
+              "id": "current-cult-static-visible-score-join-v1",
+              "origin": "LOCAL",
+              "waveOrder": "current score wave_id exact join, not Native activation order",
+              "modeIsCreator": false
+            },
+            "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+            "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+            "scene_id": 6571,
+            "map_id": 6571,
+            "blueprint_id": 300310,
+            "trial_id": 111,
+            "dungeon_id": 32410,
+            "enemyObjectIds": [
+              5,
+              6,
+              7
+            ],
+            "waveBindings": [
+              {
+                "wave_id": 1,
+                "object_ids": [
+                  5
+                ],
+                "row_id": 62
+              },
+              {
+                "wave_id": 2,
+                "object_ids": [
+                  6
+                ],
+                "row_id": 63
+              },
+              {
+                "wave_id": 3,
+                "object_ids": [
+                  7
+                ],
+                "row_id": 64
+              }
+            ],
+            "metadataOnlyWaves": [],
+            "tableFingerprints": [
+              {
+                "table": "dungeon_scene",
+                "rows": 1056,
+                "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+              },
+              {
+                "table": "world_city",
+                "rows": 742,
+                "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+              },
+              {
+                "table": "world_blueprint",
+                "rows": 456,
+                "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+              },
+              {
+                "table": "worldmap_6571",
+                "rows": 7,
+                "canonicalSha256": "60b8516d441c83b5aca62f80d3f3a10d9b6d110b32b23b895169b66d81ce3d79"
+              },
+              {
+                "table": "world_spawner",
+                "rows": 2571,
+                "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+              },
+              {
+                "table": "world_enemy_group",
+                "rows": 3160,
+                "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+              },
+              {
+                "table": "enemy_pack",
+                "rows": 1271,
+                "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+              },
+              {
+                "table": "game_events_cul_trial",
+                "rows": 27,
+                "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+              },
+              {
+                "table": "game_events_cul_trial_wave",
+                "rows": 153,
+                "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+              },
+              {
+                "table": "dungeon",
+                "rows": 1600,
+                "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+              }
+            ],
+            "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+            "nativeActivationOrderRecovered": false
+          }
+        },
+        {
+          "trial_id": 111,
+          "dungeon_id": 32410,
+          "group_id": 449,
+          "scene_id": 6574,
+          "point_id": 657401,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "unique-majority-roster",
+          "overlap": 0,
+          "roster_differences": [
+            {
+              "enemy_id": 310026,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310642,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310439,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310088,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310089,
+              "dungeon_count": 1,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310667,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310109,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310668,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 400092,
+              "dungeon_count": 0,
+              "scene_count": 1
+            }
+          ]
+        },
+        {
+          "trial_id": 111,
+          "dungeon_id": 32410,
+          "group_id": 449,
+          "scene_id": 6575,
+          "point_id": 657501,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "unique-majority-roster",
+          "overlap": 0,
+          "roster_differences": [
+            {
+              "enemy_id": 310026,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310642,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310439,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310088,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310089,
+              "dungeon_count": 1,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310667,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310110,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310668,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 400092,
+              "dungeon_count": 0,
+              "scene_count": 1
+            }
+          ]
+        },
+        {
+          "trial_id": 111,
+          "dungeon_id": 32410,
+          "group_id": 449,
+          "scene_id": 6578,
+          "point_id": 657801,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "unique-majority-roster",
+          "overlap": 0,
+          "roster_differences": [
+            {
+              "enemy_id": 310026,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310642,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310439,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310088,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310089,
+              "dungeon_count": 1,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310326,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310426,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310327,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310690,
+              "dungeon_count": 0,
+              "scene_count": 1
+            }
+          ]
+        },
+        {
+          "trial_id": 111,
+          "dungeon_id": 32410,
+          "group_id": 449,
+          "scene_id": 6579,
+          "point_id": 657901,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "unique-majority-roster",
+          "overlap": 0,
+          "roster_differences": [
+            {
+              "enemy_id": 310026,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310642,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310439,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310088,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310089,
+              "dungeon_count": 1,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310365,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310366,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310690,
+              "dungeon_count": 0,
+              "scene_count": 1
+            }
+          ]
+        },
+        {
+          "trial_id": 111,
+          "dungeon_id": 32410,
+          "group_id": 449,
+          "scene_id": 6580,
+          "point_id": 658001,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "unique-majority-roster",
+          "overlap": 0,
+          "roster_differences": [
+            {
+              "enemy_id": 310026,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310642,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310439,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310088,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310089,
+              "dungeon_count": 1,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310365,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310023,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310366,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310690,
+              "dungeon_count": 0,
+              "scene_count": 1
+            }
+          ]
+        },
+        {
+          "trial_id": 111,
+          "dungeon_id": 32410,
+          "group_id": 449,
+          "scene_id": 6581,
+          "point_id": 658101,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "unique-majority-roster",
+          "overlap": 0,
+          "roster_differences": [
+            {
+              "enemy_id": 310026,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310642,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310439,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310088,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310089,
+              "dungeon_count": 1,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310100,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310101,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310690,
+              "dungeon_count": 0,
+              "scene_count": 1
+            }
+          ]
+        },
+        {
+          "trial_id": 111,
+          "dungeon_id": 32410,
+          "group_id": 449,
+          "scene_id": 6582,
+          "point_id": 658201,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "unique-majority-roster",
+          "overlap": 0,
+          "roster_differences": [
+            {
+              "enemy_id": 310026,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310642,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310439,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310088,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310089,
+              "dungeon_count": 1,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310100,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310287,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310101,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310690,
+              "dungeon_count": 0,
+              "scene_count": 1
+            }
+          ]
+        },
+        {
+          "trial_id": 111,
+          "dungeon_id": 32410,
+          "group_id": 449,
+          "scene_id": 6583,
+          "point_id": 658301,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "unique-majority-roster",
+          "overlap": 0,
+          "roster_differences": [
+            {
+              "enemy_id": 310026,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310642,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310439,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310088,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310089,
+              "dungeon_count": 1,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310150,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310151,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310690,
+              "dungeon_count": 0,
+              "scene_count": 1
+            }
+          ]
+        },
+        {
+          "trial_id": 111,
+          "dungeon_id": 32410,
+          "group_id": 449,
+          "scene_id": 6584,
+          "point_id": 658401,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "unique-majority-roster",
+          "overlap": 0,
+          "roster_differences": [
+            {
+              "enemy_id": 310026,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310642,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310439,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310088,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310089,
+              "dungeon_count": 1,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310150,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310585,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310151,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310690,
+              "dungeon_count": 0,
+              "scene_count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "trial_id": 112,
+      "phase": 1,
+      "expected": [
+        [
+          310026,
+          2
+        ],
+        [
+          310642,
+          2
+        ],
+        [
+          310439,
+          2
+        ],
+        [
+          310088,
+          2
+        ],
+        [
+          310089,
+          1
+        ]
+      ],
+      "candidates": [
+        {
+          "trial_id": 112,
+          "dungeon_id": 32420,
+          "group_id": 450,
+          "scene_id": 6570,
+          "point_id": 657001,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "exact-roster",
+          "overlap": 1,
+          "roster_differences": [],
+          "execution": {
+            "schemaVersion": 1,
+            "kind": "current-cult-route-execution-v1",
+            "clientVersion": "1.0.0",
+            "packageVersion": "3217420",
+            "policy": {
+              "id": "current-cult-static-visible-score-join-v1",
+              "origin": "LOCAL",
+              "waveOrder": "current score wave_id exact join, not Native activation order",
+              "modeIsCreator": false
+            },
+            "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+            "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+            "scene_id": 6570,
+            "map_id": 6570,
+            "blueprint_id": 300310,
+            "trial_id": 112,
+            "dungeon_id": 32420,
+            "enemyObjectIds": [
+              5,
+              6,
+              7
+            ],
+            "waveBindings": [
+              {
+                "wave_id": 1,
+                "object_ids": [
+                  5
+                ],
+                "row_id": 65
+              },
+              {
+                "wave_id": 2,
+                "object_ids": [
+                  6
+                ],
+                "row_id": 66
+              },
+              {
+                "wave_id": 3,
+                "object_ids": [
+                  7
+                ],
+                "row_id": 67
+              }
+            ],
+            "metadataOnlyWaves": [],
+            "tableFingerprints": [
+              {
+                "table": "dungeon_scene",
+                "rows": 1056,
+                "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+              },
+              {
+                "table": "world_city",
+                "rows": 742,
+                "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+              },
+              {
+                "table": "world_blueprint",
+                "rows": 456,
+                "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+              },
+              {
+                "table": "worldmap_6570",
+                "rows": 7,
+                "canonicalSha256": "ff98f2acb6deeddd00c74698f2b3c4640c527e27dee5dc30d1c27721e0035b0a"
+              },
+              {
+                "table": "world_spawner",
+                "rows": 2571,
+                "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+              },
+              {
+                "table": "world_enemy_group",
+                "rows": 3160,
+                "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+              },
+              {
+                "table": "enemy_pack",
+                "rows": 1271,
+                "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+              },
+              {
+                "table": "game_events_cul_trial",
+                "rows": 27,
+                "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+              },
+              {
+                "table": "game_events_cul_trial_wave",
+                "rows": 153,
+                "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+              },
+              {
+                "table": "dungeon",
+                "rows": 1600,
+                "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+              }
+            ],
+            "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+            "nativeActivationOrderRecovered": false
+          }
+        },
+        {
+          "trial_id": 112,
+          "dungeon_id": 32420,
+          "group_id": 450,
+          "scene_id": 6571,
+          "point_id": 657101,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "exact-roster",
+          "overlap": 1,
+          "roster_differences": [],
+          "execution": {
+            "schemaVersion": 1,
+            "kind": "current-cult-route-execution-v1",
+            "clientVersion": "1.0.0",
+            "packageVersion": "3217420",
+            "policy": {
+              "id": "current-cult-static-visible-score-join-v1",
+              "origin": "LOCAL",
+              "waveOrder": "current score wave_id exact join, not Native activation order",
+              "modeIsCreator": false
+            },
+            "sourceFingerprint": "e192aa5ec21c7c55ccc11e5fd8f699beb8c1b96a4076db002803995b154e82f0",
+            "graphSha256": "442b189e99e5f5b1468bad735de741b17bef59505da79c0147d52764b19cf0f7",
+            "scene_id": 6571,
+            "map_id": 6571,
+            "blueprint_id": 300310,
+            "trial_id": 112,
+            "dungeon_id": 32420,
+            "enemyObjectIds": [
+              5,
+              6,
+              7
+            ],
+            "waveBindings": [
+              {
+                "wave_id": 1,
+                "object_ids": [
+                  5
+                ],
+                "row_id": 65
+              },
+              {
+                "wave_id": 2,
+                "object_ids": [
+                  6
+                ],
+                "row_id": 66
+              },
+              {
+                "wave_id": 3,
+                "object_ids": [
+                  7
+                ],
+                "row_id": 67
+              }
+            ],
+            "metadataOnlyWaves": [],
+            "tableFingerprints": [
+              {
+                "table": "dungeon_scene",
+                "rows": 1056,
+                "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+              },
+              {
+                "table": "world_city",
+                "rows": 742,
+                "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+              },
+              {
+                "table": "world_blueprint",
+                "rows": 456,
+                "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+              },
+              {
+                "table": "worldmap_6571",
+                "rows": 7,
+                "canonicalSha256": "60b8516d441c83b5aca62f80d3f3a10d9b6d110b32b23b895169b66d81ce3d79"
+              },
+              {
+                "table": "world_spawner",
+                "rows": 2571,
+                "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+              },
+              {
+                "table": "world_enemy_group",
+                "rows": 3160,
+                "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+              },
+              {
+                "table": "enemy_pack",
+                "rows": 1271,
+                "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+              },
+              {
+                "table": "game_events_cul_trial",
+                "rows": 27,
+                "canonicalSha256": "38183ef68cf259d13a2d4109a19268ee80c3fa8d6a88b86334a0f548c433d132"
+              },
+              {
+                "table": "game_events_cul_trial_wave",
+                "rows": 153,
+                "canonicalSha256": "649a3936d420bc42fa95efdd9103baf2d89570dd024382ebce5a9760a632b477"
+              },
+              {
+                "table": "dungeon",
+                "rows": 1600,
+                "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+              }
+            ],
+            "sourceBoundary": "LOCAL static-visible existing-enemy selection and exact scoring-wave join; not Native full activation or event timing",
+            "nativeActivationOrderRecovered": false
+          }
+        },
+        {
+          "trial_id": 112,
+          "dungeon_id": 32420,
+          "group_id": 450,
+          "scene_id": 6574,
+          "point_id": 657401,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "unique-majority-roster",
+          "overlap": 0,
+          "roster_differences": [
+            {
+              "enemy_id": 310026,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310642,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310439,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310088,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310089,
+              "dungeon_count": 1,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310667,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310109,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310668,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 400092,
+              "dungeon_count": 0,
+              "scene_count": 1
+            }
+          ]
+        },
+        {
+          "trial_id": 112,
+          "dungeon_id": 32420,
+          "group_id": 450,
+          "scene_id": 6575,
+          "point_id": 657501,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "unique-majority-roster",
+          "overlap": 0,
+          "roster_differences": [
+            {
+              "enemy_id": 310026,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310642,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310439,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310088,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310089,
+              "dungeon_count": 1,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310667,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310110,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310668,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 400092,
+              "dungeon_count": 0,
+              "scene_count": 1
+            }
+          ]
+        },
+        {
+          "trial_id": 112,
+          "dungeon_id": 32420,
+          "group_id": 450,
+          "scene_id": 6578,
+          "point_id": 657801,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "unique-majority-roster",
+          "overlap": 0,
+          "roster_differences": [
+            {
+              "enemy_id": 310026,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310642,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310439,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310088,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310089,
+              "dungeon_count": 1,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310326,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310426,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310327,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310690,
+              "dungeon_count": 0,
+              "scene_count": 1
+            }
+          ]
+        },
+        {
+          "trial_id": 112,
+          "dungeon_id": 32420,
+          "group_id": 450,
+          "scene_id": 6579,
+          "point_id": 657901,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "unique-majority-roster",
+          "overlap": 0,
+          "roster_differences": [
+            {
+              "enemy_id": 310026,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310642,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310439,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310088,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310089,
+              "dungeon_count": 1,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310365,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310366,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310690,
+              "dungeon_count": 0,
+              "scene_count": 1
+            }
+          ]
+        },
+        {
+          "trial_id": 112,
+          "dungeon_id": 32420,
+          "group_id": 450,
+          "scene_id": 6580,
+          "point_id": 658001,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "unique-majority-roster",
+          "overlap": 0,
+          "roster_differences": [
+            {
+              "enemy_id": 310026,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310642,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310439,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310088,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310089,
+              "dungeon_count": 1,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310365,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310023,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310366,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310690,
+              "dungeon_count": 0,
+              "scene_count": 1
+            }
+          ]
+        },
+        {
+          "trial_id": 112,
+          "dungeon_id": 32420,
+          "group_id": 450,
+          "scene_id": 6581,
+          "point_id": 658101,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "unique-majority-roster",
+          "overlap": 0,
+          "roster_differences": [
+            {
+              "enemy_id": 310026,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310642,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310439,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310088,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310089,
+              "dungeon_count": 1,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310100,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310101,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310690,
+              "dungeon_count": 0,
+              "scene_count": 1
+            }
+          ]
+        },
+        {
+          "trial_id": 112,
+          "dungeon_id": 32420,
+          "group_id": 450,
+          "scene_id": 6582,
+          "point_id": 658201,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "unique-majority-roster",
+          "overlap": 0,
+          "roster_differences": [
+            {
+              "enemy_id": 310026,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310642,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310439,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310088,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310089,
+              "dungeon_count": 1,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310100,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310287,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310101,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310690,
+              "dungeon_count": 0,
+              "scene_count": 1
+            }
+          ]
+        },
+        {
+          "trial_id": 112,
+          "dungeon_id": 32420,
+          "group_id": 450,
+          "scene_id": 6583,
+          "point_id": 658301,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "unique-majority-roster",
+          "overlap": 0,
+          "roster_differences": [
+            {
+              "enemy_id": 310026,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310642,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310439,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310088,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310089,
+              "dungeon_count": 1,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310150,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310151,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310690,
+              "dungeon_count": 0,
+              "scene_count": 1
+            }
+          ]
+        },
+        {
+          "trial_id": 112,
+          "dungeon_id": 32420,
+          "group_id": 450,
+          "scene_id": 6584,
+          "point_id": 658401,
+          "object_ids": [
+            5,
+            6,
+            7
+          ],
+          "match": "unique-majority-roster",
+          "overlap": 0,
+          "roster_differences": [
+            {
+              "enemy_id": 310026,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310642,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310439,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310088,
+              "dungeon_count": 2,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310089,
+              "dungeon_count": 1,
+              "scene_count": 0
+            },
+            {
+              "enemy_id": 310150,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310585,
+              "dungeon_count": 0,
+              "scene_count": 4
+            },
+            {
+              "enemy_id": 310151,
+              "dungeon_count": 0,
+              "scene_count": 2
+            },
+            {
+              "enemy_id": 310690,
+              "dungeon_count": 0,
+              "scene_count": 1
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }
