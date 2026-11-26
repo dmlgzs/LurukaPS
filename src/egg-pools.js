@@ -101,11 +101,11 @@ export function constrainedEggPools(tables, eggId, constraints) {
 }
 export function selectBaseHatchSpecies(tables, eggId, rng = randomInt, constraints = undefined) {
     const { groups, pools, probability } = constrainedEggPools(tables, eggId, constraints)
-    ensure(!pools.guaranteegrouprule, 'Guaranteed hatch rules are not yet implemented', ErrorCode.InvalidProtoID)
+    ensure(!pools.guaranteegrouprule, 'Guaranteed hatch rules are not yet implemented', ErrorCode.FunctionClosed)
     ensure(
         !probability.ratio_nonUP_SSR && !probability.ratio_nonUP_SR,
         'Non-UP hatch routing is not yet implemented',
-        ErrorCode.InvalidProtoID,
+        ErrorCode.FunctionClosed,
     )
     const group = draw(groups, rng)
     return draw(group.candidates, rng).id

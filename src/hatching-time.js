@@ -85,7 +85,7 @@ export function hatchSeconds(tables, state, build, eggConfig) {
             ErrorCode.GameConfig,
         )
         let laborReduction = Math.max(0, efficiency.EggTimeReduct) / 10000
-        if (worker.satiety_val <= data.constants.get('PET_HOME_TIRED_SATIETY'))
+        if (worker.satiety_val < data.constants.get('PET_HOME_TIRED_SATIETY'))
             laborReduction *= data.constants.get('HOME_LABOR_EGG_DECREASE') / 10000
         reduction += laborReduction
     }
