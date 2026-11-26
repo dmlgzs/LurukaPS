@@ -1,3 +1,4 @@
+import { requireCustomSoulGiftCapacity } from '../custom-soul-gift.js'
 import { ErrorCode } from '../error-codes.js'
 import { useMedicine } from '../medicine.js'
 import { isEntitlementTicket, useEntitlementTicket } from '../entitlement-tickets.js'
@@ -103,9 +104,11 @@ export function registerItems(on, store) {
             rewards.push(...grantRewards(c.tables, c.state, [{ itemtype: 10, itemid: 205, itemnum: gain }]))
         }
         if (staminaItems.length) rewards.push(...stamina(c, staminaItems).rewards)
-        for (const { item, request } of gifts)
-            rewards.push(...grantRewards(c.tables, c.state, itemGiftRewards(c.tables, item, request, c.randomInt)))
-        if (gifts.length || pointItems.length) syncPlayer(c)
+        const giftPlans = gifts.map(({ item, request }) => itemGiftRewards(c.tables, item, request, c.randomInt))
+        const customSoulGift = gifts.some(({ item }) => item.useType === 28)
+        if (customSoulGift) requireCustomSoulGiftCapacity(c.tables, c.state, giftPlans.flat())
+        for (const plan of giftPlans) rewards.push(...grantRewards(c.tables, c.state, plan))
+        if (gifts.length || pointItems.length) syncPlayer(customSoulGift ? { ...c, push: c.pushBefore } : c)
         return { rewards, src: rewardSource(c.tables, 'commonItemUse') }
     }
     on('UseItem', (c, r) => {

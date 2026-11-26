@@ -4,7 +4,7 @@ import { parseRewards } from './rewards.js'
 import { WorldObjectCatalog } from './world-objects.js'
 
 const catalogs = new WeakMap()
-const giftTypes = new Set([1, 2, 3, 24, 25, 26])
+const giftTypes = new Set([1, 2, 3, 24, 25, 26, 28])
 export const isGiftItem = (row) => giftTypes.has(row?.useType)
 
 // The talent material picker sends one [resource type, config ID] per
@@ -12,9 +12,15 @@ export const isGiftItem = (row) => giftTypes.has(row?.useType)
 // with different selections in the same batch.
 export function itemGiftRewards(tables, item, request, randomInt) {
     ensure(isGiftItem(item), 'Unsupported item use type', ErrorCode.FunctionClosed)
-    if (item.useType === 3 || item.useType === 26) {
+    if ([3, 26, 28].includes(item.useType)) {
         const choices = parseRewards(item.giftBagReward)
         ensure(choices.length, 'Selectable gift has no choices', ErrorCode.SelectGiftIsNull)
+        if (item.useType === 28)
+            ensure(
+                choices.every((row) => row.itemtype === 9),
+                'Custom soul gift reward family is not implemented',
+                ErrorCode.FunctionClosed,
+            )
         ensure(request.args?.length === 2, 'Selectable gift requires type and ID', ErrorCode.SelectGiftArgsSize)
         const [type, id] = request.args.map(Number)
         ensure(
