@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { farmHarvestFixture } from './farm-harvest-fixture.js'
+import { farmHarvestFixture } from './farm-harvest-current-fixture.js'
 import { journeyModel, journeyValue } from '../src/journey.js'
 import { ErrorCode } from '../src/error-codes.js'
 const goals = (f) => journeyModel(f.tables).targets.filter((row) => row.tokens[0] === 12062)
@@ -37,8 +37,8 @@ function unlockOnlyOtherPrerequisites(f) {
     })
     // Level prerequisite reconciliation is existing Game behavior. This does
     // not create any farm fact or complete either new target.
-    f.call('ActivityGet')
-    f.call('ActivityGet')
+    f.refresh()
+    f.refresh()
 }
 
 test('complete12062 two-target family observes actual manual harvest and actual assigned-worker storage acquisition separately', () => {
