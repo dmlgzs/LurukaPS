@@ -7,7 +7,7 @@ import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { petData } from '../src/pets.js'
 import { addItems } from '../src/inventory.js'
-import { petSoulRefunds } from '../src/pet-star-soul.js'
+import { petSoulRefunds, petSoulRow } from '../src/pet-star-soul.js'
 import { ErrorCode } from '../src/error-codes.js'
 const tables = new Tables(configuration().tables),
     protocol = new Protocol(configuration().base),
@@ -32,6 +32,11 @@ function setup() {
         s.player.basic_info.lv = 30
         s.player.basic_info.gold = 100000000
         const p = petData(tables, 500001, guid, 2001)
+        // Trusted level qualification for the current soul tree (up to Lv80),
+        // rather than the old fixture's Lv1 pet and player-only level check.
+        p.lv = Math.max(1, ...petSoulRow(tables, p).rows.map((row) => row.unlocklevel))
+        p.base_lv = p.lv
+        s.player.basic_info.lv = Math.max(s.player.basic_info.lv, p.lv)
         p.is_lock = false
         s.pets.push(p)
         addItems(

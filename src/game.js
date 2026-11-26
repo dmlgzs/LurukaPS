@@ -24,6 +24,7 @@ import { registerMaterialStoryVoting } from './handlers/material-story-voting.js
 import { registerMaterialStory } from './handlers/multiple-material-story.js'
 import { registerGeneFruit } from './handlers/pet-gene-fruit.js'
 import { registerPetStarSoul } from './handlers/pet-star-soul.js'
+import { registerPetPotentialTraining } from './handlers/pet-potential-training.js'
 import { registerPetBoxOrder } from './pet-box-order.js'
 import {
     registerEscBackground,
@@ -620,6 +621,7 @@ export class Game {
         registerMaterialStory(on)
         registerGeneFruit(on)
         registerPetStarSoul(on)
+        registerPetPotentialTraining(on, this.tables)
         registerPetSkill(on)
         registerPetHandbook(on)
         registerCharKibo(on)

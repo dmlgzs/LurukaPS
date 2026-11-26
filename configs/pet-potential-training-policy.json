@@ -1,0 +1,16 @@
+{
+    "schemaVersion": 1,
+    "policyId": "pet-potential-train-current-1.0.0-v1",
+    "origin": "LOCAL",
+    "targetVersion": "1.0.0",
+    "packageVersion": "3217420",
+    "requestType": 2,
+    "sampling": "normalized-positive-current-client-table-weights-within-current-to-partner",
+    "officialBackendSamplingRecovered": false,
+    "requireGuaranteedCurrentTier": true,
+    "partialExperience": "preserve-below-cap-zero-at-cap",
+    "refunds": "current-release-preview-derived",
+    "colorRefunds": "existing-world-relative-weights-per-current-color-flag",
+    "receiptLimit": 256,
+    "todo": "Official backend sampling, partial-EXP transition and training-specific refund accounting were not directly recovered; these are explicit local policies derived from the current client contract. Nonzero current-tier weight remains unsupported."
+}
