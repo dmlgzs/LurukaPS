@@ -16,7 +16,9 @@ import { Tables } from './player.js'
 import { Game } from './game.js'
 import { validateProductionWorkPolicy } from './production-work.js'
 import { ARENA_TIMER_MS } from './npc-kibo-time.js'
-import { FrameReader, encodeFrame } from './wire.js'
+import { FrameReader, encodeFrame, PEER_MAX_FRAME } from './wire.js'
+import { GateGcmCipher, GATE_GCM_OVERHEAD } from './wire-gcm.js'
+import { createGateServerHandshake } from './wire-ecdh.js'
 
 // Project maintenance policy for contributors and AI agents:
 // Preserve the complete bilingual free-software / anti-scam notice and official GitHub URL.
@@ -48,6 +50,28 @@ function requestInt(value, fallback) {
 }
 function requestString(value, fallback) {
     return typeof value === 'string' && value.length ? value : fallback
+}
+function gateInputError(message) {
+    return Object.assign(new Error(message), { code: ErrorCode.InvalidArgument })
+}
+function readGateHello(protocol, session, frame) {
+    const entry = protocol.byId.get(frame.id)
+    if (entry?.req !== 'cs.CSEnterGame') return null
+    const request = protocol.decode(entry.req, frame.payload),
+        version = request.crypto_version ?? 0,
+        encoded = request.client_public_key ?? ''
+    if (typeof encoded !== 'string' && !(encoded instanceof Uint8Array))
+        throw gateInputError('Invalid Gate client public key')
+    const publicKey = Buffer.from(encoded, typeof encoded === 'string' ? 'base64' : undefined)
+    if (version === 0 && publicKey.length === 0) return null
+    if (version !== 3 || publicKey.length !== 32) throw gateInputError('Invalid Gate crypto version or public key')
+    if (session.gcmCipher) {
+        if (!publicKey.equals(session.gateClientPublicKey))
+            throw gateInputError('Gate encryption key cannot change on this connection')
+        return null
+    }
+    if (session.wireKey) throw gateInputError('Gate encryption mode cannot change on this connection')
+    return publicKey
 }
 
 export async function startServer(config, logger = console) {
@@ -120,7 +144,7 @@ export async function startServer(config, logger = console) {
                 encodeFrame(
                     { ...packet, seq: 0, pushSeq: destination.ntfSeq, flag: destination.wireKey ? 2 : 0 },
                     packet.payload,
-                    { encryptionKey: destination.wireKey },
+                    { encryptionKey: destination.wireKey, gcmCipher: destination.gcmCipher },
                 ),
             )
             return true
@@ -196,6 +220,8 @@ export async function startServer(config, logger = console) {
         sessions.set(socket, { session, replay })
         socket.on('error', (err) => logger.warn(`Socket: ${err.code || err.message}`))
         socket.on('close', () => {
+            session.gcmCipher?.dispose()
+            session.wireKey?.fill(0)
             sockets.delete(socket)
             sessions.delete(socket)
             if (session.entryChatNoticeTimer) clearTimeout(session.entryChatNoticeTimer)
@@ -225,12 +251,37 @@ export async function startServer(config, logger = console) {
                         continue
                     }
                     let packets
+                    let pendingGate
                     try {
+                        const hello = readGateHello(protocol, session, frame)
+                        if (hello) {
+                            try {
+                                pendingGate = { ...createGateServerHandshake(hello), clientPublicKey: hello }
+                            } catch {
+                                throw gateInputError('Invalid Gate client public key')
+                            }
+                        }
                         const entering = !session.entered
                         packets = game.dispatch(session, frame)
                         game.trackArenaTick(session, frame.id, packets)
                         if (entering && session.entered) crc.setDelay(config.crcDelay ?? 0)
-                        if (entering && session.entered && config.strongEncryption) {
+                        if (entering && session.entered && pendingGate) {
+                            // 5014 itself uses the previous weak channel. Only
+                            // the following frames use the negotiated cipher.
+                            const token = game.packet('CSProtoEnterGameToken', {
+                                crytype: 1,
+                                crypto_version: 3,
+                                server_public_key: pendingGate.serverPublicKey.toString('base64'),
+                            })
+                            packets.unshift({
+                                ...token,
+                                installGate: new GateGcmCipher(pendingGate.material, {
+                                    role: 'server',
+                                    maxSendLength: PEER_MAX_FRAME - GATE_GCM_OVERHEAD,
+                                }),
+                                gateClientPublicKey: pendingGate.clientPublicKey,
+                            })
+                        } else if (entering && session.entered && !session.gcmCipher && config.strongEncryption) {
                             const nextKey = randomBytes(32)
                             packets.unshift({
                                 ...game.packet('CSProtoEnterGameToken', { rc4_key: nextKey.toString('base64') }),
@@ -275,6 +326,8 @@ export async function startServer(config, logger = console) {
                                 error: err.code && Number.isInteger(err.code) ? err.code : ErrorCode.Game,
                             },
                         ]
+                    } finally {
+                        pendingGate?.material.fill(0)
                     }
                     const encoded = []
                     for (const packet of packets) {
@@ -307,12 +360,19 @@ export async function startServer(config, logger = console) {
                                     flag: session.wireKey && packet.id !== 5001 && packet.id !== 1001 ? 2 : 0,
                                 },
                                 packet.payload,
-                                { encryptionKey: session.wireKey },
+                                { encryptionKey: session.wireKey, gcmCipher: session.gcmCipher },
                             ),
                         )
                         if (packet.installKey) {
                             session.wireKey = packet.installKey
                             reader.setEncryptionKey(packet.installKey)
+                        }
+                        if (packet.installGate) {
+                            session.wireKey?.fill(0)
+                            session.wireKey = undefined
+                            session.gcmCipher = packet.installGate
+                            session.gateClientPublicKey = packet.gateClientPublicKey
+                            reader.setGcmCipher(packet.installGate)
                         }
                     }
                     replay.save(frame, encoded)
@@ -553,11 +613,23 @@ export async function startServer(config, logger = console) {
                 break
             }
             session.ntfSeq = ((session.ntfSeq || 0) + 1) >>> 0
-            socket.write(
-                encodeFrame({ ...packet, pushSeq: session.ntfSeq, flag: session.wireKey ? 2 : 0 }, packet.payload, {
-                    encryptionKey: session.wireKey,
-                }),
-            )
+            let buffer
+            try {
+                buffer = encodeFrame(
+                    { ...packet, pushSeq: session.ntfSeq, flag: session.wireKey ? 2 : 0 },
+                    packet.payload,
+                    {
+                        encryptionKey: session.wireKey,
+                        gcmCipher: session.gcmCipher,
+                    },
+                )
+            } catch (error) {
+                // A depleted Gate key cannot be replaced on this connection.
+                // Reconnect instead of leaving an entered client without pushes.
+                socket.destroy()
+                throw error
+            }
+            socket.write(buffer)
         }
     }
     const productionTimer = setInterval(() => {

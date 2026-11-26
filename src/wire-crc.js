@@ -1,4 +1,4 @@
-// Verified against CBT3 CrcUtility and TcpSocket.ToSend hotfix IL.
+// Verified against current1.0 CrcUtility0603177d and TcpSocket.ToSend06004cfb.
 export function crcModbus(bytes, initial = 0xffff) {
     let crc = initial
     for (const byte of bytes) {
@@ -25,8 +25,9 @@ export class DelayedCrc {
         this.delay = delay
     }
     accept(frame) {
-        // An empty queue leaves NetMsgData.crc16 unchanged; recycled/retried messages
-        // may carry a previous value. Only validate when the client would Peek().
+        // An empty queue leaves NetMsgData.crc16 unchanged. Normal pooled Clear
+        // resets it to0; only reuse without Clear can retain a previous value.
+        // Validate only when current ToSend would Peek().
         if (this.queue.length && frame.error !== this.queue[0]) throw Error('Delayed request CRC mismatch')
         this.queue.push(requestCrc(frame))
         if (this.queue.length > this.delay) this.queue.shift()

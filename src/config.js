@@ -44,6 +44,7 @@ export function configuration() {
         offlinePayments: environment('AZUR_OFFLINE_PAYMENTS') !== '0',
         gmEnabled: environment('AZUR_ENABLE_GM') !== '0',
         crcDelay: integer('AZUR_CRC_DELAY', 0),
+        // Legacy RC4 opt-in; a valid Gate v3 hello negotiates GCM automatically.
         strongEncryption: environment('AZUR_STRONG_ENCRYPTION') === '1',
         stateFlushMs: integer('AZUR_STATE_FLUSH_MS', 5000),
         host: environment('AZUR_HOST') || '127.0.0.1',

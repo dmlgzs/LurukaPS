@@ -6,6 +6,7 @@ import { strongTransform } from '../src/wire-crypto.js'
 import { encodeFrame, decodeFrame, FrameReader } from '../src/wire.js'
 import { configuration } from '../src/config.js'
 import { startServer } from '../src/server.js'
+import { ErrorCode } from '../src/error-codes.js'
 test('CBT3 per-packet RC4 matches independent published primitive vector', () => {
     const key = Buffer.from('Key'),
         plain = Buffer.from('Plaintext')
@@ -110,17 +111,17 @@ test('TCP negotiates independent keys, encrypted requests, errors and exact retr
         assert.equal(a.key.length, 32)
         const token = await a.response(5014)
         assert.equal(token.flag, 0)
-        assert.equal((await a.response(5011)).flag, 2)
-        const request = a.send('Heartbeat', { client_time: { time: '789' } }, 2),
-            heart = await a.response(5002)
-        assert.equal(heart.flag, 2)
-        assert.equal(server.protocol.decode('CSHeartBeat', heart.payload).client_time.time, '789')
+        assert.equal((await a.response(5011)).flag & 6, 2)
+        const request = a.send('Ping', { client_ts: '789' }, 2),
+            ping = await a.response(503)
+        assert.equal(ping.flag & 6, 2)
+        assert.equal(server.protocol.decode('SCPing', ping.payload).client_ts, '789')
         a.socket.write(request)
-        assert.deepEqual(await a.response(5002), heart)
+        assert.deepEqual(await a.response(503), ping)
         a.socket.write(encodeFrame({ id: 65500, seq: 3, flag: 2 }, Buffer.alloc(0), { encryptionKey: a.key }))
         const error = await a.response(65500)
-        assert.equal(error.flag, 2)
-        assert.equal(error.error, 1021)
+        assert.equal(error.flag & 6, 2)
+        assert.equal(error.error, ErrorCode.InvalidProtoID)
         const b = client()
         await once(b.socket, 'connect')
         b.send('EnterGame', { open_id: 'strong-player-b' }, 1)

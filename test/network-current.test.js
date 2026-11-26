@@ -128,7 +128,7 @@ for (const strongEncryption of [false, true])
                 assert.equal(!!client.key, strongEncryption)
                 if (strongEncryption) {
                     assert.equal(client.trace.find((frame) => frame.id === 5014).flag, 0)
-                    assert(client.trace.some((frame) => frame.id === 10006 && frame.flag === 2))
+                    assert(client.trace.some((frame) => frame.id === 10006 && (frame.flag & 2) !== 0))
                 }
                 client.send('MapLoadFinish')
                 await client.barrier()
