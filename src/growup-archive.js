@@ -1,6 +1,7 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { cultivationScore } from './growup-score.js'
+import { growupEndingMatchesTrial } from './growup-ending.js'
 // CBT3 GlobalData.get_GetMaxSaveNum (06004f89) and IsValidSaveIndex
 // (060050b3) define four numbered slots; cul.endless is a rating gate instead.
 export const GROWUP_ARCHIVE_SLOT_MAX = 4
@@ -113,8 +114,27 @@ export function archiveGrowupData(c, r, catalog) {
             .find((x) => x.systemId === row.systemId && x.trialId === finals[0].trail_id),
         ending = system.tables
             .get('game_events_cul_end')
-            .find((x) => x.systemId === row.systemId && x.trial === trial.trialId && x.endingId === trial.ending)
+            .find(
+                (x) =>
+                    x.systemId === row.systemId &&
+                    x.endingId === trial.ending &&
+                    growupEndingMatchesTrial(system.tables, x, trial, g.cur_starting_difficult_lv ?? 0),
+            )
     ensure(ending, 'Cultivation ending configuration unavailable', ErrorCode.CultInvalidEndId)
+    ensure(
+        g.trails.every((result) =>
+            system.tables
+                .get('game_events_cul_trial')
+                .some(
+                    (candidate) =>
+                        candidate.systemId === row.systemId &&
+                        candidate.trialId === result.trail_id &&
+                        candidate.difficult === (g.cur_starting_difficult_lv ?? 0),
+                ),
+        ),
+        'Cultivation examinations mix difficulties',
+        ErrorCode.CultEndNotComplete,
+    )
     ensure(
         /^\d+$/.test(String(g.guid)) && BigInt(g.guid) > 0n && BigInt(g.guid) >> 32n === BigInt(c.id),
         'Invalid cultivation run identity',

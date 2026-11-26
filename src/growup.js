@@ -5,6 +5,7 @@ import { assistantLevel, prepareGrowupCycle, populateGrowupEvents, growupCommonT
 import { cultivationScore, growupScoreVersion } from './growup-score.js'
 import { permanentState } from './growup-permanent.js'
 import { permanentRunGuid, sealPermanentInitial, applyPermanentJoin } from './growup-initial-perks.js'
+import { growupEndingMatchesTrial } from './growup-ending.js'
 const ids = (value) =>
     String(value ?? '')
         .split('|')
@@ -23,6 +24,7 @@ export function trainingFailureRate(afterStamina) {
     return 10000 - Math.min(10000, Math.trunc(Math.fround(10500 * Math.fround(root * factor))))
 }
 export class GrowupSystem {
+    #endingCompletionProofs = new WeakMap()
     constructor(tables) {
         this.tables = tables
         this.permanentEntries = new WeakMap()
@@ -344,9 +346,15 @@ export class GrowupSystem {
         return g
     }
     finish(g, id, trial) {
+        const difficulty = g.cur_starting_difficult_lv ?? 0
         const ending = this.tables
             .get('game_events_cul_end')
-            .find((x) => x.systemId === id && x.endingId === trial.ending && x.trial === trial.trialId)
+            .find(
+                (x) =>
+                    x.systemId === id &&
+                    x.endingId === trial.ending &&
+                    growupEndingMatchesTrial(this.tables, x, trial, difficulty),
+            )
         ensure(ending, 'Cultivation ending configuration unavailable', ErrorCode.CultInvalidEndId)
         ensure(
             this.condition(ending.condition, g),
@@ -359,10 +367,11 @@ export class GrowupSystem {
                     row = this.tables
                         .get('game_events_cul_trial')
                         .find((x) => x.systemId === id && x.trialId === result?.trail_id)
-                return row?.phase === phase && result.star > 0
+                return row?.phase === phase && row.difficult === difficulty && result.star > 0
             }),
             'Cultivation examinations are incomplete',
         )
+        const completedBefore = [...new Set(g.end_data.complete_end.map((record) => record.id))]
         // Explicitly requested local approximation; never add the intermediate
         // star accumulator again or modify the battle's score/rate/star mask.
         const score = cultivationScore(this, id, { attrs: g.growup_train_attr, chrs: g.assist_chars, trails: g.trails })
@@ -394,7 +403,21 @@ export class GrowupSystem {
         g.cur_stage = 4
         g.cur_growup_trail_stage = 4 // RuntimeData.PlayDone checks this field.
         g.action_count = 0
+        this.#endingCompletionProofs.set(snapshot, {
+            systemId: id,
+            runGuid: String(g.guid),
+            endingId: ending.endingId,
+            completedBefore,
+            run: g,
+            content: JSON.stringify(snapshot),
+        })
         return snapshot
+    }
+    endingCompletionProof(snapshot, run) {
+        const proof = this.#endingCompletionProofs.get(snapshot)
+        if (!proof || proof.run !== run || proof.content !== JSON.stringify(snapshot)) return undefined
+        const { content, run: sourceRun, ...identity } = proof
+        return structuredClone(identity)
     }
     advance(g, id) {
         const config = this.config(id)

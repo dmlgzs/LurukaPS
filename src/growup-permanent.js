@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { ErrorCode } from './error-codes.js'
 import { ensure, GameError } from './handlers/common.js'
 import { cultivationScore } from './growup-score.js'
+import { growupEndingMatchesTrial } from './growup-ending.js'
 
 const policy = JSON.parse(fs.readFileSync(new URL('../configs/growup-permanent-policy.json', import.meta.url)))
 const uint = (v) => Number.isInteger(v) && v >= 0 && v <= 0xffffffff
@@ -155,7 +156,7 @@ function guid(value, owner) {
     )
     return String(n)
 }
-function snapshotIdentity(system, id, record, owner) {
+function snapshotIdentity(system, id, record, owner, completion) {
     const model = permanentModel(system, id),
         ending = system.tables.get('game_events_cul_end').find((x) => x.systemId === id && x.endingId === record?.id)
     fail(
@@ -190,6 +191,7 @@ function snapshotIdentity(system, id, record, owner) {
     )
     fail(Array.isArray(record.trails) && record.trails.length === 3, 'Incomplete cultivation ending examinations')
     const phases = new Set(),
+        difficulties = new Set(),
         guids = new Set()
     for (const result of record.trails) {
         const trial = system.tables
@@ -197,6 +199,7 @@ function snapshotIdentity(system, id, record, owner) {
             .find((x) => x.systemId === id && x.trialId === result.trail_id)
         fail(
             trial &&
+                uint(trial.difficult) &&
                 [1, 2, 3].includes(trial.phase) &&
                 !phases.has(trial.phase) &&
                 uint(result.star) &&
@@ -205,6 +208,7 @@ function snapshotIdentity(system, id, record, owner) {
             'Invalid cultivation ending examination',
         )
         phases.add(trial.phase)
+        difficulties.add(trial.difficult)
         guids.add(guid(result.guid, owner))
         fail(
             ((typeof result.score === 'string' && /^\d+$/.test(result.score)) ||
@@ -213,24 +217,47 @@ function snapshotIdentity(system, id, record, owner) {
             'Invalid cultivation ending examination score',
         )
         if (trial.phase === 3)
-            fail(trial.trialId === ending.trial, 'Cultivation ending does not match final examination')
+            fail(
+                growupEndingMatchesTrial(system.tables, ending, trial),
+                'Cultivation ending does not match final examination',
+            )
     }
     fail(guids.size === 1, 'Cultivation ending mixes different runs')
-    // Current ending predicates can be reconstructed from sealed attributes. A
-    // future history-dependent predicate cannot be proven by a merged record.
+    fail(difficulties.size === 1, 'Cultivation ending mixes examination difficulties')
+    if (completion)
+        fail(
+            completion.systemId === id &&
+                completion.endingId === record.id &&
+                completion.runGuid === [...guids][0] &&
+                Array.isArray(completion.completedBefore) &&
+                completion.completedBefore.every((endingId) =>
+                    system.tables
+                        .get('game_events_cul_end')
+                        .some((row) => row.systemId === id && row.endingId === endingId),
+                ),
+            'Cultivation ending completion provenance differs',
+        )
+    // Attribute history remains reconstructible. History counts require the
+    // exact pre-finish set attested by this system's real finish return object;
+    // the merged legacy book alone cannot establish the original time order.
     ensure(
         !ending.condition ||
             String(ending.condition)
                 .split('|')
                 .every((text) => {
                     const [kind, activity] = text.split('#').map(Number)
-                    return [80001, 80009].includes(kind) && activity === id
+                    return ([80001, 80009].includes(kind) || (kind === 80003 && !!completion)) && activity === id
                 }),
         'Unsupported historical cultivation ending condition',
         ErrorCode.FunctionClosed,
     )
     ensure(
-        system.condition(ending.condition, { growup_train_attr: record.attrs }),
+        system.condition(ending.condition, {
+            growup_train_attr: record.attrs,
+            ...(completion
+                ? { end_data: { complete_end: completion.completedBefore.map((endingId) => ({ id: endingId })) } }
+                : {}),
+        }),
         'Cultivation ending conditions not met',
         ErrorCode.CultEndNotComplete,
     )
@@ -440,7 +467,9 @@ export function commitPermanentEnding(c, catalog, row, entry, snapshot, source) 
     fail(['trial-completion', 'sweep-completion'].includes(source), 'Invalid permanent cultivation source')
     const model = optionalModel(catalog.growup, row.systemId)
     if (!model) return false
-    const info = snapshotIdentity(catalog.growup, row.systemId, snapshot, c.id)
+    const completion = catalog.growup.endingCompletionProof(snapshot, entry.growup)
+    fail(completion, 'Cultivation ending completion provenance is missing or stale')
+    const info = snapshotIdentity(catalog.growup, row.systemId, snapshot, c.id, completion)
     fail(
         info.run_guid === guid(entry.growup.guid, c.id) &&
             entry.growup.cur_stage === 4 &&
