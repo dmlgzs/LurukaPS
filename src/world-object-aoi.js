@@ -212,6 +212,14 @@ function worldSource(tables, state, objectId, deleting) {
         record = state.worldObjects?.[map + ':' + objectId]
     const dynamic = record?.expand_data?.dynamic_obj
     if (dynamic) {
+        // Current TDWorldmapTable.IsDynamicObject06024b4b and
+        // MapService.ApplyDynamicWorldObject06028894 admit only this range.
+        // Remote9199 transport retains its separate typed-snapshot contract.
+        ensure(
+            objectId >= 10000000 && objectId <= 99999999,
+            'World-object identity is outside the current dynamic range',
+            ErrorCode.InvalidTarget,
+        )
         valid(
             object(dynamic) &&
                 positive(dynamic.spawner_id) &&

@@ -91,6 +91,67 @@ function scope(firstBattle = false) {
         push: (name, value) => pushes.push({ name, value }),
     }
 }
+function conditionalDynamicSource(id, kind = 26) {
+    const c = scope()
+    // A saved-data contract vector, not an ecology/respawn producer result.
+    c.state.worldObjects = {
+        ['100:' + id]: {
+            obj_id: id,
+            active: true,
+            complete: false,
+            pos: { x: 100, y: 200, z: 300 },
+            expand_data: { dynamic_obj: { spawner_id: kind === 3 ? 99010 : 753014, expand_id: kind === 3 ? 5148 : 0 } },
+        },
+    }
+    return c
+}
+
+test('scope: current Native dynamic admission accepts only inclusive10000000..99999999 before leases or pushes', () => {
+    // TDWorldmapTable.IsDynamicObject06024b4b; ApplyDynamicWorldObject06028894.
+    for (const id of [9999999, 10000000, 99999999, 100000000, 1900000001]) {
+        const c = conditionalDynamicSource(id),
+            before = fingerprint(c.state)
+        if (id >= 10000000 && id <= 99999999) {
+            const reply = createWorldObjectAoi(c, { objs: [guid(26, id)] })
+            assert.equal(reply.objs[0].guid, guid(26, id))
+            assert.equal(c.pushes[0].name, 'SCProtoObjAppearNtf')
+            assert.equal(c.state.combat.entities[guid(26, id)], undefined)
+        } else {
+            assert.throws(() => createWorldObjectAoi(c, { objs: [guid(26, id)] }), { code: ErrorCode.InvalidTarget })
+            assert.equal(fingerprint(c.state), before)
+            assert.deepEqual(c.pushes, [])
+        }
+    }
+})
+
+test('scope: remote dynamic cache transport retains active and inactive typed saved records outside admission range', () => {
+    const entry = protocol.byName.get('SCProtoDynamicObjInfosSync')
+    for (const id of [19000001, 1900000001]) {
+        const c = conditionalDynamicSource(id)
+        for (const active of [true, false]) {
+            c.state.worldObjects['100:' + id].active = active
+            const before = fingerprint(c.state)
+            const payload = protocol.decode(
+                entry.rsp,
+                protocol.encode(entry.rsp, dynamicWorldObjectSnapshot(tables, c.state, 100)),
+            )
+            assert.equal(payload.objs[0].obj_id, id)
+            assert.equal(payload.objs[0].active, active)
+            assert.equal(payload.objs[0].expand_data.dynamic_obj.spawner_id, 753014)
+            assert.equal(fingerprint(c.state), before)
+        }
+    }
+})
+
+test('scope: a conditional in-range enemy without a current issuing source is not fabricated as an admitted actor', () => {
+    const c = conditionalDynamicSource(19000001, 3),
+        before = fingerprint(c.state)
+    assert.equal(tables.find('worldmap_100', 19000001), undefined)
+    assert.throws(() => createWorldObjectAoi(c, { objs: [guid(3, 19000001)] }), { code: ErrorCode.InvalidTarget })
+    assert.equal(fingerprint(c.state), before)
+    assert.deepEqual(c.pushes, [])
+})
+
 const encodePushes = (c, response) => [
     { id: 11234, payload: protocol.encode(protocol.byId.get(11234).rsp, response) },
     ...c.pushes.map(({ name, value }) => {
@@ -261,10 +322,11 @@ test('scope: WorldItem26 and admitted Playable6 bind owners without creating pet
         code: ErrorCode.InvalidTarget,
     })
 })
+// Conditional saved input, not a local ecology/respawn producer result.
 test('scope: remote9199 snapshot uses saved dynamic fields, includes inactive records, excludes private claims and other maps', () => {
     const c = scope(),
         raw = {
-            obj_id: 1900000001,
+            obj_id: 19000001,
             active: true,
             complete: false,
             pos: { x: 100, y: 200, z: 300 },
@@ -272,8 +334,8 @@ test('scope: remote9199 snapshot uses saved dynamic fields, includes inactive re
             claims: { private: 'not-wire' },
         }
     c.state.worldObjects = {
-        '100:1900000001': raw,
-        '102:1900000001': structuredClone(raw),
+        '100:19000001': raw,
+        '102:19000001': structuredClone(raw),
         '100:4500037': { obj_id: 4500037, active: true },
     }
     const before = fingerprint(c.state)
@@ -479,7 +541,7 @@ test('Game: actual public PlayableStart and world-item requests bind26/6;9199 pu
         assert.equal(fingerprint(f.state().player.sbag_infos), assets)
         assert.equal(fingerprint(f.state().pets), pets)
         const selected = {
-            obj_id: 1900000001,
+            obj_id: 19000001,
             active: true,
             complete: false,
             pos: { x: 100, y: 200, z: 300 },
@@ -487,7 +549,7 @@ test('Game: actual public PlayableStart and world-item requests bind26/6;9199 pu
             claims: { private: 1 },
         }
         f.edit((s) => {
-            ;(s.worldObjects ??= {})['102:1900000001'] = structuredClone(selected)
+            ;(s.worldObjects ??= {})['102:19000001'] = structuredClone(selected)
         })
         const remote = new Map(),
             pending = new Set([102]),
@@ -512,7 +574,7 @@ test('Game: actual public PlayableStart and world-item requests bind26/6;9199 pu
         assert.equal(fingerprint(f.state().combat), combatBefore)
         assert.equal(fingerprint(f.state()), stateBefore)
         f.edit((s) => {
-            s.worldObjects['102:1900000001'].active = false
+            s.worldObjects['102:19000001'].active = false
         })
         receive(f.call('SCProtoDynamicObjInfosReq', { u32: 102 }))
         assert.equal(
