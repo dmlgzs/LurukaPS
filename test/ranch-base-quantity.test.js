@@ -10,7 +10,8 @@ import {
     recordRanchBaseCommit,
     reserveRanchDropGuid,
 } from '../src/ranch-bonus.js'
-import { settleRanches } from '../src/ranch.js'
+import { ensureRanches } from '../src/ranch.js'
+import { ranchFixture } from './ranch-fixture.js'
 
 const tables = new Tables(configuration().tables)
 const data = ranchBonusCatalog(tables)
@@ -102,40 +103,49 @@ test('committed amounts and item identities must agree with their actual base dr
     }
 })
 
-test('settlement preserves saved pending clocks, old quantity-two drops and labor while producing the current table quantity', () => {
-    const source = {
-        get: (name) => (name === 'home_block' ? [] : tables.get(name)),
-        find: (name, id) => tables.find(name, id),
+test('real6162 current clocks preserve sealed historical quantity2 and labor while earning only current new output units', () => {
+    const f = ranchFixture('ranch-current-base-quantity')
+    let oldDrop
+    try {
+        f.store.transact(f.session.id, 0, (state) => {
+            ensureRanches(f.tables, state)
+            const ranch = state.home.ranches[201],
+                row = data.baseDrops.get(12033),
+                worker = state.pets.find((pet) => pet.guid === f.pets[0]),
+                technology = tables.find('home_technology', 2007701)
+            assert.equal(ranch.bonus, undefined)
+            state.player.basic_info.lv = 55 // Trusted saved research prerequisite, not claimed earned play.
+            state.home.technology.levels[technology.type] = { level: technology.level, lastTime: 0, isOpened: true }
+            worker.labor_infos = [{ labor_id: 3, labor_grade: 20, upper_labor_grade: 40, labor_exp: 0 }]
+            oldDrop = {
+                guid: ranch.nextDropGuid++,
+                pet_guid: worker.guid,
+                drop_id: row.id,
+                item: { itemtype: row.itemType, itemid: Number(row.itemId), itemnum: 2 },
+            }
+            ranch.drops.push(structuredClone(oldDrop)) // Explicit historical sealed fact; no old recipe/RNG executes.
+        })
+        const labor = structuredClone(f.state().pets.find((pet) => pet.guid === f.pets[0]).labor_infos)
+        f.assign() // Actual current6162 factory, not a hand-written or manually marked current clock.
+        const clocks = structuredClone(f.state().home.ranches[201].product_pets[0].drop_times)
+        assert.equal(f.state().home.ranches[201].product_pets[0].clockMigration.source, 'current')
+        f.elapse(f.productionPeriod())
+        f.tick()
+        const after = f.state().home.ranches[201],
+            produced = after.drops.filter((drop) => drop.guid !== oldDrop.guid)
+        assert.deepEqual(
+            after.drops.find((drop) => drop.guid === oldDrop.guid),
+            oldDrop,
+        )
+        assert.equal(produced.length, clocks.length)
+        for (const drop of produced) assert.equal(drop.item.itemnum, tables.find('home_drop', drop.drop_id).minValue)
+        assert.equal(
+            after.bonus.families[3006].creditUnits,
+            produced.reduce((n, drop) => n + drop.item.itemnum, 0),
+        )
+        assert(after.product_pets[0].drop_times.every((clock) => clock.time > f.now()))
+        assert.deepEqual(f.state().pets.find((pet) => pet.guid === f.pets[0]).labor_infos, labor)
+    } finally {
+        f.close()
     }
-    const row = data.baseDrops.get(12033)
-    const { state, ranch } = fixture()
-    Object.assign(ranch, {
-        guid: 9,
-        block_id: 201,
-        lv: 1,
-        harvest_pet: '0',
-        eggs: [],
-        stores: [],
-        product_pets: [{ slot: 1, pet_guid: '1', drop_times: [{ drop_id: row.id, time: 101, seconds: row.dropTime }] }],
-    })
-    state.home.ranches = { 201: ranch }
-    state.pets = [
-        {
-            guid: '1',
-            config_id: 500001,
-            work_status: 6,
-            work_build: 201,
-            satiety_val: 60,
-            labor_infos: [{ labor_id: 3, labor_grade: 20, upper_labor_grade: 20, labor_exp: 0 }],
-        },
-    ]
-    const labor = structuredClone(state.pets[0].labor_infos),
-        oldDrop = structuredClone(ranch.drops[0])
-    settleRanches(source, state, 101, () => 0)
-    const after = state.home.ranches[201]
-    assert.deepEqual(after.drops[0], oldDrop)
-    assert.equal(after.drops[1].item.itemnum, row.minValue)
-    assert.equal(after.bonus.families[3006].creditUnits, row.minValue)
-    assert.equal(after.product_pets[0].drop_times[0].time, 101 + row.dropTime)
-    assert.deepEqual(state.pets[0].labor_infos, labor)
 })

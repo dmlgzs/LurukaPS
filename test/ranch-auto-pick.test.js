@@ -13,7 +13,7 @@ function produce(f, gather = true) {
         })
         f.assign(f.pets[1], 0, 2)
     }
-    f.elapse(360)
+    f.elapse(f.productionPeriod())
     f.tick()
     return f.state().home.ranches[201].drops
 }
@@ -74,14 +74,18 @@ test('storage capacity counts actual item stacks and full or overflowing stores 
             numeric = readTable('common_item')
         const stacked = numeric.find((row) => row.stackNum > 0)
         assert(stacked)
-        assert.equal(ranchStoredSlots([{ itemtype: 3, itemid: stacked.id, itemnum: stacked.stackNum + 1 }]), 2)
+        assert.equal(
+            ranchStoredSlots([{ itemtype: 3, itemid: stacked.id, itemnum: stacked.stackNum + 1 }], f.tables),
+            2,
+        )
         const limit = f.tables.get('home_ranch')[0].storageLimit
-        const candidates = numeric
-            .filter((row) => row.stackNum === 0 && row.id !== first.item.itemid && f.tables.find('common_item', row.id))
-            .slice(0, limit)
-        assert.equal(candidates.length, limit)
+        // Capacity-only import boundary: current976 item types cannot fill999 distinct cells.
+        // A valid stackable typed row can still express exactly999 occupied cells without altering the table.
+        assert.notEqual(stacked.id, first.item.itemid)
+        const full = [{ itemtype: 3, itemid: stacked.id, itemnum: stacked.stackNum * limit }]
+        assert.equal(ranchStoredSlots(full, f.tables), limit)
         f.store.transact(f.session.id, 0, (s) => {
-            s.home.ranches[201].stores = candidates.map((row) => ({ itemtype: 3, itemid: row.id, itemnum: 1 }))
+            s.home.ranches[201].stores = full
         })
         let before = f.store.load(f.session.id)
         assert.throws(

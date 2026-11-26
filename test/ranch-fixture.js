@@ -16,14 +16,16 @@ export function ranchFixture(name, options = {}) {
         roll = () => 0
     const game = new Game(protocol, store, tables, { clock: () => now, rng: (max) => roll(max) })
     const session = {}
-    const call = (name, data = {}, target = session) => {
+    const request = (name, data = {}) => {
         const e = protocol.byName.get('CSProto' + name)
-        return game.dispatch(target, {
+        if (!e) throw Error('Unknown current test protocol: ' + name)
+        return {
             id: e.id,
             seq: seq++,
             payload: e.req ? protocol.encode(e.req, data) : Buffer.alloc(0),
-        })
+        }
     }
+    const call = (name, data = {}, target = session) => game.dispatch(target, request(name, data))
     call('EnterGame', { open_id: name })
     let pets
     store.transact(session.id, 0, (s) => {
@@ -63,6 +65,16 @@ export function ranchFixture(name, options = {}) {
         session,
         pets,
         call,
+        request,
+        now: () => now,
+        productionPeriod: () => {
+            const clocks = store
+                .load(session.id)
+                .state.home.ranches[201].product_pets.flatMap((slot) => slot.drop_times)
+            if (!clocks.length || clocks.some((clock) => !Number.isSafeInteger(clock.seconds) || clock.seconds <= 0))
+                throw Error('Missing current ranch period')
+            return Math.min(...clocks.map((clock) => clock.seconds))
+        },
         state: () => store.load(session.id).state,
         close: () => store.close(),
         now: () => now,

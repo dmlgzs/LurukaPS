@@ -9,7 +9,7 @@ function storeProduction(f) {
         s.pets.find((p) => p.guid === f.pets[1]).labor_infos = [{ labor_id: 9, labor_grade: 1 }]
     })
     f.assign(f.pets[1], 0, 2)
-    f.elapse(360)
+    f.elapse(f.productionPeriod())
     f.tick()
     const drops = f.state().home.ranches[201].drops
     for (const drop of drops) f.call('RanchPetAutoGetReward', { block_id: 201, reward_guid: drop.guid })
@@ -59,7 +59,7 @@ test('stored rewards can be claimed after removing the harvesting worker and fut
             s.pets.find((p) => p.guid === f.pets[1]).labor_infos = [{ labor_id: 9, labor_grade: 1 }]
         })
         f.assign(f.pets[1], 0, 2)
-        f.elapse(360)
+        f.elapse(f.productionPeriod())
         f.tick()
         for (const drop of f.state().home.ranches[201].drops)
             f.call('RanchPetAutoGetReward', { block_id: 201, reward_guid: drop.guid })

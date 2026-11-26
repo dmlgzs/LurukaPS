@@ -8,7 +8,13 @@ const coins = (state) => BigInt(state.player.attr_infos.attrs.find((row) => row.
 function storedCurrencyPrecondition(f, amounts = [500, 5000]) {
     f.assign()
     f.harvestWorker()
-    f.elapse(360)
+    f.elapse(
+        Math.min(
+            ...f
+                .state()
+                .home.ranches[201].product_pets.flatMap((slot) => slot.drop_times.map((clock) => clock.seconds)),
+        ),
+    )
     f.tick()
     // Consumer-only saved valid drops: this stage does not claim a bonus producer.
     return f.edit((state) => {

@@ -6,7 +6,7 @@ import { ErrorCode } from '../src/error-codes.js'
 
 function produce(f) {
     f.assign()
-    f.elapse(360)
+    f.elapse(f.productionPeriod())
     f.tick()
     return f.state().home.ranches[201].drops
 }
