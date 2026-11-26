@@ -6,6 +6,7 @@ import { initializeCharacterFormation } from '../character-creation.js'
 import { repairMainHeroType } from '../main-hero.js'
 import { mergeWardrobeInfo } from '../appearance-wardrobe.js'
 import { recordGuideStep, setGuideSkipChoice } from '../guide-progress.js'
+import { planPlayerRename, validatePlayerSignBytes } from '../player-text.js'
 export function registerCore(on) {
     on('PresetWardrobeReq', (c, r) => {
         ensure([1, 2].includes(r.sex), 'Invalid preset sex')
@@ -69,14 +70,14 @@ export function registerCore(on) {
         return {}
     })
     on('ChangeName', (c, r) => {
-        c.state.player.basic_info.name = textValue(r.name, 15)
-        c.state.player.basic_info.last_change_name_time = c.now
-        syncPlayer(c, { basic_info: c.state.player.basic_info })
+        const plan = planPlayerRename(c.tables, c.state, r, c.now)
+        Object.assign(c.state.player.basic_info, plan)
+        syncPlayer({ ...c, push: c.pushBefore }, { basic_info: c.state.player.basic_info })
         return {}
     })
     on('ChangeSign', (c, r) => {
-        c.state.player.basic_info.sign = textValue(r.sign, 255)
-        syncPlayer(c, { basic_info: c.state.player.basic_info })
+        c.state.player.basic_info.sign = validatePlayerSignBytes(c.tables, r.sign)
+        syncPlayer({ ...c, push: c.pushBefore }, { basic_info: c.state.player.basic_info })
         return {}
     })
     on('ChangeBirthday', (c, r) => {
