@@ -14,8 +14,8 @@ export function taskEnemyPacks(tables, group) {
         : override.enemySlots
           ? [override.enemySlots]
           : []
-    // CBT3 TaskHelper.CreateEnemyGroup uses inline slots first, otherwise
-    // GetTaskEnemyGroupSlots(posAssetId). Missing assets supply one zero slot.
+    // Current TaskHelper0602f1d2 uses inline slots first, otherwise
+    // GetTaskEnemyGroupSlots0600864d. Missing assets supply one zero slot.
     // FillDisplaySlot(null) displays only indices covered by these slots;
     // the remaining enemyList entries are Disappear, not kill requirements.
     const count =
