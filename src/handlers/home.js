@@ -1,3 +1,4 @@
+import { upsertHomeWishlist, deleteHomeWishlist, traceHomeWishlist } from '../home-wishlist.js'
 import { ErrorCode } from '../error-codes.js'
 import { requirePetModel } from '../pet-model-eligibility.js'
 import { productionTables } from '../production-tables.js'
@@ -186,34 +187,14 @@ export function registerHome(on, tables) {
         return {}
     })
     on('AddHomeMaterialWishList', (c, r) => {
-        const home = ensureHome(tables, c.state)
-        ensure(tables.find('products', r.product_id), 'Unknown product')
-        ensure(Number.isInteger(r.count) && r.count > 0, 'Invalid wishlist quantity')
-        const limit = Number(tables.get('game').find((x) => x.title === 'HOME_WISHLIST_LIMIT')?.value)
-        ensure(
-            Number.isInteger(limit) && limit > 0,
-            'Invalid wishlist limit',
-            ErrorCode.HomeMaterialWishlistConfInvalid,
-        )
-        if (r.uid) {
-            const index = home.wishlist.findIndex((x) => x.uid === r.uid)
-            ensure(index >= 0, 'Wishlist entry not owned')
-            home.wishlist[index] = { ...r }
-        } else {
-            ensure(home.wishlist.length < limit, 'Wishlist is full')
-            ensure(home.nextWishUid <= 0xffffffff, 'Wishlist identity exhausted')
-            home.wishlist.push({ ...r, uid: home.nextWishUid++ })
-        }
+        ensureHome(tables, c.state)
+        upsertHomeWishlist(tables, c.state, r)
         change(c)
         return {}
     })
     on('DelHomeMaterialWishList', (c, r) => {
-        const home = ensureHome(tables, c.state)
-        ensure(
-            home.wishlist.some((x) => x.uid === r.u32),
-            'Wishlist entry not owned',
-        )
-        home.wishlist = home.wishlist.filter((x) => x.uid !== r.u32)
+        ensureHome(tables, c.state)
+        deleteHomeWishlist(tables, c.state, r.u32)
         change(c)
         return {}
     })
@@ -222,9 +203,8 @@ export function registerHome(on, tables) {
         ['UnTraceHomeMaterialWishList', false],
     ])
         on(name, (c, r) => {
-            const row = ensureHome(tables, c.state).wishlist.find((x) => x.uid === r.u32)
-            ensure(row, 'Wishlist entry not owned')
-            row.trace = value
+            ensureHome(tables, c.state)
+            traceHomeWishlist(tables, c.state, r.u32, value)
             change(c)
             return {}
         })

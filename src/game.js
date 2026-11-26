@@ -1,3 +1,4 @@
+import { bootstrapHomeWishlistIdentity } from './home-wishlist.js'
 import { currentMapMember } from './current-map-member.js'
 import {
     medicineCooldownPayload,
@@ -914,6 +915,7 @@ export class Game {
                 requireProductionWorkModel(state, this.productionWorkPolicy)
                 migratePetGuidIdentity(this.tables, state, this.protocol)
                 bootstrapStoryClearProofs(this.tables, state)
+                bootstrapHomeWishlistIdentity(this.tables, state)
                 reconcileTaskPackageScope(this.tables, state, now)
                 resetWorldObjectAoiSession(state, session.token)
                 suspendUnavailableTasks(this.tables, state)

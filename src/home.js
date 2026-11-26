@@ -1,3 +1,4 @@
+import { homeWishlistPresentation } from './home-wishlist.js'
 import { ErrorCode } from './error-codes.js'
 import { homeHubPayload } from './home-hub.js'
 import { reconcileHomeExperience } from './home-experience.js'
@@ -118,7 +119,7 @@ export function homePayload(tables, state) {
                 (_, index) => bar.item_id[index] ?? 0,
             ),
         })),
-        wishlist: h.wishlist,
+        ...homeWishlistPresentation(tables, state),
         formula: Object.entries(h.craftCounts || {}).map(([id, count]) => ({
             product_id: Number(id),
             craft_count: count,

@@ -1,0 +1,93 @@
+{
+    "sourceSha256": "e26332a3ded82dbd9b5da151c9f704f94b7de97020cff68b8d00265d5362ae50",
+    "fixedProduct": 180009,
+    "retiredCount": 13,
+    "selectionChanged": null,
+    "scenarios": [
+        {
+            "name": "unique-current-product",
+            "kind": "Unmodified historical public AddHomeMaterialWishList body with actual old products; notification callback inert only. Not old Unity validation.",
+            "requests": [
+                {
+                    "product_id": 180009,
+                    "count": 2,
+                    "trace": true,
+                    "selects": []
+                }
+            ],
+            "home": {
+                "wishlist": [
+                    {
+                        "product_id": 180009,
+                        "count": 2,
+                        "trace": true,
+                        "selects": [],
+                        "uid": 1
+                    }
+                ],
+                "nextWishUid": 2
+            }
+        },
+        {
+            "name": "duplicate-current-product",
+            "kind": "Unmodified historical public AddHomeMaterialWishList body with actual old products; notification callback inert only. Not old Unity validation.",
+            "requests": [
+                {
+                    "product_id": 180009,
+                    "count": 2,
+                    "trace": true,
+                    "selects": []
+                },
+                {
+                    "product_id": 180009,
+                    "count": 3,
+                    "trace": false,
+                    "selects": []
+                }
+            ],
+            "home": {
+                "wishlist": [
+                    {
+                        "product_id": 180009,
+                        "count": 2,
+                        "trace": true,
+                        "selects": [],
+                        "uid": 1
+                    },
+                    {
+                        "product_id": 180009,
+                        "count": 3,
+                        "trace": false,
+                        "selects": [],
+                        "uid": 2
+                    }
+                ],
+                "nextWishUid": 3
+            }
+        },
+        {
+            "name": "retired-product",
+            "kind": "Unmodified historical public AddHomeMaterialWishList body with actual old products; notification callback inert only. Not old Unity validation.",
+            "requests": [
+                {
+                    "product_id": 160001,
+                    "count": 2,
+                    "trace": true,
+                    "selects": []
+                }
+            ],
+            "home": {
+                "wishlist": [
+                    {
+                        "product_id": 160001,
+                        "count": 2,
+                        "trace": true,
+                        "selects": [],
+                        "uid": 1
+                    }
+                ],
+                "nextWishUid": 2
+            }
+        }
+    ]
+}

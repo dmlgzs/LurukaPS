@@ -1,0 +1,38 @@
+{
+    "version": 1,
+    "policyId": "home-wishlist-uid-1.0.0-v1",
+    "origin": "LOCAL",
+    "targetVersion": "1.0.0",
+    "packageVersion": "3217420",
+    "source": {
+        "writerCommit": "67dadf1b3ce3d99c0d4d05e8059f33cc5efa6461",
+        "productIdsSha256": "2c702b1fe96a42909e5ebdb6fc8c3c071feb6227bbfaf3c5d216e42523717a07",
+        "retiredProductIds": [
+            160001, 710024, 710027, 9104701, 9104702, 9104703, 9104704, 9104705, 9104801, 9104802, 9104803, 9104804,
+            9104805
+        ],
+        "retiredProductIdsSha256": "be2c93343675908196d756158bde04e4700b1b4c9b9f372ba4c2fac6f176cef7"
+    },
+    "target": {
+        "productIdsSha256": "244a3cb40cde7a2ed9140d0feed77a2d59635884d75ba0957cb56f69b2d55977"
+    },
+    "bootstrap": "once-before-first-current-sync",
+    "duplicates": "archive-all-rows-for-product",
+    "missing": "archive-proven-old-product",
+    "invalidSelections": "archive-without-replacement",
+    "rawPreservation": "whole-preimage-and-nextWishUid",
+    "tombstones": "old-affected-uids-excluding-current-active-uids",
+    "notes": "Not an old table fallback. Retired list is identity evidence only; no reward/cost/config is restored.",
+    "access": {
+        "origin": "LOCAL server mirror of current normal-package UI requirement",
+        "system": 1504,
+        "source": "system_unlock.unlockCondi",
+        "scope": "mutations only; migration and presentation preserve locked-account data"
+    },
+    "selectionScope": {
+        "enabled": "current-proven-explicit-selection senders; fixed material recipes may send empty selects",
+        "unresolvedNativeDefaults": "known current consumer fallback, FunctionClosed in this limited server representation",
+        "legacyUnresolved": "archive raw without resolving to a different material",
+        "todo": "No claim of complete Native default-selection support or arbitrary dynamic Lua sources"
+    }
+}
