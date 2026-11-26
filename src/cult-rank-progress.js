@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
-import { configTime } from './shops.js'
+import { configTime } from './time-definitions.js'
 import { activityTables } from './activity-tables.js'
 
 const policy = JSON.parse(fs.readFileSync(new URL('../configs/cult-rank-policy.json', import.meta.url)))
