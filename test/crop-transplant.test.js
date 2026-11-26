@@ -8,7 +8,7 @@ import { Tables } from '../src/player.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { Protocol } from '../src/protocol.js'
-import { gridAnchor, gridPosition } from '../src/home-grid.js'
+import { gridAnchor, gridPosition, homeCondition } from '../src/home-grid.js'
 import { grantRewards } from '../src/rewards.js'
 import { ErrorCode } from '../src/error-codes.js'
 
@@ -72,13 +72,13 @@ function request(state, dx = 0, dy = 2, turn = 0) {
     })
     return { main_build: rows[0], follower_builds: rows.slice(1) }
 }
-test('existing upgraded fertile fields with zero new slots move atomically through old cells; opening a new field remains prohibited', () => {
+test('existing upgraded fertile fields move before new-field quota unlocks; opening a new field remains prohibited', () => {
     const f = fixture()
     try {
         assert.equal(
             tables
                 .get('home_building_num')
-                .filter((r) => r.groupId === 2033)
+                .filter((r) => r.groupId === 2033 && homeCondition(r.unlockCondition, f.state()))
                 .reduce((n, r) => n + r.addNum, 0),
             0,
         )
@@ -191,5 +191,116 @@ test('real HomeSync codec failure rolls back every location; SQLite relogin reta
         f.store.close()
         for (const suffix of ['', '-wal', '-shm', '-journal']) fs.rmSync(file + suffix, { force: true })
         fs.rmdirSync(dir)
+    }
+})
+
+test('current fertile FieldOpen enforces home levels17/18 and21/22, synchronizes actual slots and preserves assets on retries or failures', () => {
+    const f = fixture(':memory:', false),
+        fieldType = tables.find('home_fieldtype', 3),
+        building = tables.find('home_building', fieldType.homeBuildingId)
+    const setLevel = (level) =>
+        f.store.transact(f.session.id, 0, (state) => {
+            state.tasks = []
+            state.world.map_id = Number(tables.get('game').find((row) => row.title === 'HOME_ID').value)
+            const total = tables
+                .get('home_level')
+                .filter((row) => row.id < level)
+                .reduce((sum, row) => sum + row.exp, 0)
+            Object.assign(state.home, {
+                level,
+                exp: 0,
+                experienceVersion: 1,
+                experienceTotal: String(total),
+                levelRewardedThrough: level,
+            })
+            let attr = state.player.attr_infos.attrs.find((row) => row.attr_id === 1003)
+            if (!attr) state.player.attr_infos.attrs.push((attr = { attr_id: 1003 }))
+            attr.attr_val = String(total)
+        })
+    const fields = () => f.state().home.builds.filter((build) => build.build_id === building.id)
+    const quota = () =>
+        tables
+            .get('home_building_num')
+            .filter((row) => row.groupId === building.groupId && homeCondition(row.unlockCondition, f.state()))
+            .reduce((sum, row) => sum + row.addNum, 0)
+    const open = (index) => ({
+        field_type: fieldType.id,
+        locate: { block_id: 102, anchor: gridAnchor(-60 + index * 3, 10), direction: 0 },
+    })
+    const assets = (state) => ({
+        bag: state.player.sbag_infos,
+        gold: state.player.basic_info.gold,
+        diamond: state.player.basic_info.diamond,
+        inventory: state.home.inventory,
+    })
+    try {
+        assert.equal(building.material, '', 'current direct field placement has no material cost')
+        assert.equal(building.time, 0)
+        setLevel(17)
+        assert.equal(quota(), 0)
+        let before = f.state()
+        assert.throws(() => f.call('FieldOpen', open(0)), /limit/)
+        assert.deepEqual(f.state(), before)
+        setLevel(18)
+        assert.equal(quota(), 4)
+        const initialAssets = assets(f.state()),
+            guids = []
+        for (let i = 0; i < quota(); i++) {
+            const packets = f.call('FieldOpen', open(i)),
+                field = packets.find((packet) => packet.id === 6113)?.data
+            const sync = packets.find((packet) => packet.id === 6102)?.data
+            assert.equal(field.build_id, building.id)
+            assert.equal(field.status, 1)
+            assert.equal(field.crop_info.field_type, fieldType.id)
+            assert.equal(field.crop_info.water_max, fieldType.waterMax)
+            assert(sync.home_builds.some((build) => build.guid === field.guid && build.build_id === building.id))
+            assert.equal(
+                sync.home_level_new_base.level,
+                18,
+                'client receives the cultivation level that selects its field quota',
+            )
+            assert(
+                packets.findIndex((packet) => packet.id === 6102) < packets.findIndex((packet) => packet.id === 6113),
+            )
+            guids.push(field.guid)
+            assert.equal(fields().length, i + 1)
+            assert.deepEqual(assets(f.state()), initialAssets)
+        }
+        assert.equal(new Set(guids).size, 4)
+        before = f.state()
+        const retry = f.call('FieldOpen', open(0)).find((packet) => packet.id === 6113).data
+        assert.equal(retry.guid, guids[0], 'same-location retry keeps its accepted field')
+        assert.deepEqual(f.state(), before)
+        assert.throws(() => f.call('FieldOpen', open(4)), /limit/)
+        assert.deepEqual(f.state(), before, 'full quota cannot allocate a GUID, lose a building or charge resources')
+        setLevel(21)
+        assert.equal(quota(), 4)
+        before = f.state()
+        assert.throws(() => f.call('FieldOpen', open(4)), /limit/)
+        assert.deepEqual(f.state(), before)
+        setLevel(22)
+        assert.equal(quota(), 8)
+        before = f.state()
+        const encode = f.protocol.encode.bind(f.protocol)
+        f.protocol.encode = (type, value) => {
+            if (type === f.protocol.byId.get(6102).rsp) throw Error('field-open codec')
+            return encode(type, value)
+        }
+        assert.throws(() => f.call('FieldOpen', open(4)), /field-open codec/)
+        assert.deepEqual(
+            f.state(),
+            before,
+            'sync encoding failure rolls back new field, allocator, assets and reclamation counter',
+        )
+        f.protocol.encode = encode
+        const upgradedPackets = f.call('FieldOpen', open(4)),
+            field = upgradedPackets.find((packet) => packet.id === 6113).data
+        assert.equal(upgradedPackets.find((packet) => packet.id === 6102).data.home_level_new_base.level, 22)
+        assert.equal(fields().length, 5)
+        assert(field.guid > Math.max(...guids))
+        assert.deepEqual(assets(f.state()), assets(before))
+        assert.equal(f.state().home.reclamationProgress.countsByType[3], 5)
+    } finally {
+        f.store.close()
     }
 })

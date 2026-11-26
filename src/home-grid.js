@@ -28,6 +28,9 @@ export function homeCondition(text, state) {
                 (state.taskRecords ?? []).some((record) => record.task_id === n && record.count > 0)
             )
         if (id === 11009) return (state.home?.stage || 1) >= n
+        // Current CheckHomeLevel(15017) reads HomeLevelNewBase.level;
+        // 11009 is the separate legacy home stage condition.
+        if (id === 15017) return Number.isSafeInteger(state.home?.level) && state.home.level >= n
         if (id === 11012) return (state.home?.technology?.levels[n]?.level || 0) >= (level || 1)
         if (id === 61001) return (state.reputations?.[n]?.level ?? 0) >= level
         return false

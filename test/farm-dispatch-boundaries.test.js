@@ -227,35 +227,37 @@ test('6156 dispatch, transfer and withdrawal remain consistent after SQLite clos
         rmSync(dir, { recursive: true, force: true })
     }
 })
-test('6156 capacity helper follows all100 actual home levels and sums only unlocked free positions', () => {
+test('6156 capacity helper follows all100 actual home levels plus current work-position constant', () => {
     const f = fixture()
     try {
         const s = f.state(),
             rows = tables.get('home_level'),
-            positions = tables.get('home_freeworkposition')
+            increment = Number(tables.get('game').find((row) => row.title === 'HOME_KIBO_WORK_MANAGE_POSITION').value)
         assert.equal(rows.length, 100)
-        assert.deepEqual(
-            positions.map((row) => [row.num, row.unlockCondition]),
-            [[5, '2004#1']],
-        )
         for (const row of rows) {
             s.home.level = row.id
-            assert.equal(ranchWorkerLimit(tables, s, 'worker_max'), row.worker_max + 5)
+            assert.equal(ranchWorkerLimit(tables, s, 'worker_max'), row.worker_max + increment)
         }
-        // Synthetic extra rows exercise the native foreach-add semantics rather
-        // than treating the single current freework row as a maximum forever.
+        // The current native reads the constant, not the retired conditional
+        // free-work-position table or the player's adventurer level.
         const proxy = {
             find: (name, id) => tables.find(name, id),
             get: (name) =>
-                name === 'home_freeworkposition'
-                    ? [...positions, { num: 2, unlockCondition: '2004#17' }]
+                name === 'game'
+                    ? tables
+                          .get(name)
+                          .map((row) =>
+                              row.title === 'HOME_KIBO_WORK_MANAGE_POSITION'
+                                  ? { ...row, value: String(increment + 2) }
+                                  : row,
+                          )
                     : tables.get(name),
         }
         s.home.level = 3
         s.player.basic_info.lv = 16
-        assert.equal(ranchWorkerLimit(proxy, s, 'worker_max'), 7)
+        assert.equal(ranchWorkerLimit(proxy, s, 'worker_max'), rows[2].worker_max + increment + 2)
         s.player.basic_info.lv = 17
-        assert.equal(ranchWorkerLimit(proxy, s, 'worker_max'), 9)
+        assert.equal(ranchWorkerLimit(proxy, s, 'worker_max'), rows[2].worker_max + increment + 2)
     } finally {
         f.store.close()
     }

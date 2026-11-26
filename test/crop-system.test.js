@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
 import { Tables } from '../src/player.js'
 import { planCropHarvest, ensureCropOutcome, cropGrowth, applyWateringUpgrade } from '../src/crop-rewards.js'
-import { grantRewards } from '../src/rewards.js'
+import { grantRewards, parseRewards } from '../src/rewards.js'
 import { reconcileHomeExperience } from '../src/home-experience.js'
 
 const tables = new Tables(configuration().tables)
@@ -91,7 +91,7 @@ test('current technology rows modify growth and extra yield without adding every
     assert.equal(reward(plan, 400101).itemnum, 6)
 })
 
-test('assigned water and harvest talents use the actual ability and crop conditions', () => {
+test('retired crop talent IDs preserve assigned workers without inventing old-table upgrade buffs', () => {
     const s = state(100),
         field = { guid: 100, locate: { block_id: 102, anchor: 0 }, crop_info: { seed_id: 1 } }
     const house = {
@@ -119,11 +119,12 @@ test('assigned water and harvest talents use the actual ability and crop conditi
             talent_id: [900901001],
         },
     ]
-    assert.equal(applyWateringUpgrade(tables, s, field, sequence(4999)), true)
-    assert.equal(field.crop_info.seed_id, 2)
+    assert(!tables.get('home_talent').some((row) => [900903001, 900901001].includes(row.talentId)))
+    assert.equal(applyWateringUpgrade(tables, s, field, sequence(4999)), false)
+    assert.equal(field.crop_info.seed_id, 1)
     const plan = planCropHarvest(tables, s, 2, 1, sequence(9999, 5014), { build: field })
-    assert.equal(plan.modifiers.goldenChance, 5000)
-    assert.equal(plan.golden, true)
+    assert.equal(plan.modifiers.goldenChance, 0)
+    assert.equal(plan.golden, false)
     s.pets[1].work_status = 0
     const inactive = planCropHarvest(tables, s, 2, 1, sequence(9999, 5014), { build: field })
     assert.equal(inactive.modifiers.goldenChance, 0)
@@ -162,20 +163,27 @@ test('sealed rewards survive serialization and cannot reroll on login or harvest
 })
 
 test('home EXP advances the wire level with carry, pays configured level rewards once and repairs old ledgers without retroactive gifts', () => {
-    const s = state()
-    grantRewards(tables, s, [{ itemtype: 10, itemid: 1003, itemnum: 65 }])
+    const s = state(),
+        rows = tables.get('home_level'),
+        first = rows[0].exp,
+        second = rows[1].exp
+    const levelReward = (level, id) =>
+        parseRewards(rows[level - 1].level_reward)
+            .filter((row) => row.itemtype === 10 && row.itemid === id)
+            .reduce((sum, row) => sum + row.itemnum, 0)
+    grantRewards(tables, s, [{ itemtype: 10, itemid: 1003, itemnum: first + 5 }])
     assert.equal(s.home.level, 2)
     assert.equal(s.home.exp, 5)
     assert.equal(s.player.basic_info.home_lv, 1)
-    assert.equal(s.player.attr_infos.attrs.find((a) => a.attr_id === 103).attr_val, '1000')
-    assert.equal(s.player.basic_info.gold, 100)
-    grantRewards(tables, s, [{ itemtype: 10, itemid: 1003, itemnum: 95 }])
+    assert.equal(s.player.attr_infos.attrs.find((a) => a.attr_id === 103).attr_val, String(levelReward(2, 103)))
+    assert.equal(s.player.basic_info.gold, levelReward(2, 2))
+    grantRewards(tables, s, [{ itemtype: 10, itemid: 1003, itemnum: second - 5 }])
     assert.equal(s.home.level, 3)
     assert.equal(s.home.exp, 0)
-    assert.equal(s.player.basic_info.gold, 200)
+    assert.equal(s.player.basic_info.gold, levelReward(2, 2) + levelReward(3, 2))
     const legacy = state()
     delete legacy.home.experienceVersion
-    legacy.player.attr_infos.attrs.push({ attr_id: 1003, attr_val: '160' })
+    legacy.player.attr_infos.attrs.push({ attr_id: 1003, attr_val: String(first + second) })
     assert.equal(reconcileHomeExperience(tables, legacy), true)
     assert.equal(legacy.home.level, 3)
     assert.equal(legacy.home.exp, 0)

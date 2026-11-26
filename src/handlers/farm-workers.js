@@ -2,6 +2,7 @@ import { ErrorCode } from '../error-codes.js'
 import { registerFarmStorage } from '../farm-storage.js'
 import { farmWorkSlots } from '../farm-work-context.js'
 import { ensureHome, ensureHomeFarmHouses } from '../home.js'
+import { homeHubStationPets } from '../home-hub.js'
 import { reconcileFormationPets } from '../formation-pets.js'
 import { repairMountSelection, mountPayload } from '../mounts.js'
 import { ensure } from './common.js'
@@ -80,6 +81,12 @@ export function registerFarmWorkers(on, tables) {
         )
             return {}
         if (chosen) {
+            const stationed = homeHubStationPets(c.state)
+            if (!stationed.includes(chosen.guid)) {
+                const limit = ranchWorkerLimit(tables, c.state, 'worker_max')
+                const freed = r.out_hub && oldId !== '0' && stationed.includes(oldId) ? 1 : 0
+                ensure(stationed.length - freed < limit, 'Home-hub pet slots are full', ErrorCode.HomeHubFull)
+            }
             clearFarmPetSlots(c.state, chosen.guid)
             clearRanchPetSlots(c.state, chosen.guid)
         }
@@ -95,13 +102,7 @@ export function registerFarmWorkers(on, tables) {
         build.auto_info[field] = chosen?.guid ?? '0'
         if (chosen) {
             const station = (home.stationPets ??= [])
-            if (!station.includes(chosen.guid)) {
-                // HomeUtil.GetPetStationedWorkingLimit (06006302): home-level
-                // worker_max plus every unlocked free-work increment.
-                const limit = ranchWorkerLimit(tables, c.state, 'worker_max')
-                ensure(station.length < limit, 'Home-hub pet slots are full', ErrorCode.HomeHubFull)
-                station.push(chosen.guid)
-            }
+            if (!station.includes(chosen.guid)) station.push(chosen.guid)
             const bound = c.state.player.heros_info.heros.filter((hero) => hero.pet_id === chosen.guid)
             for (const hero of bound) hero.pet_id = '0'
             if (bound.length || (chosen.hero_id && chosen.hero_id !== '0')) {

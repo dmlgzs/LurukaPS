@@ -1,6 +1,7 @@
 import { ErrorCode } from '../error-codes.js'
 import { requirePetModel } from '../pet-model-eligibility.js'
 import { ensureHome } from '../home.js'
+import { homeHubStationPets } from '../home-hub.js'
 import { reconcileFormationPets } from '../formation-pets.js'
 import { repairMountSelection, mountPayload } from '../mounts.js'
 import { clearFarmPetSlots } from './farm-workers.js'
@@ -80,7 +81,7 @@ export function registerProductionWorkers(on, tables) {
             )
             ensure(!chosen.work_status || [1, 2, 5, 6, 7].includes(chosen.work_status), 'Pet is working elsewhere')
             ensure(!r.source_build || chosen.work_build === r.source_build, 'Pet source building does not match')
-            const stationed = home.stationPets ?? []
+            const stationed = homeHubStationPets(c.state)
             if (!stationed.includes(chosen.guid)) {
                 const limit = ranchWorkerLimit(tables, c.state, 'worker_max')
                 const freed = r.out_hub && current !== '0' && stationed.includes(current) ? 1 : 0

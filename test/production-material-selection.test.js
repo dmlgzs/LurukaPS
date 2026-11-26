@@ -49,7 +49,8 @@ test('6110 charges fixed and selected materials per serving and cancellation ref
         tables = new Tables(cfg.tables),
         protocol = new Protocol(cfg.base),
         store = new Store(':memory:')
-    let now = 1800000000,
+    let buildGuid,
+        now = 1800000000,
         seq = 1
     const game = new Game(protocol, store, tables, { clock: () => now }),
         session = {}
@@ -68,11 +69,16 @@ test('6110 charges fixed and selected materials per serving and cancellation ref
         store.transact(session.id, 0, (s) => {
             const home = ensureHome(tables, s)
             home.technology ??= { levels: {}, spent: 0 }
-            home.technology.levels[11005] = { level: 1, lastTime: 0, isOpened: true }
+            for (const token of tables.find('products', 303004).unlockCondition.split('|')) {
+                const [kind, id, level] = token.split('#').map(Number)
+                assert.equal(kind, 11012)
+                home.technology.levels[id] = { level, lastTime: 0, isOpened: true }
+            }
             const config = tables.find('home_building', 20091)
             const type = tables.get('home_building_group').find((row) => row.groupId === config.groupId).type
+            buildGuid = Math.max(0, ...home.builds.map((build) => build.guid)) + 1
             home.builds.push({
-                guid: 2,
+                guid: buildGuid,
                 build_id: 20091,
                 build_type: type,
                 status: 1,
@@ -86,7 +92,7 @@ test('6110 charges fixed and selected materials per serving and cancellation ref
         const option = tables
             .get('products_material_group')
             .find((row) => row.materialGroupId === 20 && row.material === '10#700#1')
-        const request = { build_guid: 2, product_id: 303004, count: 3, select_material: [option.Id] }
+        const request = { build_guid: buildGuid, product_id: 303004, count: 3, select_material: [option.Id] }
         const before = structuredClone(state())
         for (const select_material of [[], [700], [14], [option.Id, option.Id]]) {
             assert.throws(
@@ -98,20 +104,20 @@ test('6110 charges fixed and selected materials per serving and cancellation ref
         call('ProductStart', request)
         assert.equal(quantity(301000), 5)
         assert.equal(currency(700), 7n)
-        const job = state().home.productionJobs[2][0]
+        const job = state().home.productionJobs[buildGuid][0]
         assert.deepEqual(job.costs, [
             { itemtype: 3, itemid: 301000, itemnum: 15 },
             { itemtype: 10, itemid: 700, itemnum: 1 },
         ])
         now = job.start + job.seconds
-        call('ProductFinish', { guid: 2, product_guids: [job.guid] })
+        call('ProductFinish', { guid: buildGuid, product_guids: [job.guid] })
         assert.equal(quantity(312001), 1)
-        call('ProductCancel', { guid: 2, product_guids: [job.guid] })
+        call('ProductCancel', { guid: buildGuid, product_guids: [job.guid] })
         assert.equal(quantity(301000), 35)
         assert.equal(currency(700), 9n)
         assert.equal(state().home.craftCounts[303004], 1)
-        assert.deepEqual(state().home.productionJobs[2], [])
-        assert.throws(() => call('ProductCancel', { guid: 2, product_guids: [job.guid] }))
+        assert.deepEqual(state().home.productionJobs[buildGuid], [])
+        assert.throws(() => call('ProductCancel', { guid: buildGuid, product_guids: [job.guid] }))
     } finally {
         store.close()
     }

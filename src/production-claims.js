@@ -11,6 +11,7 @@ import { completed, refreshProduction, rescheduleJobs } from './production.js'
 import { recordProductionOutput } from './production-progress.js'
 import { recordForgeProgressClaim } from './forge-progress.js'
 import { refundAcquisitionContext } from './home-currency-acquisition.js'
+import { productionJobOutput } from './production-output.js'
 
 export function multiplyProductionRows(rows, count) {
     return rows.map((row) => {
@@ -73,14 +74,22 @@ export function claimProductionStock(c, request, { cancel = false, allowEmpty = 
         const done = completed(job, c.now),
             available = done - job.claimed
         if (available > 0) {
-            const output = multiplyProductionRows(job.rewards, available)
+            const { rewards: output, productCounts } = productionJobOutput(job, job.claimed, available)
             rewards.push(...grantRewards(tables, c.state, output))
             recordProductionOutput(tables, c.state, b, output)
             recordForgeProgressClaim(tables, c.state, job, output)
             job.claimed += available
             claimed += available
             h.craftCounts ??= {}
-            h.craftCounts[job.productId] = (h.craftCounts[job.productId] || 0) + available
+            for (const [productId, count] of productCounts) {
+                const total = (h.craftCounts[productId] ?? 0) + count
+                ensure(
+                    Number.isSafeInteger(total) && total <= 0xffffffff,
+                    'Production count overflow',
+                    ErrorCode.GameConfig,
+                )
+                h.craftCounts[productId] = total
+            }
             recordActiveProgress(tables, c.state, 15011, available, c.now)
         }
         if (cancel) {

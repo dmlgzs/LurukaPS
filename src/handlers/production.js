@@ -2,6 +2,7 @@ import { ErrorCode } from '../error-codes.js'
 import { sealForgeProgressSource } from '../forge-progress.js'
 import { productionTables } from '../production-tables.js'
 import { productionMaterials } from '../production-materials.js'
+import { qualityProductionRecipe } from '../cooking.js'
 import { ensure, syncPlayer } from './common.js'
 import { homeCondition } from '../home-grid.js'
 import { parseRewards } from '../rewards.js'
@@ -92,10 +93,7 @@ export function registerProduction(on, tables) {
         ensure(homeCondition(recipe.unlockCondition, c.state), 'Production recipe locked')
         // Quality recipes supply their ingredients through CookRequest. Their
         // products.material is empty; accepting ProductStart would create free flour.
-        ensure(
-            !tables.get('products_multi_quality').some((row) => row.productId === recipe.id),
-            'Quality production requires CookRequest materials',
-        )
+        ensure(!qualityProductionRecipe(tables, recipe.id), 'Quality production requires CookRequest materials')
         ensure(!recipe.isNeedPet, 'Pet-assisted production is not implemented', ErrorCode.InvalidProtoID)
         ensure(!recipe.notReleased, 'Recipe not released')
         ensure(Number.isInteger(r.count) && r.count > 0 && r.count <= recipe.numberLimit, 'Invalid production count')
