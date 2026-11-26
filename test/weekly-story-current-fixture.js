@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { Tables } from '../src/player.js'
+import { Tables, seedPlayer } from '../src/player.js'
 import { configuration } from '../src/config.js'
 import { Protocol } from '../src/protocol.js'
 import { Game } from '../src/game.js'
@@ -90,6 +90,9 @@ export function createWeeklyStoryFixture(name, { pastTaskIds = [] } = {}) {
         return call('EnterGame', { open_id: name, reconnect: true })
     }
     const state = () => store.load(session.id).state
+    // Explicit trusted advanced sandbox baseline; never depend on default
+    // normal profiles receiving old debug assets or an implicit open bitmap.
+    store.login(name, (id, account) => seedPlayer(tables, id, account, { mode: 'sandbox' }))
     login()
     store.transact(session.id, Math.floor(nowMs / 1000), (s) => {
         s.player.basic_info.lv = 70

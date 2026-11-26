@@ -1,3 +1,4 @@
+import { preparedSystemAccess } from './system-access.js'
 import policy from '../configs/weekly-dungeon-policy.json' with { type: 'json' }
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
@@ -31,6 +32,11 @@ export function requireWeeklySystem(c) {
         ErrorCode.GameConfig,
     )
     ensure(system.homeUnlock === 0, 'Weekly home-dependent unlock is not implemented', ErrorCode.FunctionClosed)
+    const prepared = preparedSystemAccess(c.tables, c.state, menu.systemUnLockId)
+    if (prepared !== undefined) {
+        ensure(prepared, 'Weekly dungeon system is locked', ErrorCode.SystemLock)
+        return
+    }
     ensure(
         typeof c.activityCatalog?.condition === 'function',
         'Authoritative condition evaluator unavailable',
