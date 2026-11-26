@@ -25,10 +25,14 @@ export function registerShops(on, tables) {
     on('ShopBuyItems', (c, r) => {
         const shop = catalog.shop(r.shop_id, c.state, c.now)
         ensure(shop.open, 'Shop is not open', ErrorCode.ShopNotOpen)
-        ensure(r.items.length > 0 && r.items.length <= 100, 'Invalid shop basket')
+        ensure(r.items.length > 0 && r.items.length <= 100, 'Invalid shop basket', ErrorCode.ShopGoodsTimes)
         const basket = new Map()
         for (const line of r.items) {
-            ensure(Number.isInteger(line.times) && line.times > 0, 'Invalid purchase quantity')
+            ensure(
+                Number.isInteger(line.times) && line.times > 0,
+                'Invalid purchase quantity',
+                ErrorCode.ShopGoodsTimes,
+            )
             const item = catalog.item(shop.config, line.slot_id, c.state, c.now)
             ensure(item.goods.goodsId === line.goods_id, 'Wrong goods for slot')
             ensure(item.in_time, 'Goods are outside their time window', ErrorCode.ShopItemNotInTime)
@@ -44,9 +48,10 @@ export function registerShops(on, tables) {
             ensure(
                 item.goods.goodsNum <= 0 || item.bought + item.times <= item.goods.goodsNum,
                 'Purchase limit exceeded',
+                ErrorCode.ShopGoodsConfLimit,
             )
             ensure(item.bought + item.times <= 0xffffffff, 'Purchase counter overflow')
-            for (const cost of parseRewards(item.goods.costId, true)) {
+            for (const cost of item.pricing.costs) {
                 if (cost.itemnum === 0) continue
                 ensure([3, 10].includes(cost.itemtype), 'Unsupported shop payment', ErrorCode.InvalidProtoID)
                 const key = `${cost.itemtype}:${cost.itemid}`,

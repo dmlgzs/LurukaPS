@@ -1,3 +1,4 @@
+import { ordinaryGoodsPricing } from './shop-pricing.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { configTime, staticTimeRow } from './time-definitions.js'
@@ -116,11 +117,7 @@ export class ShopCatalog {
         ensure(slot?.slotType === 1, 'Unsupported shop slot type', ErrorCode.InvalidProtoID)
         const goods = this.goods.get(slot.slotParam)
         ensure(goods, 'Missing shop goods', ErrorCode.ShopGoodsConfNotExist)
-        ensure(
-            !goods.specialPrice && !goods.recommend,
-            'Special pricing is not yet supported',
-            ErrorCode.InvalidProtoID,
-        )
+        const pricing = ordinaryGoodsPricing(goods)
         const { start, end } = this.schedule(goods)
         const window = refreshWindow(goods, now, this.hour),
             key = `${shop.shopId}:${id}`,
@@ -131,6 +128,7 @@ export class ShopCatalog {
         const unlock = conditionProgress(goods.commonCondition, state)
         return {
             goods,
+            pricing,
             key,
             window,
             bought,
