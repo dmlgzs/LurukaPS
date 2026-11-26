@@ -5,6 +5,7 @@ import { rewardSource } from './reward-source.js'
 import { ensureCollectionData } from './home-collection.js'
 import { worldCollectionConfiguration } from './world-collection.js'
 import { collectionDropIds } from './collection-drop.js'
+import { detachedCollectionPending, collectionStockSeal, detachedCollectionDrop } from './home-production-clock.js'
 
 export function collectionClaimTargets(state, guids) {
     ensure(
@@ -33,7 +34,7 @@ export function collectionClaimTargets(state, guids) {
     }
     return targets
 }
-function validateStock(tables, targets) {
+function validateStock(tables, state, targets) {
     return targets.flatMap((target) => {
         if (target.type === 55) {
             const config = worldCollectionConfiguration(tables, target.entry.collect_id)
@@ -58,6 +59,8 @@ function validateStock(tables, targets) {
                 'Invalid saved collection reward',
                 ErrorCode.GameConfig,
             )
+            const seal = target.type === 24 ? collectionStockSeal(tables, state, target.guid, item) : undefined
+            if (seal) return { target, item, drop: {}, seal }
             const product = tables.find('products_collection', item.source_product_id)
             ensure(product, 'Collection reward product is missing', ErrorCode.CollectProductConfNotFound)
             const drop = tables.find('home_drop', product.homeDropId)
@@ -99,16 +102,28 @@ export function mergeCollectionRewards(rewards) {
 // Both 6529 and the home-centre aggregate claim use this stock transaction.
 // It does not send presentation notifications: each caller owns its reply.
 export function claimCollectionStock(c, targets, { allowEmpty = false } = {}) {
-    const rows = validateStock(c.tables, targets)
-    ensure(rows.length > 0 || allowEmpty, 'Collection storage is empty', ErrorCode.CollectRewardNull)
-    const eggs = rows.filter(({ item }) => item.item_type === 14).reduce((n, { item }) => n + item.item_num, 0)
+    const rows = validateStock(c.tables, c.state, targets)
+    const detached = targets
+        .filter((target) => target.type === 24)
+        .flatMap((target) =>
+            detachedCollectionPending(c.tables, c.state, target.guid).map((entry) => ({
+                target,
+                entry,
+                item: entry.item,
+                drop: detachedCollectionDrop(c.tables, entry),
+            })),
+        )
+    ensure(rows.length + detached.length > 0 || allowEmpty, 'Collection storage is empty', ErrorCode.CollectRewardNull)
+    const eggs = [...rows, ...detached]
+        .filter(({ item }) => item.item_type === 14)
+        .reduce((n, { item }) => n + item.item_num, 0)
     if (eggs) {
         const limit = Number(c.tables.get('game').find((r) => r.title === 'PET_EGG_LIMITS')?.value)
         ensure(Number.isSafeInteger(limit) && limit > 0, 'Invalid egg capacity configuration', ErrorCode.GameConfig)
         ensure((c.state.petEggs?.length ?? 0) + eggs <= limit, 'Pet egg inventory is full', ErrorCode.EggBagNumIsMax)
     }
     const byType = new Map()
-    for (const { target, item, drop } of rows) {
+    for (const { target, item, drop, seal } of rows) {
         const eggConstraints =
             item.item_type === 14 && (drop.elementTypeId || drop.raceId)
                 ? {
@@ -127,9 +142,33 @@ export function claimCollectionStock(c, targets, { allowEmpty = false } = {}) {
         )
         if (!byType.has(target.type)) byType.set(target.type, [])
         byType.get(target.type).push(...rewards)
+        if (seal) seal.claimed = true
+    }
+    for (const { target, item, entry, drop } of detached) {
+        const rewards = grantRewards(
+            c.tables,
+            c.state,
+            [{ itemtype: item.item_type, itemid: item.item_id, itemnum: item.item_num }],
+            0,
+            {
+                randomInt: c.randomInt,
+                eggConstraints:
+                    drop && (drop.elementTypeId || drop.raceId)
+                        ? {
+                              element_type: drop.elementTypeId ?? 0,
+                              race: drop.raceId ?? 0,
+                              product_id: entry.original.product,
+                              drop_id: drop.id,
+                          }
+                        : undefined,
+            },
+        )
+        if (!byType.has(target.type)) byType.set(target.type, [])
+        byType.get(target.type).push(...rewards)
+        entry.claimed = true
     }
     for (const target of targets) target.data.items = []
-    if (rows.length) c.state.homeRevision = (c.state.homeRevision || 0) + 1
+    if (rows.length || detached.length) c.state.homeRevision = (c.state.homeRevision || 0) + 1
     return new Map([...byType].map(([type, rewards]) => [type, mergeCollectionRewards(rewards)]))
 }
 export function claimCollections(c, request) {

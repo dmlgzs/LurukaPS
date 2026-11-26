@@ -6,7 +6,7 @@ import { technologyPayload } from './technology.js'
 import { homeTreePayload } from './home-tree.js'
 import { ranchPayloads } from './ranch.js'
 import { worldCollectionPayloads } from './world-collection.js'
-import { ensureCollectionData } from './home-collection.js'
+import { ensureCollectionData, homeCollectionPresentation } from './home-collection.js'
 import { ensure } from './handlers/common.js'
 import { ensureHomeDormitories, dormPayload } from './home-dorm.js'
 import { defaultHomeBuildings } from './home-default-placement.js'
@@ -97,7 +97,11 @@ export function homePayload(tables, state) {
     ensure(Number.isInteger(shortcutSlots) && shortcutSlots > 0, 'Invalid home shortcut capacity', ErrorCode.GameConfig)
     const technology = technologyPayload(tables, state),
         tree = homeTreePayload(tables, state),
-        homeBuilds = [...h.builds, ...ranchPayloads(tables, state), ...worldCollectionPayloads(state)]
+        homeBuilds = [
+            ...h.builds.map((build) => homeCollectionPresentation(tables, state, build)),
+            ...ranchPayloads(tables, state),
+            ...worldCollectionPayloads(state),
+        ]
     return {
         technology,
         tree,

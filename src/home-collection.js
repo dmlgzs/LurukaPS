@@ -2,6 +2,13 @@ import { randomInt } from 'node:crypto'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { collectionDropIds, collectionItemMatches, collectionPending } from './collection-drop.js'
+import {
+    prepareCollectionClocks,
+    markCurrentCollectionJob,
+    currentHomeTalentRows,
+    detachedCollectionPending,
+} from './home-production-clock.js'
+import { compileCollectionPlans, resolveCollectionPlan } from './home-collection-plan.js'
 
 const catalogs = new WeakMap()
 const list = (value) =>
@@ -69,11 +76,7 @@ function buffRows(tables, state, station, pet) {
             rows.push(row)
         }
     }
-    for (const id of pet?.talent_id ?? []) {
-        const row = data.talents.get(id)
-        ensure(row, 'Missing collection worker talent', ErrorCode.GameConfig)
-        rows.push(row)
-    }
+    rows.push(...currentHomeTalentRows(tables, pet))
     for (const row of data.technology)
         if (state.home?.technology?.levels?.[row.type]?.level === row.level) rows.push(row)
     return rows
@@ -83,8 +86,9 @@ export function collectionPlan(tables, state, build) {
         station = collectionStation(tables, build)
     ensure(station, 'Missing home collection station', ErrorCode.CollectBuildNotExist)
     const pet = state.pets?.find((p) => p.guid === String(build.station_pet_guid))
+    const selected = resolveCollectionPlan(compileCollectionPlans(tables), build).selected
     const rows = buffRows(tables, state, station, pet),
-        ids = new Set(list(station.products))
+        ids = new Set(selected.leaves.map((leaf) => leaf.product.id))
     let slots = station.collectionlimit
     for (const row of rows) {
         if (![2028, 2029, 4006].some((id) => values(row, id).length)) continue
@@ -119,11 +123,7 @@ export function collectionPlan(tables, state, build) {
         ensure(product, 'Missing collection product', ErrorCode.CollectProductConfNotFound)
         ensure(drop, 'Missing collection drop', ErrorCode.CollectDropConfNotFound)
         ensure(
-            !product.needLabor &&
-                !product.isNeedMaster &&
-                !product.technologyExp &&
-                !drop.technologyExp &&
-                !drop.home_exp,
+            !product.technologyExp && !drop.technologyExp && !drop.home_exp,
             'Collection product variant requires support',
             ErrorCode.FunctionClosed,
         )
@@ -151,7 +151,47 @@ export function collectionPlan(tables, state, build) {
         ensure(Number.isFinite(seconds) && seconds > 0, 'Invalid collection production period', ErrorCode.GameConfig)
         return { product: id, drop, itemIds, seconds }
     })
-    return { station, pet, streams, slots, stack: station.collectionlatticelimit }
+    return { station, pet, streams, slots, stack: station.collectionlatticelimit, planId: selected.id }
+}
+function preparePlanWire(tables, build) {
+    const selection = resolveCollectionPlan(compileCollectionPlans(tables), build)
+    const data = wire(build)
+    if (selection.needsInitialization) {
+        data.product_choose_id = selection.selected.id
+        data.choose_time ??= '0'
+        return true
+    }
+    return false
+}
+export function selectHomeCollectionPlan(tables, state, request, now) {
+    ensure(
+        [request.build_guid, request.product_choose_id].every(
+            (id) => Number.isSafeInteger(id) && id > 0 && id <= 0xffffffff,
+        ),
+        'Invalid collection plan selection',
+        ErrorCode.InvalidArgument,
+    )
+    const build = state.home?.builds?.find(
+        (row) => row.guid === request.build_guid && row.build_type === 24 && row.locate && [1, 4].includes(row.status),
+    )
+    ensure(build, 'Collection building is not owned or ready', ErrorCode.CollectBuildNotExist)
+    const entry = compileCollectionPlans(tables).get(build.build_id)
+    ensure(entry, 'Missing home collection station', ErrorCode.GameConfig)
+    ensure(
+        entry.allowed.some((plan) => plan.id === request.product_choose_id),
+        'Plan is not allowed for this station',
+        ErrorCode.CollectProductnotMatch,
+    )
+    const selected = resolveCollectionPlan(compileCollectionPlans(tables), build)
+    ensure(
+        selected.selected.id === request.product_choose_id,
+        'Changing to a different collection plan requires current multi-plan support',
+        ErrorCode.FunctionClosed,
+    )
+    const initialized = preparePlanWire(tables, build)
+    if (initialized) changed(state)
+    retimeCollections(tables, state, now)
+    return build
 }
 function requireExecutionPlan(tables, plan, build, job) {
     const bound = plan.pet && plan.pet.work_build === build.guid && [1, 2].includes(plan.pet.work_status)
@@ -231,6 +271,25 @@ export function ensureCollectionData(state) {
     if (updated) changed(state)
     return updated
 }
+export function homeCollectionPresentation(tables, state, build) {
+    if (build.build_type !== 24 || !build.collect_build_data) return build
+    const detached = detachedCollectionPending(tables, state, build.guid)
+    if (!detached.length) return build
+    const items = (build.collect_build_data.items ?? []).map((item) => ({ ...item }))
+    for (const entry of detached) {
+        const item = entry.item
+        const old = items.find((row) => row.item_id === item.item_id && row.item_type === item.item_type)
+        if (old) {
+            ensure(
+                old.item_num + item.item_num <= 0xffffffff,
+                'Collection presentation quantity overflow',
+                ErrorCode.GameConfig,
+            )
+            old.item_num += item.item_num
+        } else items.push({ ...item })
+    }
+    return { ...build, collect_build_data: { ...build.collect_build_data, items } }
+}
 export function collectionStorage(plan, items) {
     let cells = 0
     for (const item of items) {
@@ -282,12 +341,15 @@ export function retimeCollections(tables, state, now) {
     let updated = false
     const builds = state.home?.builds ?? [],
         jobs = state.home?.collectionProduction
-    if (jobs) for (const id of Object.keys(jobs)) if (!builds.some((b) => String(b.guid) === id)) delete jobs[id]
+    // Unplaced/orphaned saved work is retained, never deleted by a snapshot reconciliation.
     for (const build of builds) {
         if (build.build_type !== 24) continue
+        if (preparePlanWire(tables, build)) updated = true
         const plan = collectionPlan(tables, state, build)
         let job = state.home.collectionProduction?.[build.guid]
         requireExecutionPlan(tables, plan, build, job)
+        if (job && prepareCollectionClocks(tables, job, plan.streams, now, wire(build).items, build.build_id))
+            updated = true
         if (!build.collect_build_data) {
             wire(build)
             updated = true
@@ -310,7 +372,9 @@ export function retimeCollections(tables, state, now) {
                 ...clock,
                 next: now + (remaining ?? 1) * clock.seconds,
             }))
-            job = { pet: plan.pet.guid, started: now, clocks, blocked: false }
+            job = { ...job, pet: plan.pet.guid, started: now, clocks, blocked: false }
+            if (!job.clockMigration) markCurrentCollectionJob(job, now)
+            prepareCollectionClocks(tables, job, plan.streams, now)
             ;(state.home.collectionProduction ??= {})[build.guid] = job
             updated = true
         }
@@ -352,22 +416,25 @@ export function retimeCollections(tables, state, now) {
     return updated
 }
 export function collectionDue(state, now) {
-    return Object.values(state.home?.collectionProduction || {}).some(
-        (job) => job.pet !== '0' && !job.blocked && job.clocks.some((clock) => clock.next <= now),
+    return Object.entries(state.home?.collectionProduction || {}).some(
+        ([id, job]) =>
+            state.home.builds.some((build) => String(build.guid) === id) &&
+            job.pet !== '0' &&
+            !job.blocked &&
+            job.clocks.some((clock) => clock.next <= now),
     )
 }
 export function settleCollections(tables, state, now, rng = randomInt) {
     let updated = false
-    for (const id of Object.keys(state.home?.collectionProduction || {}))
-        if (!(state.home.builds ?? []).some((b) => String(b.guid) === id)) {
-            delete state.home.collectionProduction[id]
-            updated = true
-        }
+    // Preserve unmatched jobs for a later owned placement/explicit migration, not an implicit deletion.
     for (const build of state.home?.builds ?? []) {
+        if (build.build_type === 24 && preparePlanWire(tables, build)) updated = true
         const job = state.home?.collectionProduction?.[build.guid]
-        if (!job || job.pet === '0' || job.blocked || !job.clocks.some((c) => c.next <= now)) continue
+        if (!job) continue
         const plan = collectionPlan(tables, state, build)
         requireExecutionPlan(tables, plan, build, job)
+        if (prepareCollectionClocks(tables, job, plan.streams, now, wire(build).items, build.build_id)) updated = true
+        if (job.pet === '0' || job.blocked || !job.clocks.some((c) => c.next <= now)) continue
         if (
             !build.locate ||
             ![1, 4].includes(build.status) ||
