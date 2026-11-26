@@ -2,6 +2,8 @@ import { observeAcceptedHeroVitals, invalidateTrackedHeroes, invalidateMedicineC
 import { ErrorCode } from '../error-codes.js'
 import { purchaseMonthly, monthlyPayload } from '../monthly-card.js'
 import { giveAllRewards } from '../give-all.js'
+import { gmRosterCatalogue, gmHeroRewards, gmPetRewards } from '../gm-roster-catalogue.js'
+import { unlockCurrentGmWorldPoints } from '../gm-world-points.js'
 import { ensure, syncPlayer } from './common.js'
 import { grantRewards } from '../rewards.js'
 import { markAdminAcquisitionDraft } from '../home-currency-acquisition.js'
@@ -19,7 +21,7 @@ import {
     taskSnapshot,
 } from '../tasks.js'
 const help =
-    'help | acceptall [dev] | cleardevtasks | giveall | giveallgifts | item <id> <count> | give <type> <id> <count> | gold <count> | diamond <count> | level <level> | monthcard <count> | heal | tp <birth-point-id> | taskgoal | unlockmaps'
+    'help | acceptall [dev] | cleardevtasks | giveall | giveallgifts | giveallheroes (allheroes) | giveallpets (allpets) | item <id> <count> | give <type> <id> <count> | gold <count> | diamond <count> | level <level> | monthcard <count> | heal | tp <birth-point-id> | taskgoal | unlockmaps | unlockpoints (allpoints)'
 const decoder = new TextDecoder('utf-8', { fatal: true })
 function string(value) {
     const bytes = Buffer.from(value ?? '', 'base64')
@@ -112,6 +114,21 @@ export function registerGM(on, { enabled = true } = {}) {
             )
             syncPlayer({ ...c, push: c.pushBefore })
             result = 'Granted ' + items.length + ' hero gifts x999 each'
+        } else if (['giveallheroes', 'allheroes', 'giveallpets', 'allpets'].includes(name)) {
+            count(0)
+            const heroes = name === 'giveallheroes' || name === 'allheroes'
+            const catalogue = gmRosterCatalogue(c.tables)
+            const rewards = heroes ? gmHeroRewards(c.tables, c.state) : gmPetRewards(c.tables, c.state)
+            if (rewards.length) {
+                grantRewards(c.tables, c.state, rewards)
+                if (heroes) syncBattle({ ...c, push: c.pushBefore })
+                syncPlayer({ ...c, push: c.pushBefore })
+            }
+            result =
+                'Ensured ' +
+                (heroes ? catalogue.heroes.length : catalogue.pets.length) +
+                (heroes ? ' permanent hero configurations; added ' : ' permanent pet configurations; added ') +
+                rewards.length
         } else if (name === 'giveall') {
             count(0)
             const rewards = giveAllRewards(c.tables, c.state)
@@ -211,21 +228,16 @@ export function registerGM(on, { enabled = true } = {}) {
             node.node_values[index] = value
             c.pushBefore('CSProtoTaskSync', taskSnapshot(c.tables, c.state))
             result = `Completed task goal ${task.task_id}/${node.node_id}/${index}`
-        } else if (name === 'unlockmaps') {
+        } else if (['unlockmaps', 'unlockpoints', 'allpoints'].includes(name)) {
             count(0)
-            const points = [
-                ...new Set(
-                    c.tables
-                        .get('world_borthpos')
-                        .map((point) => Number(point.id))
-                        .filter((id) => Number.isInteger(id) && id > 0),
-                ),
-            ].sort((a, b) => a - b)
-            c.state.world.points = points
-            c.state.world.unlockAllMaps = true
+            const { added, points } = unlockCurrentGmWorldPoints(c.tables, c.state)
+            if (name === 'unlockmaps') c.state.world.unlockAllMaps = true
             c.pushBefore('CSProtoTaskSync', taskSnapshot(c.tables, c.state))
             c.pushBefore('CSProtoWorldMapPointSync', { u32s: points })
-            result = `Unlocked all world maps and ${points.length} transfer points`
+            result =
+                name === 'unlockmaps'
+                    ? 'Unlocked all world maps and ' + points.length + ' retained/current transfer points'
+                    : 'Unlocked ' + added.length + ' current transfer points; total ' + points.length
         } else ensure(false, 'Unknown GM command. ' + help)
         const history = (c.state.gmHistory ??= [])
         history.push({ command: name, args, time: c.now })

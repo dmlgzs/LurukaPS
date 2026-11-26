@@ -6,14 +6,15 @@ import { Tables } from '../src/player.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { TaskGraphs, makeNode } from '../src/tasks.js'
+import { currentGmWorldPoints } from '../src/gm-world-points.js'
 const config = configuration(),
     protocol = new Protocol(config.base),
     tables = new Tables(config.tables)
 const text = (s) => Buffer.from(s).toString('base64')
 const command = (name, args = []) => ({ command: text(name), args: args.map((x) => text(String(x))) })
-function fixture(options) {
+function fixture(options, fixtureTables = tables) {
     const store = new Store(':memory:'),
-        game = new Game(protocol, store, tables, options),
+        game = new Game(protocol, store, fixtureTables, options),
         session = {}
     const call = (name, r) => {
         const e = protocol.byName.get('CSProto' + name)
@@ -129,10 +130,19 @@ test('GM unlockmaps exposes all configured world areas without completing server
             taskSync = packets.find((p) => p.id === 9853),
             records = taskSync.data.task_records
         assert.equal(state.world.unlockAllMaps, true)
-        assert.equal(state.world.points.length, tables.get('world_borthpos').length)
+        assert.deepEqual(state.world.points, currentGmWorldPoints(tables).pointIds)
+        assert(state.world.points.length < tables.get('world_borthpos').length)
         assert.deepEqual(pointSync.data.u32s, state.world.points)
         assert(records.some((r) => r.task_id === 106009 && r.count === 1))
-        assert(records.some((r) => r.task_id === 400201 && r.count === 1))
+        const unlockIds = tables.get('area').flatMap((area) =>
+            String(area.unlockCondition ?? '')
+                .split('|')
+                .map((rule) => rule.split('#').map(Number))
+                .filter(([kind, id]) => [2007, 12045].includes(kind) && id > 0)
+                .map(([, id]) => id),
+        )
+        assert(unlockIds.length > 0)
+        for (const id of unlockIds) assert(records.some((r) => r.task_id === id && r.count === 1))
         assert.deepEqual(state.taskRecords, [])
         assert.match(Buffer.from(packets.at(-1).data.result, 'base64').toString(), /Unlocked all world maps/)
     } finally {
@@ -183,8 +193,10 @@ test('GM acceptall and world-chat slash command use real task tables and publish
         assert.throws(() => f.call('GMCommand', command('acceptall dev extra')), /Usage/)
         const withDev = f.call('GMCommand', command('acceptall', ['dev']))
         const devSync = withDev.find((p) => p.id === 9853 && p.data.new_task_ids?.length)
-        assert.ok(devSync.data.new_task_ids.includes(100020))
-        for (const id of devSync.data.new_task_ids) {
+        // The current 1.0.0 catalogue contains no tagged development task.
+        assert.equal(tables.get('task').filter((row) => /\[(dev|test)\]/i.test(row.name)).length, 0)
+        assert.equal(devSync, undefined)
+        for (const id of devSync?.data.new_task_ids ?? []) {
             assert.notEqual(tables.find('task', id).type, 1)
             assert.ok(!sync.data.new_task_ids.includes(id))
         }
@@ -196,26 +208,35 @@ test('GM acceptall and world-chat slash command use real task tables and publish
 })
 
 test('cleardevtasks removes only active dev tasks, syncs deletion and preserves completion/reward receipts', () => {
-    const f = fixture()
+    // Exercise the maintenance contract with a locally tagged current graph;
+    // never restore the removed CBT3 development-task table rows.
+    const devId = 204010
+    const devTables = new Tables(config.tables)
+    assert(tables.find('task', devId))
+    devTables.cache.set(
+        'task',
+        devTables.get('task').map((row) => (row.id === devId ? { ...row, name: '[dev] local GM fixture' } : row)),
+    )
+    const f = fixture(undefined, devTables)
     try {
         f.store.transact(f.session.id, 0, (s) => {
-            s.tasks.push({ task_id: 100020, nodes: [], finish_nodes: [], reward_nodes: [], client_trace: true })
-            s.pendingTaskStorySync = { task_id: 100020, stories: [], extra: {} }
-            s.pendingTaskScene = { task_id: 100020, map_id: 101 }
-            s.pendingCharacterTask = { task_id: 100020, node_id: 1, epoch: 1 }
+            s.tasks.push({ task_id: devId, nodes: [], finish_nodes: [], reward_nodes: [], client_trace: true })
+            s.pendingTaskStorySync = { task_id: devId, stories: [], extra: {} }
+            s.pendingTaskScene = { task_id: devId, map_id: 101 }
+            s.pendingCharacterTask = { task_id: devId, node_id: 1, epoch: 1 }
             s.taskRecords = [{ task_id: 100021, count: 1, time: 1 }]
             s.taskFinishReceipts = { '100021:1': [] }
         })
         const before = f.state()
         const packets = f.call('AddChat', { target: { chat_type: 2, tid: '0' }, msg: text('/cleardevtasks'), type: 0 })
-        const sync = packets.find((p) => p.id === 9853 && p.data.del_tasks?.includes(100020))
+        const sync = packets.find((p) => p.id === 9853 && p.data.del_tasks?.includes(devId))
         assert.ok(sync)
-        assert.deepEqual(sync.data.del_tasks, [100020])
-        assert.deepEqual(sync.data.del_trace_list, [100020])
+        assert.deepEqual(sync.data.del_tasks, [devId])
+        assert.deepEqual(sync.data.del_trace_list, [devId])
         const state = f.state()
         assert.deepEqual(
             state.tasks.map((t) => t.task_id),
-            before.tasks.filter((t) => t.task_id !== 100020).map((t) => t.task_id),
+            before.tasks.filter((t) => t.task_id !== devId).map((t) => t.task_id),
         )
         assert.equal(state.pendingTaskStorySync, undefined)
         assert.equal(state.pendingTaskScene, undefined)
@@ -239,10 +260,10 @@ test('giveallgifts grants every table-backed ordinary and furniture hero gift 99
                 i.type === 110
                     ? !!tables.find('hero_favorability_gift', i.id)
                     : i.type === 111
-                      ? !!tables.find('home_dorm_furniture', i.id)
+                      ? !!tables.find('hero', tables.find('home_dorm_furniture', i.id)?.heroId)
                       : false,
             )
-        assert.equal(items.length, 22)
+        assert.equal(items.length, 16)
         const quantity = (s, id) =>
             s.player.sbag_infos.items.filter((i) => i.itemid === id).reduce((sum, i) => sum + i.itemnum, 0)
         const before = f.state()
@@ -251,7 +272,7 @@ test('giveallgifts grants every table-backed ordinary and furniture hero gift 99
         assert.equal(quantity(f.state(), 300000), quantity(before, 300000))
         assert.match(
             Buffer.from(result.find((p) => p.id === 19903).data.result, 'base64').toString(),
-            /22 hero gifts x999/,
+            /16 hero gifts x999/,
         )
         const saved = f.state()
         assert.throws(() => f.call('GMCommand', command('giveallgifts', ['extra'])), /Usage/)
