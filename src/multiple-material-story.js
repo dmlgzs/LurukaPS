@@ -2,6 +2,7 @@ import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { weeklyDungeonPolicy } from './weekly-dungeons.js'
 import { worldInteractionRange } from './world-interaction-range.js'
+import { currentWeeklyStoryPlan } from './current-weekly-story.js'
 const caches = new WeakMap()
 const fields = (text) =>
     Object.fromEntries(
@@ -16,6 +17,7 @@ const fields = (text) =>
 export function materialStoryPlan(tables, run) {
     const weekly = run?.kind === 'weekly'
     if (run?.kind !== 'material' && !weekly) return null
+    if (weekly) return currentWeeklyStoryPlan(tables, run)
     let cache = caches.get(tables)
     if (!cache) caches.set(tables, (cache = new Map()))
     const cacheKey = `${run.kind}:${run.map_id}`
