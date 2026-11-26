@@ -131,22 +131,26 @@ test('wrong current group and injected old arrays fail atomically; current task-
         assert.deepEqual(f.state(), before)
         f.edit((s) => {
             s.world.map_id = 102
-            s.taskEpochs[106003] = 1
-            const g = new TaskGraphs(f.tables).get(106003)
+            // This server runs the ordinary package. Review-only106003 is
+            // deliberately quarantined on reconnect, so use its real formal
+            // counterpart for the task-controller lifetime assertion.
+            s.taskRecords = s.taskRecords.filter((record) => record.task_id !== 106001)
+            s.taskEpochs[106001] = 1
+            const g = new TaskGraphs(f.tables).get(106001)
             s.tasks = [
                 {
-                    task_id: 106003,
+                    task_id: 106001,
                     nodes: [{ ...makeNode(g, 5, s), client_before: true }],
                     finish_nodes: [1],
                     reward_nodes: [],
                 },
             ]
-            s.taskSceneReceipts['106003:1:5'] = true
+            s.taskSceneReceipts['106001:1:5'] = true
         })
-        f.call('TrialGroupChange', { open: true, trial_id: 4 })
+        f.call('TrialGroupChange', { open: true, trial_id: 1 })
         assert.equal(f.state().trialGroup.current_source, 'task-controller')
         f.reconnect()
-        assert.equal(f.state().trialGroup.current_group_id, 4)
+        assert.equal(f.state().trialGroup.current_group_id, 1)
         f.edit((s) => {
             s.world.map_id = 100
         })
