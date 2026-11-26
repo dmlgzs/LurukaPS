@@ -4,6 +4,8 @@ import { ErrorCode } from './error-codes.js'
 import { combatState } from './combat-state.js'
 import { enemyDefinition } from './enemy-state.js'
 import { visibleEnemySlots } from './enemy-group-visibility.js'
+import { combatEntityStates } from './combat-enemy-lifecycle.js'
+import { activateSceneCombatGroup } from './scene-combat-group-lifecycle.js'
 
 // CBT3 AbyssGraphComponent.OnGraphInitSuccess (0602b4df) sends empty9509
 // after graph initialization. It confirms the admitted room, not battle start.
@@ -105,6 +107,13 @@ export function ensureAbyssScene(external, state, now) {
                 .split('|')
                 .filter(Boolean)
         ensure(packs.length, 'Missing abyss enemy group', ErrorCode.NoEnemyConf)
+        activateSceneCombatGroup(state, run, row, packs, {
+            kind: 'abyss',
+            phase: `room:${run.part_index}:group:${route.object_ids.indexOf(row.id)}`,
+            active: record.active,
+            now,
+        })
+        const states = combatEntityStates(battle)
         const monsters = packs.map((_, slot) => {
             const uid = ((3n << 56n) | (BigInt(slot) << 32n) | BigInt(row.id)).toString(),
                 base = enemyDefinition(tables, state, uid)
@@ -115,7 +124,7 @@ export function ensureAbyssScene(external, state, now) {
                 'Invalid abyss enemy HP scale',
                 ErrorCode.GameConfig,
             )
-            const entity = (battle.entities[uid] ??= {
+            const entity = (battle.entities[uid] = states[uid] ?? {
                 uuid: uid,
                 ...base,
                 max_hp,
@@ -135,7 +144,9 @@ export function ensureAbyssScene(external, state, now) {
                 move: { pos: record.pos, move_status: 1, area_id: state.world.area_id },
             }
         })
-        record.expand_data = { battle_group: { monsters, world_indexes: visibleEnemySlots(monsters, battle.entities) } }
+        record.expand_data = {
+            battle_group: { monsters, world_indexes: visibleEnemySlots(monsters, combatEntityStates(battle)) },
+        }
     }
     run.scene_objects = rows.map((x) => {
         const { claims, ...wire } = records[run.map_id + ':' + x.id]

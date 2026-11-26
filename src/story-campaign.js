@@ -1,4 +1,8 @@
 import { localPlayableCampaignRoute, localCampaignSatisfied } from './campaign-playable-route.js'
+import { combatEntityStates } from './combat-enemy-lifecycle.js'
+import { activateSceneCombatGroup } from './scene-combat-group-lifecycle.js'
+import { campaignSceneGroupPhase } from './campaign-scene-group-policy.js'
+import { currentCampaignStageRoute } from './current-campaign-stage-route.js'
 import { clearCampaignPlayables } from './campaign-playable-ledger.js'
 import { teachingConfig } from './teaching.js'
 import { teachingSceneVictory } from './teaching-scene-victory.js'
@@ -187,10 +191,13 @@ export function storyCampaignConfig(tables, groupId, difficulty) {
         ErrorCode.InstanceSceneConfNotExist,
     )
     const savedRoute = legacyRoutes.get(dungeon.id)
-    const route =
-        savedRoute?.mode === 'table_waves' || !savedRoute
-            ? (tableWaveCampaignRoute(tables, dungeon) ?? localPlayableCampaignRoute(tables, dungeon))
-            : savedRoute
+    const currentStageRoute = taskMapping ? null : currentCampaignStageRoute(tables, dungeon)
+    const route = taskMapping
+        ? null
+        : (currentStageRoute ??
+          (savedRoute?.mode === 'table_waves' || !savedRoute
+              ? (tableWaveCampaignRoute(tables, dungeon) ?? localPlayableCampaignRoute(tables, dungeon))
+              : savedRoute))
     ensure(taskMapping || route, 'Campaign group is not implemented', ErrorCode.InvalidProtoID)
     const graphs = taskMapping ? new TaskGraphs(tables) : null
     const transferPoints = taskIds.flatMap((id) =>
@@ -217,7 +224,7 @@ export function storyCampaignConfig(tables, groupId, difficulty) {
         )
         return { city, scene, point }
     })
-    if (!taskMapping && !['table_waves', 'local_playable'].includes(route.mode)) {
+    if (!taskMapping && !['table_waves', 'local_playable', 'current_declared_stages'].includes(route.mode)) {
         ensure(
             scenes.length === route.opening_stories.length &&
                 scenes.every(({ scene }, i) =>
@@ -267,7 +274,9 @@ export function storyCampaignConfig(tables, groupId, difficulty) {
         taskMapping,
         taskIds,
         taskPoints,
-        stageConditions: ['stage_conditions', 'table_waves', 'local_playable'].includes(route?.mode),
+        stageConditions: ['stage_conditions', 'table_waves', 'local_playable', 'current_declared_stages'].includes(
+            route?.mode,
+        ),
         localPlayableRoute: route?.mode === 'local_playable' ? route : null,
         victoryStageCount: route?.victory_stage_count,
     }
@@ -341,12 +350,13 @@ export function ensureStoryCampaignScene(tables, state, now) {
             changed = true
         }
         if (tables.find('world_spawner', row.spawnerId)?.objectType !== 50) continue
-        const wave = waves.findIndex((entry) => entry.id === row.id)
-        if (!run.stage_conditions && wave >= 0) {
-            record.active = wave === (run.stage_index ?? 0)
-            record.complete = wave < (run.stage_index ?? 0)
-            record.state_data = { ...record.state_data, step: record.complete ? 1 : 0, complete: record.complete }
-        }
+        const phase = campaignSceneGroupPhase(tables, state, run, row, record, waves)
+        const group = tables.find('world_enemy_group', row.expandId)
+        const packs = String(group?.enemyList ?? '')
+            .split('|')
+            .filter(Boolean)
+        ensure(packs.length > 0 && packs.length <= 24, 'Campaign enemy group unavailable', ErrorCode.GameConfig)
+        activateSceneCombatGroup(state, run, row, packs, { kind: 'story', phase, active: record.active, now })
         if (inactiveCampaignEnemyGroup(tables, state, ((3n << 56n) | BigInt(row.id)).toString())) {
             if (record.expand_data?.battle_group) {
                 const { battle_group, ...other } = record.expand_data
@@ -355,22 +365,18 @@ export function ensureStoryCampaignScene(tables, state, now) {
             }
             continue
         }
-        const group = tables.find('world_enemy_group', row.expandId)
-        const packs = String(group?.enemyList ?? '')
-            .split('|')
-            .filter(Boolean)
-        ensure(packs.length > 0 && packs.length <= 24, 'Campaign enemy group unavailable', ErrorCode.GameConfig)
         // CBT3 adds 10 to next_time before testing it against time. With
         // both fields omitted, inactive waves enter its already-expired refresh
         // queue and lose server data. A run timestamp makes next_time=0 stay
         // outside that queue; a new run still resets objects normally.
         record.time = run.start_time
         record.next_time = 0
+        const states = combatEntityStates(battle)
         const monsters = packs.map((_, slot) => {
             const uid = ((3n << 56n) | (BigInt(slot) << 32n) | BigInt(row.id)).toString()
             const definition = enemyDefinition(tables, state, uid)
             ensure(definition, 'Campaign enemy attributes unavailable', ErrorCode.NoEnemyConf)
-            const entity = (battle.entities[uid] ??= {
+            const entity = (battle.entities[uid] = states[uid] ?? {
                 uuid: uid,
                 ...definition,
                 hp: definition.max_hp,
@@ -395,7 +401,7 @@ export function ensureStoryCampaignScene(tables, state, now) {
                 monsters,
                 // CBT3 EnemyGroupSync parses these as VisibleEnemies, not the
                 // full configured roster. Never advertise dead/captured slots again.
-                world_indexes: visibleEnemySlots(monsters, battle.entities),
+                world_indexes: visibleEnemySlots(monsters, combatEntityStates(battle)),
             },
         }
     }
@@ -432,7 +438,7 @@ export function ensureStoryCampaignScene(tables, state, now) {
                 record.state_data = { ...record.state_data, step: complete ? 1 : 0, complete }
                 if (record.expand_data?.battle_group)
                     record.expand_data.battle_group.monsters = record.expand_data.battle_group.monsters.map(
-                        (monster) => ({ ...monster, hp: battle.entities[monster.uid]?.hp ?? monster.hp }),
+                        (monster) => ({ ...monster, hp: combatEntityStates(battle)[monster.uid]?.hp ?? monster.hp }),
                     )
             }
         }

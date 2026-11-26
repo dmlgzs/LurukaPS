@@ -1,10 +1,14 @@
 import { readTable } from './table-source.js'
-import current from '../configs/campaign-playable-current.json' with { type: 'json' }
 import policy from '../configs/campaign-playable-policy.json' with { type: 'json' }
 const playableRows = readTable('playable')
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { campaignStageSatisfied } from './campaign-stage-plan.js'
+import {
+    currentPlayableCampaignRoute,
+    currentPlayableCampaignSatisfied,
+    isCurrentPlayableCampaign,
+} from './campaign-playable-current-route.js'
 const uint = (n) => Number.isSafeInteger(n) && n >= 0 && n <= 0xffffffff
 const split = (text, sep) => String(text ?? '').split(sep)
 const pairs = (text) => {
@@ -85,24 +89,8 @@ export function campaignPlayableStagePlan(tables, map) {
     return out
 }
 export function localPlayableCampaignRoute(tables, dungeon) {
-    ensure(
-        current.schema_version === 1 && Array.isArray(current.rows),
-        'Current campaign source contract is malformed',
-        ErrorCode.GameConfig,
-    )
-    let condition = dungeon.victoryCondition
-    const saved = current.rows.filter((r) => r.id === dungeon.id)
-    ensure(saved.length <= 1, 'Duplicate current campaign override', ErrorCode.GameConfig)
-    if (saved.length) {
-        const row = saved[0],
-            matches = (s) => Object.entries(s).every(([k, v]) => dungeon[k] === v)
-        ensure(
-            matches(row.current) || matches(row.legacy),
-            'Campaign external table conflicts with current source fingerprint',
-            ErrorCode.GameConfig,
-        )
-        condition = row.current.victoryCondition
-    }
+    if (isCurrentPlayableCampaign(dungeon.id)) return currentPlayableCampaignRoute(tables, dungeon)
+    const condition = dungeon.victoryCondition
     if (!String(condition).startsWith('13060#')) return null
     const parts = localCampaignCondition(condition),
         map = parts[1]
@@ -198,6 +186,7 @@ export function localPlayableCampaignRoute(tables, dungeon) {
 }
 export function localCampaignSatisfied(tables, state) {
     const run = state.storyCampaign
+    if (isCurrentPlayableCampaign(run?.dungeon_id)) return currentPlayableCampaignSatisfied(tables, state)
     if (!run?.local_playable_condition || state.world.map_id !== run.map_id) return false
     if (!Number.isSafeInteger(run.instance_id) || run.instance_id <= 0) return false
     ensure(

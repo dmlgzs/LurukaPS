@@ -1,3 +1,5 @@
+import { pushSceneMode } from '../scene-mode.js'
+import { publishCombatSceneSnapshot } from '../combat-scene-snapshots.js'
 import { captureRepeatFormation } from '../repeat-formation.js'
 import { captureDungeonFavorEntry } from '../dungeon-favor-entry.js'
 import { dungeonFavorRewardContext } from '../hero-favor-rewards.js'
@@ -174,53 +176,23 @@ export function syncEntrustStage(
     syncEntrust({ ...c, pushBefore: c.push }, c.state.entrust.run)
     // WMCT_DYNAMIC_REFRESH updates objects inside the loaded dungeon without
     // running a second scene-entry flow.
-    c.push('CSProtoOnlineModeChange', { mode: isSingleEntrust(c) ? 5 : 4 })
-    c.push('CSProtoWorldMapSync', {
-        cmd: 47,
-        creator_id: c.id,
-        map_id: c.state.world.map_id,
-        map_info: { creator_id: c.id, map_id: c.state.world.map_id, objs: c.state.entrust.run.scene_objects },
-    })
-    syncEntrustEnemyBattle(c, previousEnemyObjectId)
+    pushSceneMode(c, { multiplayer: !isSingleEntrust(c) })
+    syncEntrustEnemyBattle(c, previousEnemyObjectId, () =>
+        c.push('CSProtoWorldMapSync', {
+            cmd: 47,
+            creator_id: c.id,
+            map_id: c.state.world.map_id,
+            map_info: { creator_id: c.id, map_id: c.state.world.map_id, objs: c.state.entrust.run.scene_objects },
+        }),
+    )
 }
 
-export function syncEntrustEnemyBattle(c, previousEnemyObjectId) {
+export function syncEntrustEnemyBattle(c, previousEnemyObjectId, publishObjects = () => {}) {
     const run = c.state.entrust?.run
     if (!run || run.map_id !== c.state.world.map_id || c.state.combat?.map_id !== run.map_id) return
-    const groupAgent = (objectId) => ((3n << 56n) | BigInt(objectId)).toString()
-    const single = isSingleEntrust(c)
-    if (previousEnemyObjectId && !single) {
-        const agent_uid = groupAgent(previousEnemyObjectId)
-        c.push('SCProtoControlChangeByDelNtf', { agent_uid })
-        c.push('SCProtoObjDisappearNtf', { agent_uid })
-    }
     const enemies = Object.values(c.state.combat.entities ?? {}).filter(
         (enemy) => c.state.worldObjects?.[`${run.map_id}:${enemy.object_id}`]?.active,
     )
-    for (const objectId of single ? [] : new Set(enemies.map((enemy) => enemy.object_id))) {
-        const agent_uid = groupAgent(objectId)
-        // Static groups already have their members in WorldObj.battle_group.
-        // Appear registers the group AOI record and removes preload hide 300;
-        // ownership must follow it so MapService can resolve that record.
-        c.push('SCProtoObjAppearNtf', {
-            agent_uid,
-            agent_type: 4,
-            obj: { obj_id: objectId, obj_type: 3 },
-            lv: enemies.find((enemy) => enemy.object_id === objectId).level,
-        })
-        // The intro needs a real loaded target, not an inactive story-temp group.
-        // Give the client battle ownership only after the real END callback.
-        if (!(materialStoryPending(run) && objectId === run.materialStory.boss_id))
-            c.push('SCProtoControlChangeByAddNtf', { agent_uid, cli_data: { uuid: agent_uid } })
-    }
-    if (!single && run.battle_complete && !run.chest_claimed && !entrustChestGivenUp(c.tables, run)) {
-        const chest = getEntrustCatalog(c.tables).chest(run.entrust_id, run.kind)
-        c.push('SCProtoObjAppearNtf', {
-            agent_uid: ((8n << 56n) | BigInt(chest.worldmapid)).toString(),
-            agent_type: 9,
-            obj: { obj_id: chest.worldmapid, obj_type: 0 },
-        })
-    }
     const infos = enemies.map((enemy) => ({
         uuid: enemy.uuid,
         hp: enemy.hp,
@@ -228,7 +200,40 @@ export function syncEntrustEnemyBattle(c, previousEnemyObjectId) {
         alive_state: enemy.alive_state ?? (enemy.hp > 0 ? 0 : 1),
         reason: 1,
     }))
-    if (infos.length) c.push('CSProtoObjBattleInfoSync', { infos })
+    publishCombatSceneSnapshot(c, infos, () => {
+        publishObjects()
+        const groupAgent = (objectId) => ((3n << 56n) | BigInt(objectId)).toString()
+        const single = isSingleEntrust(c)
+        if (previousEnemyObjectId && !single) {
+            const agent_uid = groupAgent(previousEnemyObjectId)
+            c.push('SCProtoControlChangeByDelNtf', { agent_uid })
+            c.push('SCProtoObjDisappearNtf', { agent_uid })
+        }
+        for (const objectId of single ? [] : new Set(enemies.map((enemy) => enemy.object_id))) {
+            const agent_uid = groupAgent(objectId)
+            // Static groups already have their members in WorldObj.battle_group.
+            // Appear registers the group AOI record and removes preload hide 300;
+            // ownership must follow it so MapService can resolve that record.
+            c.push('SCProtoObjAppearNtf', {
+                agent_uid,
+                agent_type: 4,
+                obj: { obj_id: objectId, obj_type: 3 },
+                lv: enemies.find((enemy) => enemy.object_id === objectId).level,
+            })
+            // The intro needs a real loaded target, not an inactive story-temp group.
+            // Give the client battle ownership only after the real END callback.
+            if (!(materialStoryPending(run) && objectId === run.materialStory.boss_id))
+                c.push('SCProtoControlChangeByAddNtf', { agent_uid, cli_data: { uuid: agent_uid } })
+        }
+        if (!single && run.battle_complete && !run.chest_claimed && !entrustChestGivenUp(c.tables, run)) {
+            const chest = getEntrustCatalog(c.tables).chest(run.entrust_id, run.kind)
+            c.push('SCProtoObjAppearNtf', {
+                agent_uid: ((8n << 56n) | BigInt(chest.worldmapid)).toString(),
+                agent_type: 9,
+                obj: { obj_id: chest.worldmapid, obj_type: 0 },
+            })
+        }
+    })
 }
 
 export function validateEntrustObjectInteraction(c, objectId, completing) {
@@ -382,7 +387,7 @@ export function exitEntrust(c) {
     delete entrust.run
     worldSync({ ...c, push: c.pushBefore })
     const returnType = c.tables.find('world_city', c.state.world.map_id)?.type
-    c.pushBefore('CSProtoOnlineModeChange', { mode: returnType === 4 ? 2 : [2, 13].includes(returnType) ? 5 : 1 })
+    pushSceneMode({ ...c, push: c.pushBefore }, { multiplayer: returnType === 4 })
     syncBattle({ ...c, push: c.pushBefore })
     return {}
 }
@@ -570,7 +575,7 @@ export function registerEntrust(on, tables) {
         c.pushBefore('CSProtoMultiCampaignPlayerLoadingPageCompleteNtf', { u32: c.id })
         // Keep the dungeon's AOI/preload mode and give this local client
         // ownership of the active group through the normal control protocol.
-        c.push('CSProtoOnlineModeChange', { mode: isSingleEntrust(c) ? 5 : 4 })
+        pushSceneMode(c, { multiplayer: !isSingleEntrust(c) })
         syncEntrustEnemyBattle(c)
         replayMaterialStory(c)
     })

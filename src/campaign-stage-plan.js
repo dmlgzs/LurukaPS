@@ -26,7 +26,7 @@ export function campaignStagePlan(tables, mapId) {
         entries.length > 0 &&
             entries.every(
                 (e, i) =>
-                    e.index === i &&
+                    (i === 0 || e.index > entries[i - 1].index) &&
                     e.parts.length === 5 &&
                     e.parts.every(Number.isSafeInteger) &&
                     e.parts[0] === 2500 &&

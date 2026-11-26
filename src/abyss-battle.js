@@ -9,6 +9,7 @@ import { heroBattleLimits } from './battle.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { beginAbyssIntro, publishAbyssIntro } from './abyss-intro.js'
+import { publishCombatSceneSnapshot } from './combat-scene-snapshots.js'
 export function requireAbyssRun(c) {
     const run = c.state.abyssRun
     ensure(run && run.map_id === c.state.world.map_id, 'No current abyss challenge', ErrorCode.AbyssNoChallengeList)
@@ -111,17 +112,24 @@ export function syncAbyssBattleScene(c) {
     const run = c.state.abyssRun
     ensureAbyssScene(c.tables, c.state, c.now)
     c.push('SCProtoAbyssDungeonInfoSync', { ...abyssDungeonInfo(c.state), task_tags_list: run.task_tags ?? [] })
-    c.push('CSProtoWorldMapSync', {
-        cmd: 47,
-        creator_id: c.id,
-        map_id: run.map_id,
-        map_info: { creator_id: c.id, map_id: run.map_id, objs: run.scene_objects },
-    })
     const infos = run.scene_objects
         .filter((x) => x.active && run.wave_objects?.includes(x.obj_id))
         .flatMap((x) => x.expand_data.battle_group.monsters.filter((x) => x.hp > 0))
-        .map((x) => ({ uuid: x.uid, hp: x.hp, sp: 0, alive_state: 0, reason: 1 }))
-    if (infos.length) c.push('CSProtoObjBattleInfoSync', { infos })
+        .map((x) => ({
+            uuid: x.uid,
+            hp: x.hp,
+            sp: c.state.combat?.entities[x.uid]?.sp ?? 0,
+            alive_state: 0,
+            reason: 1,
+        }))
+    publishCombatSceneSnapshot(c, infos, () =>
+        c.push('CSProtoWorldMapSync', {
+            cmd: 47,
+            creator_id: c.id,
+            map_id: run.map_id,
+            map_info: { creator_id: c.id, map_id: run.map_id, objs: run.scene_objects },
+        }),
+    )
 }
 export function startAbyssBattle(c) {
     const run = requireAbyssRun(c),

@@ -1,3 +1,4 @@
+import { pushSceneMode } from './scene-mode.js'
 import { observeAcceptedHeroVitals, invalidateTrackedHeroes, invalidateMedicineContext } from './medicine-state.js'
 import { requireAbyssRun, abyssTaskTags } from './abyss-battle.js'
 import { abyssTables, abyssRoute } from './abyss-catalog.js'
@@ -112,7 +113,7 @@ export function clearAbyssRuntime(c) {
 export function publishAbyssExit(c, exit) {
     if (!exit) return false
     c.push('CSProtoSyncPlayerData', { group_mgrs: [exit.restoredManager] })
-    c.push('CSProtoOnlineModeChange', { mode: 1 })
+    pushSceneMode(c)
     syncBattle(c)
     return true
 }

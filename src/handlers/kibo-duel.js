@@ -1,3 +1,4 @@
+import { pushSceneMode } from '../scene-mode.js'
 import { ErrorCode } from '../error-codes.js'
 import { registerNpcArenaResults } from '../npc-kibo-result.js'
 import { duelProgressSnapshot } from '../kibo-duel-progress.js'
@@ -53,7 +54,7 @@ export function syncLoadedNpcArena(c) {
     // OnlineModeChange targets the current SceneProxy. The earlier packet
     // before the scene cut targets the old proxy; the new proxy starts in
     // Default mode and rejects batch AOI until mode9 is applied after9596.
-    c.pushBefore('CSProtoOnlineModeChange', { mode: 9 })
+    pushSceneMode({ ...c, push: c.pushBefore })
     syncNpcArenaEntities(c, arenaAttributePayload(c.tables, c.state))
     c.state.combat.npcDuel = { ...c.state.combat.npcDuel, entities_sent: true }
 }
@@ -442,7 +443,7 @@ export function registerKiboDuel(on, tables, protocol) {
         c.pushBefore('SCProtoKiboDuelArenaFirstInfoSync', { id: c.id, pet_guid: c.state.kiboDuelFirstGuid })
         if (!restarting) worldSync(c, {}, 256, false)
         const arenaInfo = { status_endtime: String(c.now + Number(duel.time || 300)), enter_type: 0 }
-        c.push('CSProtoOnlineModeChange', { mode: 9 })
+        pushSceneMode(c)
         c.push('SCProtoKiboDuelArenaInfoSync', { ...arenaInfo, status: c.state.multiCampaign.arena_status })
         return {}
     }
@@ -507,7 +508,7 @@ export function registerKiboDuel(on, tables, protocol) {
         const entrust = c.state.entrust?.run
         if (entrust && [2, 3].includes(entrust.status)) {
             ensure(c.state.world.map_id === entrust.map_id, 'Entrust scene is not active')
-            ensureEntrustSceneObjects(tables, c.state)
+            ensureEntrustSceneObjects(tables, c.state, c.now)
             entrust.loading_complete_at ??= c.now
             syncEntrust(c, entrust)
             return {}
@@ -576,7 +577,7 @@ export function registerKiboDuel(on, tables, protocol) {
         }
         worldSync(c)
         const returnType = tables.find('world_city', c.state.world.map_id)?.type
-        c.push('CSProtoOnlineModeChange', { mode: returnType === 4 ? 2 : [2, 13].includes(returnType) ? 5 : 1 })
+        pushSceneMode(c, { multiplayer: returnType === 4 })
         delete c.state.multiCampaign
         delete c.state.kiboDuelLoadingCompleteAt
         delete c.state.kiboDuelFirstGuid

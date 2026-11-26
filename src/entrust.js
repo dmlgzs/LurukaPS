@@ -1,4 +1,6 @@
 import { repeatDungeon, repeatEventTables, recordRepeatVictory } from './repeat-event.js'
+import { combatEntityStates } from './combat-enemy-lifecycle.js'
+import { activateSceneCombatGroup } from './scene-combat-group-lifecycle.js'
 import { currentMapMember } from './current-map-member.js'
 import { recordMainEntrustVictory } from './main-entrust-progress.js'
 import { recordRepeatClear } from './repeat-event-progress.js'
@@ -470,11 +472,19 @@ export function ensureEntrustSceneObjects(
                 .split('|')
                 .filter(Boolean)
         ensure(packs.length > 0 && packs.length <= 24, 'Entrust enemy group unavailable', ErrorCode.GameConfig)
+        activateSceneCombatGroup(state, run, row, packs, {
+            kind: 'entrust',
+            phase: `stage:${stage?.index ?? 'ambient'}`,
+            active: record.active,
+            now,
+        })
+        const states = combatEntityStates(battle)
         const monsters = packs.map((_, slot) => {
             const uid = ((3n << 56n) | (BigInt(slot) << 32n) | BigInt(row.id)).toString()
             const enemy = enemyDefinition(tables, state, uid)
             ensure(enemy, 'Entrust enemy attributes unavailable', ErrorCode.NoEnemyConf)
-            const old = battle.entities[uid]
+            const old = states[uid]
+            if (old) battle.entities[uid] = old
             if (!old) {
                 battle.entities[uid] = {
                     uuid: uid,
@@ -505,7 +515,7 @@ export function ensureEntrustSceneObjects(
         })
         // VisibleEnemies is independent of the full attribute roster. Keep
         // dead slots' metadata, but never recreate them as visible monsters.
-        const world_indexes = visibleEnemySlots(monsters, battle.entities)
+        const world_indexes = visibleEnemySlots(monsters, combatEntityStates(battle))
         const previousIndexes = record.expand_data?.battle_group?.world_indexes
         if (
             !previousIndexes ||

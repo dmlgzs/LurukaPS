@@ -8,6 +8,7 @@ import { syncBattle, pairs } from '../battle.js'
 import { petData } from '../pets.js'
 import { retireTrialActors, temporaryHeroes, temporaryPets } from '../trial-actors.js'
 import { mainHeroConfigId } from '../main-hero.js'
+import { currentTrialAdmission, currentTrialPetSlots } from '../current-trial-request-policy.js'
 export function trialPayload(state) {
     return {
         trial_heros: temporaryHeroes(state).filter((x) => !x.abyss),
@@ -247,6 +248,7 @@ export function expireTaskTrialGroup(tables, state) {
                 .some((entry) => Number(entry.split('#')[0]) === id),
         )
     const teachingTrial =
+        !trial.current_group_id &&
         trial.story_campaign &&
         state.storyCampaign?.teaching_id === trial.task_id &&
         state.storyCampaign.map_id === state.world.map_id &&
@@ -255,19 +257,20 @@ export function expireTaskTrialGroup(tables, state) {
                 .split('|')
                 .some((entry) => Number(entry.split('#')[0]) === id),
         )
-    const valid =
-        teachingTrial ||
-        storyTrial ||
-        (task &&
-            graphs.get(task.task_id).controllers.some((controller) => {
-                const d = controller.__type_TaskTeamController
-                return (
-                    d &&
-                    asList(d.stateScene).includes(state.world.map_id) &&
-                    task.nodes.some((n) => taskOverrideNodeIds(controller).includes(n.node_id)) &&
-                    trial.ids.every((id) => asList(d.teamMemberList).some((m) => m.memberId === id))
-                )
-            }))
+    const valid = trial.current_group_id
+        ? !!currentTrialAdmission(tables, state, trial.current_group_id)
+        : teachingTrial ||
+          storyTrial ||
+          (task &&
+              graphs.get(task.task_id).controllers.some((controller) => {
+                  const d = controller.__type_TaskTeamController
+                  return (
+                      d &&
+                      asList(d.stateScene).includes(state.world.map_id) &&
+                      task.nodes.some((n) => taskOverrideNodeIds(controller).includes(n.node_id)) &&
+                      trial.ids.every((id) => asList(d.teamMemberList).some((m) => m.memberId === id))
+                  )
+              }))
     if (valid) {
         manager(state).src = 0
         return false
@@ -348,6 +351,31 @@ export function registerTrialGroups(on, tables) {
     on('TrialGroupChange', (c, r) => {
         const m = manager(c.state),
             existing = c.state.trialGroup
+        let currentAdmission = null
+        if (r.open && r.trial_id) {
+            ensure(
+                !(r.trial_heros?.length || r.trial_pets?.length || r.trial_control?.id),
+                'Current trial request cannot supply a client roster',
+            )
+            currentAdmission = currentTrialAdmission(tables, c.state, r.trial_id)
+            ensure(currentAdmission, 'Current trial group is not admitted by this scene or task')
+            r = {
+                ...r,
+                force: currentAdmission.roster.force,
+                trial_heros: currentAdmission.roster.heroes,
+                trial_pets: currentAdmission.roster.pets,
+                ...(currentAdmission.roster.controlId
+                    ? { trial_control: { id: currentAdmission.roster.controlId } }
+                    : {}),
+            }
+        } else if (existing?.current_group_id) {
+            ensure(!r.open, 'Current trial formation requires its configured trial_id')
+            ensure(
+                !r.trial_id || r.trial_id === existing.current_group_id,
+                'Current trial close group does not match active formation',
+            )
+            r = { ...r, force: existing.force, trial_heros: existing.ids.map((id) => ({ id })), trial_pets: [] }
+        }
         if (existing) restoreMixedTrialGroup(tables, c.state)
         if (!r.open) {
             if (!existing) return {}
@@ -425,7 +453,7 @@ export function registerTrialGroups(on, tables) {
             c.state.storyCampaign?.map_id === c.state.world.map_id && c.state.storyCampaign.teaching_id
                 ? { task_id: c.state.storyCampaign.teaching_id }
                 : null
-        const story = !!(storyTask || teachingTask)
+        const story = currentAdmission?.source === 'scene' || !!(storyTask || teachingTask)
         const sceneTrialField = r.force ? 'trailGroup' : 'extraTrialGroup'
         const maxSlots = story && !r.force ? 4 : 3
         ensure(
@@ -434,7 +462,13 @@ export function registerTrialGroups(on, tables) {
             'Invalid trial slots',
         )
         const candidates = []
-        for (const task of c.state.tasks) {
+        if (currentAdmission)
+            candidates.push({
+                task: { task_id: currentAdmission.taskId },
+                data: { isForceChange: currentAdmission.roster.force },
+                members: currentAdmission.roster.heroes.map((hero) => ({ memberId: hero.id })),
+            })
+        for (const task of currentAdmission ? [] : c.state.tasks) {
             const graph = graphs.get(task.task_id)
             for (const controller of graph.controllers) {
                 const data = controller.__type_TaskTeamController
@@ -449,7 +483,7 @@ export function registerTrialGroups(on, tables) {
                     candidates.push({ task, data, members })
             }
         }
-        if (story) {
+        if (story && !currentAdmission) {
             const task = storyTask || teachingTask
             const scene = tables.find('dungeon_scene', c.state.world.map_id)
             const members = String(scene?.[sceneTrialField] ?? '')
@@ -494,6 +528,7 @@ export function registerTrialGroups(on, tables) {
               ? []
               : structuredClone(original.heros)
         const occupied = new Set()
+        const resolvedHeroSlots = new Map()
         requested.forEach((item, index) => {
             let resolved = item.pos
             if (resolved < 0) {
@@ -518,6 +553,7 @@ export function registerTrialGroups(on, tables) {
             while (positions.length <= resolved) positions.push(emptySlot())
             positions[resolved] = { ...positions[resolved], hero_id: heroes[index].guid }
             occupied.add(resolved)
+            resolvedHeroSlots.set(item.id, resolved)
         })
         const previousControl = existing ? m.groups.find((g) => g.id === 0)?.control : null
         let control = positions.some((h) => h.hero_id === previousControl) ? previousControl : heroes[0].guid
@@ -548,9 +584,21 @@ export function registerTrialGroups(on, tables) {
             force: !!r.force,
             story_campaign: story,
             scene_trial_field: story ? sceneTrialField : undefined,
-            heroSlots: Object.fromEntries(requested.map((item) => [item.id, item.pos])),
+            ...(currentAdmission
+                ? { current_group_id: currentAdmission.roster.groupId, current_source: currentAdmission.source }
+                : {}),
+            heroSlots: currentAdmission
+                ? Object.fromEntries(resolvedHeroSlots)
+                : Object.fromEntries(requested.map((item) => [item.id, item.pos])),
         }
-        if (requestedPets.length) attachTrialPets(c, tables, c.state.trialGroup, positions, requestedPets)
+        if (requestedPets.length)
+            attachTrialPets(
+                c,
+                tables,
+                c.state.trialGroup,
+                positions,
+                currentAdmission ? currentTrialPetSlots(currentAdmission.roster, resolvedHeroSlots) : requestedPets,
+            )
         m.groups = m.groups.filter((g) => g.id !== 0)
         m.groups.push({ id: 0, heros: positions, control })
         if (!existing) m.last_group = m.cur_group

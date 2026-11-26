@@ -1,3 +1,4 @@
+import { pushSceneMode } from '../scene-mode.js'
 import { acceptCultRankRun, nextCultRankInstance } from '../cult-rank-progress.js'
 import { commitPermanentEnding } from '../growup-permanent.js'
 import { ErrorCode } from '../error-codes.js'
@@ -46,7 +47,7 @@ export function exitCultTrial(c) {
     delete c.state.cultTrial
     delete c.state.combat
     worldSync({ ...c, push: c.pushBefore })
-    c.pushBefore('CSProtoOnlineModeChange', { mode: 1 })
+    pushSceneMode({ ...c, push: c.pushBefore })
     syncBattle({ ...c, push: c.pushBefore })
     c.pushBefore('CSProtoTrialDatas', trialPayload(c.state))
     if (restored) c.pushBefore('CSProtoSyncPlayerData', { group_mgrs: [restored] })

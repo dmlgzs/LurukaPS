@@ -1,4 +1,8 @@
+import { pushSceneMode } from '../scene-mode.js'
 import { resetCampaignPlayableEntry } from '../campaign-playable-ledger.js'
+import { combatEntityStates } from '../combat-enemy-lifecycle.js'
+import { activateSceneCombatGroup } from '../scene-combat-group-lifecycle.js'
+import { enemyDefinition } from '../enemy-state.js'
 import { localCampaignSatisfied } from '../campaign-playable-route.js'
 import { registerTeaching } from './teaching.js'
 import { ErrorCode } from '../error-codes.js'
@@ -167,9 +171,20 @@ export function settleStoryCampaignScene(c) {
         if (!old) continue
         const index = waves.findIndex((entry) => entry.id === row.id)
         const complete = index < run.stage_index
+        const active = index === run.stage_index
+        const packs = String(c.tables.find('world_enemy_group', row.expandId)?.enemyList ?? '')
+            .split('|')
+            .filter(Boolean)
+        activateSceneCombatGroup(c.state, run, row, packs, {
+            kind: 'story',
+            phase: `legacy-wave:${index}`,
+            active,
+            now: c.now,
+        })
+        const states = combatEntityStates(c.state.combat)
         const record = {
             ...old,
-            active: index === run.stage_index,
+            active,
             complete,
             state_data: { ...old.state_data, step: complete ? 1 : 0, complete },
             expand_data: {
@@ -177,10 +192,25 @@ export function settleStoryCampaignScene(c) {
                 battle_group: {
                     ...old.expand_data?.battle_group,
                     monsters:
-                        old.expand_data?.battle_group?.monsters?.map((monster) => ({
-                            ...monster,
-                            hp: c.state.combat.entities[monster.uid]?.hp ?? monster.hp,
-                        })) ?? [],
+                        old.expand_data?.battle_group?.monsters?.map((monster) => {
+                            if (!states[monster.uid] && active) {
+                                const definition = enemyDefinition(c.tables, c.state, monster.uid)
+                                ensure(
+                                    definition,
+                                    'Campaign reactivated enemy attributes unavailable',
+                                    ErrorCode.NoEnemyConf,
+                                )
+                                states[monster.uid] = c.state.combat.entities[monster.uid] = {
+                                    uuid: monster.uid,
+                                    ...definition,
+                                    hp: definition.max_hp,
+                                    sp: 0,
+                                    alive_state: 0,
+                                    updated_at: c.now,
+                                }
+                            }
+                            return { ...monster, hp: states[monster.uid]?.hp ?? monster.hp }
+                        }) ?? [],
                 },
             },
         }
@@ -190,7 +220,7 @@ export function settleStoryCampaignScene(c) {
         record.next_time = 0
         record.expand_data.battle_group.world_indexes = visibleEnemySlots(
             record.expand_data.battle_group.monsters,
-            c.state.combat.entities,
+            states,
         )
         c.state.worldObjects[key] = record
     }
@@ -392,7 +422,7 @@ export function exitStoryCampaign(c) {
     }
     delete c.state.combat
     worldSync({ ...c, push: c.pushBefore })
-    c.pushBefore('CSProtoOnlineModeChange', { mode: 1 })
+    pushSceneMode({ ...c, push: c.pushBefore })
     syncBattle({ ...c, push: c.pushBefore })
     return {}
 }

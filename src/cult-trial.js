@@ -1,4 +1,6 @@
 import { ErrorCode } from './error-codes.js'
+import { combatEntityStates } from './combat-enemy-lifecycle.js'
+import { activateSceneCombatGroup } from './scene-combat-group-lifecycle.js'
 import { visibleEnemySlots } from './enemy-group-visibility.js'
 import fs from 'node:fs'
 import { ensure } from './handlers/common.js'
@@ -192,11 +194,18 @@ export function ensureCultTrialScene(tables, state, now) {
                 .split('|')
                 .filter(Boolean)
         ensure(packs.length, 'Missing cultivation trial enemy group', ErrorCode.NoEnemyConf)
+        activateSceneCombatGroup(state, run, row, packs, {
+            kind: 'cult',
+            phase: `wave:${wave?.wave_id ?? 'unmapped'}`,
+            active: record.active,
+            now,
+        })
+        const states = combatEntityStates(battle)
         const monsters = packs.map((_, slot) => {
             const uid = ((3n << 56n) | (BigInt(slot) << 32n) | BigInt(row.id)).toString(),
                 definition = cultArchiveEnemyDefinition(tables, run, enemyDefinition(tables, state, uid))
             ensure(definition, 'Missing cultivation trial enemy attributes', ErrorCode.NoEnemyConf)
-            const entity = (battle.entities[uid] ??= {
+            const entity = (battle.entities[uid] = states[uid] ?? {
                 uuid: uid,
                 ...definition,
                 hp: definition.max_hp,
@@ -216,7 +225,7 @@ export function ensureCultTrialScene(tables, state, now) {
             }
         })
         record.expand_data = {
-            battle_group: { monsters, world_indexes: visibleEnemySlots(monsters, battle.entities) },
+            battle_group: { monsters, world_indexes: visibleEnemySlots(monsters, combatEntityStates(battle)) },
         }
     }
     refreshCultTrialResult(tables, state)
