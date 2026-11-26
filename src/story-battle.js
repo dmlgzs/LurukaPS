@@ -9,6 +9,7 @@ import { u64, combatState } from './combat-state.js'
 import { createHash } from 'node:crypto'
 import { guidedKillRule } from './guided-conditions.js'
 import { recordGuidedKill } from './task-kills.js'
+import { recordCombatEnemyDeath } from './combat-enemy-lifecycle.js'
 import { teachingKillReady } from './teaching-kill-conditions.js'
 import { taskOverrideNodeIds } from './task-action-data.js'
 import { settleStoryCampaignScene, endStoryCampaignScene } from './handlers/story-campaign.js'
@@ -113,6 +114,7 @@ export function registerStoryBattle(on, tables) {
             ensure(teaching || matchedRule, 'Required battle story has not played')
             ensure(target, 'Story-kill objective is not active')
             battle.entities[uuid] = { ...existing, ...def, uuid, hp: 0, alive_state: 1, updated_at: c.now }
+            recordCombatEnemyDeath(c.state, uuid, battle.entities[uuid])
             if ((existing?.hp ?? def.max_hp) > 0) recordGuidedKill(tables, c.state, battle.entities[uuid], c.now)
             c.state.storyKillReceipts ??= {}
             c.state.storyKillReceipts[key] = {

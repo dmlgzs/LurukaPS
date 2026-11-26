@@ -1,6 +1,75 @@
 import fs from 'node:fs'
 import { temporaryHeroes, activeFormationManager } from './trial-actors.js'
 import policy from '../configs/teaching-vm-policy.json' with { type: 'json' }
+import { ErrorCode } from './error-codes.js'
+import { ensure } from './handlers/common.js'
+import {
+    currentTeachingShape,
+    observeCurrentTeachingProof,
+    currentTeachingProofReady,
+    currentTeachingIntentReady,
+} from './current-teaching-proof.js'
+function currentData(filename) {
+    const file = new URL('../configs/battle-config/' + filename, import.meta.url)
+    if (!fs.existsSync(file)) return null
+    let value
+    try {
+        value = JSON.parse(fs.readFileSync(file))
+    } catch {
+        ensure(false, 'Current teaching data file is malformed: ' + filename, ErrorCode.GameConfig)
+    }
+    ensure(
+        value && value.schemaVersion === 1 && value.targetVersion === '1.0.0' && value.packageVersion === '3217420',
+        'Current teaching data version is malformed: ' + filename,
+        ErrorCode.GameConfig,
+    )
+    return value
+}
+const currentCatalogue = currentData('teaching-current-proof-ir.json')
+const currentDamage = currentData('teaching-current-damage-predicate.json')
+ensure(
+    !currentCatalogue ||
+        (currentCatalogue.kind === 'current-teaching-proof-ir' &&
+            currentCatalogue.clockPolicy?.id === policy.id &&
+            Array.isArray(currentCatalogue.profiles) &&
+            currentCatalogue.profiles.length > 0 &&
+            currentCatalogue.profiles.every(
+                (r) =>
+                    r &&
+                    Number.isSafeInteger(r.battleFsmType) &&
+                    r.battleFsmType > 0 &&
+                    r.sourceShape === currentTeachingShape &&
+                    /^[0-9a-f]{64}$/.test(r.sourceSha256) &&
+                    Array.isArray(r.ops) &&
+                    r.ops.length > 0,
+            ) &&
+            new Set(currentCatalogue.profiles.map((r) => r.battleFsmType)).size === currentCatalogue.profiles.length),
+    'Current teaching profile catalogue is malformed',
+    ErrorCode.GameConfig,
+)
+ensure(
+    !currentDamage ||
+        (currentDamage.sourceType === 'Azur.Core.MMap.ConfigTDamageElementParams' &&
+            currentDamage.elements &&
+            typeof currentDamage.elements === 'object' &&
+            !Array.isArray(currentDamage.elements)),
+    'Current teaching damage catalogue is malformed',
+    ErrorCode.GameConfig,
+)
+const currentRules = new Map(
+    (currentCatalogue?.profiles ?? []).map((rule) => [
+        rule.battleFsmType,
+        { ...rule, damageElements: currentDamage?.elements },
+    ]),
+)
+export function currentTeachingProofCapability(battleFsmType) {
+    const rule = currentRules.get(battleFsmType)
+    if (rule?.ops?.some((op) => op.kind === 'attack-hit') && !currentDamage)
+        return { available: false, reason: 'current-teaching-damage-predicate-unavailable' }
+    return rule
+        ? { available: true, source: rule.sourceSha256 }
+        : { available: false, reason: 'current-teaching-proof-ir-unavailable' }
+}
 const rules = new Map(
     JSON.parse(
         fs.readFileSync(new URL('../configs/battle-config/teaching-kill-conditions.json', import.meta.url)),
@@ -27,7 +96,7 @@ function targets(tables, state) {
         .filter((row) => row.spawnerId === spawner && (!target || row.id === target))
         .flatMap((row) => {
             const group = tables.find('world_enemy_group', row.expandId),
-                rule = rules.get(group?.battleFsmType)
+                rule = currentRules.get(group?.battleFsmType) ?? rules.get(group?.battleFsmType)
             return group?.canForceKill === 1 && rule ? [{ row, group, rule }] : []
         })
 }
@@ -78,6 +147,8 @@ function validTime(ms) {
 export function teachingKillReady(tables, state, objectId, now, nowMs) {
     const target = targets(tables, state).find((t) => t.row.id === objectId)
     if (!target) return null
+    if (target.rule.sourceShape === currentTeachingShape)
+        return currentTeachingProofReady(state, target.row, target.rule, nowMs) ? target : null
     if (target.rule.ops) {
         const proof = timedProof(state, target.row, target.rule)
         return proof &&
@@ -121,7 +192,13 @@ export function teachingSceneKillReady(tables, state, now, nowMs) {
                     const e = state.combat?.entities[((3n << 56n) | (BigInt(slot) << 32n) | BigInt(row.id)).toString()]
                     return e?.hp === 0 && e.alive_state === 1 && !e.captured && e.pack_id === Number(pack)
                 }) ||
-                    !!teachingKillReady(tables, state, row.id, now, nowMs))
+                    !!teachingKillReady(tables, state, row.id, now, nowMs) ||
+                    targets(tables, state).some(
+                        (target) =>
+                            target.row.id === row.id &&
+                            target.rule.sourceShape === currentTeachingShape &&
+                            currentTeachingIntentReady(state, target.row, target.rule),
+                    ))
             )
         })
     )
@@ -129,9 +206,14 @@ export function teachingSceneKillReady(tables, state, now, nowMs) {
 function observe(c, actor, event, key) {
     const list = targets(c.tables, c.state)
     if (!list.length) return
-    if (!activeTrialActor(c.state, actor)) return
     for (const { row, rule } of list) {
         if (c.state.worldObjects?.[c.state.world.map_id + ':' + row.id]?.active === false) continue
+        if (rule.sourceShape === currentTeachingShape) {
+            const receipt = event.kind === 'skill' ? `s:${actor}:${event.cast}` : `e:${event.element?.uniqueId}`
+            observeCurrentTeachingProof(c, actor, event, receipt, row, rule)
+            continue
+        }
+        if (!activeTrialActor(c.state, actor)) continue
         if (rule.ops) {
             observeTimedTeachingProof(c, actor, event, key, row, rule)
             continue
@@ -237,7 +319,7 @@ export function observeTeachingSkill(c, id, r) {
     observe(
         c,
         id,
-        { kind: 'skill', id: r.skill.skill_id, index: r.skill.index ?? 0 },
+        { kind: 'skill', id: r.skill.skill_id, index: r.skill.index ?? 0, slot: r.skill.slot, cast, stamp: r.op_time },
         `s:${id}:${r.skill.skill_id}:${r.skill.index ?? 0}:${cast}`,
     )
 }
@@ -274,6 +356,7 @@ export function observeTeachingElement(c, e, previous) {
             heroExecutor: activeTrialActor(c.state, executor),
             operation: e.op,
             fresh: !previous,
+            element: e,
         },
         `e:${executor}:${e.uniqueId}`,
     )

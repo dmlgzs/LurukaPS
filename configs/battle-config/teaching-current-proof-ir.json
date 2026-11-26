@@ -1,0 +1,83 @@
+{
+    "schemaVersion": 1,
+    "kind": "current-teaching-proof-ir",
+    "targetVersion": "1.0.0",
+    "packageVersion": "3217420",
+    "evidenceSha256": "e2af6aa526883f824bf55a987065675c08eee89b3dd696090bc638ab256ac732",
+    "clockPolicy": {
+        "id": "local-server-clock-v1",
+        "origin": "LOCAL",
+        "sha256": "50baa218674a6f5d4ef72cd366321b0f79929f85a869691d06b760533d1f3b63"
+    },
+    "executorEnum": {
+        "namespace": "Lens.Gameplay.Modules.BigWorld.EEntityType",
+        "values": { "Hero": 1, "Player": 10, "Pet": 11, "Monster": 14 }
+    },
+    "currentSourceHashes": {
+        "globalBattleConfig": "7291a007a741fb5aff1867de6d67979cd4d25df7fcb374c63a750e1eacfd9b0c",
+        "nodeContracts": {
+            "WaitReleaseSkill": "2980a64ed2b1984bf6b9fb586d82d46bbe1a8d2558290a27708e8a67a73f5405",
+            "WaitAttackHit": "c1d172283a78cad49fb5313a9c5e55fe50bb212dd59e47a0fc8ace8abe56e45d",
+            "WaitElementAdd": "f5af9ccf6d6165247cecc829f4c40366275cdc5218c1e7e9244de7873a3897f2",
+            "WaitTriggerBase": "e5d466b7aca1ad3110a8b8f1bba8667564cfe6f4f0cbd1f39966d65df2aca62a",
+            "GraphPrime": "70e53d50ecc60d437a5e0bdc50b578ba8076bc64faa1298b07a79d5518f8785e"
+        }
+    },
+    "profiles": [
+        {
+            "battleFsmType": 1001,
+            "sourceShape": "current-teaching-sequence-v1",
+            "sourceGraph": "ast_fsm_battle_teach_1001",
+            "sourceSha256": "4958ae6f692bb0df9913b384947be9f31234c8a4d59cb177bdaa6e8dc4ae3d01",
+            "proofPolicy": "local-server-clock-v1",
+            "ops": [
+                { "kind": "skill-slot", "slot": 203, "count": 1, "stage": 0, "challengeId": 10011 },
+                { "kind": "skill-slot", "slot": 203, "count": 1, "stage": 1, "challengeId": 10012 },
+                { "kind": "wait", "milliseconds": 2000 }
+            ],
+            "terminal": { "kind": "story-kill-request", "protocolId": 10799 }
+        },
+        {
+            "battleFsmType": 2001,
+            "sourceShape": "current-teaching-sequence-v1",
+            "sourceGraph": "ast_fsm_battle_teach_2001",
+            "sourceSha256": "e97a9dda27055dadd828a0f9519fa273b98f85d57baca390660b6739905a187e",
+            "proofPolicy": "local-server-clock-v1",
+            "ops": [
+                {
+                    "kind": "attack-hit",
+                    "actor": { "heroId": 108003 },
+                    "requiredTag": 22,
+                    "damageTypes": [1, 2, 3, 4],
+                    "count": 10,
+                    "stage": 0,
+                    "challengeId": 20011
+                },
+                {
+                    "kind": "attack-hit",
+                    "actor": { "heroId": 108001 },
+                    "requiredTag": 22,
+                    "damageTypes": [1, 2, 3, 4],
+                    "count": 30,
+                    "stage": 1,
+                    "challengeId": 20012
+                }
+            ],
+            "terminal": { "kind": "story-kill-request", "protocolId": 10799 }
+        },
+        {
+            "battleFsmType": 3001,
+            "sourceShape": "current-teaching-sequence-v1",
+            "sourceGraph": "ast_fsm_battle_teach_3001",
+            "sourceSha256": "ed2baad795bf9a4c3e01329df674e76ca1948481e1ad4d33bd18666ccbeae71c",
+            "proofPolicy": "local-server-clock-v1",
+            "ops": [
+                { "kind": "element", "id": 250, "executorTypes": [10], "count": 3, "stage": 0, "challengeId": 30011 },
+                { "kind": "wait", "milliseconds": 1000 },
+                { "kind": "element", "id": 296, "executorTypes": [14], "count": 3, "stage": 1, "challengeId": 30012 },
+                { "kind": "wait", "milliseconds": 1000 }
+            ],
+            "terminal": { "kind": "story-kill-request", "protocolId": 10799 }
+        }
+    ]
+}
