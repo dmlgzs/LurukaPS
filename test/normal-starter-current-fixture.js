@@ -29,12 +29,13 @@ export function createNormalStarterFixture(name, { starterProfile = 'normal', le
         })
         baseline = saved.state
     }
-    const game = new Game(protocol, store, tables, {
+    const gameOptions = {
         starterProfile,
         clock: () => Math.floor(nowMs / 1000),
         arenaClockMs: () => nowMs,
         rng: () => 0,
-    })
+    }
+    let game = new Game(protocol, store, tables, gameOptions)
     const frame = (name, data = {}) => {
         const entry = protocol.byName.get('CSProto' + name)
         if (!entry) throw Error('Current protocol unavailable: ' + name)
@@ -92,11 +93,20 @@ export function createNormalStarterFixture(name, { starterProfile = 'normal', le
         tables,
         protocol,
         store,
-        game,
+        get game() {
+            return game
+        },
         frame,
         dispatch,
         call,
         login,
+        coldLogin: () => {
+            // New server/catalogue/protocol objects, same actual persisted
+            // memory account; this never seeds or edits the existing save.
+            game = new Game(new Protocol(config.base), store, new Tables(config.tables), gameOptions)
+            session = {}
+            return call('EnterGame', { open_id: name })
+        },
         state,
         currentGroup,
         summary,
