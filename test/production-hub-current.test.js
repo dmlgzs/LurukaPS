@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
 import { Tables, seedPlayer } from '../src/player.js'
+import { createPets } from '../src/pets.js'
 import { ensureHome, ensureHomeFarmHouses } from '../src/home.js'
 import { homeHubStationPets } from '../src/home-hub.js'
 import { ranchWorkerLimit } from '../src/ranch.js'
@@ -37,6 +38,9 @@ function fixture(farm = false, full = false, ranchChosen = false) {
     const allowed = String(station.petSize ?? '')
         .split('|')
         .map(Number)
+    // Qualified worker-selection leaf: one legitimately allocated current pet,
+    // independent of normal startup ownership and sandbox-wide grants.
+    createPets(tables, state, 500001, 1, 1001)
     const pet = state.pets.find(
         (row) => farm || allowed.includes(tables.find('pet_home_talent', row.config_id)?.sizeType),
     )
