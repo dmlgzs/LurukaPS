@@ -15,6 +15,7 @@ import { staticTimeRows, shopTimeDefinitions, mergeCommonTime } from './time-def
 import { mallCommonTimeDefinitions } from './mall-time-policy.js'
 import { activityWindow, activityUnlocked, activityGuideIssues } from './activity-access.js'
 import { versionSignSnapshot } from './activity-version-sign.js'
+import { followActivitySnapshot } from './activity-follow.js'
 
 export class ActivityCatalog {
     constructor(tables, { tourPolicy, cultRankReader } = {}) {
@@ -288,6 +289,7 @@ export class ActivityCatalog {
             } else if (row.type === 40) data.double_drop = { data: [], reset_time: String(now) }
             else if (row.type === 60) data.grow_up = this.growup.ensure(entry, row.systemId)
             else if (row.type === 80) data.tour_group = this.tours.snapshot(entry, row, now)
+            else if (row.type === 150) data.activity_follow = followActivitySnapshot(this.tables, entry, row)
             // Complex activities don't receive made-up grow-up/party/tour state.
             // Their configuration is visible; gameplay awaits its own implementation.
             const rewards = this.rewards
