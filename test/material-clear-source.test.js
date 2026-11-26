@@ -54,7 +54,7 @@ test('typed period source partitions tags and normal requests cannot manufacture
             0,
         )
         const before = f.read((s) => s.materialClearRevision)
-        for (let i = 0; i < 3; i++) f.call('ActivityGet')
+        for (let i = 0; i < 3; i++) f.refreshObservers()
         assert.equal(
             f.read((s) => s.materialClearRevision),
             before,
@@ -155,7 +155,7 @@ test('same-second legacy completed-run recovery never reconstructs a new typed w
         assert.equal(typed(f)[15010], 70)
         assert.equal(Object.keys(typed(f)).filter((k) => k.startsWith('material-clear:')).length, 0)
         f.call('EndDungeonScene', { result: 3 })
-        f.call('ActivityGet')
+        f.refreshObservers()
         assert.equal(Object.keys(typed(f)).filter((k) => k.startsWith('material-clear:')).length, 0)
         f.win(30101)
         assert.equal(typed(f)['material-clear:1:3:301'], 1)

@@ -10,7 +10,10 @@ test('all nine15010 achievement shapes validate selectors and authoritative unfi
     const f = materialClearFixture('material-ach-contract')
     try {
         const model = achievementCatalogue(f.tables)
-        assert.equal([...model.rules.values()].filter((r) => r.supported).length, 131)
+        assert.equal(
+            model.rows.filter((r) => r.finishCondition.startsWith('15010#') && model.rules.get(r.id).supported).length,
+            9,
+        )
         assert(ids.every((id) => model.rules.get(id).supported))
         for (const bad of [
             [15010, 0, 0, 0, 0, 50],
@@ -21,7 +24,7 @@ test('all nine15010 achievement shapes validate selectors and authoritative unfi
             assert.equal(materialClearRule(f.tables, bad), false)
         f.win(30101)
         f.edit((s) => (s.achievements.entries[5050017] = { value: 500, finishTime: 0, claimed: false }))
-        f.call('ActivityGet')
+        f.refreshObservers()
         assert.equal(
             f.read((s) => s.achievements.entries[5050017].value),
             1,
@@ -59,7 +62,7 @@ test('real five-hundred victories in each of the three tags complete all nine th
             for (let n = 1; n <= 500; n++) {
                 f.win(material)
                 if ([50, 100, 500].includes(n)) {
-                    f.call('ActivityGet')
+                    f.refreshObservers()
                     for (const id of targets) {
                         const row = model.byId.get(id),
                             saved = f.read((s) => s.achievements.entries[id])

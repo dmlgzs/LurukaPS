@@ -77,11 +77,13 @@ test('18003 batch sync/ACK and SQL failures roll back all material claims and th
             f.store.db.exec('DROP TRIGGER material_batch_abort')
         }
         assert.deepEqual(f.state(), before)
+        const cap = Number(f.tables.get('game').find((row) => row.title === 'BATTLE_PASS_WEEKLY_LIMIT').value)
+        assert(Number.isSafeInteger(cap) && cap > 50)
         f.edit((s) => {
-            s.battlePass.seasons[s.battlePass.activeKey].curr_week_exp = 9950
+            s.battlePass.seasons[s.battlePass.activeKey].curr_week_exp = cap - 50
         })
         assert.equal(reply(f, f.call('BattlePassGetAllTaskReward')).rewards[0].itemnum, 50)
-        assert.equal(bp(f).curr_week_exp, 10000)
+        assert.equal(bp(f).curr_week_exp, cap)
         assert(ids.every((id) => bp(f).tasks.week.claimed.includes(id)))
         assert.deepEqual(reply(f, f.call('BattlePassGetAllTaskReward')).rewards, [])
     } finally {

@@ -5,6 +5,35 @@ import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { getEntrustCatalog } from '../src/entrust.js'
 import { materialStoryPlan } from '../src/multiple-material-story.js'
+import assert from 'node:assert/strict'
+import { TaskGraphs } from '../src/tasks.js'
+import { group } from '../src/handlers/common.js'
+import { enemyDefinition } from '../src/enemy-state.js'
+import { combatEntityStates } from '../src/combat-enemy-lifecycle.js'
+
+const qualificationCache = new WeakMap()
+function pastMainQualification(tables) {
+    if (qualificationCache.has(tables)) return qualificationCache.get(tables)
+    const graphs = new TaskGraphs(tables),
+        ids = new Set()
+    const visit = (id) => {
+        if (ids.has(id)) return
+        const row = tables.find('task', id)
+        assert(row, 'Trusted past prerequisite must exist in current task data')
+        const graph = graphs.get(id) // Validate the actual current graph; no old asset fallback.
+        ids.add(id)
+        for (const token of String(row.unlockcondition).split('|')) {
+            const [kind, target] = token.split('#').map(Number)
+            if (kind === 2007) visit(target)
+        }
+        for (const condition of graph.requirements)
+            if (condition.conditionId === 2007)
+                visit(condition.__type_TaskConditionBaseData.__type_TaskCondCompleteTaskData.taskId)
+    }
+    for (const row of tables.get('task')) if (row.type === 1) visit(row.id)
+    qualificationCache.set(tables, ids)
+    return ids
+}
 export function materialClearFixture(name, file = ':memory:') {
     const cfg = configuration(),
         tables = new Tables(cfg.tables),
@@ -13,6 +42,7 @@ export function materialClearFixture(name, file = ':memory:') {
     let now = 1800000000,
         seq = 1,
         session = {}
+    let reportTimeMs = 0n
     const game = new Game(protocol, store, tables, { clock: () => now })
     const call = (name, request = {}) => {
         const e = protocol.byName.get('CSProto' + name)
@@ -34,7 +64,73 @@ export function materialClearFixture(name, file = ':memory:') {
     edit((s) => {
         s.player.basic_info.lv = 80
         s.player.attr_infos.attrs.find((a) => a.attr_id === 3).attr_val = '10000'
+        // Explicit trusted endgame background, not a replay of every story or
+        // its rewards. No material clear,15010,consumer or reward fact is set.
+        // The real NPC24→9510 prerequisite control remains independently tested
+        // in material-dungeon-unlocks-current/accessory-production.
+        const past = pastMainQualification(tables)
+        s.tasks = s.tasks.filter((task) => !past.has(task.task_id))
+        s.taskRecords ??= []
+        for (const task_id of past) {
+            const saved = s.taskRecords.find((row) => row.task_id === task_id)
+            if (!saved) s.taskRecords.push({ task_id, count: 1, time: 1790000000 })
+            else if (!(saved.count > 0)) Object.assign(saved, { count: 1, time: 1790000000 })
+        }
+        for (const key of ['pendingTaskStorySync', 'pendingTaskScene', 'pendingCharacterTask'])
+            if (past.has(s[key]?.task_id)) delete s[key]
     })
+    const party = group(state()),
+        controlSlot = party.heros.find((slot) => slot.hero_id === party.control)
+    if (!controlSlot.pet_id || controlSlot.pet_id === '0') {
+        const owned = state().pets.find(
+            (p) =>
+                !p.work_status &&
+                tables.find('pet', p.config_id) &&
+                tables.find('unit', tables.find('pet', p.config_id).unitId),
+        )
+        assert(owned, 'Explicit fixture party needs a current owned model-backed pet')
+        assert(!run(), 'Do not change a restored dungeon party merely to manufacture a pet source')
+        call('QuickChangeGroupInfo', {
+            type: 1,
+            id: party.id,
+            infos: party.heros
+                .filter((slot) => slot.hero_id && slot.hero_id !== '0')
+                .map((slot) => ({
+                    hero_guid: slot.hero_id,
+                    pet_guid: slot.hero_id === party.control ? owned.guid : (slot.pet_id ?? '0'),
+                })),
+        })
+    }
+    const refreshObservers = () => {
+        // ActivityGet is retired. This real current empty-receipt query is
+        // unrelated to material credit but runs the normal observer boundary.
+        assert.equal(state().mall?.popupQueue?.length ?? 0, 0, 'Fixture must not have pending paid deliveries')
+        assert.equal(state().mall?.pendingPopup ?? null, null, 'Do not clear an existing receipt to fit the test')
+        const assets = () => {
+            const s = state()
+            return {
+                bag: s.player.sbag_infos,
+                currencies: s.player.attr_infos,
+                heroes: s.player.heros_info,
+                souls: s.player.soulessence_infos,
+                ornaments: s.ornaments,
+                pets: s.pets,
+                vehicles: s.vehicles,
+                buildings: s.home.inventory,
+                clothes: s.unlockedClothes,
+                heroSkins: s.unlockedHeroSkins,
+            }
+        }
+        const before = assets(),
+            packets = call('GetRechargePopupData'),
+            entry = protocol.byName.get('CSProtoGetRechargePopupData'),
+            popup = protocol.decode(entry.rsp, packets.find((p) => p.id === entry.id).payload)
+        assert.equal(popup.popup_id ?? 0, 0)
+        for (const key of ['mall_data', 'non_mall_data', 'battlepass_data', 'recharge_diamond', 'monthly_card_data'])
+            assert.equal(popup[key], undefined, 'An observer refresh must not grant or display rewards')
+        assert.deepEqual(assets(), before)
+        return packets
+    }
     const catalog = getEntrustCatalog(tables)
     const interact = (id, complete = true) =>
         call('WorldObjInteract', {
@@ -52,10 +148,15 @@ export function materialClearFixture(name, file = ':memory:') {
             ],
         })
     const kill = (id, { pet = false, damage } = {}) => {
+        // Current BattleService06000694 uses synchronized Unix milliseconds.
+        // A later collector report can be in the same server second; advance
+        // this client clock without reading/forging a server activation barrier.
+        const clockMs = BigInt(Math.floor(now * 1000))
+        reportTimeMs = clockMs > reportTimeMs ? clockMs : reportTimeMs + 1n
         const data = read((s) => ({
-            hero: pet ? s.pets[0].guid : s.player.heros_info.heros[0].guid,
-            enemies: Object.values(s.combat.entities)
-                .filter((e) => e.object_id === id)
+            hero: pet ? group(s).heros.find((slot) => slot.hero_id === group(s).control).pet_id : group(s).control,
+            enemies: Object.values(combatEntityStates(s.combat))
+                .filter((e) => enemyDefinition(tables, s, e.uuid)?.object_id === id && e.hp > 0)
                 .map((e) => ({ uuid: e.uuid, hp: e.hp })),
         }))
         return call('BattleInfoReduce', {
@@ -63,7 +164,7 @@ export function materialClearFixture(name, file = ':memory:') {
             battle_info: data.enemies.map((e, i) => ({
                 hurt_info: { from_id: '1', tar_id: String(i + 2), hp_change: damage ?? -e.hp },
             })),
-            base_time: '0',
+            base_time: reportTimeMs.toString(),
         })
     }
     const begin = (id) => {
@@ -123,6 +224,7 @@ export function materialClearFixture(name, file = ':memory:') {
         read,
         state,
         run,
+        refreshObservers,
         interact,
         kill,
         begin,

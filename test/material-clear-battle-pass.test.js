@@ -21,7 +21,7 @@ test('both typed material weekly goals require five actual wins of their own tag
             (e) => e.code === ErrorCode.BattlePassTaskNotFinished,
         )
         f.edit((s) => (s.battlePass.seasons[s.battlePass.activeKey].tasks.week.counts[15010] = 999))
-        f.call('ActivityGet')
+        f.refreshObservers()
         assert.equal(task(f, 1001203).curr_count, 0)
         assert.equal(task(f, 1001204).curr_count, 0)
         for (let i = 0; i < 5; i++) f.win(30101)
@@ -84,8 +84,10 @@ test('material XP cap and real18002 sync/ACK/SQL failures preserve typed facts a
             f.store.db.exec('DROP TRIGGER material_bp_abort')
         }
         assert.deepEqual(f.state(), before)
+        const cap = Number(f.tables.get('game').find((row) => row.title === 'BATTLE_PASS_WEEKLY_LIMIT').value)
+        assert(Number.isSafeInteger(cap) && cap > 50)
         f.edit((s) => {
-            s.battlePass.seasons[s.battlePass.activeKey].curr_week_exp = 9950
+            s.battlePass.seasons[s.battlePass.activeKey].curr_week_exp = cap - 50
         })
         const entry = f.protocol.byName.get('CSProtoBattlePassGetTaskReward'),
             packets = f.call('BattlePassGetTaskReward', { task_id: 1001203 })
@@ -93,7 +95,7 @@ test('material XP cap and real18002 sync/ACK/SQL failures preserve typed facts a
             f.protocol.decode(entry.rsp, packets.find((p) => p.id === entry.id).payload).rewards[0].itemnum,
             50,
         )
-        assert.equal(ledger(f).curr_week_exp, 10000)
+        assert.equal(ledger(f).curr_week_exp, cap)
         assert.equal(task(f, 1001203).state, 2)
         assert.equal(
             f.read((s) => s.materialDungeonRecords[30101].success_count),
@@ -111,7 +113,7 @@ test('weekly reset uses only new typed clears and malformed tuple keys cannot un
         const boundary = snapshot(f).weekEnd
         assert.equal(task(f, 1001204).state, 1)
         f.time(boundary + 1)
-        f.call('ActivityGet')
+        f.refreshObservers()
         assert.equal(task(f, 1001204).curr_count, 0)
         assert.equal(
             f.read((s) => s.materialDungeonRecords[10101].success_count),
