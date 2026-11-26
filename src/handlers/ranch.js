@@ -11,10 +11,10 @@ import {
     ranchCatalog,
     ranchWorkerLimit,
     ranchPetDrops,
-    ranchSeconds,
     clearRanchPetSlots,
     settleRanches,
     drainRanchPending,
+    newRanchProductionSlot,
 } from '../ranch.js'
 import { pickRanchDrops, storeRanchDrop } from '../ranch-claims.js'
 import { ranchStoreItems } from '../ranch-items.js'
@@ -252,16 +252,7 @@ export function registerRanch(on, tables) {
             chosen.work_status = 6
             chosen.work_build = ranch.block_id
             chosen.capacity_id = capacity
-            if (producer)
-                ranch.product_pets.push({
-                    slot,
-                    pet_guid: chosen.guid,
-                    drop_times: ranchPetDrops(tables, chosen).map((row) => {
-                        const seconds = ranchSeconds(tables, c.state, chosen, row)
-                        ensure(c.now + seconds <= 0xffffffff, 'Ranch production clock overflow', ErrorCode.InvalidLogic)
-                        return { drop_id: row.id, time: c.now + seconds, seconds }
-                    }),
-                })
+            if (producer) ranch.product_pets.push(newRanchProductionSlot(tables, c.state, chosen, slot, c.now))
             else ranch.harvest_pet = chosen.guid
             if (repairMountSelection(tables, c.state))
                 c.pushBefore('CSProtoRideMountInfo', mountPayload(tables, c.state))

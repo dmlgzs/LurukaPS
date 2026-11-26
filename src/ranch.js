@@ -10,6 +10,7 @@ import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { homeCondition } from './home-grid.js'
 import { allocateHomeGuid } from './home-identities.js'
+import { prepareRanchSlotClocks, markCurrentRanchSlot, validateRanchSlotClocks } from './home-ranch-clock.js'
 
 const lists = (value) =>
     String(value || '')
@@ -165,6 +166,23 @@ export function ranchSeconds(tables, state, pet, row) {
     ensure(Number.isSafeInteger(seconds) && seconds > 0, 'Invalid ranch production period', ErrorCode.GameConfig)
     return seconds
 }
+export function newRanchProductionSlot(tables, state, pet, slot, now) {
+    const rows = ranchPetDrops(tables, pet)
+    return markCurrentRanchSlot(
+        {
+            slot,
+            pet_guid: pet.guid,
+            drop_times: rows.map((row) => {
+                const seconds = ranchSeconds(tables, state, pet, row)
+                ensure(now + seconds <= 0xffffffff, 'Ranch production clock overflow', ErrorCode.InvalidLogic)
+                return { drop_id: row.id, time: now + seconds, seconds }
+            }),
+        },
+        rows,
+        now,
+        pet.config_id,
+    )
+}
 export function ranchPayloads(tables, state) {
     return ensureRanches(tables, state).map((ranch) => ({
         guid: ranch.guid,
@@ -200,6 +218,29 @@ export function clearRanchPetSlots(state, guid) {
     return cleared
 }
 
+function retainRanchClockMigration(ranch, slot) {
+    const receipt = slot.clockMigration
+    if (receipt.source !== 'legacy-cutover') return
+    ensure(
+        typeof slot.pet_guid === 'string' &&
+            /^[1-9]\d*$/.test(slot.pet_guid) &&
+            Number.isSafeInteger(slot.slot) &&
+            slot.slot > 0,
+        'Invalid archived ranch worker identity',
+        ErrorCode.GameConfig,
+    )
+    const key = slot.pet_guid + ':' + slot.slot + ':' + receipt.cutoverAt,
+        history = (ranch.clockMigrationHistory ??= {}),
+        previous = history[key]
+    if (previous)
+        ensure(
+            JSON.stringify(previous.receipt) === JSON.stringify(receipt),
+            'Ranch migration receipt identity is ambiguous',
+            ErrorCode.GameConfig,
+        )
+    else history[key] = { pet_guid: slot.pet_guid, slot: slot.slot, receipt: structuredClone(receipt) }
+}
+
 export function writableRanch(state, blockId) {
     const ranch = state.home.ranches[blockId]
     ensure(
@@ -207,7 +248,11 @@ export function writableRanch(state, blockId) {
             ['product_pets', 'drops', 'eggs', 'stores'].every((key) => Array.isArray(ranch[key])) &&
             ['claimedRewardGuids', 'claimedEggGuids'].every(
                 (key) => ranch[key] === undefined || Array.isArray(ranch[key]),
-            ),
+            ) &&
+            (ranch.clockMigrationHistory === undefined ||
+                (ranch.clockMigrationHistory &&
+                    typeof ranch.clockMigrationHistory === 'object' &&
+                    !Array.isArray(ranch.clockMigrationHistory))),
         'Malformed writable ranch state',
         ErrorCode.GameConfig,
     )
@@ -238,9 +283,15 @@ export function writableRanch(state, blockId) {
             : ranch.bonus
     const draft = {
         ...ranch,
+        ...(ranch.clockMigrationHistory !== undefined
+            ? { clockMigrationHistory: { ...ranch.clockMigrationHistory } }
+            : {}),
         product_pets: Array.isArray(ranch.product_pets)
             ? ranch.product_pets.map((slot) => ({
                   ...slot,
+                  ...(slot.clockMigration !== undefined
+                      ? { clockMigration: structuredClone(slot.clockMigration) }
+                      : {}),
                   drop_times: Array.isArray(slot.drop_times)
                       ? slot.drop_times.map((clock) => ({ ...clock }))
                       : slot.drop_times,
@@ -282,19 +333,25 @@ export function ranchDue(tables, state, now) {
             )
             if (ranch.bonus.pendingBonus.length && ranch.drops.length < config.petProductLimit) return true
         }
+        for (const slot of ranch.product_pets) validateRanchSlotClocks(slot)
         if (ranch.product_pets.some((slot) => slot.drop_times.some((clock) => clock.time <= now))) return true
     }
     return false
 }
 export function retimeRanches(tables, state, now) {
     let updated = false
-    for (const ranch of Object.values(state.home?.ranches ?? {})) {
+    for (const original of Object.values(state.home?.ranches ?? {})) {
+        const ranch = writableRanch(state, original.block_id)
         const changes = []
         for (let slotIndex = 0; slotIndex < ranch.product_pets.length; slotIndex++) {
             const slot = ranch.product_pets[slotIndex],
                 pet = state.pets.find((item) => item.guid === slot.pet_guid)
             ensure(pet, 'Missing assigned ranch pet', ErrorCode.GameConfig)
             const drops = ranchPetDrops(tables, pet)
+            if (prepareRanchSlotClocks(tables, pet, slot, drops, now, (row) => ranchSeconds(tables, state, pet, row))) {
+                retainRanchClockMigration(ranch, slot)
+                updated = true
+            }
             for (let index = 0; index < slot.drop_times.length; index++) {
                 const clock = slot.drop_times[index],
                     row = drops.find((item) => item.id === clock.drop_id)
@@ -422,6 +479,14 @@ export function settleRanches(tables, state, now, randomInt) {
                 ErrorCode.PetWorkingStatusValid,
             )
             ensure(Array.isArray(slot.drop_times), 'Malformed ranch production clocks', ErrorCode.GameConfig)
+            if (
+                prepareRanchSlotClocks(tables, pet, slot, ranchPetDrops(tables, pet), now, (row) =>
+                    ranchSeconds(tables, state, pet, row),
+                )
+            ) {
+                retainRanchClockMigration(ranch, slot)
+                updated = true
+            }
             for (const clock of slot.drop_times) {
                 const row = ranchPetDrops(tables, pet).find((item) => item.id === clock.drop_id)
                 ensure(
