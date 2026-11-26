@@ -5,13 +5,15 @@ import { Tables } from '../src/player.js'
 import { Store } from '../src/store.js'
 import { Protocol } from '../src/protocol.js'
 import { Game } from '../src/game.js'
+import { enemyDefinition } from '../src/enemy-state.js'
+import { taskEnemyPacks } from '../src/task-enemy-slots.js'
 import { TaskGraphs, makeNode, unlockAutomaticTasks, conditionSatisfied, taskSnapshot } from '../src/tasks.js'
 const cfg = configuration(),
     tables = new Tables(cfg.tables),
     protocol = new Protocol(cfg.base)
 function setup() {
     const store = new Store(':memory:'),
-        game = new Game(protocol, store, tables)
+        game = new Game(protocol, store, tables, { clock: () => 1800000000 })
     let session = {},
         seq = 1
     const call = (name, value) => {
@@ -22,12 +24,44 @@ function setup() {
         session = {}
         return call('EnterGame', { open_id: 'task-flow' })
     }
+    let battleTime = 1800000000000
+    const control = () => {
+        const state = store.load(session.id).state,
+            manager = state.player.group_mgrs.find((entry) => entry.type === 1)
+        return manager.groups.find((entry) => entry.id === manager.cur_group).control
+    }
+    const enemies = (data) => {
+        data ??= new TaskGraphs(tables).get(106001).nodes.get(5).__type_TaskConditionNodeData.conditionList[0]
+            .__type_TaskConditionBaseData.__type_TaskCondEnemiesGroupData
+        const groups = Array.isArray(data.enemiesDatas) ? data.enemiesDatas : [data.enemiesDatas]
+        assert(groups.length > 0 && groups.every(Boolean))
+        return groups.flatMap((group) => {
+            const packs = taskEnemyPacks(tables, group)
+            assert(packs.length > 0)
+            return packs.map((_, slot) => ((4n << 56n) | (BigInt(slot) << 32n) | BigInt(group.createNpcId)).toString())
+        })
+    }
+    const hit = (id) => {
+        const definition = enemyDefinition(tables, store.load(session.id).state, id)
+        assert(definition?.max_hp > 0)
+        // Current BattleService06000694 uses synchronized epoch milliseconds.
+        const packets = call('BattleInfoReduce', {
+            base_time: String(++battleTime),
+            uint64_dic: [control(), id],
+            battle_info: [{ hurt_info: { from_id: '1', tar_id: '2', hp_change: -definition.max_hp } }],
+        })
+        assert.equal(store.load(session.id).state.combat.entities[id]?.hp, 0, 'actual HP death precedes task reports')
+        return packets
+    }
     const packets = login()
     return {
         store,
         call,
         login,
         packets,
+        control,
+        enemies,
+        hit,
         state: () => store.load(session.id).state,
         edit: (fn) => store.transact(session.id, 0, fn),
     }
@@ -82,12 +116,7 @@ test('late duplicate after for finished prologue node is acknowledged without ad
     try {
         const q = { task_id: 106001, node_id: 5 }
         t.call('TaskClientBefore', q)
-        const source = t.state().player.heros_info.heros[0].guid
-        for (const slot of [0, 1])
-            t.call('BattleInfoReduce', {
-                uint64_dic: [source, ((4n << 56n) | (BigInt(slot) << 32n) | 10600101n).toString()],
-                battle_info: [{ hurt_info: { from_id: '1', tar_id: '2', hp_change: -10000 } }],
-            })
+        for (const id of t.enemies()) t.hit(id)
         t.call('TaskClientCondAfter', { ...q, indexes: [0] })
         const first = t.call('TaskClientAfter', q).find((x) => x.id === 9862),
             state = t.state()
@@ -140,16 +169,13 @@ test('configured enemy group requires every slot dead then client after-actions 
     const t = setup()
     try {
         t.call('TaskClientBefore', { task_id: 106001, node_id: 5 })
-        const source = t.state().player.heros_info.heros[0].guid
-        const hit = (slot) =>
-            t.call('BattleInfoReduce', {
-                uint64_dic: [source, ((4n << 56n) | (BigInt(slot) << 32n) | 10600101n).toString()],
-                battle_info: [{ hurt_info: { from_id: '1', tar_id: '2', hp_change: -10000 } }],
-            })
-        hit(0)
+        const enemies = t.enemies()
+        assert(enemies.length > 1, 'current prologue must have several displayed slots for this test')
+        t.hit(enemies[0])
         assert.equal(t.state().tasks[0].nodes[0].node_values[0], 0)
         assert.throws(() => t.call('TaskClientAfter', { task_id: 106001, node_id: 5 }), /conditions/)
-        const packets = hit(1)
+        let packets
+        for (const id of enemies.slice(1)) packets = t.hit(id)
         assert.equal(t.state().tasks[0].nodes[0].node_values[0], 1)
         assert(packets.some((p) => p.id === 9853))
         assert.equal(t.state().tasks[0].nodes[0].node_id, 5)
@@ -346,13 +372,22 @@ test('an old underleveled active main is shown as a level placeholder until leve
         assert.ok(t.state().tasks.some((task) => task.task_id === 106014))
 
         const encode = (value) => Buffer.from(String(value)).toString('base64')
+        const acceptedBefore = new Set(t.state().tasks.map((task) => task.task_id))
         const upgraded = t.call('GMCommand', { command: encode('level'), args: [encode(15)] })
         const taskPackets = upgraded.filter((packet) => packet.id === 9853)
         assert.ok(taskPackets.length > 0)
         const restored = protocol.decode('SCTaskSync', taskPackets.at(-1).payload)
         assert.ok(restored.tasks.some((task) => task.task_id === 106014))
         assert.equal(restored.next_main_id, 0)
-        assert.deepEqual(restored.new_task_ids, [106014])
+        assert.deepEqual(
+            [...restored.new_task_ids].sort((a, b) => a - b),
+            t
+                .state()
+                .tasks.filter((task) => !acceptedBefore.has(task.task_id))
+                .map((task) => task.task_id)
+                .sort((a, b) => a - b),
+        )
+        assert(!restored.new_task_ids.includes(106014), 'restored existing main is not a newly accepted task')
         assert.equal(t.state().taskEpochs[106014], 1)
     } finally {
         t.store.close()
@@ -553,7 +588,9 @@ test('quest 106010 node78 grants configured customized pet before advancing', ()
         assert.equal(state.pets.length, before + 1)
         assert.equal(pet.config_id, 500072)
         assert.equal(pet.satiety_val, 60)
-        assert.equal(pet.can_not_release, true)
+        const template = tables.find('pet_customized', 500072)
+        assert.equal(template.isRelease, 1, 'current template permits release')
+        assert.equal(pet.can_not_release, template.isRelease === 0)
         assert.deepEqual(Object.fromEntries(pet.comprehension.map((x) => [x.attr_id, x.level])), {
             1: 7,
             3: 4,
@@ -564,7 +601,7 @@ test('quest 106010 node78 grants configured customized pet before advancing', ()
         })
         assert.deepEqual(
             pet.gene_infos.map((x) => x.gene_id),
-            [532048, 533003, 533036, 533026, 533008, 533040, 533001, 533076],
+            [template.talentDna, ...String(template.dna).split('|').filter(Boolean).map(Number)],
         )
         assert.equal(state.tasks[0].nodes[0].node_id, 149)
         assert(state.tasks[0].reward_nodes.includes(78))
@@ -624,6 +661,7 @@ test('initial main quest runs from entry through NPC and battle reports, customi
                     assert([2519, 2520].includes(c.conditionId))
                     const d = b.__type_TaskCondActiveNPCTriggerData ?? b.__type_TaskCondEnemiesGroupData
                     const target = c.conditionId === 2519 && d.isNowCreate ? d.npcData.createNpcId : d.createNpcId
+                    if (c.conditionId === 2520) for (const id of t.enemies(d)) t.hit(id)
                     t.call('ClientBehaviourRecord', {
                         key: c.conditionId,
                         args: [target, 106001, node.node_id, index, 1],
@@ -654,7 +692,11 @@ test('initial main quest runs from entry through NPC and battle reports, customi
                     protocol.decode('PlayerData', bagPacket.payload).sbag_infos.items.find((x) => x.itemid === 1000001)
                         .guid !== '0',
                 )
-                t.call('TaskRewardNode', request)
+                assert(protocol.retiredNames.has('CSProtoTaskRewardNode'))
+                const retry = t
+                    .call('MultiTaskClientAfter', { task_params: [request] })
+                    .find((packet) => packet.id === 9882)
+                assert.deepEqual(protocol.decode('cs.Rewards', retry.payload).rewards ?? [], [])
                 assert.equal(t.state().player.sbag_infos.items.find((i) => i.itemid === 1000001).itemnum, n)
             }
             if (config.nodeType === 50) {
