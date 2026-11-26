@@ -45,15 +45,39 @@ function catalog(tables) {
 export function collectionStation(tables, build) {
     return build?.build_type === 24 ? catalog(tables).stations.get(build.build_id) : undefined
 }
-function matches(row, station, product) {
+function matches(row, station, product, planId) {
     const terms = String(row.buffCondition || '')
         .split('|')
         .filter(Boolean)
         .map((v) => v.split('#').map(Number))
+    for (const term of terms) {
+        ensure(
+            term.length === 2 && term.every((value) => Number.isSafeInteger(value) && value > 0),
+            'Invalid collection buff condition',
+            ErrorCode.GameConfig,
+        )
+        ensure(
+            [2034, 2012, 2036].includes(term[0]),
+            'Collection buff condition requires support',
+            ErrorCode.FunctionClosed,
+        )
+    }
+    ensure([1, 2].includes(row.buffConditionLogic), 'Invalid collection buff condition logic', ErrorCode.GameConfig)
     const match = ([key, value]) => {
         if (key === 2034) return value === station.groupId
         if (key === 2012) return value === product
-        ensure(false, 'Collection buff condition requires support', ErrorCode.FunctionClosed)
+        return value === planId
+    }
+    // Current HomeBuff0601cd2e/0601cd2f treats2036 as a selected-plan
+    // prerequisite even for OR rows. ResolveCollectionPlan validates this ID.
+    const plans = terms.filter(([key]) => key === 2036)
+    if (plans.length) {
+        ensure(
+            Number.isSafeInteger(planId) && planId > 0,
+            'Collection buff plan context is missing',
+            ErrorCode.GameConfig,
+        )
+        if (!plans.some(match)) return false
     }
     return row.buffConditionLogic === 2 ? !terms.length || terms.some(match) : terms.every(match)
 }
@@ -92,7 +116,7 @@ export function collectionPlan(tables, state, build) {
     let slots = station.collectionlimit
     for (const row of rows) {
         if (![2028, 2029, 4006].some((id) => values(row, id).length)) continue
-        if (!matches(row, station, 0)) continue
+        if (!matches(row, station, 0, selected.id)) continue
         for (const id of [2028, 2029]) for (const product of values(row, id)) ids.add(product)
         for (const amount of values(row, 4006)) slots += amount
     }
@@ -141,7 +165,7 @@ export function collectionPlan(tables, state, build) {
         let reduction = 0
         for (const row of rows) {
             const amounts = values(row, 2001)
-            if (!amounts.length || !matches(row, station, id)) continue
+            if (!amounts.length || !matches(row, station, id, selected.id)) continue
             for (const amount of amounts) reduction += amount / 10000
         }
         const seconds = Math.max(
