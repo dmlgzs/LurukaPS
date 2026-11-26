@@ -10,8 +10,36 @@ import { grantRewards, parseRewards } from '../src/rewards.js'
 import { accessoryProductionPlan, accessoryProductionChoices } from '../src/accessory-production.js'
 import { ErrorCode } from '../src/error-codes.js'
 import { getEntrustCatalog } from '../src/entrust.js'
+import { TaskGraphs, makeNode } from '../src/tasks.js'
+import { enemyDefinition } from '../src/enemy-state.js'
+import { group } from '../src/handlers/common.js'
 const stock = (s, id) => s.player.sbag_infos.items.filter((x) => x.itemid === id).reduce((n, x) => n + x.itemnum, 0)
 const wallet = (s, id) => BigInt(s.player.attr_infos.attrs.find((x) => x.attr_id === id)?.attr_val ?? 0)
+const materialSelection = (tables, row) =>
+    String(row.materialSelect)
+        .split('|')
+        .filter(Boolean)
+        .map((group) => {
+            const option = tables
+                .get('products_material_group')
+                .find((entry) => entry.materialGroupId === Number(group))
+            assert(option, 'Current material group must have a selectable option')
+            return option.Id
+        })
+const materialCosts = (tables, row, choices) => {
+    const result = new Map()
+    for (const item of [
+        ...parseRewards(row.material),
+        ...choices.flatMap((id) =>
+            parseRewards(tables.get('products_material_group').find((entry) => entry.Id === id).material),
+        ),
+    ]) {
+        const key = item.itemtype + ':' + item.itemid,
+            previous = result.get(key)
+        result.set(key, { ...item, itemnum: (previous?.itemnum ?? 0) + item.itemnum })
+    }
+    return [...result.values()]
+}
 function fixture(name, unlocked = true) {
     const cfg = configuration(),
         tables = new Tables(cfg.tables),
@@ -56,7 +84,10 @@ function fixture(name, unlocked = true) {
             )
         const needed = new Map()
         for (const row of tables.get('accessory_product'))
-            for (const item of [...parseRewards(row.material), ...parseRewards(row.locateCost)])
+            for (const item of [
+                ...materialCosts(tables, row, materialSelection(tables, row)),
+                ...parseRewards(row.locateCost),
+            ])
                 needed.set(item.itemtype + ':' + item.itemid, { ...item, itemnum: 10000 })
         grantRewards(tables, s, [...needed.values()])
     })
@@ -69,14 +100,15 @@ function fixture(name, unlocked = true) {
         call,
         state: () => store.load(session.id).state,
         advance: (n) => (now += n),
+        now: () => now,
         reload: () => call('EnterGame', { open_id: name }, {}),
     }
 }
-const request = { build_guid: 20, product_id: 1, count: 1 }
+const request = { build_guid: 20, product_id: 1, count: 1, select_material: [] }
 const response = (f, packets, id) =>
     f.protocol.decode(f.protocol.byId.get(id).rsp, packets.find((p) => p.id === id).payload)
 
-test('all17 current recipes and every designated leaf plan from linked data without changing the player', () => {
+test('all22 current recipes and every designated leaf plan with current selected materials without changing the player', () => {
     const f = fixture('accessory-production-catalog')
     try {
         const s = f.state(),
@@ -84,13 +116,19 @@ test('all17 current recipes and every designated leaf plan from linked data with
             saved = structuredClone(s)
         let targets = 0
         for (const row of f.tables.get('accessory_product')) {
-            const plan = accessoryProductionPlan(f.tables, s, b, { ...request, product_id: row.id })
+            const selectedMaterials = materialSelection(f.tables, row)
+            const plan = accessoryProductionPlan(f.tables, s, b, {
+                ...request,
+                product_id: row.id,
+                select_material: selectedMaterials,
+            })
             assert.equal(plan.seconds, row.time * 60)
-            assert.deepEqual(plan.costs, parseRewards(row.material))
+            assert.deepEqual(plan.costs, materialCosts(f.tables, row, selectedMaterials))
             for (const id of plan.leaves.keys()) {
                 const selected = accessoryProductionPlan(f.tables, s, b, {
                     ...request,
                     product_id: row.id,
+                    select_material: selectedMaterials,
                     designated_item_id: id,
                 })
                 assert.equal(selected.target, id)
@@ -98,20 +136,26 @@ test('all17 current recipes and every designated leaf plan from linked data with
                 targets++
             }
         }
-        assert.equal(f.tables.get('accessory_product').length, 17)
+        assert.equal(f.tables.get('accessory_product').length, 22)
+        assert.equal(f.tables.get('accessory_product').filter((row) => row.materialSelect).length, 20)
         assert(targets > 70)
         assert.deepEqual(s, saved)
         const choices = accessoryProductionChoices(f.tables, 660001)
-        for (const [draw, id] of [
-            [0, 50017],
-            [2999, 50017],
-            [3000, 50018],
-            [5999, 50018],
-            [6000, 50019],
-            [7000, 50020],
-            [8000, 50016],
-            [9999, 50016],
-        ]) {
+        const root = f.tables.get('drop').filter((row) => row.dropId === 660001)
+        assert.equal(root.length, 1)
+        assert.equal(root[0].type, 27)
+        const leaves = f.tables.get('drop').filter((row) => row.dropId === root[0].itemId && row.weight > 0)
+        let cumulative = 0
+        const boundaries = leaves.flatMap((row) => {
+            const first = cumulative
+            cumulative += row.weight
+            return [
+                [first, row.itemId],
+                [cumulative - 1, row.itemId],
+            ]
+        })
+        assert.equal(cumulative, 10000)
+        for (const [draw, id] of boundaries) {
             const values = [0, 0, draw, 0]
             assert.equal(
                 choices.drops.drops(660001, (max) => {
@@ -226,7 +270,7 @@ test('technology10093 applies per-unit native rounding and cancellation returns 
     const f = fixture('accessory-production-discount')
     try {
         f.store.transact(f.session.id, 0, (s) => {
-            s.home.technology = { levels: { 10093: { level: 1, lastTime: 0, isOpened: true } }, spent: 0 }
+            s.home.technology.levels[10093] = { level: 1, lastTime: 0, isOpened: true }
         })
         const before = structuredClone(f.state())
         f.call('ProductOrnamentStart', { ...request, count: 2, designated_item_id: 50017 })
@@ -290,6 +334,43 @@ test('a real9510 material clear unlocks10202 without a fabricated completion and
             () => f.call('ProductOrnamentStart', request),
             (e) => e.code === ErrorCode.ProductUnlockCondition,
         )
+        // Current material entry requires actual NPC step24 completion. This
+        // is the existing verified current sender sequence, not a synthetic
+        // materialDungeonRecords entry or a direct unlock flag.
+        const graph = new TaskGraphs(f.tables).get(106015)
+        f.store.transact(f.session.id, 0, (state) => {
+            state.taskEpochs ??= {}
+            state.taskEpochs[106015] = 1
+            state.tasks = [
+                {
+                    task_id: 106015,
+                    nodes: [makeNode(graph, 24, state)],
+                    finish_nodes: [22],
+                    reward_nodes: [],
+                    client_trace: true,
+                    start_time: 1800000000,
+                },
+            ]
+            state.taskRecords = (state.taskRecords ?? []).filter(
+                (row) => row.task_id !== 106015 && row.task_id !== 106014,
+            )
+            state.taskRecords.push({ task_id: 106014, count: 1, time: 1799999999 })
+            const npc = f.tables.find('worldmap_100', 400085),
+                xyz = npc.position.split('|').map((value) => Math.round(Number(value) * 100))
+            state.world.map_id = 100
+            state.world.pos = { x: xyz[0], y: xyz[1], z: xyz[2] }
+        })
+        f.call('TaskClientBefore', { task_id: 106015, node_id: 24 })
+        f.call('ClientBehaviourRecord', { key: 1001, args: [400085, 106015, 24, 0, 1] })
+        f.call('TaskClientCondAfter', { task_id: 106015, node_id: 24, indexes: [0] })
+        f.call('TaskClientAfter', { task_id: 106015, node_id: 24 })
+        assert(
+            f
+                .state()
+                .tasks.find((task) => task.task_id === 106015)
+                .finish_nodes.includes(24),
+        )
+        assert.equal(f.state().materialDungeonRecords?.[30101], undefined)
         f.call('MultiCampaignCreate', { dungeon_id: 31960, scene_type: 12 })
         f.call('MultiCampaignPlayerLoadFinish')
         const stages = getEntrustCatalog(f.tables).stages(30101),
@@ -298,17 +379,33 @@ test('a real9510 material clear unlocks10202 without a fabricated completion and
             objs: [{ obj: { obj_id: marker, complete: true, state_data: { step: 0 } }, interact_type: 2 }],
         })
         for (const stage of stages.filter((x) => x.type === 50)) {
+            f.advance(1)
             const s = f.state(),
-                enemies = Object.values(s.combat.entities).filter((x) => x.object_id === stage.row.id)
+                enemies = Object.values(s.combat.entities).filter(
+                    (x) => enemyDefinition(f.tables, s, x.uuid)?.object_id === stage.row.id && x.hp > 0,
+                )
+            assert(enemies.length > 0, 'Actual current stage must publish live enemy actors before damage')
             f.call('BattleInfoReduce', {
-                uint64_dic: [s.player.heros_info.heros[0].guid, ...enemies.map((x) => x.uuid)],
+                uint64_dic: [group(s).control, ...enemies.map((x) => x.uuid)],
                 battle_info: enemies.map((x, i) => ({
                     hurt_info: { from_id: '1', tar_id: String(i + 2), hp_change: -x.hp },
                 })),
-                base_time: '0',
+                base_time: String(f.now() * 1000),
             })
         }
-        assert.equal(f.state().materialDungeonRecords[30101].success_count, 1)
+        assert.equal(
+            f.state().materialDungeonRecords?.[30101]?.success_count,
+            1,
+            JSON.stringify({
+                run: f.state().entrust.run,
+                entities: Object.values(f.state().combat.entities).map((row) => ({
+                    uuid: row.uuid,
+                    hp: row.hp,
+                    alive_state: row.alive_state,
+                    object_id: row.object_id,
+                })),
+            }),
+        )
         f.call('MultiCampaignQuit')
         f.call('ProductOrnamentStart', { ...request, designated_item_id: 50017 })
         f.advance(60)
@@ -384,6 +481,100 @@ test('a damaged generation recipe rolls back both a queued start and a finished 
         assert.equal(f.state().ornaments.length, 1)
     } finally {
         custom.quality = original
+        f.store.close()
+    }
+})
+
+test('current selected-material batch rejects bad choices, refunds its exact debit and atomically survives codec/SQL failures', () => {
+    const f = fixture('accessory-production-current-materials'),
+        encode = f.protocol.encode.bind(f.protocol)
+    try {
+        const recipe = f.tables
+                .get('accessory_product')
+                .find((row) => row.materialSelect && !row.materialSelect.includes('|')),
+            selected = materialSelection(f.tables, recipe),
+            target = [...accessoryProductionChoices(f.tables, recipe.dropId).leaves.keys()][0],
+            input = {
+                ...request,
+                product_id: recipe.id,
+                count: 2,
+                designated_item_id: target,
+                select_material: selected,
+            },
+            expectedCosts = [...materialCosts(f.tables, recipe, selected), ...parseRewards(recipe.locateCost)],
+            snapshot = () => f.store.load(f.session.id),
+            initial = snapshot()
+        for (const choices of [[], [0], [...selected, selected[0]]]) {
+            assert.throws(
+                () => f.call('ProductOrnamentStart', { ...input, select_material: choices }),
+                (error) => error.code === ErrorCode.ProductSelectMaterialFail,
+            )
+            assert.deepEqual(snapshot(), initial)
+        }
+        const codecFailure = (name, request, rsp, message) => {
+            const before = snapshot()
+            f.protocol.encode = (type, data) => {
+                if (type === rsp) throw Error(message)
+                return encode(type, data)
+            }
+            try {
+                assert.throws(() => f.call(name, request), new RegExp(message))
+                assert.deepEqual(snapshot(), before)
+            } finally {
+                f.protocol.encode = encode
+            }
+        }
+        const sqlFailure = (name, request) => {
+            const before = snapshot()
+            f.store.db.exec(
+                "CREATE TEMP TRIGGER accessory_current_fail BEFORE UPDATE ON players BEGIN SELECT RAISE(ABORT, 'accessory current SQL'); END",
+            )
+            try {
+                assert.throws(() => f.call(name, request), /accessory current SQL/)
+                assert.deepEqual(snapshot(), before)
+            } finally {
+                f.store.db.exec('DROP TRIGGER accessory_current_fail')
+            }
+        }
+        codecFailure(
+            'ProductOrnamentStart',
+            input,
+            f.protocol.byName.get('CSProtoProductOrnamentStart').rsp,
+            'accessory current accept codec',
+        )
+        sqlFailure('ProductOrnamentStart', input)
+        f.call('ProductOrnamentStart', input)
+        for (const cost of expectedCosts) {
+            const read = cost.itemtype === 3 ? stock : wallet,
+                multiplier = cost.itemtype === 3 ? 2 : 2n,
+                amount = cost.itemtype === 3 ? cost.itemnum : BigInt(cost.itemnum)
+            assert.equal(read(f.state(), cost.itemid), read(initial.state, cost.itemid) - amount * multiplier)
+        }
+        f.call('ProductCancel', { guid: 20, is_all: true })
+        for (const cost of expectedCosts) {
+            const read = cost.itemtype === 3 ? stock : wallet
+            assert.equal(read(f.state(), cost.itemid), read(initial.state, cost.itemid))
+        }
+        assert.equal(f.state().ornaments?.length ?? 0, 0)
+        f.call('ProductOrnamentStart', input)
+        const jobs = f.state().home.productionJobs[20],
+            claim = { guid: 20, product_guids: jobs.map((job) => job.guid) }
+        f.advance(jobs[0].seconds * 2)
+        codecFailure(
+            'ProductFinish',
+            claim,
+            f.protocol.byName.get('CSProtoProductFinish').rsp,
+            'accessory current claim codec',
+        )
+        sqlFailure('ProductFinish', claim)
+        f.call('ProductFinish', claim)
+        assert.equal(f.state().ornaments.length, 2)
+        assert.equal(new Set(f.state().ornaments.map((item) => item.guid)).size, 2)
+        const completed = snapshot()
+        assert.throws(() => f.call('ProductFinish', claim))
+        assert.deepEqual(snapshot(), completed)
+    } finally {
+        f.protocol.encode = encode
         f.store.close()
     }
 })
