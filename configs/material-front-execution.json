@@ -1,0 +1,730 @@
+{
+    "schemaVersion": 1,
+    "kind": "current-material-front-server-contracts-v1",
+    "clientVersion": "1.0.0",
+    "packageVersion": "3217420",
+    "policy": {
+        "origin": "LOCAL",
+        "id": "current-material-front-server-serial-tags-v1",
+        "resourceAlias": "single-current-manifest-resource-candidate; native-alias-not-proven"
+    },
+    "source": {
+        "front": {
+            "blueprintId": 300358,
+            "declaredPath": "Config/World/Graph/Blueprint/ast_multiplayer_dungeon_front_common.asset",
+            "resourcePath": "Config/World/Graph/Blueprint/ast_multiplayer_dungeon_front_common.asset",
+            "assetPathId": 281652,
+            "bundleId": 214271,
+            "bundleSha256": "beeb9a34b454bbb66cc515b7367bf0dc8a0000366480681a5a4a75d7dc46fa0c",
+            "bundleCrc32": 1293696268,
+            "manifestSha256": "ce7bb0118ed6c1e0d71d0728f7fd0236d156a0f6a497908bc2b7fe5af02ba361",
+            "graphSha256": "d262019db7e06aa111183368aff0ade18b26b1cdfdb7a1afb5b2fb84d8413700",
+            "aliasResolution": "exact-current-table-resource-path"
+        },
+        "server": {
+            "blueprintId": 300351,
+            "declaredPath": "Config/World/Graph/Blueprint/ast_multiplayer_dungeon/multiplayer_dungeon_common.asset",
+            "resourcePath": "Config/World/Graph/Blueprint/MultiPlayerDungeon/ast_multiplayer_dungeon_common.asset",
+            "assetPathId": 281455,
+            "bundleId": 214424,
+            "bundleSha256": "70525bf2c01d280440870e66b74cd4964fdb3029b5ff8e85f7b55829fb99ec2e",
+            "bundleCrc32": 3697997414,
+            "manifestSha256": "ce7bb0118ed6c1e0d71d0728f7fd0236d156a0f6a497908bc2b7fe5af02ba361",
+            "graphSha256": "4cc29c3472c543dcd145f6bc0732a968f5433bec866dc548ee306615242c97e3",
+            "aliasResolution": "single-current-vstring-asset-candidate; native-alias-not-proven"
+        },
+        "tableIndexSha256": "38dbdf84a0575a0990f9cd7ac39226e46a51522791006e7259854a350d20e665",
+        "tables": [
+            {
+                "table": "dungeon",
+                "sha256": "fd940e82709a9b000f70b69b0f7e693a3b29e9fdafbdb4ba3aaa95b5b8624564",
+                "rows": 1600
+            },
+            {
+                "table": "dungeon_material",
+                "sha256": "b2d945fc0754eb4a32e30fe9a5469fafab7524e6a1747b9edcf695157be4a731",
+                "rows": 92
+            },
+            {
+                "table": "dungeon_scene",
+                "sha256": "f1a245020764c0fb6d14ae9a22edc319eba27fbf7e7ba722113acbc3ba406a89",
+                "rows": 1056
+            },
+            {
+                "table": "enemy_pack",
+                "sha256": "5feb50b06ef052d7279caddce2a8ca0a3562970b68c056216b26248482a45e1c",
+                "rows": 1271
+            },
+            {
+                "table": "stamina_chest_drop",
+                "sha256": "a8880ccaa99790fc252c8c9e0aa1629f5b81ed1926f3cf16003de2a34d546dff",
+                "rows": 221
+            },
+            {
+                "table": "world_blueprint",
+                "sha256": "69111650ccfccf4c21869aba4306f810d141d2fab441caedb1d9bcde0f58cd27",
+                "rows": 456
+            },
+            {
+                "table": "world_city",
+                "sha256": "de4c03d2c8907f0827395c870ad54edd966331be29a44e6cba19f97a94c6bed7",
+                "rows": 742
+            },
+            {
+                "table": "world_enemy_group",
+                "sha256": "bc91245ed99b92a5b7116fa3106b2788ff3e4dd05c3469d5e1b4352fedf06142",
+                "rows": 3160
+            },
+            {
+                "table": "world_spawner",
+                "sha256": "18a03b14bebf8da37fa95322ab9c4bfa3e44a1b17119bd84a72d5ddb24d0ea12",
+                "rows": 2571
+            },
+            {
+                "table": "worldmap_600",
+                "sha256": "7d801b09b507e993ceee2e90d28c69bc63ed2e22de12edd5da21c88db299bdbe",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60000",
+                "sha256": "b9b70facace98aa669483c3d4198c3edf8640d3653812133b3efddb3385cd8e8",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60001",
+                "sha256": "d5c85c590b5012da5b111f3ce758437597fee0eedeb72d908a30046fa230e272",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60002",
+                "sha256": "316e3082e8601b013f25eea0929f04580454d08218757f89225abf222a081495",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60003",
+                "sha256": "7e5faf53524edb517dbdd28e6d5170d7020ba1d6fa516c4bd58cbbc944822744",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60004",
+                "sha256": "e1136e4462fe63a41b0ba034b643a9831f6afa04633cc0c9bcce9a3e8697233a",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60011",
+                "sha256": "99f793ed6b8e6c6cabc8710d775c4a70999d192b3132d6d852f6c532b893ee3f",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60012",
+                "sha256": "b552d5f5afc9f0b793e2dd9b250168960295d11890d6906e6422fde28c2bb846",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60013",
+                "sha256": "6556dde5c592f977fe734610ecade15c8a409b1189e7b2c41163e45511ab2865",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60014",
+                "sha256": "06c9db87800b10f85a765de5196e5b54ba1a61813f3baf92aaa91713dd966058",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60023",
+                "sha256": "3bb0481bc94ae2782b660c5d435f70d7193c29074f3626f19a98cb984b8c0ae2",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60024",
+                "sha256": "606c7263d20c49a0957752b43f5765590c775fa09d6247b0e2d01dddaf4eb74e",
+                "rows": 8
+            },
+            {
+                "table": "worldmap_60033",
+                "sha256": "e8d48bd22b9547ee262c48ea79b191e590958f7a1e4ad86b38009254b68845de",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60034",
+                "sha256": "a45ba882c9b5b0ccd344ea6d9099cbc081c0044f9c789e48242bcbb7286b95fc",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60043",
+                "sha256": "1e3f89a90d60a0e55bf4d07e40ed461a384a4994c9c8c5d18530baec7cc6e6d2",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60044",
+                "sha256": "6a52c90d81d65ee7dc5aac4892286d101346956ebb898ffae4b74e9105101a48",
+                "rows": 8
+            },
+            {
+                "table": "worldmap_60050",
+                "sha256": "84072b15a3746c5a805dab266eb045591982e6b49e1baeb73a5ff40f83dd7a67",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60051",
+                "sha256": "515418d286c1e3eab4ce4bf20c38cfd2cc34c23cdebbd042738b41d7d614ef4b",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60052",
+                "sha256": "a586c3f0f13e7cf5d8f0a63de8bde058bd6a59a8e1cbf7e09f4ab8e4eff15175",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60053",
+                "sha256": "b04e7a587a3ec1e0b7b2f7414598a12008bbd603a3220163d72bff6368a0b0aa",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60054",
+                "sha256": "2f0a35201d1d8c8184098acee48461e96a3a944d27f77d772624d6ec2d0437de",
+                "rows": 8
+            },
+            {
+                "table": "worldmap_60061",
+                "sha256": "c1777743ca0f3997d165472834e92eb9ae02b23fe8b382c456909b8a7291c186",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60062",
+                "sha256": "a7b655450f1b9db190c17aaa7a49914c1e25671c116d78c65f65f86a764eb275",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60063",
+                "sha256": "e516f7fac090720ea77cded0d60c052e6fbfde94476a2f6b203e0a44354ae87f",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60064",
+                "sha256": "ed51749917102fdeb5c8860d2e60daedc6d861cceaaa2ae9c1c4868fba9498ff",
+                "rows": 8
+            },
+            {
+                "table": "worldmap_60073",
+                "sha256": "aa641ac0a2a732f175e70ad5cd9f5676997b011df4d00d51e1e4df89f6f49b55",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60074",
+                "sha256": "045c245cc94b903067ae2c84ed2907956bc1478cf529328ca38ebd09ed071130",
+                "rows": 8
+            },
+            {
+                "table": "worldmap_60083",
+                "sha256": "debfd9af8750d9979590d8cd47e1dd068908cf24dd8fd13ba6aed42d3f84d0e2",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60084",
+                "sha256": "e2f94cbf7cd56789a85001371174b05a1bf79a66bb11f78caf36aee28f3582be",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60091",
+                "sha256": "2a252b1dfeaa632dd33bb885cac5516684ef53974378a44a1c392b27a6a026ca",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60092",
+                "sha256": "92e12d6789e9505a45a0aae175c54c6cf6f233f342e7d5fcc05d1fc029204ea5",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60093",
+                "sha256": "fc66dea20e8fc455fbd49cd7d433f0261e4376a87f25cec8eb3ae2de8cfea58b",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_60094",
+                "sha256": "f644ad44c56a96e1b4822bd1c8a8cf83c23c61622fedbb18da831d11622e72b9",
+                "rows": 8
+            },
+            {
+                "table": "worldmap_632",
+                "sha256": "08c51f6b4e13e1fbbc384e10d1d221d05ecad918efe7fb2ed6730eb3a633ffb1",
+                "rows": 8
+            },
+            {
+                "table": "worldmap_6335",
+                "sha256": "c9f6fade864c2e2cc90b7aa895684878028c674452f79da001ce8c69682d4848",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_6337",
+                "sha256": "729c3f576c0058741d17e5fe14f041642a2d4ade81b756027797b95475f00ccb",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_6346",
+                "sha256": "137911c9c46cb5ad597312d93a062a13088f356a5ec2951e4e218caee2b8b134",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_6347",
+                "sha256": "45dfc4341c629f4909a15e923ae39a24c17c80945c8ad40cc1d18c46e4740b70",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_6349",
+                "sha256": "b13bd602e99fcd5aa0eb6e9d3d656fe598deafd3b2515544bc7ffda7c456d23d",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_6370",
+                "sha256": "32f7910a6cad35aaa3bbafc3185d030e9a4342d78f54a2051bf953547bf2878f",
+                "rows": 7
+            },
+            {
+                "table": "worldmap_6373",
+                "sha256": "fe97e5ec019bd60f9667207024b7807be92842e652a96f84a5c33fe994a0e06e",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_638",
+                "sha256": "3c40bfc5a284a62b8c8664c1d1eadc9bb7258154a65e9b7961395fb02db7292a",
+                "rows": 10
+            },
+            {
+                "table": "worldmap_641",
+                "sha256": "566e24f05abe640402483be2e7bc85b4954fe372ff4529200d0192663f518ab6",
+                "rows": 8
+            },
+            {
+                "table": "worldmap_646",
+                "sha256": "69695d9dec1e36d140eac2a5900bccfa5a27b37be3ed38bf55eb7fe7d1af6acd",
+                "rows": 10
+            },
+            {
+                "table": "worldmap_650",
+                "sha256": "2024d3e678c1fd180bccd0699949b3e46da6d4bcf56f2d4a6f0adfa5cabf4839",
+                "rows": 8
+            },
+            {
+                "table": "worldmap_6510",
+                "sha256": "699b842a99486709b369e7336b96499242179eb94ece1f979c26d0a5aed9f740",
+                "rows": 9
+            },
+            {
+                "table": "worldmap_6515",
+                "sha256": "edbb2458233a6863e689a3e338b41afcc2aaa57d2c0f218dad3d0d3beb177c38",
+                "rows": 10
+            },
+            {
+                "table": "worldmap_6520",
+                "sha256": "6627240832ef788a61abf0d5f01fa3e6c0b420bec612e957e14f3edcd3f8344c",
+                "rows": 10
+            },
+            {
+                "table": "worldmap_653",
+                "sha256": "26cbf77823ddfdbc11b86048f22420b43e18d0743621b30d01ef7a485b83e73f",
+                "rows": 10
+            },
+            {
+                "table": "worldmap_6538",
+                "sha256": "75b66e948281a2ce8c61bdb848e8a2db69b88d63f9afb5cee1117241b5f053fc",
+                "rows": 8
+            },
+            {
+                "table": "worldmap_654",
+                "sha256": "0e4d7edba9f7781880b97c20f6eecd029607c7eac71f6f264132d11b3efbb1b6",
+                "rows": 10
+            },
+            {
+                "table": "worldmap_656",
+                "sha256": "4cc9c23b79ac667348a76debc4264e9a39d156949d25358e597c3eb387c3c74b",
+                "rows": 10
+            },
+            {
+                "table": "worldmap_659",
+                "sha256": "a7c5efc624ca95ff3e84da6d150c31ea83288dc13e50ff768fb00d60fc7b1b4a",
+                "rows": 10
+            },
+            {
+                "table": "worldmap_665",
+                "sha256": "e442c5b0cfad18e6829da070e646056c922407b037d02b76c1f8448d434877a8",
+                "rows": 10
+            },
+            {
+                "table": "worldmap_669",
+                "sha256": "8caee7a40224ff215deb82fa004ceb0598fa4871a872c384bfe7f7629c494a35",
+                "rows": 10
+            },
+            {
+                "table": "worldmap_670",
+                "sha256": "8d2ef8e3b82b3319c906851c2dd5db01218e8e6293167d71b3b875a993531703",
+                "rows": 10
+            },
+            {
+                "table": "worldmap_679",
+                "sha256": "c020e83af2fb5596c1c72c9e9691568f315937035ce6206cb29374ba9f0b9c6d",
+                "rows": 10
+            }
+        ]
+    },
+    "model": {
+        "waits": [
+            { "tag": 1, "variable": "enemyTag1", "waitNode": "5", "createNode": "4" },
+            { "tag": 2, "variable": "enemyTag2", "waitNode": "11", "createNode": "10" },
+            { "tag": 3, "variable": "enemyTag3", "waitNode": "16", "createNode": "15" },
+            { "tag": 4, "variable": "enemyTag4", "waitNode": "21", "createNode": "20" },
+            { "tag": 5, "variable": "enemyTag5", "waitNode": "25", "createNode": "24" },
+            { "tag": 6, "variable": "enemyTag6", "waitNode": "29", "createNode": "28" },
+            { "tag": 7, "variable": "enemyTag7", "waitNode": "33", "createNode": "32" },
+            { "tag": 8, "variable": "enemyTag8", "waitNode": "37", "createNode": "36" },
+            { "tag": 9, "variable": "enemyTag9", "waitNode": "41", "createNode": "40" }
+        ],
+        "guards": [{ "node": "43", "variable": "bossTag", "value": 0, "branch": "False" }],
+        "terminal": {
+            "splitNode": "53",
+            "presentationNode": "54",
+            "presentationTag": 1000,
+            "finishNode": "55",
+            "chestCreatedByFinish": false
+        },
+        "sideActions": [
+            { "node": "3", "kind": "create-tag", "variable": "airWallTag1", "tag": 10 },
+            { "node": "4", "kind": "create-tag", "variable": "enemyTag1", "tag": 1 },
+            { "node": "7", "kind": "remove-tag", "variable": "airWallTag1", "tag": 10 },
+            { "node": "8", "kind": "create-tag", "variable": "airWallTag2", "tag": 20 },
+            { "node": "9", "kind": "create-tag", "variable": "musicIDBattle1", "tag": 810 },
+            { "node": "10", "kind": "create-tag", "variable": "enemyTag2", "tag": 2 },
+            { "node": "12", "kind": "remove-tag", "variable": "airWallTag2", "tag": 20 },
+            { "node": "13", "kind": "create-tag", "variable": "airWallTag3", "tag": 30 },
+            { "node": "14", "kind": "create-tag", "variable": "musicIDBattle2", "tag": 820 },
+            { "node": "15", "kind": "create-tag", "variable": "enemyTag3", "tag": 3 },
+            { "node": "17", "kind": "remove-tag", "variable": "airWallTag3", "tag": 30 },
+            { "node": "18", "kind": "create-tag", "variable": "airWallTag4", "tag": 40 },
+            { "node": "19", "kind": "create-tag", "variable": "musicIDBattle2", "tag": 820 },
+            { "node": "20", "kind": "create-tag", "variable": "enemyTag4", "tag": 4 },
+            { "node": "22", "kind": "remove-tag", "variable": "airWallTag4", "tag": 40 },
+            { "node": "23", "kind": "create-tag", "variable": "airWallTag5", "tag": 50 },
+            { "node": "24", "kind": "create-tag", "variable": "enemyTag5", "tag": 5 },
+            { "node": "26", "kind": "remove-tag", "variable": "airWallTag5", "tag": 50 },
+            { "node": "27", "kind": "create-tag", "variable": "airWallTag6", "tag": 60 },
+            { "node": "28", "kind": "create-tag", "variable": "enemyTag6", "tag": 6 },
+            { "node": "30", "kind": "remove-tag", "variable": "airWallTag6", "tag": 60 },
+            { "node": "31", "kind": "create-tag", "variable": "airWallTag7", "tag": 70 },
+            { "node": "32", "kind": "create-tag", "variable": "enemyTag7", "tag": 7 },
+            { "node": "34", "kind": "remove-tag", "variable": "airWallTag7", "tag": 70 },
+            { "node": "35", "kind": "create-tag", "variable": "airWallTag8", "tag": 80 },
+            { "node": "36", "kind": "create-tag", "variable": "enemyTag8", "tag": 8 },
+            { "node": "38", "kind": "remove-tag", "variable": "airWallTag8", "tag": 80 },
+            { "node": "39", "kind": "create-tag", "variable": "airWallTag9", "tag": 90 },
+            { "node": "40", "kind": "create-tag", "variable": "enemyTag9", "tag": 9 },
+            { "node": "42", "kind": "remove-tag", "variable": "airWallTag9", "tag": 90 }
+        ],
+        "boundary": "Current graph flow projection; client MultiPlayerDungeonFinish.OnFlowInput is ret, official backend implementation is unavailable"
+    },
+    "coverage": {
+        "selector": "current front/server pair with victory objects absent from explicit autoBattleIndex stages",
+        "alreadyIndexedScenes": [
+            600, 632, 638, 641, 646, 650, 653, 654, 656, 659, 665, 669, 670, 679, 6335, 6337, 6346, 6347, 6349, 6370,
+            6373, 6510, 6515, 6520, 6538, 60000, 60001, 60002, 60003, 60004, 60011, 60012, 60013, 60014, 60023, 60024,
+            60043, 60044, 60050, 60051, 60052, 60053, 60054, 60061, 60062, 60063, 60073, 60074, 60083, 60084, 60091,
+            60092, 60093, 60094
+        ]
+    },
+    "scenes": [
+        {
+            "material_id": 30803,
+            "dungeon_id": 32033,
+            "scene_id": 60033,
+            "map_id": 60033,
+            "blueprint_id": 300358,
+            "server_blueprint_id": 300351,
+            "stages": [
+                {
+                    "index": 1,
+                    "type": 13,
+                    "object_id": 3,
+                    "tag": 1,
+                    "variable": "enemyTag1",
+                    "waitNode": "5",
+                    "createNode": "4"
+                },
+                {
+                    "index": 2,
+                    "type": 50,
+                    "object_id": 5,
+                    "tag": 2,
+                    "variable": "enemyTag2",
+                    "waitNode": "11",
+                    "createNode": "10"
+                },
+                {
+                    "index": 3,
+                    "type": 50,
+                    "object_id": 6,
+                    "tag": 3,
+                    "variable": "enemyTag3",
+                    "waitNode": "16",
+                    "createNode": "15"
+                },
+                { "index": 4, "type": 30, "object_id": 4 }
+            ],
+            "omittedTags": [4, 5, 6, 7, 8, 9],
+            "chest": {
+                "drop_id": 1050803,
+                "object_id": 4,
+                "source": "current-stamina_chest_drop-and-explicit-auto-anchor; not terminal music"
+            },
+            "victory": { "kind": 2500, "spawnerId": 99016, "count": 2, "object_ids": [5, 6] },
+            "sourceBoundary": "LOCAL current-server-graph serial projection with explicitly audited current-resource alias; client front graph is separate, no official server Finish implementation claim",
+            "tableFingerprints": [
+                {
+                    "table": "dungeon",
+                    "rows": 1600,
+                    "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+                },
+                {
+                    "table": "dungeon_material",
+                    "rows": 92,
+                    "canonicalSha256": "a95ae69246d61740612d0cb0ff90251fe535c9284cff1cc365a55bba9fb2d984"
+                },
+                {
+                    "table": "dungeon_scene",
+                    "rows": 1056,
+                    "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+                },
+                {
+                    "table": "enemy_pack",
+                    "rows": 1271,
+                    "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+                },
+                {
+                    "table": "stamina_chest_drop",
+                    "rows": 221,
+                    "canonicalSha256": "3320faadbdc8e5e267735bce6b2b00675401d7abd47113f429a3f90932c81f2b"
+                },
+                {
+                    "table": "world_blueprint",
+                    "rows": 456,
+                    "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+                },
+                {
+                    "table": "world_city",
+                    "rows": 742,
+                    "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+                },
+                {
+                    "table": "world_enemy_group",
+                    "rows": 3160,
+                    "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+                },
+                {
+                    "table": "world_spawner",
+                    "rows": 2571,
+                    "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+                },
+                {
+                    "table": "worldmap_60033",
+                    "rows": 9,
+                    "canonicalSha256": "5bace81ce163af0f0c3e2c07cb22ca3d1823d6a88b4ac3ca6ca04d5b26b4ecf4"
+                }
+            ]
+        },
+        {
+            "material_id": 30804,
+            "dungeon_id": 32034,
+            "scene_id": 60034,
+            "map_id": 60034,
+            "blueprint_id": 300358,
+            "server_blueprint_id": 300351,
+            "stages": [
+                {
+                    "index": 1,
+                    "type": 13,
+                    "object_id": 3,
+                    "tag": 1,
+                    "variable": "enemyTag1",
+                    "waitNode": "5",
+                    "createNode": "4"
+                },
+                {
+                    "index": 2,
+                    "type": 50,
+                    "object_id": 5,
+                    "tag": 2,
+                    "variable": "enemyTag2",
+                    "waitNode": "11",
+                    "createNode": "10"
+                },
+                {
+                    "index": 3,
+                    "type": 50,
+                    "object_id": 6,
+                    "tag": 3,
+                    "variable": "enemyTag3",
+                    "waitNode": "16",
+                    "createNode": "15"
+                },
+                { "index": 4, "type": 30, "object_id": 4 }
+            ],
+            "omittedTags": [4, 5, 6, 7, 8, 9],
+            "chest": {
+                "drop_id": 1050804,
+                "object_id": 4,
+                "source": "current-stamina_chest_drop-and-explicit-auto-anchor; not terminal music"
+            },
+            "victory": { "kind": 2500, "spawnerId": 99016, "count": 2, "object_ids": [5, 6] },
+            "sourceBoundary": "LOCAL current-server-graph serial projection with explicitly audited current-resource alias; client front graph is separate, no official server Finish implementation claim",
+            "tableFingerprints": [
+                {
+                    "table": "dungeon",
+                    "rows": 1600,
+                    "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+                },
+                {
+                    "table": "dungeon_material",
+                    "rows": 92,
+                    "canonicalSha256": "a95ae69246d61740612d0cb0ff90251fe535c9284cff1cc365a55bba9fb2d984"
+                },
+                {
+                    "table": "dungeon_scene",
+                    "rows": 1056,
+                    "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+                },
+                {
+                    "table": "enemy_pack",
+                    "rows": 1271,
+                    "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+                },
+                {
+                    "table": "stamina_chest_drop",
+                    "rows": 221,
+                    "canonicalSha256": "3320faadbdc8e5e267735bce6b2b00675401d7abd47113f429a3f90932c81f2b"
+                },
+                {
+                    "table": "world_blueprint",
+                    "rows": 456,
+                    "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+                },
+                {
+                    "table": "world_city",
+                    "rows": 742,
+                    "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+                },
+                {
+                    "table": "world_enemy_group",
+                    "rows": 3160,
+                    "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+                },
+                {
+                    "table": "world_spawner",
+                    "rows": 2571,
+                    "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+                },
+                {
+                    "table": "worldmap_60034",
+                    "rows": 9,
+                    "canonicalSha256": "f3b072df21688029c06098ab5fe90b3af1b6d8b268b1a80a22d1ddd67d4b773f"
+                }
+            ]
+        },
+        {
+            "material_id": 30604,
+            "dungeon_id": 32014,
+            "scene_id": 60064,
+            "map_id": 60064,
+            "blueprint_id": 300358,
+            "server_blueprint_id": 300351,
+            "stages": [
+                {
+                    "index": 1,
+                    "type": 13,
+                    "object_id": 3,
+                    "tag": 1,
+                    "variable": "enemyTag1",
+                    "waitNode": "5",
+                    "createNode": "4"
+                },
+                {
+                    "index": 2,
+                    "type": 50,
+                    "object_id": 5,
+                    "tag": 2,
+                    "variable": "enemyTag2",
+                    "waitNode": "11",
+                    "createNode": "10"
+                },
+                {
+                    "index": 3,
+                    "type": 50,
+                    "object_id": 6,
+                    "tag": 3,
+                    "variable": "enemyTag3",
+                    "waitNode": "16",
+                    "createNode": "15"
+                },
+                { "index": 4, "type": 30, "object_id": 4 }
+            ],
+            "omittedTags": [4, 5, 6, 7, 8, 9],
+            "chest": {
+                "drop_id": 1050604,
+                "object_id": 4,
+                "source": "current-stamina_chest_drop-and-explicit-auto-anchor; not terminal music"
+            },
+            "victory": { "kind": 2500, "spawnerId": 99016, "count": 2, "object_ids": [5, 6] },
+            "sourceBoundary": "LOCAL current-server-graph serial projection with explicitly audited current-resource alias; client front graph is separate, no official server Finish implementation claim",
+            "tableFingerprints": [
+                {
+                    "table": "dungeon",
+                    "rows": 1600,
+                    "canonicalSha256": "32fc6f4c43cf7467bc1932023d584e566b58a12e7c6dd64afe6460938c582ead"
+                },
+                {
+                    "table": "dungeon_material",
+                    "rows": 92,
+                    "canonicalSha256": "a95ae69246d61740612d0cb0ff90251fe535c9284cff1cc365a55bba9fb2d984"
+                },
+                {
+                    "table": "dungeon_scene",
+                    "rows": 1056,
+                    "canonicalSha256": "427ba02db76559e239f33faa98395d921a470871a8f5bf4909112defdb74ba5c"
+                },
+                {
+                    "table": "enemy_pack",
+                    "rows": 1271,
+                    "canonicalSha256": "8fff4aeb6b8aa3d320e4a8374e90fff653034eed6e7ffd5c3c3f45b1cf783609"
+                },
+                {
+                    "table": "stamina_chest_drop",
+                    "rows": 221,
+                    "canonicalSha256": "3320faadbdc8e5e267735bce6b2b00675401d7abd47113f429a3f90932c81f2b"
+                },
+                {
+                    "table": "world_blueprint",
+                    "rows": 456,
+                    "canonicalSha256": "b1b87578e68646328000c2c725f2f2ba4f8c4a62a5e705dd53a33d76c4d6ee11"
+                },
+                {
+                    "table": "world_city",
+                    "rows": 742,
+                    "canonicalSha256": "56e0b9be118c3d95153c399d77684a4084ff3942a4fe06599f07b70dcfefcdbc"
+                },
+                {
+                    "table": "world_enemy_group",
+                    "rows": 3160,
+                    "canonicalSha256": "519019717755313294c38de9386557401a4809024dca3415a5ac05ac5970a9d3"
+                },
+                {
+                    "table": "world_spawner",
+                    "rows": 2571,
+                    "canonicalSha256": "604d5db1e752708b54aaa8d368c4c1a3d2e595f0add5b2d8a9a721a0728b1e6e"
+                },
+                {
+                    "table": "worldmap_60064",
+                    "rows": 8,
+                    "canonicalSha256": "79417c460fc7966d8de6c3efa34b86da52d1564bd8e9ba8ca25b3fe47ddf0aee"
+                }
+            ]
+        }
+    ],
+    "sourceFingerprint": "ec9b6f931f868fa41ab5f12d31b45c6082ea1e809dc5cf7b0f04d8fc9eed399d"
+}
