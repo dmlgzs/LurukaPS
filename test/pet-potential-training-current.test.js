@@ -1,10 +1,11 @@
+import { newStarterProfile } from '../src/starter-profile.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { configuration } from '../src/config.js'
-import { Tables } from '../src/player.js'
+import { Tables, seedPlayer } from '../src/player.js'
 import { Protocol } from '../src/protocol.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
@@ -32,7 +33,7 @@ function tiers(tables, pet, level) {
         cur_exp: 0,
     }))
 }
-function fixture(name, { file = ':memory:', count = 3, configId = 500001 } = {}) {
+function fixture(name, { file = ':memory:', count = 3, configId = 500001, profile = 'legacy', playerLevel = 20 } = {}) {
     const cfg = configuration(),
         tables = new Tables(cfg.tables),
         protocol = new Protocol(cfg.base)
@@ -54,12 +55,19 @@ function fixture(name, { file = ':memory:', count = 3, configId = 500001 } = {})
     }
     const call = (name, request) => game.dispatch(session, frame(name, request)),
         account = 'candidate-potential-' + name
+    store.login(account, (id, openId) => {
+        const state = seedPlayer(tables, id, openId)
+        if (profile === 'legacy') delete state.starterProfile
+        else state.starterProfile = newStarterProfile(profile)
+        state.player.basic_info.lv = playerLevel
+        return state
+    })
     call('EnterGame', { open_id: account })
     let ids
     store.transact(session.id, 0, (state) => {
         // Trusted account/progression baseline. Pet allocation and ownership
         // are produced by the current createPets allocator, not naked GUIDs.
-        state.player.basic_info.lv = 20
+        state.player.basic_info.lv = playerLevel
         state.tasks = []
         state.taskRecords = tables.get('task').map((row) => ({ task_id: row.id, count: 1, time: now - 1 }))
         ids = createPets(tables, state, configId, count, 1001).map((pet) => pet.guid)
@@ -80,7 +88,13 @@ function fixture(name, { file = ':memory:', count = 3, configId = 500001 } = {})
         technologyState(tables, state)
         technologyPoints(tables, state)
     })
-    call('Ping', {}) // Reconcile ordinary derived caches after the trusted progression fixture.
+    // Ping is transport-only. A current empty popup query legitimately runs
+    // ordinary observers without manufacturing or clearing a payment receipt.
+    const popupState = store.load(session.id).state
+    assert.equal(popupState.mall?.popupQueue?.length ?? 0, 0)
+    assert.equal(popupState.mall?.pendingPopup, undefined)
+    const popup = call('GetRechargePopupData', {}).find((p) => p.id === 18048)
+    assert.equal(protocol.decode(protocol.byId.get(18048).rsp, popup.payload).popup_id ?? 0, 0)
     const state = () => store.load(session.id).state,
         edit = (fn) => store.transact(session.id, 0, fn),
         request = (attr = 7, partner = ids[1]) => ({
@@ -325,6 +339,17 @@ test('real11913 charges recommended and other costs, consumes one partner and pu
 })
 
 test('type2 ownership, current enum/cap, system, locks and genuine equipped partner boundaries reject without mutations', () => {
+    const unearned = fixture('boundaries-unearned', { profile: 'normal', playerLevel: 19 })
+    try {
+        unchanged(
+            unearned,
+            () => unearned.train(),
+            (e) => e.code === ErrorCode.SystemLock,
+        )
+    } finally {
+        unearned.close()
+    }
+
     const f = fixture('boundaries')
     try {
         const baseline = f.state(),
@@ -338,13 +363,6 @@ test('type2 ownership, current enum/cap, system, locks and genuine equipped part
             [() => {}, { ...f.request(), partner_train_pet: f.ids[0] }, ErrorCode.PetTrainClientParam],
             [() => {}, f.request(4), ErrorCode.PetPetTrainCantTrainId],
             [() => {}, { ...f.request(), partner_train_pet: '144115188075999999' }, ErrorCode.PetNotExist],
-            [
-                (s) => {
-                    s.player.basic_info.lv = 19
-                },
-                f.request(),
-                ErrorCode.SystemLock,
-            ],
             [
                 (s) => {
                     s.pets.find((p) => p.guid === f.ids[1]).is_lock = true

@@ -1,3 +1,4 @@
+import { preparedSystemAccess } from './system-access.js'
 import policy from '../configs/pet-potential-training-policy.json' with { type: 'json' }
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
@@ -210,13 +211,16 @@ function requireSystem(c) {
         'Potential training system configuration missing',
         ErrorCode.PetTrainConfig,
     )
-    const parts = system.unlockCondi.split('#').map(Number)
-    ensure(
-        parts.length === 2 && parts[0] === 2004 && positive(parts[1]),
-        'Potential training unlock condition is unsupported',
-        ErrorCode.FunctionClosed,
-    )
-    ensure(c.state.player.basic_info.lv >= parts[1], 'Potential training system is locked', ErrorCode.SystemLock)
+    const prepared = preparedSystemAccess(c.tables, c.state, 510)
+    if (prepared === undefined) {
+        const parts = system.unlockCondi.split('#').map(Number)
+        ensure(
+            parts.length === 2 && parts[0] === 2004 && positive(parts[1]),
+            'Potential training unlock condition is unsupported',
+            ErrorCode.FunctionClosed,
+        )
+        ensure(c.state.player.basic_info.lv >= parts[1], 'Potential training system is locked', ErrorCode.SystemLock)
+    } else ensure(prepared, 'Potential training system is locked', ErrorCode.SystemLock)
     requirePlayerOutOfBattle(c, 1032)
 }
 export function petPotentialTrainingPlan(c, rawRequest) {
