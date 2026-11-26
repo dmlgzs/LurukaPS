@@ -2123,6 +2123,15 @@ export class Game {
                                     attr_infos: state.player.attr_infos,
                                 }),
                             )
+                        notifyJourney(
+                            {
+                                tables: this.tables,
+                                state,
+                                now,
+                                pushBefore: (name, value) => packets.push(this.packet(name, value)),
+                            },
+                            'SimpleProductFinish',
+                        )
                         packets.push(
                             this.packet('CSProtoSimpleProductFinish', {
                                 ...simpleProductSnapshot(state),
