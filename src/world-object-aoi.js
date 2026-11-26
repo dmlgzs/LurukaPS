@@ -13,6 +13,7 @@ import {
 } from './combat-enemy-lifecycle.js'
 import { inactiveCampaignEnemyGroup } from './inactive-campaign-enemies.js'
 import { abyssTables } from './abyss-catalog.js'
+import { activeTaskWorldBattleSource } from './task-world-battle-source.js'
 
 const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
 const uint = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff
@@ -245,6 +246,8 @@ function worldSource(tables, state, objectId, deleting) {
     ensure(
         deleting ||
             worldSearchVisible(result.row, record, state) ||
+            (activeTaskWorldBattleSource(tables, state, result.row) &&
+                worldSearchVisible({ ...result.row, initStatus: 0 }, record, state)) ||
             (activation?.sourceKind === 'explicit' && activation.active),
         'World object is not available',
         ErrorCode.InvalidTarget,
@@ -480,20 +483,42 @@ export function createWorldObjectAoi(c, request) {
 export function deleteWorldObjectAoi(c, request) {
     const ids = requestIds(request.u64s),
         battle = c.state.combat?.map_id === c.state.world.map_id ? c.state.combat : null
-    const leases = ledger(c, battle)
+    ensure(
+        ids.every(
+            (id) =>
+                [3, 4, 7, 26, 6].includes(id.kind) &&
+                (id.kind !== 26 || id.index === 0) &&
+                (id.kind !== 6 || id.index > 0),
+        ),
+        'GUID is not a current world-object presence source',
+        ErrorCode.InvalidTarget,
+    )
+    const previous = c.state.worldObjectAoi
+    if (previous === undefined) return {}
+    inspectLedger(previous)
+    ensure(
+        previous.connection_hash === connectionHash(c.combatSessionId),
+        'World-object presence belongs to a previous connection',
+        ErrorCode.InvalidTarget,
+    )
+    const sameScene =
+        previous.scene?.map_id === c.state.world.map_id && previous.scene?.runtime_epoch === battle?.runtimeEpoch
+    const leases = { ...previous, agents: { ...previous.agents } }
+    let changed = false
     for (const id of ids) {
-        // Issued leases may outlive their task/playable's active node. Cleanup
-        // of that exact connection/scene lease does not need to restart it.
         const previous = leases.agents[id.guid]
-        const source = !previous ? describe(c, id, true) : null
-        if (previous?.active === false) continue
-        leases.agents[id.guid] = {
-            active: false,
-            source_key: previous?.source_key ?? source?.sourceKey ?? 'cleanup-without-admission',
+        // Current Native keeps its0.3s delete queue across scene leave. There
+        // is no map/epoch in11237: release issued receipts, never look up old
+        // cleanup GUIDs in the destination map or invent an unissued lease.
+        if (!previous?.active) continue
+        leases.agents[id.guid] = { ...previous, active: false }
+        changed = true
+        if (sameScene) {
+            c.push('SCProtoControlChangeByDelNtf', { agent_uid: id.guid })
+            c.push('SCProtoObjDisappearNtf', { agent_uid: id.guid })
         }
-        c.push('SCProtoControlChangeByDelNtf', { agent_uid: id.guid })
-        c.push('SCProtoObjDisappearNtf', { agent_uid: id.guid })
     }
+    if (changed) c.state.worldObjectAoi = leases
     return {}
 }
 
