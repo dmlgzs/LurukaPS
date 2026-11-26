@@ -1,4 +1,4 @@
-// Only schemas with verified CBT3 keyed/optional-field merge semantics live
+// Only schemas with verified client keyed/optional-field merge semantics live
 // here. This cache describes SENT data, never persistent game state.
 const json = (value) => JSON.stringify(value)
 const forceRequests = new Set([
@@ -156,8 +156,18 @@ class Delta {
         return out
     }
     bag(name, input, field, rowsField) {
-        const { [field]: bag, ...other } = input,
-            out = this.fields(name + '.meta', other)
+        const { [field]: bag, ...other } = input
+        const eggScalars = name === 'CSProtoPetEggInfoSync'
+        // Current OnSocket6518/06029c19 reads these uint32 getters on every
+        // packet. An omitted field means zero, not keep the previous value.
+        const metadata = eggScalars
+            ? {
+                  ...other,
+                  free_reward_num: other.free_reward_num ?? 0,
+                  default_catch_card_id: other.default_catch_card_id ?? 0,
+              }
+            : other
+        const out = this.fields(name + '.meta', metadata)
         if (bag) {
             const { [rowsField]: rows = [], guid = [], ...extra } = bag
             const value = {
@@ -169,8 +179,12 @@ class Delta {
             // apply rows before removals. A real row can establish the Lua
             // box index before hiding that same GUID in this packet.
             if (name === 'CSProtoPetInfoSync') for (const id of guid) this.bucket(name + '.rows').delete(String(id))
-            if (guid.length) Object.assign(out, other)
+            if (guid.length) Object.assign(out, metadata)
             if (nonempty(value)) out[field] = value
+        }
+        if (eggScalars && nonempty(out)) {
+            out.free_reward_num = metadata.free_reward_num
+            out.default_catch_card_id = metadata.default_catch_card_id
         }
         return out
     }
