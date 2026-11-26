@@ -1,0 +1,1102 @@
+{
+    "bindingsFingerprint": "cf66dc67d0ecc1bc6e13a8435d822f89c4ad77284501bd0cf291af377b3d1969",
+    "clientVersion": "1.0.0",
+    "mode": "current-native-gene-elements",
+    "programs": {
+        "533040": {
+            "binding": {
+                "id": 533040,
+                "level": 1,
+                "skillLogicType": 6,
+                "skillType": 2,
+                "subSkillId": 533040
+            },
+            "elements": [
+                {
+                    "formula": {
+                        "functionOutput": "A/10000",
+                        "id": 3
+                    },
+                    "parameters": {
+                        "$type": "Azur.Core.MMap.ConfigTChangePropertyElementParams",
+                        "activeInBigWorld": true,
+                        "affectedEntityType": 0,
+                        "affectedEntityTypeData": -201326593,
+                        "areaType": 2,
+                        "attributeID": 115,
+                        "autoGenerateTags": false,
+                        "baseEffectParams": [],
+                        "baseIntParams": [
+                            1,
+                            3
+                        ],
+                        "calculateType": 2,
+                        "cancelWithTags": [],
+                        "changePeopertyConditionArrayDatas": [],
+                        "changeType": 0,
+                        "checkType": 0,
+                        "clearType": 0,
+                        "combineNumber": 0,
+                        "combineType": 3,
+                        "customVector3s": [],
+                        "defaultConditions": [],
+                        "defaultPropertyTags": [],
+                        "describeVS": "奇波技能冷却缩减+1%",
+                        "elementConfigId": 533040001,
+                        "elementIndexVS": "",
+                        "elementNameVS": "冷却缩减Ⅰ",
+                        "elementType": 2,
+                        "executeTargetType": 0,
+                        "exitBattleClear": false,
+                        "formulaParams": {
+                            "$type": "Azur.Core.MMap.ConfigFormulaParams",
+                            "formulaParamValues": [
+                                -840,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                10000,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "function_1": 1,
+                            "function_2": 3
+                        },
+                        "frequency": 0,
+                        "frequencyType": 0,
+                        "functionParams": [
+                            -840,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            10000,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "groupGuidVS": "c9eadcd7c7ab7494d9c49c73291b1070",
+                        "inheritType": 0,
+                        "isLasting": false,
+                        "kiBoApplyType": 1,
+                        "maxCount": 0,
+                        "mutuallyExclusiveId": 0,
+                        "playerProperty": 0,
+                        "snapshot": false,
+                        "specialPropertyType": 0,
+                        "stateType": 0,
+                        "time": -1,
+                        "types": []
+                    },
+                    "reference": {
+                        "asset_path": "Assets/ResourcesAssets/Config/Battle/Element/Assets/ast_533040001.asset",
+                        "local_id": "0",
+                        "type": "Azur.Core.MMap.ConfigTChangePropertyElementParams"
+                    }
+                }
+            ],
+            "projection": "native-slot0-elements-not-flat-attributes",
+            "skillPath": "Config/Battle/SkillList/skill_control_533040.asset",
+            "tracks": [
+                {
+                    "lines": [
+                        {
+                            "endFrame": 1,
+                            "injectors": [
+                                {
+                                    "parameters": {
+                                        "$type": "Azur.Core.MMap.ConfigInjectToOwnElementBehaviorData",
+                                        "behaviorGroupId": 0,
+                                        "behaviorIndex": -1877963755,
+                                        "behaviorIndexStrVS": "8ddf6d36-4dcb-49a5-bfea-622cfda5e24d",
+                                        "customFloats": [],
+                                        "customInts": [],
+                                        "customStrings": [],
+                                        "customVector3Ints": [],
+                                        "customVector3s": [],
+                                        "directInjectTargetType": 0,
+                                        "elementDataList": [
+                                            {
+                                                "asset_path": "Assets/ResourcesAssets/Config/Battle/Element/Assets/ast_533040001.asset",
+                                                "local_id": "0",
+                                                "type": "Azur.Core.MMap.ConfigTChangePropertyElementParams"
+                                            }
+                                        ],
+                                        "elementList": [],
+                                        "elementalType": 1023,
+                                        "frameCount": 1,
+                                        "independentSkillGroup": 0,
+                                        "independentUse": false,
+                                        "injectCardIndex": 0,
+                                        "injectCardType": 0,
+                                        "isFormationControlBehavior": false,
+                                        "isMainControlBehavior": false,
+                                        "removeElementOnEnd": false,
+                                        "runOnRemote": false,
+                                        "startFrame": 0,
+                                        "targetExecutionEnvironment": 3,
+                                        "timelineGroupIndex": 0,
+                                        "useSelfSource": false
+                                    },
+                                    "reference": {
+                                        "asset_path": "Assets/Program/Battle/Character/Config/Common/5000/SubSkill/ast_17781394063410000.asset",
+                                        "local_id": "6967343769804775386",
+                                        "type": "Azur.Core.MMap.ConfigInjectToOwnElementBehaviorData"
+                                    }
+                                }
+                            ],
+                            "startFrame": 0
+                        }
+                    ],
+                    "reference": {
+                        "asset_path": "Assets/Program/Battle/Character/Config/Common/5000/SubSkill/ast_17781394063410000.asset",
+                        "local_id": "15911290118606149585",
+                        "type": "Azur.Core.MMap.ConfigBehaviorlineTrackControlData"
+                    },
+                    "targetExecutionEnvironment": 3
+                }
+            ]
+        },
+        "533041": {
+            "binding": {
+                "id": 533041,
+                "level": 1,
+                "skillLogicType": 6,
+                "skillType": 2,
+                "subSkillId": 533041
+            },
+            "elements": [
+                {
+                    "formula": {
+                        "functionOutput": "A/10000",
+                        "id": 3
+                    },
+                    "parameters": {
+                        "$type": "Azur.Core.MMap.ConfigTChangePropertyElementParams",
+                        "activeInBigWorld": true,
+                        "affectedEntityType": 0,
+                        "affectedEntityTypeData": -201326593,
+                        "areaType": 2,
+                        "attributeID": 115,
+                        "autoGenerateTags": false,
+                        "baseEffectParams": [],
+                        "baseIntParams": [
+                            1,
+                            3
+                        ],
+                        "calculateType": 2,
+                        "cancelWithTags": [],
+                        "changePeopertyConditionArrayDatas": [],
+                        "changeType": 0,
+                        "checkType": 0,
+                        "clearType": 0,
+                        "combineNumber": 0,
+                        "combineType": 3,
+                        "customVector3s": [],
+                        "defaultConditions": [],
+                        "defaultPropertyTags": [],
+                        "describeVS": "奇波技能冷却缩减+12.6%",
+                        "elementConfigId": 533041001,
+                        "elementIndexVS": "",
+                        "elementNameVS": "冷却缩减Ⅱ",
+                        "elementType": 2,
+                        "executeTargetType": 0,
+                        "exitBattleClear": false,
+                        "formulaParams": {
+                            "$type": "Azur.Core.MMap.ConfigFormulaParams",
+                            "formulaParamValues": [
+                                -1260,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                10000,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "function_1": 1,
+                            "function_2": 3
+                        },
+                        "frequency": 0,
+                        "frequencyType": 0,
+                        "functionParams": [
+                            -1260,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            10000,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "groupGuidVS": "c9eadcd7c7ab7494d9c49c73291b1070",
+                        "inheritType": 0,
+                        "isLasting": false,
+                        "kiBoApplyType": 1,
+                        "maxCount": 0,
+                        "mutuallyExclusiveId": 0,
+                        "playerProperty": 0,
+                        "snapshot": false,
+                        "specialPropertyType": 0,
+                        "stateType": 0,
+                        "time": -1,
+                        "types": []
+                    },
+                    "reference": {
+                        "asset_path": "Assets/ResourcesAssets/Config/Battle/Element/Assets/ast_533041001.asset",
+                        "local_id": "0",
+                        "type": "Azur.Core.MMap.ConfigTChangePropertyElementParams"
+                    }
+                }
+            ],
+            "projection": "native-slot0-elements-not-flat-attributes",
+            "skillPath": "Config/Battle/SkillList/skill_control_533041.asset",
+            "tracks": [
+                {
+                    "lines": [
+                        {
+                            "endFrame": 1,
+                            "injectors": [
+                                {
+                                    "parameters": {
+                                        "$type": "Azur.Core.MMap.ConfigInjectToOwnElementBehaviorData",
+                                        "behaviorGroupId": 0,
+                                        "behaviorIndex": -2033892790,
+                                        "behaviorIndexStrVS": "4753a1d3-401a-496b-ac6e-0a411d3a4f52",
+                                        "customFloats": [],
+                                        "customInts": [],
+                                        "customStrings": [],
+                                        "customVector3Ints": [],
+                                        "customVector3s": [],
+                                        "directInjectTargetType": 0,
+                                        "elementDataList": [
+                                            {
+                                                "asset_path": "Assets/ResourcesAssets/Config/Battle/Element/Assets/ast_533041001.asset",
+                                                "local_id": "0",
+                                                "type": "Azur.Core.MMap.ConfigTChangePropertyElementParams"
+                                            }
+                                        ],
+                                        "elementList": [],
+                                        "elementalType": 1023,
+                                        "frameCount": 1,
+                                        "independentSkillGroup": 0,
+                                        "independentUse": false,
+                                        "injectCardIndex": 0,
+                                        "injectCardType": 0,
+                                        "isFormationControlBehavior": false,
+                                        "isMainControlBehavior": false,
+                                        "removeElementOnEnd": false,
+                                        "runOnRemote": false,
+                                        "startFrame": 0,
+                                        "targetExecutionEnvironment": 3,
+                                        "timelineGroupIndex": 0,
+                                        "useSelfSource": false
+                                    },
+                                    "reference": {
+                                        "asset_path": "Assets/Program/Battle/Character/Config/Common/5000/SubSkill/ast_17781397974090000.asset",
+                                        "local_id": "7100170483910424120",
+                                        "type": "Azur.Core.MMap.ConfigInjectToOwnElementBehaviorData"
+                                    }
+                                }
+                            ],
+                            "startFrame": 0
+                        }
+                    ],
+                    "reference": {
+                        "asset_path": "Assets/Program/Battle/Character/Config/Common/5000/SubSkill/ast_17781397974090000.asset",
+                        "local_id": "9768642495885890576",
+                        "type": "Azur.Core.MMap.ConfigBehaviorlineTrackControlData"
+                    },
+                    "targetExecutionEnvironment": 3
+                }
+            ]
+        },
+        "533042": {
+            "binding": {
+                "id": 533042,
+                "level": 1,
+                "skillLogicType": 6,
+                "skillType": 2,
+                "subSkillId": 533042
+            },
+            "elements": [
+                {
+                    "formula": {
+                        "functionOutput": "A/10000",
+                        "id": 3
+                    },
+                    "parameters": {
+                        "$type": "Azur.Core.MMap.ConfigTChangePropertyElementParams",
+                        "activeInBigWorld": true,
+                        "affectedEntityType": 0,
+                        "affectedEntityTypeData": -201326593,
+                        "areaType": 2,
+                        "attributeID": 115,
+                        "autoGenerateTags": false,
+                        "baseEffectParams": [],
+                        "baseIntParams": [
+                            1,
+                            3
+                        ],
+                        "calculateType": 2,
+                        "cancelWithTags": [],
+                        "changePeopertyConditionArrayDatas": [],
+                        "changeType": 0,
+                        "checkType": 0,
+                        "clearType": 0,
+                        "combineNumber": 0,
+                        "combineType": 3,
+                        "customVector3s": [],
+                        "defaultConditions": [],
+                        "defaultPropertyTags": [],
+                        "describeVS": "奇波技能冷却缩减+16.8%",
+                        "elementConfigId": 533042001,
+                        "elementIndexVS": "",
+                        "elementNameVS": "冷却缩减Ⅲ",
+                        "elementType": 2,
+                        "executeTargetType": 0,
+                        "exitBattleClear": false,
+                        "formulaParams": {
+                            "$type": "Azur.Core.MMap.ConfigFormulaParams",
+                            "formulaParamValues": [
+                                -1680,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                10000,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "function_1": 1,
+                            "function_2": 3
+                        },
+                        "frequency": 0,
+                        "frequencyType": 0,
+                        "functionParams": [
+                            -1680,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            10000,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "groupGuidVS": "c9eadcd7c7ab7494d9c49c73291b1070",
+                        "inheritType": 0,
+                        "isLasting": false,
+                        "kiBoApplyType": 1,
+                        "maxCount": 0,
+                        "mutuallyExclusiveId": 0,
+                        "playerProperty": 0,
+                        "snapshot": false,
+                        "specialPropertyType": 0,
+                        "stateType": 0,
+                        "time": -1,
+                        "types": []
+                    },
+                    "reference": {
+                        "asset_path": "Assets/ResourcesAssets/Config/Battle/Element/Assets/ast_533042001.asset",
+                        "local_id": "0",
+                        "type": "Azur.Core.MMap.ConfigTChangePropertyElementParams"
+                    }
+                }
+            ],
+            "projection": "native-slot0-elements-not-flat-attributes",
+            "skillPath": "Config/Battle/SkillList/skill_control_533042.asset",
+            "tracks": [
+                {
+                    "lines": [
+                        {
+                            "endFrame": 1,
+                            "injectors": [
+                                {
+                                    "parameters": {
+                                        "$type": "Azur.Core.MMap.ConfigInjectToOwnElementBehaviorData",
+                                        "behaviorGroupId": 0,
+                                        "behaviorIndex": 756330040,
+                                        "behaviorIndexStrVS": "7eb8c358-f8dc-4011-b245-791ffeae75dc",
+                                        "customFloats": [],
+                                        "customInts": [],
+                                        "customStrings": [],
+                                        "customVector3Ints": [],
+                                        "customVector3s": [],
+                                        "directInjectTargetType": 0,
+                                        "elementDataList": [
+                                            {
+                                                "asset_path": "Assets/ResourcesAssets/Config/Battle/Element/Assets/ast_533042001.asset",
+                                                "local_id": "0",
+                                                "type": "Azur.Core.MMap.ConfigTChangePropertyElementParams"
+                                            }
+                                        ],
+                                        "elementList": [],
+                                        "elementalType": 1023,
+                                        "frameCount": 1,
+                                        "independentSkillGroup": 0,
+                                        "independentUse": false,
+                                        "injectCardIndex": 0,
+                                        "injectCardType": 0,
+                                        "isFormationControlBehavior": false,
+                                        "isMainControlBehavior": false,
+                                        "removeElementOnEnd": false,
+                                        "runOnRemote": false,
+                                        "startFrame": 0,
+                                        "targetExecutionEnvironment": 3,
+                                        "timelineGroupIndex": 0,
+                                        "useSelfSource": false
+                                    },
+                                    "reference": {
+                                        "asset_path": "Assets/Program/Battle/Character/Config/Common/5000/SubSkill/ast_17781398093960000.asset",
+                                        "local_id": "6204711316601735980",
+                                        "type": "Azur.Core.MMap.ConfigInjectToOwnElementBehaviorData"
+                                    }
+                                }
+                            ],
+                            "startFrame": 0
+                        }
+                    ],
+                    "reference": {
+                        "asset_path": "Assets/Program/Battle/Character/Config/Common/5000/SubSkill/ast_17781398093960000.asset",
+                        "local_id": "8086808530880586735",
+                        "type": "Azur.Core.MMap.ConfigBehaviorlineTrackControlData"
+                    },
+                    "targetExecutionEnvironment": 3
+                }
+            ]
+        },
+        "533809": {
+            "binding": {
+                "id": 533809,
+                "level": 1,
+                "skillLogicType": 6,
+                "skillType": 2,
+                "subSkillId": 533809
+            },
+            "elements": [
+                {
+                    "formula": {
+                        "functionOutput": "A",
+                        "id": 5
+                    },
+                    "parameters": {
+                        "$type": "Azur.Core.MMap.ConfigTChangePropertyElementParams",
+                        "activeInBigWorld": true,
+                        "affectedEntityType": 0,
+                        "affectedEntityTypeData": -201326593,
+                        "areaType": 2,
+                        "attributeID": 105,
+                        "autoGenerateTags": false,
+                        "baseEffectParams": [],
+                        "baseIntParams": [
+                            1,
+                            5
+                        ],
+                        "calculateType": 1,
+                        "cancelWithTags": [],
+                        "changePeopertyConditionArrayDatas": [],
+                        "changeType": 0,
+                        "checkType": 0,
+                        "clearType": 0,
+                        "combineNumber": -1,
+                        "combineType": 1,
+                        "customVector3s": [],
+                        "defaultConditions": [],
+                        "defaultPropertyTags": [],
+                        "describeVS": "紫",
+                        "elementConfigId": 533809002,
+                        "elementIndexVS": "",
+                        "elementNameVS": "能量恢复提高",
+                        "elementType": 2,
+                        "executeTargetType": 0,
+                        "exitBattleClear": false,
+                        "formulaParams": {
+                            "$type": "Azur.Core.MMap.ConfigFormulaParams",
+                            "formulaParamValues": [
+                                1100,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                10000,
+                                500023009,
+                                100,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "function_1": 1,
+                            "function_2": 5
+                        },
+                        "frequency": 0,
+                        "frequencyType": 0,
+                        "functionParams": [
+                            1100,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            10000,
+                            500023009,
+                            100,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "groupGuidVS": "c9eadcd7c7ab7494d9c49c73291b1070",
+                        "inheritType": 0,
+                        "isLasting": false,
+                        "kiBoApplyType": 1,
+                        "maxCount": 0,
+                        "mutuallyExclusiveId": 0,
+                        "playerProperty": 0,
+                        "snapshot": false,
+                        "specialPropertyType": 0,
+                        "stateType": 0,
+                        "time": -1,
+                        "types": [
+                            60
+                        ]
+                    },
+                    "reference": {
+                        "asset_path": "Assets/ResourcesAssets/Config/Battle/Element/Assets/ast_533809002.asset",
+                        "local_id": "0",
+                        "type": "Azur.Core.MMap.ConfigTChangePropertyElementParams"
+                    }
+                },
+                {
+                    "formula": {
+                        "functionOutput": "A/10000",
+                        "id": 3
+                    },
+                    "parameters": {
+                        "$type": "Azur.Core.MMap.ConfigTChangePropertyElementParams",
+                        "activeInBigWorld": true,
+                        "affectedEntityType": 0,
+                        "affectedEntityTypeData": -201326593,
+                        "areaType": 2,
+                        "attributeID": 115,
+                        "autoGenerateTags": false,
+                        "baseEffectParams": [],
+                        "baseIntParams": [
+                            1,
+                            3
+                        ],
+                        "calculateType": 1,
+                        "cancelWithTags": [],
+                        "changePeopertyConditionArrayDatas": [],
+                        "changeType": 0,
+                        "checkType": 0,
+                        "clearType": 0,
+                        "combineNumber": -1,
+                        "combineType": 1,
+                        "customVector3s": [],
+                        "defaultConditions": [],
+                        "defaultPropertyTags": [],
+                        "describeVS": "紫",
+                        "elementConfigId": 533809001,
+                        "elementIndexVS": "",
+                        "elementNameVS": "冷却缩减+2.6%",
+                        "elementType": 2,
+                        "executeTargetType": 0,
+                        "exitBattleClear": false,
+                        "formulaParams": {
+                            "$type": "Azur.Core.MMap.ConfigFormulaParams",
+                            "formulaParamValues": [
+                                -1000,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                10000,
+                                500023009,
+                                100,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "function_1": 1,
+                            "function_2": 3
+                        },
+                        "frequency": 0,
+                        "frequencyType": 0,
+                        "functionParams": [
+                            -1000,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            10000,
+                            500023009,
+                            100,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "groupGuidVS": "c9eadcd7c7ab7494d9c49c73291b1070",
+                        "inheritType": 0,
+                        "isLasting": false,
+                        "kiBoApplyType": 1,
+                        "maxCount": 0,
+                        "mutuallyExclusiveId": 0,
+                        "playerProperty": 0,
+                        "snapshot": false,
+                        "specialPropertyType": 0,
+                        "stateType": 0,
+                        "time": -1,
+                        "types": [
+                            60
+                        ]
+                    },
+                    "reference": {
+                        "asset_path": "Assets/ResourcesAssets/Config/Battle/Element/Assets/ast_533809001.asset",
+                        "local_id": "0",
+                        "type": "Azur.Core.MMap.ConfigTChangePropertyElementParams"
+                    }
+                }
+            ],
+            "projection": "native-slot0-elements-not-flat-attributes",
+            "skillPath": "Config/Battle/SkillList/skill_control_533809.asset",
+            "tracks": [
+                {
+                    "lines": [
+                        {
+                            "endFrame": 1,
+                            "injectors": [
+                                {
+                                    "parameters": {
+                                        "$type": "Azur.Core.MMap.ConfigInjectToOwnElementBehaviorData",
+                                        "behaviorGroupId": 0,
+                                        "behaviorIndex": 1562221245,
+                                        "behaviorIndexStrVS": "17101113-680c-4136-ac20-e2e8246d84d3",
+                                        "customFloats": [],
+                                        "customInts": [],
+                                        "customStrings": [],
+                                        "customVector3Ints": [],
+                                        "customVector3s": [],
+                                        "directInjectTargetType": 0,
+                                        "elementDataList": [
+                                            {
+                                                "asset_path": "Assets/ResourcesAssets/Config/Battle/Element/Assets/ast_533809002.asset",
+                                                "local_id": "0",
+                                                "type": "Azur.Core.MMap.ConfigTChangePropertyElementParams"
+                                            },
+                                            {
+                                                "asset_path": "Assets/ResourcesAssets/Config/Battle/Element/Assets/ast_533809001.asset",
+                                                "local_id": "0",
+                                                "type": "Azur.Core.MMap.ConfigTChangePropertyElementParams"
+                                            }
+                                        ],
+                                        "elementList": [],
+                                        "elementalType": 1023,
+                                        "frameCount": 1,
+                                        "independentSkillGroup": 0,
+                                        "independentUse": false,
+                                        "injectCardIndex": 0,
+                                        "injectCardType": 0,
+                                        "isFormationControlBehavior": false,
+                                        "isMainControlBehavior": false,
+                                        "removeElementOnEnd": false,
+                                        "runOnRemote": false,
+                                        "startFrame": 0,
+                                        "targetExecutionEnvironment": 3,
+                                        "timelineGroupIndex": 0,
+                                        "useSelfSource": false
+                                    },
+                                    "reference": {
+                                        "asset_path": "Assets/Program/Battle/Character/Config/Common/5000/SubSkill/ast_17778088185800000.asset",
+                                        "local_id": "18318587063599099375",
+                                        "type": "Azur.Core.MMap.ConfigInjectToOwnElementBehaviorData"
+                                    }
+                                }
+                            ],
+                            "startFrame": 0
+                        }
+                    ],
+                    "reference": {
+                        "asset_path": "Assets/Program/Battle/Character/Config/Common/5000/SubSkill/ast_17778088185800000.asset",
+                        "local_id": "14202936029264211254",
+                        "type": "Azur.Core.MMap.ConfigBehaviorlineTrackControlData"
+                    },
+                    "targetExecutionEnvironment": 3
+                }
+            ]
+        },
+        "533823": {
+            "binding": {
+                "id": 533823,
+                "level": 1,
+                "skillLogicType": 6,
+                "skillType": 2,
+                "subSkillId": 533823
+            },
+            "elements": [
+                {
+                    "formula": {
+                        "functionOutput": "A/10000",
+                        "id": 3
+                    },
+                    "parameters": {
+                        "$type": "Azur.Core.MMap.ConfigTChangePropertyElementParams",
+                        "activeInBigWorld": true,
+                        "affectedEntityType": 0,
+                        "affectedEntityTypeData": -201326593,
+                        "areaType": 2,
+                        "attributeID": 115,
+                        "autoGenerateTags": false,
+                        "baseEffectParams": [],
+                        "baseIntParams": [
+                            1,
+                            3
+                        ],
+                        "calculateType": 1,
+                        "cancelWithTags": [],
+                        "changePeopertyConditionArrayDatas": [],
+                        "changeType": 0,
+                        "checkType": 0,
+                        "clearType": 2,
+                        "combineNumber": 1,
+                        "combineType": 3,
+                        "customVector3s": [],
+                        "defaultConditions": [],
+                        "defaultPropertyTags": [],
+                        "describeVS": "闪光 ",
+                        "elementConfigId": 533823001,
+                        "elementIndexVS": "",
+                        "elementNameVS": "因子效果-冷却缩减",
+                        "elementType": 2,
+                        "executeTargetType": 0,
+                        "exitBattleClear": false,
+                        "formulaParams": {
+                            "$type": "Azur.Core.MMap.ConfigFormulaParams",
+                            "formulaParamValues": [
+                                -2100,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                10000,
+                                500023009,
+                                100,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "function_1": 1,
+                            "function_2": 3
+                        },
+                        "frequency": 0,
+                        "frequencyType": 0,
+                        "functionParams": [
+                            -2100,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            10000,
+                            500023009,
+                            100,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+                        "groupGuidVS": "c9eadcd7c7ab7494d9c49c73291b1070",
+                        "inheritType": 0,
+                        "isLasting": false,
+                        "kiBoApplyType": 1,
+                        "maxCount": 0,
+                        "mutuallyExclusiveId": 0,
+                        "playerProperty": 0,
+                        "snapshot": false,
+                        "specialPropertyType": 0,
+                        "stateType": 0,
+                        "time": -1,
+                        "types": [
+                            60
+                        ]
+                    },
+                    "reference": {
+                        "asset_path": "Assets/ResourcesAssets/Config/Battle/Element/Assets/ast_533823001.asset",
+                        "local_id": "0",
+                        "type": "Azur.Core.MMap.ConfigTChangePropertyElementParams"
+                    }
+                }
+            ],
+            "projection": "native-slot0-elements-not-flat-attributes",
+            "skillPath": "Config/Battle/SkillList/skill_control_533823.asset",
+            "tracks": [
+                {
+                    "lines": [
+                        {
+                            "endFrame": 1,
+                            "injectors": [
+                                {
+                                    "parameters": {
+                                        "$type": "Azur.Core.MMap.ConfigInjectToOwnElementBehaviorData",
+                                        "behaviorGroupId": 0,
+                                        "behaviorIndex": -1727212640,
+                                        "behaviorIndexStrVS": "b9380ddf-3f2f-4d20-a2c7-18dbca24ca76",
+                                        "customFloats": [],
+                                        "customInts": [],
+                                        "customStrings": [],
+                                        "customVector3Ints": [],
+                                        "customVector3s": [],
+                                        "directInjectTargetType": 0,
+                                        "elementDataList": [
+                                            {
+                                                "asset_path": "Assets/ResourcesAssets/Config/Battle/Element/Assets/ast_533823001.asset",
+                                                "local_id": "0",
+                                                "type": "Azur.Core.MMap.ConfigTChangePropertyElementParams"
+                                            }
+                                        ],
+                                        "elementList": [],
+                                        "elementalType": 1023,
+                                        "frameCount": 1,
+                                        "independentSkillGroup": 0,
+                                        "independentUse": false,
+                                        "injectCardIndex": 0,
+                                        "injectCardType": 0,
+                                        "isFormationControlBehavior": false,
+                                        "isMainControlBehavior": false,
+                                        "removeElementOnEnd": false,
+                                        "runOnRemote": false,
+                                        "startFrame": 0,
+                                        "targetExecutionEnvironment": 3,
+                                        "timelineGroupIndex": 0,
+                                        "useSelfSource": false
+                                    },
+                                    "reference": {
+                                        "asset_path": "Assets/Program/Battle/Character/Config/Common/5000/SubSkill/ast_17820343018910000.asset",
+                                        "local_id": "6161124086652131556",
+                                        "type": "Azur.Core.MMap.ConfigInjectToOwnElementBehaviorData"
+                                    }
+                                }
+                            ],
+                            "startFrame": 0
+                        }
+                    ],
+                    "reference": {
+                        "asset_path": "Assets/Program/Battle/Character/Config/Common/5000/SubSkill/ast_17820343018910000.asset",
+                        "local_id": "15103171541986027320",
+                        "type": "Azur.Core.MMap.ConfigBehaviorlineTrackControlData"
+                    },
+                    "targetExecutionEnvironment": 3
+                }
+            ]
+        }
+    },
+    "source": {
+        "assemblySha256": "7caa834e06c6b4bdc6a2d0300f20cc88314102895a9abbfd5342c339b3d74ae0",
+        "azurconfig": {
+            "packageVersion": "3217420",
+            "sha256": "c590dbb2720eb45d23d900734bcb4968f5139aeff41eb51e3c9b9832c0dafe87"
+        },
+        "generator": "azurjs/scripts/export-pet-gene-elements.py",
+        "generatorSha256": "0f933e121cded79de0968cfb41e97c54df453f64bb6ee4b9bbbe1b0f6a080437",
+        "schemaSha256": "8aba8021b54b8f2d385489647939d9112a7b446a760d69e4dc5a847a168b6845",
+        "vstring": {
+            "packageVersion": "3217420",
+            "sha256": "cf8b8516e6e98ee7ca860f189e9248538e9264a44c0d4c7598d0fbf5d7eaaac1"
+        }
+    },
+    "sourceFingerprint": "fc2be2fe57a3f8273f5ad90cbce92b14a497119a3562b7d17d963e5fa20f1d22",
+    "version": 1
+}
