@@ -155,7 +155,7 @@ export function grantRewards(tables, state, rewards, depth = 0, context = {}) {
             granted.push(...eggs.map((e) => ({ itemtype: 14, itemid, itemnum: 1, guid: String(e.guid) })))
             continue
         } else if (itemtype === 33) {
-            const ornaments = createCustomOrnaments(tables, state, itemid, itemnum)
+            const ornaments = createCustomOrnaments(tables, state, itemid, itemnum, context.randomInt)
             // Type 33 is the generation recipe. The acquired item is an accessory
             // instance (type 15); CBT3 only initializes its card details in that branch.
             granted.push(
