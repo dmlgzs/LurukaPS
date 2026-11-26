@@ -19,6 +19,8 @@ import { workerAssignmentProgressRule, workerAssignmentProgressValue } from './w
 import { homeOrderProgressRule, homeOrderProgressValue } from './home-order-progress.js'
 import { farmHarvestProgressRule, farmHarvestProgressValue } from './farm-harvest-progress.js'
 import { heroGiftProgressFacts, heroGiftProgressRule, heroGiftProgressValue } from './hero-gift-progress.js'
+import { journeyHomeOrderRule, journeyHomeOrderValue } from './journey-home-order.js'
+import { journeySoulWearRule, journeySoulWearValue } from './journey-soul-wear.js'
 
 const models = new WeakMap()
 const integers = (text, separator = '|') =>
@@ -28,7 +30,7 @@ const integers = (text, separator = '|') =>
         .map(Number)
 const uint = (n) => Number.isSafeInteger(n) && n >= 0 && n <= 0xffffffff
 const shared = new Set([12027, 12033, 12040, 12067, 12070, 13020, 13044, 15013])
-const direct = new Set([13111, 2007, 12014, 12045, 12046, 12072, 12229, 13002, 13006, 13035, 13104, 15017])
+const direct = new Set([13111, 2007, 12014, 12045, 12046, 12072, 12229, 12235, 13002, 13006, 13035, 13104, 15017])
 function supportedShape(tokens, tables) {
     const [kind, ...p] = tokens,
         positive = (values) => values.every((v) => uint(v) && v > 0)
@@ -37,9 +39,7 @@ function supportedShape(tokens, tables) {
     if (kind === 12014) return p.length === 3 && p[0] === 0 && p[1] === 0 && p[2] > 0
     if ([12046, 13006, 13035].includes(kind))
         return p.length === (kind === 12046 ? 2 : 3) && p[0] === 0 && positive(p.slice(1))
-    // Native dispatch has no local implementation for selector 2.
-    // Keep these targets visible but unsupported until semantics are proven.
-    if (kind === 12235) return false // Native dispatch lacks this node; selector 2 is unproven.
+    if (kind === 12235) return journeySoulWearRule(tokens)
     if (kind === 12033) return p.length === 5 && positive(p)
     if (kind === 12040) return p.length === 3 && p[0] > 0 && p[1] >= 0 && p[2] > 0
     if (kind === 12067) return p.length === 3 && positive(p)
@@ -54,6 +54,7 @@ function supportedShape(tokens, tables) {
     if (kind === 12247) return workerAssignmentProgressRule(tables, tokens)
     if (kind === 15010) return materialClearRule(tables, tokens)
     if (kind === 15003) return homeOrderProgressRule(tables, tokens)
+    if (kind === 13099) return journeyHomeOrderRule(tables, tokens)
     if (kind === 12062) return farmHarvestProgressRule(tables, tokens)
     if ([12227, 12228].includes(kind)) return heroGiftProgressRule(tokens)
     if (kind === 12072) return p.length === 2 && p[0] === 0 && uint(p[1]) && p[1] > 0
@@ -89,14 +90,14 @@ export function journeyModel(tables) {
         row.supported =
             (direct.has(tokens[0]) ||
                 shared.has(tokens[0]) ||
-                [12018, 12055, 15045, 13039, 15003, 12227, 12228, 15072, 12062, 12016, 15010, 12247].includes(
+                [12018, 12055, 15045, 13039, 15003, 13099, 12227, 12228, 15072, 12062, 12016, 15010, 12247].includes(
                     tokens[0],
                 )) &&
             supportedShape(tokens, tables) &&
             (tokens[0] !== 13111 || row.targetParam === 1) &&
-            (![12018, 12055, 12072, 15045, 13039, 15003, 12227, 12228, 15072, 12062, 12016, 15010, 12247].includes(
-                tokens[0],
-            ) ||
+            (![
+                12018, 12055, 12072, 15045, 13039, 15003, 13099, 12227, 12228, 15072, 12062, 12016, 15010, 12247,
+            ].includes(tokens[0]) ||
                 tokens.at(-1) === row.targetParam)
         row.guidedId = guided.get(row.condition)?.id
         byTarget.set(row.id, row)
@@ -210,14 +211,7 @@ export function journeyValue(tables, state, row, facts = new Map()) {
         )
     if (kind === 12046) return capturedPetVarieties(tables, state)
     if (kind === 12229) return heroes.filter((h) => h.favorability_lv >= p[0]).length
-    if (kind === 12235)
-        return heroes.filter(
-            (h) =>
-                Number(h.wguid) > 0 &&
-                state.player.soulessence_infos.soulessences.some(
-                    (s) => String(s.guid) === String(h.wguid) && s.wear_hero === h.guid,
-                ),
-        ).length
+    if (kind === 12235) return journeySoulWearValue(tables, state, row.tokens)
     if (kind === 13104) return state.exploration?.map_info?.find((r) => r.map_id === p[0])?.lv ?? 0
     if (kind === 13111) return journeyAbyssValue(tables, state, p[0])
     if (kind === 15017) return state.home?.level ?? 0
@@ -228,6 +222,7 @@ export function journeyValue(tables, state, row, facts = new Map()) {
     if (kind === 12247) return workerAssignmentProgressValue(tables, state, row.tokens, facts)
     if (kind === 15010) return materialClearValue(tables, state, row.tokens, facts)
     if (kind === 15003) return homeOrderProgressValue(tables, state, row.tokens, facts)
+    if (kind === 13099) return journeyHomeOrderValue(tables, state, row.tokens, facts)
     if (kind === 12062) return farmHarvestProgressValue(tables, state, row.tokens, facts)
     if ([12227, 12228].includes(kind)) return heroGiftProgressValue(state, row.tokens)
     if (kind === 15072) return forgeProgressValue(tables, state, row.tokens, facts)
@@ -475,7 +470,7 @@ export function claimJourney(c, request) {
 const dirtyKinds = [
     [/Gift/, [12227, 12228]],
     [/Task|Story/, [2007, 12045]],
-    [/Hero|Soul|Ornament|Equip|Trial|Group/, [12055, 12229, 12235, 13002, 13006]],
+    [/Hero|Soul|Ornament|Equip|Trial|Group|Wear/, [12055, 12229, 12235, 13002, 13006]],
     [/Pet|Catch|Hatch|Egg/, [12014, 12040, 12046, 13035, 15045, 12247]],
     [
         /Home|Build|Crop|Plant|Cook|Product|Ranch|Collection|Shop|Exchange|Item|GM|Playable|Entrust|Dungeon|WorldMapExplore/,
@@ -529,7 +524,7 @@ export function notifyJourney(c, protocolName) {
         if (ledger.observedSources?.abyss !== revisions.abyss) kinds.push(13111)
         if (ledger.observedSources?.forge !== revisions.forge) kinds.push(15072)
         if (ledger.observedSources?.material !== revisions.material) kinds.push(15010)
-        if (ledger.observedSources?.orders !== revisions.orders) kinds.push(15003)
+        if (ledger.observedSources?.orders !== revisions.orders) kinds.push(15003, 13099)
         if (ledger.observedSources?.farmHarvest !== revisions.farmHarvest) kinds.push(12062)
         if (ledger.observedSources?.gift !== revisions.gift) kinds.push(12227, 12228)
         if (!kinds.length && !/Journey/.test(protocolName)) return
