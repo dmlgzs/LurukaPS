@@ -222,6 +222,8 @@ import { registerClientState } from './handlers/client-state.js'
 import { registerRelease } from './handlers/release.js'
 import { releaseFields } from './release-ledger.js'
 import { registerHatching } from './handlers/hatching.js'
+import { registerHatchCards } from './handlers/hatch-cards.js'
+import { hatchCardSyncFields } from './hatch-cards.js'
 import { registerProduction } from './handlers/production.js'
 import { registerSimpleProduction } from './handlers/simple-production.js'
 import { refreshProduction, productionDue } from './production.js'
@@ -735,6 +737,7 @@ export class Game {
         registerProduction(on, tables)
         registerSimpleProduction(on, tables)
         registerHatching(on)
+        registerHatchCards(on)
         registerRelease(on, tables)
     }
     recoverFailedPetChoice(state, accountId, now) {
@@ -1735,6 +1738,7 @@ export class Game {
                         ? [
                               this.packet('CSProtoPetEggInfoSync', {
                                   ...releaseFields(state, 'egg', now, this.releaseResetHour),
+                                  ...hatchCardSyncFields(this.tables, state),
                                   egg_infos: {
                                       eggs: state.petEggs || [],
                                       guid: eggIdsBefore.filter(
@@ -2095,6 +2099,7 @@ export class Game {
                         packets.push(
                             this.packet('CSProtoPetEggInfoSync', {
                                 ...releaseFields(state, 'egg', now, this.releaseResetHour),
+                                ...hatchCardSyncFields(this.tables, state),
                                 egg_infos: { eggs: state.petEggs || [] },
                             }),
                         )
@@ -2275,6 +2280,7 @@ export class Game {
             ),
             this.packet('CSProtoPetEggInfoSync', {
                 ...releaseFields(state, 'egg', now, this.releaseResetHour),
+                ...hatchCardSyncFields(this.tables, state),
                 egg_infos: { eggs: state.petEggs || [] },
             }),
             this.packet('CSProtoPetBoxInfoSync', { box_infos: state.petBoxes }),

@@ -1,3 +1,4 @@
+import { reserveHatchCard, completeHatchCard } from './hatch-cards.js'
 import {
     validateHatchEffects,
     hatchSeed,
@@ -59,9 +60,12 @@ export function startHatch(c, buildGuid, eggGuid) {
     const start = Math.max(c.now, ...jobs.map((j) => j.start + j.seconds)),
         guid = home.nextProductGuid || 1
     ensure(start + seconds <= 0xffffffff && guid <= 0xffffffff, 'Hatch identity/timestamp exhausted')
+    const card = reserveHatchCard(c, egg, b.guid, guid)
     home.nextProductGuid = guid + 1
     jobs.push({
         kind: 'hatch',
+        hatch_card_version: 1,
+        hatch_card: card,
         eggGuid,
         petId: c.state.eggOutcomes[eggGuid],
         guid,
@@ -98,6 +102,7 @@ export function claimHatch(c, job) {
     }
     const [pet] = pets
     const appearance = applyHatchEffects(c.tables, pet, plan, rng)
+    const card = completeHatchCard(c.state, job, pet, egg.hatch_build_guid)
     recordHatchReceipt(c.state, {
         buildGuid: egg.hatch_build_guid,
         eggGuid: job.eggGuid,
@@ -106,6 +111,7 @@ export function claimHatch(c, job) {
         petId: job.petId,
         triggered: [...plan.triggered],
         generation_version: generation,
+        ...(card ? { hatch_card: card } : {}),
         ...(appearance ? { appearance } : {}),
     })
     c.state.petEggs = c.state.petEggs.filter((e) => e.guid !== job.eggGuid)
@@ -121,6 +127,7 @@ export function cancelHatch(c, job) {
     const egg = (c.state.petEggs || []).find((e) => e.guid === job.eggGuid)
     ensure(egg, 'Hatch egg missing', ErrorCode.EggNotExist)
     retainHatchSeed(c, job.eggGuid, job)
+    completeHatchCard(c.state, job, undefined, egg.hatch_build_guid)
     egg.hatch_state = 0
     egg.hatch_build_guid = 0
     c.state.eggRevision = (c.state.eggRevision || 0) + 1
