@@ -84,7 +84,7 @@ test('tree progress follows activated recipe/buff nodes and syncs after actual t
     }
 })
 
-test('6080 upgrades one configured stage, preserves other home state and barriers pending retries across login', () => {
+test('6080 validates each fresh request and does not await retired presentation acknowledgement across login', () => {
     const f = setup('tree-upgrade')
     try {
         f.store.transact(f.session.id, 0, (s) => activate(s, f.tables, 50))
@@ -102,15 +102,17 @@ test('6080 upgrades one configured stage, preserves other home state and barrier
         assert.deepEqual(after.player, before.player)
         assert.deepEqual(after.home.builds, before.home.builds)
         for (let i = 0; i < 2; i++) {
+            // Distinct request sequences are new upgrades; transport-level
+            // retry deduplication is covered by the current-client suite.
             f.call('HomeTreeUpgrade')
-            assert.equal(f.state().home.tree.stage, 2)
+            assert.equal(f.state().home.tree.stage, 3 + i)
         }
         const relog = f.call('EnterGame', { open_id: 'tree-upgrade' }, {})
         const saved = f.protocol.decode('SCHomeSync', relog.find((p) => p.id === 6102).payload).tree
-        assert.equal(saved.stage, 2)
+        assert.equal(saved.stage, 4)
         assert.equal(saved.is_new, true)
         f.call('HomeTreeUpgrade')
-        assert.equal(f.state().home.tree.stage, 2)
+        assert.equal(f.state().home.tree.stage, 5)
     } finally {
         f.store.close()
     }

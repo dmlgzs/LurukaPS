@@ -84,9 +84,11 @@ export function homeTreePayload(tables, state) {
 export function upgradeHomeTree(tables, state) {
     const payload = homeTreePayload(tables, state),
         tree = state.home.tree
-    // No request GUID exists. An unfinished presentation acknowledgement is
-    // the local replay barrier, completed through 6099.
-    if (tree.is_new) return false
+    // 1.0 HomeTreeData.Populate derives IsShowEffect from its previous/new
+    // stage, and the presentation closes locally. Retired6099 no longer
+    // clears a server latch. Keep is_new as legacy presentation metadata;
+    // it must not prevent the next independently validated6080 upgrade.
+    // Identical transport retries are handled by the connection ReplayWindow.
     const next = catalog(tables).stages.find((row) => row.landscapeTreeStage === tree.stage + 1)
     ensure(next, 'Landscape tree is at maximum stage', ErrorCode.HomeTreeLevelIsMax)
     ensure(
