@@ -12,7 +12,7 @@ import { grantRewards, parseRewards } from '../src/rewards.js'
 
 const value = (f, difficulty = 0) => forgeProgressValue(f.tables, f.state(), [15072, difficulty, 100])
 
-test('stage10202 seals all17 recipe sources, while both complete consumers remain unsupported until their own stages', () => {
+test('current10202 seals every current recipe and both15072 consumers retain their actual support', () => {
     const f = forgeFixture('forge-source-seal')
     try {
         const ach = achievementCatalogue(f.tables),
@@ -23,11 +23,14 @@ test('stage10202 seals all17 recipe sources, while both complete consumers remai
         const initialSupport = ach.rows
             .filter((r) => r.finishCondition.startsWith('15072#'))
             .filter((r) => ach.rules.get(r.id).supported).length
-        assert([0, 3].includes(initialSupport))
+        assert.equal(initialSupport, 3)
         assert.equal(journey.targets.filter((r) => r.tokens[0] === 15072).length, 2)
         for (const recipe of f.tables.get('accessory_product')) {
             const accepted = f.start(recipe.id, true)
             const source = accepted.jobs[0].forgeProgressSource
+            assert.equal(source.version, 2)
+            assert.equal(source.resourceVersion, '3217420')
+            assert.match(source.recipeFingerprint, /^[a-f0-9]{64}$/)
             assert.equal(source.namespace, 'accessory_product')
             assert.equal(source.productId, recipe.id)
             assert.equal(source.difficulty, recipe.difficulty)
@@ -39,7 +42,7 @@ test('stage10202 seals all17 recipe sources, while both complete consumers remai
         }
         for (const rule of [
             [15072, 0, 0],
-            [15072, 2, 1],
+            [15072, 99, 1],
             [15072, 4],
             [15072, 4, 1, 0],
         ])

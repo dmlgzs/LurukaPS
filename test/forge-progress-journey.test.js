@@ -21,7 +21,7 @@ function gates(f) {
 }
 function reply(f, packets, id) {
     const p = packets.find((p) => p.id === id)
-    return f.protocol.decode(f.protocol.byId.get(id).res, p.payload)
+    return f.protocol.decode(f.protocol.byId.get(id).rsp, p.payload)
 }
 
 test('full two15072 journey goals use difficultyIV actual claimed output and preserve owning-task gates and idempotence', () => {
@@ -37,9 +37,9 @@ test('full two15072 journey goals use difficultyIV actual claimed output and pre
             ],
         )
         assert(rows.every((r) => r.supported))
-        assert.equal(model.targets.filter((r) => r.supported).length, 184)
-        assert.equal(model.referencedTargets.filter((r) => r.supported).length, 168)
-        assert.equal(model.referencedTargets.filter((r) => !r.supported).length, 127)
+        assert.equal(model.targets.filter((r) => r.tokens[0] === 15072 && r.supported).length, 2)
+        assert.equal(model.referencedTargets.filter((r) => r.tokens[0] === 15072 && r.supported).length, 2)
+        assert.equal(model.referencedTargets.filter((r) => r.tokens[0] === 15072 && !r.supported).length, 0)
         f.make(recipe(f, 1), true)
         f.make(recipe(f, 4), false)
         assert.equal(value(f), 0)

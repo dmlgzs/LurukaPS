@@ -52,9 +52,31 @@ export function forgeFixture(name, file = ':memory:') {
     })
     const plan = (id, directed = true, count = 1) => {
         const build = state().home.builds.find((b) => b.guid === 200)
-        const random = accessoryProductionPlan(tables, state(), build, { product_id: id, count })
+        const selectMaterial = String(tables.find('accessory_product', id).materialSelect)
+            .split('|')
+            .filter(Boolean)
+            .map((group) => {
+                const option = tables
+                    .get('products_material_group')
+                    .find((row) => row.materialGroupId === Number(group))
+                if (!option) throw Error('Current forge material choice unavailable')
+                return option.Id
+            })
+        const random = accessoryProductionPlan(tables, state(), build, {
+            product_id: id,
+            count,
+            select_material: selectMaterial,
+        })
         const target = directed ? [...random.leaves.keys()][0] : 0
-        return accessoryProductionPlan(tables, state(), build, { product_id: id, count, designated_item_id: target })
+        return {
+            ...accessoryProductionPlan(tables, state(), build, {
+                product_id: id,
+                count,
+                designated_item_id: target,
+                select_material: selectMaterial,
+            }),
+            selectMaterial,
+        }
     }
     const start = (id, directed = true, count = 1) => {
         const p = plan(id, directed, count)
@@ -71,6 +93,7 @@ export function forgeFixture(name, file = ':memory:') {
             product_id: id,
             count,
             designated_item_id: p.target,
+            select_material: p.selectMaterial,
         })
         return { packets, jobs: state().home.productionJobs[200].filter((j) => !before.has(j.guid)), plan: p }
     }
