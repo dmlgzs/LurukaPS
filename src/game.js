@@ -91,6 +91,7 @@ import { registerNoviceTasks } from './handlers/novice-tasks.js'
 import { registerPetEvolution } from './handlers/pet-evolution.js'
 import { playerCardSnapshot } from './player-card-items.js'
 import { registerActivities } from './handlers/activities.js'
+import { registerFirstShare, firstShareSnapshot } from './activity-first-share.js'
 import { registerCultRank } from './handlers/cult-rank.js'
 import { cultRankSnapshot } from './cult-rank-progress.js'
 import { registerGrowup } from './handlers/growup.js'
@@ -660,6 +661,7 @@ export class Game {
         registerChatCustomization(on)
         registerPlayableEnemies(on, tables, store)
         registerWorldEvents(on, tables)
+        registerFirstShare(on)
         this.activities = registerActivities(on, tables, {
             tourPolicy,
             cultRankReader: (state, id, activityId, now) => cultRankSnapshot(store, tables, state, id, activityId, now),
@@ -2346,6 +2348,7 @@ export class Game {
                 .map((data) => this.packet('CSProtoActivityGrowUpEndQuerySync', data)),
             ...permanentSync,
             this.packet('CSProtoActivitySync', this.activities.snapshot(state, now, { id: session.id })),
+            this.packet('CSProtoShareFirstRewardSync', firstShareSnapshot(state)),
             this.packet('CSProtoSyncArchiveGrowupData', growupArchiveSnapshot(this.activities, state)),
             ...(state.cultTrial?.map_id === state.world.map_id
                 ? [this.packet('CSProtoCampaignInfoSync', cultTrialSnapshot(state, { entering: true }))]
