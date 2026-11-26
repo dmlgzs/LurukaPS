@@ -1,6 +1,7 @@
 import { observeAcceptedHeroVitals, invalidateTrackedHeroes, invalidateMedicineContext } from '../medicine-state.js'
 import { materialStoryPending } from '../multiple-material-story.js'
 import { ornamentSkills } from '../hero-equipment.js'
+import { syncSkillTimelinePosition } from '../skill-timeline-sync.js'
 import { recordAndSyncHandbookSkill } from '../pet-handbook-sync.js'
 import { reviveFriendlyActor } from '../actor-revival.js'
 import { rescueActors, cancelRescue } from '../actor-rescue.js'
@@ -215,6 +216,7 @@ function advanceEnergy(c, battle, changed) {
     return reported
 }
 export function registerCombat(on) {
+    on('SkillTimelinePosInfo', syncSkillTimelinePosition)
     on('RescueObj', rescueActors)
     on('RescueCancel', cancelRescue)
     on('ReviveHero', reviveFriendlyActor)

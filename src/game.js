@@ -1358,7 +1358,7 @@ export class Game {
             session.staminaSyncCache = { token: this.store.readCacheToken(session.id), state: snapshot }
             return packets
         }
-        if (e.name === 'CSProtoPresentationMsgs')
+        if (e.name === 'CSProtoPresentationMsgs' || e.name === 'CSProtoSkillTimelinePosInfo')
             return this.store.read(session.id, (state) => {
                 const packets = []
                 handler(
@@ -1366,6 +1366,7 @@ export class Game {
                         id: session.id,
                         state,
                         tables: this.tables,
+                        combatSessionId: session.token,
                         broadcast: (audience, name, value) => packets.push(this.packet(name, value, { audience })),
                     },
                     r,
