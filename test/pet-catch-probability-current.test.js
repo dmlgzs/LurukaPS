@@ -9,6 +9,7 @@ import { TaskGraphs, makeNode } from '../src/tasks.js'
 import { enemyDefinition } from '../src/enemy-state.js'
 import { registerPetCatch } from '../src/handlers/pet-catch.js'
 import { catchCardDefinition, petCatchOutcome } from '../src/pet-catch-policy.js'
+import { initialPetComprehension } from '../src/pet-comprehension.js'
 import { ErrorCode } from '../src/error-codes.js'
 
 const config = configuration(),
@@ -21,7 +22,9 @@ class CurrentTables extends Tables {
         this.forbidSpecimen = false
     }
     get(name) {
-        if (this.forbidSpecimen) assert.notEqual(name, 'pet_builder_rule', 'probability must not roll a specimen')
+        // A cold normal account may read the rule FK to validate customized
+        // configuration. The aptitude roll must reach the builder distribution.
+        if (this.forbidSpecimen) assert.notEqual(name, 'pet_builder', 'probability must not roll a specimen')
         const rows = super.get(name)
         return this.modify[name] ? this.modify[name](rows) : rows
     }
@@ -135,6 +138,9 @@ test('real account12 request11914 resolves task106002/56 customized enemy and re
             before,
             'no card/profile/queue/revision/request-log/SQL writes on repeated aim queries',
         )
+        // Positive control: the same cold Tables still rejects an actual roll,
+        // rather than relying on Sandbox initialization to warm its caches.
+        assert.throws(() => initialPetComprehension(f.tables, 1001, () => 0), /probability must not roll a specimen/)
         consumer.receive({ cardId: cardId + 1, objId: targetId, probability: 0 })
         assert.equal(consumer.refresh, false)
         assert.equal(consumer.percent(), 100)
