@@ -5,6 +5,7 @@ import { parseRewards } from './rewards.js'
 import { WorldObjectCatalog } from './world-objects.js'
 import { customOrnamentConfiguration } from './ornaments.js'
 import { productionSeconds } from './production-time.js'
+import { productionMaterialRows } from './production-materials.js'
 
 const catalogs = new WeakMap()
 function catalog(tables) {
@@ -84,8 +85,8 @@ function discounts(tables, state) {
     }
     return result
 }
-function costsFor(text, rates) {
-    return parseRewards(text)
+function costsFor(rows, rates) {
+    return rows
         .map((row) => {
             ensure(
                 [3, 10].includes(row.itemtype),
@@ -143,8 +144,10 @@ export function accessoryProductionPlan(tables, state, build, request) {
         ErrorCode.ProductSelectMaterialFail,
     )
     const rates = discounts(tables, state),
-        baseCosts = costsFor(recipe.material, rates),
-        locateCosts = target ? costsFor(recipe.locateCost, rates) : []
+        // Current RefreshMaterialCostList keeps selected and fixed entries
+        // separate; GetCostItemNum rounds each entry before merging debits.
+        baseCosts = costsFor(productionMaterialRows(tables, recipe, request.select_material ?? []), rates),
+        locateCosts = target ? costsFor(parseRewards(recipe.locateCost), rates) : []
     const costs = new Map()
     for (const cost of [...baseCosts, ...locateCosts]) {
         const key = cost.itemtype + ':' + cost.itemid,

@@ -20,7 +20,7 @@ function options(tables) {
     }
     return indices.get(tables)
 }
-export function productionMaterials(tables, recipe, selected = []) {
+export function productionMaterialRows(tables, recipe, selected = []) {
     const groups = String(recipe.materialSelect || '')
         .split('|')
         .filter(Boolean)
@@ -49,6 +49,10 @@ export function productionMaterials(tables, recipe, selected = []) {
         ensure(material.length === 1, 'Invalid production material option', ErrorCode.GameConfig)
         costs.push(...material)
     }
+    return costs
+}
+export function productionMaterials(tables, recipe, selected = []) {
+    const costs = productionMaterialRows(tables, recipe, selected)
     const merged = new Map()
     for (const cost of costs) {
         const key = `${cost.itemtype}:${cost.itemid}`
