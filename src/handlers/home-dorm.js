@@ -69,6 +69,50 @@ function enter(c, build, actor) {
     c.pushBefore('SCProtoHomeDormReEnterNtf', { hero_id: actor.guid })
     scene(c, position)
 }
+
+function giftCounter(value, label) {
+    // Optional UInt32 scalars may be absent (wire default0), not null or text.
+    ensure(
+        value === undefined || (Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff),
+        'Invalid saved hero gift ' + label,
+        ErrorCode.GameConfig,
+    )
+    return value ?? 0
+}
+function giftInfoObject(value) {
+    return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+function giftQuota(tables, basic, actor) {
+    // Check existing data BEFORE the normal day-reset writer can replace it.
+    giftCounter(actor.daily_gift_num, 'daily count')
+    ensure(
+        basic.hero_gift_info === undefined || giftInfoObject(basic.hero_gift_info),
+        'Invalid saved hero gift info',
+        ErrorCode.GameConfig,
+    )
+    if (basic.hero_gift_info !== undefined) giftCounter(basic.hero_gift_info.gift_num, 'account count')
+    const limit = (title) => {
+        const rows = tables.get('game').filter((row) => row?.title === title)
+        ensure(rows.length === 1, 'Missing or duplicate hero gift quota configuration', ErrorCode.GameConfig)
+        const raw = rows[0].value
+        // Current TDGame.value is string; intVal uses Int32.TryParse. Require
+        // successful integer parsing, not ToInt's failure-to-zero fallback.
+        ensure(
+            typeof raw === 'string' && /^[+-]?\d+$/.test(raw.trim()),
+            'Invalid hero gift quota configuration value',
+            ErrorCode.GameConfig,
+        )
+        const value = Number(raw)
+        ensure(
+            Number.isSafeInteger(value) && value >= 0 && value <= 0x7fffffff,
+            'Hero gift quota is outside its nonnegative Int32 domain',
+            ErrorCode.GameConfig,
+        )
+        return value
+    }
+    return { perHero: limit('HERO_FAVORABILITY_GIFT_NUM'), total: limit('HERO_FAVORABILITY_ALL_GIFT_NUM') }
+}
+
 export function registerHomeDorm(on, tables) {
     on('HomeDormCheckIn', (c, r) => {
         ensureHome(tables, c.state)
@@ -177,12 +221,14 @@ export function registerHomeDorm(on, tables) {
         const replay = replayHeroGiftRequest(c, r)
         if (replay) return replay
         ensureHome(tables, c.state)
-        refreshDormGiftDay(tables, c.state, c.now)
         const actor = heroGiftRecipient(tables, c.state, r.heroId)
         const item = tables.find('common_item', r.item_id)
         // item_type is common_item.type (110/111), not reward resource type 3.
         ensure(item && [110, 111].includes(item.type) && r.item_type === item.type, 'Invalid hero gift category')
         ensure(Number.isInteger(r.num) && r.num > 0, 'Invalid gift quantity')
+        const basic = c.state.player.basic_info,
+            quota = item.type === 110 ? giftQuota(tables, basic, actor) : null
+        refreshDormGiftDay(tables, c.state, c.now)
         let favor
         if (item.type === 111) {
             const furniture = tables.find('home_dorm_furniture', item.id)
@@ -192,14 +238,13 @@ export function registerHomeDorm(on, tables) {
         } else {
             const gift = tables.find('hero_favorability_gift', item.id)
             ensure(gift, 'Gift configuration is missing', ErrorCode.GameConfig)
-            const basic = c.state.player.basic_info
-            const perHero = Number(tables.get('game').find((row) => row.title === 'HERO_FAVORABILITY_GIFT_NUM')?.value)
-            const total = Number(
-                tables.get('game').find((row) => row.title === 'HERO_FAVORABILITY_ALL_GIFT_NUM')?.value,
-            )
+            ensure(giftInfoObject(basic.hero_gift_info), 'Missing initialized hero gift info', ErrorCode.GameConfig)
+            const perHeroUsed = giftCounter(actor.daily_gift_num, 'daily count'),
+                totalUsed = giftCounter(basic.hero_gift_info.gift_num, 'account count')
             ensure(
-                (actor.daily_gift_num ?? 0) + r.num <= perHero && basic.hero_gift_info.gift_num + r.num <= total,
+                perHeroUsed + r.num <= quota.perHero && totalUsed + r.num <= quota.total,
                 'Daily hero gift limit reached',
+                ErrorCode.HeroGifNumFull,
             )
             favor =
                 (String(gift.favourHero).split('|').map(Number).includes(actor.conf_id)
@@ -211,7 +256,8 @@ export function registerHomeDorm(on, tables) {
         if (item.type === 111) (actor.furnitures ??= []).push(item.id)
         else {
             actor.daily_gift_num = (actor.daily_gift_num ?? 0) + r.num
-            c.state.player.basic_info.hero_gift_info.gift_num += r.num
+            c.state.player.basic_info.hero_gift_info.gift_num =
+                (c.state.player.basic_info.hero_gift_info.gift_num ?? 0) + r.num
             c.state.player.basic_info.hero_gift_info.last_time = c.now
         }
         const response = { item_id: item.id, hero_id: actor.conf_id, item_type: item.type, num: r.num }
