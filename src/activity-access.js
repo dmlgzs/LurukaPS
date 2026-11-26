@@ -54,6 +54,25 @@ export function activityValid(tables, row, state, now) {
     return now >= window.start_time && now <= window.end_time && activityUnlocked(row, state, tables)
 }
 
+export function cultivationGuideDungeon(tables, groupId) {
+    ensure(
+        Number.isSafeInteger(groupId) && groupId > 0,
+        'Invalid cultivation guide dungeon group',
+        ErrorCode.GameConfig,
+    )
+    // Current ModuleGameEvent_Scenario060167a1 calls CreateDungeon(group, 1).
+    // DungeonManager0602bfe8 sends CSCampaignStart.groupId/difficulty, not a row ID.
+    const rows = tables.get('dungeon').filter((row) => row.groupId === groupId && row.dungeonGroupOrder === 1)
+    ensure(rows.length <= 1, 'Ambiguous cultivation guide dungeon group', ErrorCode.GameConfig)
+    const row = rows[0]
+    ensure(
+        !row || (Number.isSafeInteger(row.id) && row.id > 0),
+        'Invalid cultivation guide dungeon identity',
+        ErrorCode.GameConfig,
+    )
+    return row
+}
+
 // A graph asset alone is not a task definition. The client also dereferences
 // TDTask and TDGameEventsCul.taskDungeon for the cultivation guide entry.
 export function activityGuideIssues(tables, row) {
@@ -63,8 +82,8 @@ export function activityGuideIssues(tables, row) {
     if (row.type === 60) {
         const config = tables.get('game_events_cul').find((x) => x.Id === row.systemId)
         if (!config) issues.push({ table: 'game_events_cul', id: row.systemId })
-        else if (config.taskDungeon && !tables.find('dungeon', config.taskDungeon))
-            issues.push({ table: 'dungeon', id: config.taskDungeon })
+        else if (config.taskDungeon && !cultivationGuideDungeon(tables, config.taskDungeon))
+            issues.push({ table: 'dungeon', group_id: config.taskDungeon, difficulty: 1 })
     }
     return issues
 }

@@ -27,10 +27,7 @@ const unlocked = () => {
 test('current dangling guide is diagnosed without replacing its ID or blocking the valid cultivation guide', () => {
     const catalog = new ActivityCatalog(tables),
         state = unlocked()
-    assert.deepEqual(catalog.guideIssues.get(60002), [
-        { table: 'task', id: 900001 },
-        { table: 'dungeon', id: 230 },
-    ])
+    assert.deepEqual(catalog.guideIssues.get(60002), [{ table: 'task', id: 900001 }])
     assert.deepEqual(activityGuideIssues(tables, tables.find('game_events', 60001)), [])
     assert.deepEqual(catalog.ensureGuideTasks(state, now), [404002])
     assert(state.tasks.some((x) => x.task_id === 404002))
