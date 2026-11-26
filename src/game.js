@@ -273,6 +273,7 @@ import { GameError, ensure, textValue } from './handlers/common.js'
 
 import { registerCore } from './handlers/core.js'
 import { registerClientSettings } from './client-settings.js'
+import { registerPhotoTextCheck } from './photo-text-check.js'
 import { registerAIHeroes } from './handlers/ai-heroes.js'
 import { repairSavedWorldRepairs } from './world-repairs.js'
 import { recoverFailedStoryKills } from './story-battle.js'
@@ -642,6 +643,7 @@ export class Game {
         const runGM = registerGM(on, { enabled: gmEnabled })
         registerCore(on)
         registerClientSettings(on)
+        registerPhotoTextCheck(on)
         registerClientReports(on, protocol)
         registerDownloadStartCompatibility(on)
         this.gacha = registerGacha(on, tables, { policy: gachaPolicy })
