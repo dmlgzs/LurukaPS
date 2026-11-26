@@ -1,0 +1,225 @@
+{
+    "version": 1,
+    "policyId": "retired-home-buildings-1.0.0-v1",
+    "local": true,
+    "officiallyVerified": false,
+    "scope": "retired-inventory-and-building-shortcuts-only",
+    "oldAssetsUsable": false,
+    "requiresColdClient": true,
+    "unsupported": "placed-or-stored-retired-instances",
+    "shortcutWriteback": {
+        "origin": "LOCAL",
+        "empty": "retain-proven-retired-at-same-slot",
+        "currentPositive": "explicit-user-replacement",
+        "archive": "first-retired-identity-per-bar-and-slot"
+    },
+    "source": {
+        "snapshot": "67dadf1b3ce3d99c0d4d05e8059f33cc5efa6461",
+        "ownershipWriter": "addHomeBuildings/type13",
+        "identitiesSha256": "537852f23bef56a97e9273308bcacc8cc6f48cce03842f28b0dca55a23432892",
+        "identities": [
+            {
+                "id": 30251,
+                "groupId": 3025,
+                "objId": 2023,
+                "type": 3,
+                "resourcePath": "FieldItem/Home/pre_home_decoration_kiboshrine_01"
+            },
+            {
+                "id": 120011,
+                "groupId": 12001,
+                "objId": 10265,
+                "type": 3,
+                "resourcePath": "FieldItem/Home/pre_home_build_decoration_charlulugardengreen_cabin"
+            },
+            {
+                "id": 120021,
+                "groupId": 12002,
+                "objId": 10266,
+                "type": 3,
+                "resourcePath": "FieldItem/Home/pre_home_build_decoration_charlulugardengreen_pond"
+            },
+            {
+                "id": 120031,
+                "groupId": 12003,
+                "objId": 10267,
+                "type": 3,
+                "resourcePath": "FieldItem/Home/pre_home_build_decoration_charlulugardengreen_swing"
+            },
+            {
+                "id": 120041,
+                "groupId": 12004,
+                "objId": 10268,
+                "type": 3,
+                "resourcePath": "FieldItem/Home/pre_home_build_decoration_charlulugardengreen_well"
+            },
+            {
+                "id": 120051,
+                "groupId": 12005,
+                "objId": 10269,
+                "type": 3,
+                "resourcePath": ""
+            },
+            {
+                "id": 120061,
+                "groupId": 12006,
+                "objId": 10270,
+                "type": 3,
+                "resourcePath": "FieldItem/Home/pre_home_build_decoration_charlulugardengreen_birdhouse"
+            },
+            {
+                "id": 120071,
+                "groupId": 12007,
+                "objId": 10271,
+                "type": 3,
+                "resourcePath": "FieldItem/Home/pre_home_build_decoration_charlulugardengreen_stones"
+            },
+            {
+                "id": 120081,
+                "groupId": 12008,
+                "objId": 10272,
+                "type": 3,
+                "resourcePath": "FieldItem/Home/pre_home_build_decoration_charlulugardengreen_cart"
+            },
+            {
+                "id": 120091,
+                "groupId": 12009,
+                "objId": 10273,
+                "type": 3,
+                "resourcePath": "FieldItem/Home/pre_home_build_decoration_charlulugardengreen_lamp"
+            },
+            {
+                "id": 120101,
+                "groupId": 12010,
+                "objId": 10274,
+                "type": 3,
+                "resourcePath": "FieldItem/Home/pre_home_build_decoration_charlulugardengreen_fence1"
+            },
+            {
+                "id": 120111,
+                "groupId": 12011,
+                "objId": 10275,
+                "type": 3,
+                "resourcePath": "FieldItem/Home/pre_home_build_decoration_charlulugardengreen_fence2"
+            },
+            {
+                "id": 120121,
+                "groupId": 12012,
+                "objId": 10276,
+                "type": 3,
+                "resourcePath": "FieldItem/Home/pre_home_build_decoration_charlulugardenyellow_chair"
+            },
+            {
+                "id": 120131,
+                "groupId": 12013,
+                "objId": 10277,
+                "type": 3,
+                "resourcePath": "FieldItem/Home/pre_home_build_decoration_charlulugardenyellow_broom"
+            },
+            {
+                "id": 120141,
+                "groupId": 12014,
+                "objId": 10278,
+                "type": 3,
+                "resourcePath": "FieldItem/Home/pre_home_build_decoration_charlulugardengreen_flowertent_01"
+            },
+            {
+                "id": 120151,
+                "groupId": 12015,
+                "objId": 10279,
+                "type": 3,
+                "resourcePath": ""
+            },
+            {
+                "id": 120161,
+                "groupId": 12016,
+                "objId": 10280,
+                "type": 3,
+                "resourcePath": ""
+            },
+            {
+                "id": 120171,
+                "groupId": 12017,
+                "objId": 10281,
+                "type": 3,
+                "resourcePath": ""
+            },
+            {
+                "id": 120181,
+                "groupId": 12018,
+                "objId": 10282,
+                "type": 3,
+                "resourcePath": ""
+            },
+            {
+                "id": 120191,
+                "groupId": 12019,
+                "objId": 10283,
+                "type": 3,
+                "resourcePath": ""
+            },
+            {
+                "id": 120201,
+                "groupId": 12020,
+                "objId": 10284,
+                "type": 3,
+                "resourcePath": ""
+            },
+            {
+                "id": 120211,
+                "groupId": 12021,
+                "objId": 10285,
+                "type": 3,
+                "resourcePath": ""
+            },
+            {
+                "id": 120221,
+                "groupId": 12022,
+                "objId": 10286,
+                "type": 3,
+                "resourcePath": ""
+            },
+            {
+                "id": 120231,
+                "groupId": 12023,
+                "objId": 10287,
+                "type": 3,
+                "resourcePath": ""
+            },
+            {
+                "id": 120241,
+                "groupId": 12024,
+                "objId": 10288,
+                "type": 3,
+                "resourcePath": ""
+            },
+            {
+                "id": 120251,
+                "groupId": 12025,
+                "objId": 10290,
+                "type": 3,
+                "resourcePath": ""
+            },
+            {
+                "id": 120261,
+                "groupId": 12026,
+                "objId": 10291,
+                "type": 3,
+                "resourcePath": ""
+            },
+            {
+                "id": 120271,
+                "groupId": 12027,
+                "objId": 10292,
+                "type": 3,
+                "resourcePath": ""
+            }
+        ]
+    },
+    "target": {
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "buildingIdsSha256": "7dbfabfe931bdc73c017ff2f8b83b3bae77de54a3255f3de9e7d790344f4dbaa"
+    },
+    "todo": "The current catalog has no proven replacement. Preserve raw ownership and shortcut history; this is limited safe presentation, not restored furniture availability."
+}

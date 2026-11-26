@@ -1,0 +1,184 @@
+{
+    "sourceSnapshot": "67dadf1b3ce3d99c0d4d05e8059f33cc5efa6461",
+    "scope": "actual bounded historical addHomeBuildings writer output; no placed/stored instances or natural acquisition claim",
+    "inventory": [
+        {
+            "build_id": 30251,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120011,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120021,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120031,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120041,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120051,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120061,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120071,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120081,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120091,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120101,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120111,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120121,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120131,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120141,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120151,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120161,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120171,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120181,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120191,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120201,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120211,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120221,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120231,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120241,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120251,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120261,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        },
+        {
+            "build_id": 120271,
+            "total_num": 1,
+            "used_num": 0,
+            "unlock": true
+        }
+    ],
+    "shortcuts": [
+        {
+            "type": 1,
+            "item_id": [
+                30251, 120011, 120021, 120031, 120041, 120051, 120061, 120071, 120081, 120091, 120101, 120111, 120121,
+                120131, 120141, 120151, 120161, 120171, 120181, 120191, 120201, 120211, 120221, 120231, 120241, 120251,
+                120261, 120271
+            ]
+        }
+    ]
+}

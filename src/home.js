@@ -10,6 +10,7 @@ import { ensureCollectionData, homeCollectionPresentation } from './home-collect
 import { ensure } from './handlers/common.js'
 import { ensureHomeDormitories, dormPayload } from './home-dorm.js'
 import { defaultHomeBuildings } from './home-default-placement.js'
+import { homeBuildingPresentation } from './home-building-presentation.js'
 export function ensureHome(tables, state) {
     if (state.home) {
         reconcileHomeExperience(tables, state)
@@ -102,7 +103,7 @@ export function homePayload(tables, state) {
             ...ranchPayloads(tables, state),
             ...worldCollectionPayloads(state),
         ]
-    return {
+    return homeBuildingPresentation(tables, state, {
         technology,
         tree,
         home_lv: h.stage,
@@ -124,7 +125,7 @@ export function homePayload(tables, state) {
         })),
         home_hub: homeHubPayload(tables, state, homeBuilds),
         home_level_new_base: { level: h.level, exp: h.exp, option_setting: h.cropOptions || 0 },
-    }
+    })
 }
 
 function addShortcut(home, type, id) {

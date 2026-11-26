@@ -17,6 +17,7 @@ import { dormTopics } from '../home-dorm.js'
 import { registerRanch } from './ranch.js'
 import { clearRanchPetSlots, ranchWorkerLimit } from '../ranch.js'
 import { registerHomeExchange } from './home-exchange.js'
+import { mergeHomeBuildingShortcutWriteback } from '../home-building-presentation.js'
 
 function homeScenePosition(tables) {
     const homeMapId = Number(tables.get('game').find((row) => row.title === 'HOME_ID')?.value)
@@ -150,7 +151,7 @@ export function registerHome(on, tables) {
         ensure(r.shortcut_bar.length > 0 && r.shortcut_bar.length <= 2, 'Invalid shortcut groups')
         const home = ensureHome(tables, c.state),
             types = new Set()
-        for (const bar of r.shortcut_bar) {
+        for (let bar of r.shortcut_bar) {
             ensure([1, 2].includes(bar.type) && !types.has(bar.type), 'Invalid shortcut type')
             types.add(bar.type)
             ensure(bar.item_id.length <= 64, 'Too many shortcut slots')
@@ -159,6 +160,7 @@ export function registerHome(on, tables) {
                 if (id > 0)
                     ensure(tables.find(bar.type === 1 ? 'home_building' : 'common_item', id), 'Unknown shortcut item')
             }
+            bar = mergeHomeBuildingShortcutWriteback(tables, c.state, bar)
             const index = home.shortcuts.findIndex((x) => x.type === bar.type)
             if (bar.type === 1) {
                 const oldIds = new Set((home.shortcuts[index]?.item_id ?? []).filter((id) => id > 0))
