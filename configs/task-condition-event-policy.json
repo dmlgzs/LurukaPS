@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "origin": "LOCAL",
+  "target_version": "1.0.0",
+  "package_version": "3217420",
+  "npc_range_enabled": true,
+  "npc_range_authority": "traced-before-configured-client-report",
+  "player_position_tolerance_meters": 1
+}

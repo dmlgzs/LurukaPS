@@ -9,6 +9,7 @@ import {
 } from './tasks.js'
 import { deliveryKey } from './task-delivery.js'
 import { ensure } from './handlers/common.js'
+import { validateTaskRangeEvent, validateTaskPlayableStepEvent } from './task-condition-events.js'
 
 // CBT3 TaskStore 060189b0/b1: targeted reports, not generic telemetry.
 const indexed = new Set([1001, 2519, 2520, 2512])
@@ -213,12 +214,16 @@ export function recordTaskBehaviour(c, r) {
     const scene = base.__type_TaskCondInSceneData
     const playable = base.__type_TaskCondPlayableIsFinishData
     const areaTrigger = base.__type_TaskCondAreaTriggerData
+    const rangeTrigger = base.__type_TaskCondRangeTriggerData
+    const playableStep = base.__type_TaskCondPlayableStepData
     const virtualState = base.__type_TaskCondWorldUnitVirtualStateData
     const data =
         scene ??
         playable ??
         virtualState ??
         areaTrigger ??
+        rangeTrigger ??
+        playableStep ??
         base.__type_TaskCondNPCTriggerData ??
         base.__type_TaskCondActiveNPCTriggerData ??
         base.__type_TaskCondActiveSpecialNPCTriggerData ??
@@ -262,6 +267,7 @@ export function recordTaskBehaviour(c, r) {
         area?.sceneId ??
         scene?.sceneId ??
         (playable?.sceneID ||
+            playableStep?.sceneID ||
             base.mapData?.sceneId ||
             activeNpc?.npcData?.sceneId ||
             (!npc && !activeNpc ? data.sceneId || data.enemiesDatas?.sceneId : 0))
@@ -269,8 +275,8 @@ export function recordTaskBehaviour(c, r) {
     if (!photo) {
         const expected =
             scene?.sceneId ??
-            (playable
-                ? playable.playableID
+            (playable || playableStep
+                ? (playable ?? playableStep).playableID
                 : virtualState
                   ? virtualStateReportTarget(virtualState)
                   : base.__type_TaskCondSignalReceiverData
@@ -289,6 +295,32 @@ export function recordTaskBehaviour(c, r) {
             conditionValue(condition, c.state, { taskId, nodeId, index }) > 0,
             'Playable has no matching server completion record',
         )
+    if (rangeTrigger || playableStep) {
+        ensure(
+            r.key === 2519 && condition.contentType === (rangeTrigger ? 16370 : 16650),
+            'Invalid typed task event configuration',
+            ErrorCode.GameConfig,
+        )
+        if (rangeTrigger) {
+            ensure(
+                Number.isSafeInteger(base.mapData?.sceneId) && base.mapData.sceneId > 0,
+                'Task range scene configuration unavailable',
+                ErrorCode.GameConfig,
+            )
+            validateTaskRangeEvent(
+                c,
+                task,
+                rangeTrigger,
+                c.state.taskEvents?.[deliveryKey(c.state, taskId, nodeId, index)] ?? 0,
+                { graph, node },
+            )
+        } else
+            validateTaskPlayableStepEvent(
+                c,
+                playableStep,
+                c.state.taskEvents?.[deliveryKey(c.state, taskId, nodeId, index)] ?? 0,
+            )
+    }
     // These reports attest client-owned interactions. They cannot grant items or
     // bypass exact-item submission, account-level or other server-owned conditions.
     const key = deliveryKey(c.state, taskId, nodeId, index),
