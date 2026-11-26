@@ -10,6 +10,7 @@ import { taskEnemyPacks } from './task-enemy-slots.js'
 import { workFoodTaskConditionValue, clearWorkFoodTaskWitnesses } from './task-work-food-witness.js'
 import { taskActionData, taskOverrideNodeIds } from './task-action-data.js'
 import { currentTaskAvailable, suspendedTaskIds } from './task-compatibility.js'
+import { taskNodeFinishedCurrentAttempt } from './task-node-status.js'
 export const asList = (value) => (value == null ? [] : Array.isArray(value) ? value : [value])
 export class TaskGraphs {
     constructor(tables, directory = path.resolve(tables.dir, '../Config/Task')) {
@@ -402,10 +403,7 @@ export function repairMainTaskTrace(tables, state) {
     return true
 }
 export function taskNodeCompleted(state, taskId, nodeId) {
-    return (
-        (state.tasks ?? []).some((task) => task.task_id === taskId && task.finish_nodes?.includes(nodeId)) ||
-        (state.taskRecords ?? []).some((task) => task.task_id === taskId && task.count > 0)
-    )
+    return taskNodeFinishedCurrentAttempt(state, taskId, nodeId)
 }
 function requiredTaskLevel(config) {
     const levels = String(config?.unlockcondition ?? '')

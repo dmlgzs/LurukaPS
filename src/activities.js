@@ -1,7 +1,8 @@
 import { KiboTourSystem } from './kibo-tours.js'
 import { createHash } from 'node:crypto'
 import { configTime } from './shops.js'
-import { taskNodeCompleted, TaskGraphs, nodeConditions, asList, acceptTask, taskUnlocked } from './tasks.js'
+import { TaskGraphs, nodeConditions, asList, acceptTask, taskUnlocked } from './tasks.js'
+import { taskNodeFinishedCurrentAttempt } from './task-node-status.js'
 import { ensure } from './handlers/common.js'
 import { ErrorCode } from './error-codes.js'
 import { cultRankOwnValue } from './activity-cult-rank.js'
@@ -166,7 +167,7 @@ export class ActivityCatalog {
         }
         if (kind === 2004) return state.player.basic_info.lv
         if (kind === 2007) return Number(this.taskDone(state, a))
-        if (kind === 12045) return Number(taskNodeCompleted(state, a, b))
+        if (kind === 12045) return Number(taskNodeFinishedCurrentAttempt(state, a, b))
         if (kind === 61014) return Number((state.activityTeachingCompleted ?? []).includes(b))
         if (kind === 13044) return (state.entrust?.records?.[a]?.entrust_star ?? 0) >= b ? b : 0
         if (kind === 12046)

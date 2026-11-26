@@ -1,5 +1,6 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
+import { taskNodeFinishedCurrentAttempt } from './task-node-status.js'
 export function gridPosition(anchor) {
     ensure(Number.isInteger(anchor) && anchor >= 0 && anchor <= 0xffffffff, 'Invalid home anchor')
     const x = anchor >>> 16,
@@ -22,11 +23,7 @@ export function homeCondition(text, state) {
         : [String(text).split('|').map(Number)]
     return terms.every(([id, n, level]) => {
         if (id === 2004) return state.player.basic_info.lv >= n
-        if (id === 12045)
-            return (
-                (state.tasks ?? []).some((task) => task.task_id === n && task.finish_nodes?.includes(level)) ||
-                (state.taskRecords ?? []).some((record) => record.task_id === n && record.count > 0)
-            )
+        if (id === 12045) return taskNodeFinishedCurrentAttempt(state, n, level)
         if (id === 11009) return (state.home?.stage || 1) >= n
         // Current CheckHomeLevel(15017) reads HomeLevelNewBase.level;
         // 11009 is the separate legacy home stage condition.

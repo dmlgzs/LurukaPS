@@ -3,6 +3,7 @@ import { journeyAbyssRule, journeyAbyssValue } from './journey-abyss.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { taskNodeCompleted } from './tasks.js'
+import { taskNodeFinishedCurrentAttempt } from './task-node-status.js'
 import { guidedConditionValue } from './guided-conditions.js'
 import { grantRewards, parseRewards } from './rewards.js'
 import { rewardSource } from './reward-source.js'
@@ -247,11 +248,8 @@ function sourceFacts(model, state) {
     for (const record of state.taskRecords ?? [])
         if (record.count > 0 && model.sourceTaskSet.has(record.task_id)) completed.add(record.task_id)
     const nodes = new Set()
-    for (const task of state.tasks ?? []) {
-        const wanted = model.sourceNodes.get(task.task_id)
-        if (!wanted) continue
-        for (const node of task.finish_nodes ?? []) if (wanted.has(node)) nodes.add(task.task_id + ':' + node)
-    }
+    for (const [id, node] of model.sourceNodePairs)
+        if (taskNodeFinishedCurrentAttempt(state, id, node)) nodes.add(id + ':' + node)
     const level = state.player.basic_info.lv,
         entrusts = entrustFacts(model, state),
         homeLevel = state.home?.level ?? 0,
@@ -262,7 +260,7 @@ function sourceFacts(model, state) {
         homeLevel,
         ...model.sourceReputationIds.map((id) => reputations.get(id)),
         ...model.sourceTaskIds.map((id) => (completed.has(id) ? 1 : 0)),
-        ...model.sourceNodePairs.map(([id, node]) => (completed.has(id) || nodes.has(id + ':' + node) ? 1 : 0)),
+        ...model.sourceNodePairs.map(([id, node]) => (nodes.has(id + ':' + node) ? 1 : 0)),
         ...model.sourceEntrustIds.map((id) => entrusts.get(id)),
     ].join(',')
     return { completed, nodes, entrusts, level, homeLevel, reputations, key }
@@ -294,7 +292,7 @@ function evaluation(model, state, facts = sourceFacts(model, state)) {
             if (kind === 15017) return facts.homeLevel >= id
             if (kind === 61001) return (facts.reputations.get(id) ?? 0) >= node
             if (kind === 2007) return facts.completed.has(id)
-            if (kind === 12045) return facts.completed.has(id) || facts.nodes.has(id + ':' + node)
+            if (kind === 12045) return facts.nodes.has(id + ':' + node)
             if (kind === 13044)
                 return uint(id) && id > 0 && uint(node) && node > 0 && (facts.entrusts.get(id) ?? 0) >= node
             if (kind === 12096) return isComplete(id)
