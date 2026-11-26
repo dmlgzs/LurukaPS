@@ -45,8 +45,20 @@ export function soulDecomposePlan(tables, state, guids) {
             !item.zombie && item.lv === 1 && item.advance === 1 && config.rarity !== 4,
             'Soul essence is not eligible for decomposition',
         )
+        // Current decompose UI admits an otherwise eligible item even when its
+        // configured preview is empty. Confirmation still submits its GUID;
+        // that explicit empty string means no refund, not a missing column.
+        ensure(
+            typeof config.decomposed === 'string',
+            'Soul decomposition reward configuration unavailable',
+            ErrorCode.GameConfig,
+        )
         const configured = parseRewards(config.decomposed)
-        ensure(configured.length > 0, 'Soul decomposition reward configuration unavailable', ErrorCode.GameConfig)
+        ensure(
+            configured.length > 0 || config.decomposed === '',
+            'Soul decomposition reward configuration is malformed',
+            ErrorCode.GameConfig,
+        )
         for (const reward of configured) {
             const key = reward.itemtype + ':' + reward.itemid
             const previous = rewards.get(key),
