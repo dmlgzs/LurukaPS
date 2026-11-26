@@ -95,7 +95,8 @@ import { cultTrialSnapshot, ensureCultTrialScene, recordCultTrialResult } from '
 import { ensureCultFormation } from './cult-formation.js'
 import { repairSavedPetPuzzleVisibility } from './pet-puzzles.js'
 import { repairSavedElevatorVisibility } from './handlers/world-elevator.js'
-import { hiddenTaskPetGuids, taskPetPresentation } from './task-pet-presentation.js'
+import { hiddenTaskPetGuids } from './task-pet-presentation.js'
+import { petSyncPresentation } from './pet-model-presentation.js'
 import { repairPetCatalog } from './pet-catalog.js'
 import { preparePetHandbook, takePetHandbookSync, petHandbookSnapshot } from './pet-handbook.js'
 import { syncHandbookAttributes } from './pet-handbook-sync.js'
@@ -1433,7 +1434,7 @@ export class Game {
                         return delta ? this.packet('SCProtoMailboxDelta', delta, meta) : null
                     }
                     if (name === 'CSProtoWorldBuffSync') preparePersonalBuffPacket(state, this.tables, value)
-                    if (name === 'CSProtoPetInfoSync') value = taskPetPresentation(this.tables, state, value)
+                    if (name === 'CSProtoPetInfoSync') value = petSyncPresentation(this.tables, state, value)
                     if (name === 'CSProtoSyncPlayerData' && value) {
                         value = projectCurrentHeroes(this.tables, state, value)
                         syncCurrencyMirrors(state.player)
@@ -1686,16 +1687,17 @@ export class Game {
                     (state.petRevision || 0) !== petRevision ||
                     (!battleReport && petViewBefore !== hiddenTaskPetGuids(this.tables, state).join(','))
                         ? [
-                              this.packet('CSProtoPetInfoSync', {
-                                  ...releaseFields(state, 'pet', now, this.releaseResetHour),
-                                  record_pets: state.recordPets ?? [],
-                                  pet_infos: taskPetPresentation(this.tables, state, {
+                              this.packet(
+                                  'CSProtoPetInfoSync',
+                                  petSyncPresentation(this.tables, state, {
+                                      ...releaseFields(state, 'pet', now, this.releaseResetHour),
+                                      record_pets: state.recordPets ?? [],
                                       pet_infos: {
                                           pets: notifiedPets,
                                           guid: petIdsBefore.filter((id) => !state.pets.some((p) => p.guid === id)),
                                       },
-                                  }).pet_infos,
-                              }),
+                                  }),
+                              ),
                               this.packet('CSProtoPetBoxInfoSync', { box_infos: state.petBoxes }),
                           ]
                         : []
@@ -2070,12 +2072,14 @@ export class Game {
                         packets.push(this.packet('CSProtoHomeSync', homePayload(this.tables, state)))
                     if ((state.petRevision || 0) !== petRevision)
                         packets.push(
-                            this.packet('CSProtoPetInfoSync', {
-                                ...releaseFields(state, 'pet', now, this.releaseResetHour),
-                                record_pets: state.recordPets ?? [],
-                                pet_infos: taskPetPresentation(this.tables, state, { pet_infos: { pets: state.pets } })
-                                    .pet_infos,
-                            }),
+                            this.packet(
+                                'CSProtoPetInfoSync',
+                                petSyncPresentation(this.tables, state, {
+                                    ...releaseFields(state, 'pet', now, this.releaseResetHour),
+                                    record_pets: state.recordPets ?? [],
+                                    pet_infos: { pets: state.pets },
+                                }),
+                            ),
                         )
                 }
                 if (simpleDue) {
@@ -2219,12 +2223,15 @@ export class Game {
                   ]
                 : []),
             this.packet('CSProtoPetHandbookInfoSync', petHandbookSnapshot(state)),
-            this.packet('CSProtoPetInfoSync', {
-                ...releaseFields(state, 'pet', now, this.releaseResetHour),
-                record_pets: state.recordPets ?? [],
-                lock_box_id: lockedPetBoxes(this.tables, state),
-                pet_infos: taskPetPresentation(this.tables, state, { pet_infos: { pets: state.pets } }).pet_infos,
-            }),
+            this.packet(
+                'CSProtoPetInfoSync',
+                petSyncPresentation(this.tables, state, {
+                    ...releaseFields(state, 'pet', now, this.releaseResetHour),
+                    record_pets: state.recordPets ?? [],
+                    lock_box_id: lockedPetBoxes(this.tables, state),
+                    pet_infos: { pets: state.pets },
+                }),
+            ),
             this.packet('CSProtoPetEggInfoSync', {
                 ...releaseFields(state, 'egg', now, this.releaseResetHour),
                 egg_infos: { eggs: state.petEggs || [] },

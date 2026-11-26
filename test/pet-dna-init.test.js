@@ -51,7 +51,7 @@ const decode10006 = (packets) =>
         .filter((packet) => packet.id === 10006)
         .flatMap((packet) => protocol.decode('SCHeroAttrInfoSync', packet.payload).heros)
 
-test('all current birth effect DNA and all 42 strictly increasing innate targets have real level1 passive logic and exact initialization descriptors', () => {
+test('all current birth effect DNA and all 44 strictly increasing innate targets have real level1 passive logic and exact initialization descriptors', () => {
     const logic = new Map(tables.get('skillsub_logic').map((row) => [row.skillId, row]))
     const dna = new Map(tables.get('pet_dna').map((row) => [row.id, row]))
     const skills = new Map(tables.get('skill').map((row) => [row.id, row]))
@@ -77,7 +77,7 @@ test('all current birth effect DNA and all 42 strictly increasing innate targets
     }
     assert.ok(birth.size > 0)
     const upgrades = [...dna.values()].filter((row) => row.evoDnaId && row.evoDnaId !== row.id)
-    assert.equal(upgrades.length, 42)
+    assert.equal(upgrades.length, 44)
     for (const row of upgrades) {
         const target = dna.get(row.evoDnaId)
         assert.ok(target.rarity > row.rarity && levelOne.has(target.id))
