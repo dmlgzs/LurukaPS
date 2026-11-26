@@ -9,6 +9,7 @@ import {
     replayCombatEnemyTerminals,
 } from './world-combat.js'
 import { ErrorCode } from '../error-codes.js'
+import { currentDefaultTransferPoint } from '../world-point-access.js'
 import { checkpointSnapshot } from '../world-checkpoints.js'
 import { clearAbyssRuntime, publishAbyssExit } from '../abyss-flow.js'
 import { abyssHeroMapElements } from '../abyss-buffs.js'
@@ -429,7 +430,10 @@ export function registerWorld(on) {
             if (returned && point?.cityId === c.state.world.map_id) return {}
         }
         const p = c.tables.find('world_borthpos', r.point_id)
-        ensure(p && c.state.world.points.includes(p.id), 'Point is not unlocked')
+        ensure(
+            p && (c.state.world.points.includes(p.id) || currentDefaultTransferPoint(c.tables, c.state, p)),
+            'Point is not unlocked',
+        )
         rememberMap(c, p.cityId)
         Object.assign(c.state.world, c.tables.position(p))
         worldSync(c, r, 19)
