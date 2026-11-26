@@ -165,7 +165,10 @@ export function registerCollection(on) {
         for (const x of c.state.player.heros_info.heros) if (e && x.wguid === e.guid) x.wguid = 0
         h.wguid = e?.guid || 0
         if (e) e.wear_hero = h.guid
-        syncEquipment(c)
+        // Current SoulEssenceManager's successful6046 callback refreshes its
+        // page immediately. Publish both hero ownership and battle attributes
+        // before that callback, as accessory equipment already does.
+        syncEquipment({ ...c, push: c.pushBefore })
         return {}
     })
     on('SetLockSoulEssence', (c, r) => {
