@@ -7,6 +7,7 @@ import { refreshAutoCropShortcut } from './home.js'
 import { grantRewards, parseRewards } from './rewards.js'
 import { rewardSource } from './reward-source.js'
 import exchangePolicy from '../configs/home-exchange-policy.json' with { type: 'json' }
+import { recordHomeGuidedSale } from './home-guided-progress.js'
 
 function settleShipment(tables, state, now, kind, shipment) {
     const exchange = state.homeExchange,
@@ -89,6 +90,7 @@ function settleShipment(tables, state, now, kind, shipment) {
     // UI requests a recent-date chart; 90 days is a local retention policy.
     exchange.history = history.sort((a, b) => a.history_time - b.history_time).slice(-90)
     if (kind === 'manual') exchange.box = []
+    recordHomeGuidedSale(state)
     exchange.settlementReceipt = { kind, time: now, day: first.day, principal, extra }
     const award = { rewards, src: rewardSource(tables, 'exchangeSale') }
     if (kind === 'scheduled')

@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { configuration } from './config.js'
 import { deliveryKey } from './task-delivery.js'
+import { homeGuidedConditionValue } from './home-guided-progress.js'
 
 const conditions = new Map(
     JSON.parse(fs.readFileSync(path.join(configuration().tables, 'task_condition.json'), 'utf8')).map((row) => [
@@ -78,6 +79,8 @@ export function guidedConditionValue(id, state, context, providedRow) {
     const parts = String(row.condition || '')
         .split('|')
         .map(Number)
+    const homeTransaction = homeGuidedConditionValue(parts, state)
+    if (homeTransaction !== null) return homeTransaction
     if (guidedKillRule(id))
         return context?.taskId !== undefined && context.nodeId !== undefined && context.index !== undefined
             ? (state.taskEvents?.[deliveryKey(state, context.taskId, context.nodeId, context.index)] ?? 0)

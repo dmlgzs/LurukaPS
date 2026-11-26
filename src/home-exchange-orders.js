@@ -8,6 +8,7 @@ import { parseRewards, grantRewards } from './rewards.js'
 import { spend } from './inventory.js'
 import { rewardSource } from './reward-source.js'
 import { recordHomeOrderCompletion } from './home-order-progress.js'
+import { recordHomeGuidedOrder } from './home-guided-progress.js'
 import exchangePolicy from '../configs/home-exchange-policy.json' with { type: 'json' }
 const catalogues = new WeakMap()
 export function exchangeOrderCatalogue(tables) {
@@ -273,6 +274,7 @@ export function submitExchangeOrder(c, r) {
     spend(c.state, costs, 0, c.now)
     const rewards = grantRewards(c.tables, c.state, plan.rewards)
     slot.done = true
+    recordHomeGuidedOrder(c.tables, c.state, row.orderID)
     const receipts = (exchange.orderReceipts ??= {})
     receipts[r.order_guid] = { id: slot.order_id, time: c.now, level: row.orderLevel }
     const keys = Object.keys(receipts).sort((a, b) => Number(a) - Number(b))
