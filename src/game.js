@@ -267,6 +267,7 @@ import { ensureAppearance, clothesSnapshot, heroSkinsSnapshot } from './appearan
 import { registerCollection } from './handlers/collection.js'
 import { registerWorld, repairLegacyMountState } from './handlers/world.js'
 import { registerMail } from './handlers/mail.js'
+import { sceneModePayload } from './scene-mode.js'
 import { projectCurrentHeroes, suspendUnavailableHeroFormations } from './hero-compatibility.js'
 import { suspendUnavailableTasks } from './task-compatibility.js'
 import { registerAppearancePresets, clothesPresetsSnapshot } from './appearance-presets.js'
@@ -1045,7 +1046,8 @@ export class Game {
             const team = this.legacyMatchTeams.loginSnapshot(session.id, activeState)
             if (team) packets.push(this.packet('CSProtoMatchTeamDataSync', team))
             if (campaign?.arena_status) {
-                packets.push(this.packet('CSProtoOnlineModeChange', { mode: 9 }))
+                const mode = sceneModePayload(this.tables, activeState)
+                if (mode) packets.push(this.packet('CSProtoSceneModeChange', mode))
                 const { duel_id, arena_status, formation_slot, ...wire } = campaign
                 const hero = arenaTrainer(
                     this.tables,
@@ -1419,6 +1421,10 @@ export class Game {
                 const bagBefore = JSON.stringify(state.player.sbag_infos)
                 upgradeInventory(state)
                 const statePacket = (name, value, meta = {}) => {
+                    if (name === 'CSProtoOnlineModeChange' && this.protocol.retiredNames.has(name)) {
+                        const mode = sceneModePayload(this.tables, state, { multiplayer: [2, 4].includes(value.mode) })
+                        return mode ? this.packet('CSProtoSceneModeChange', mode, meta) : null
+                    }
                     if (name === 'CSProtoMailSync' && this.protocol.retiredNames.has(name)) {
                         const delta = mailboxLegacyPush(this.tables, state, now)
                         return delta ? this.packet('SCProtoMailboxDelta', delta, meta) : null

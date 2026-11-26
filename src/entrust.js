@@ -1,4 +1,5 @@
 import { repeatDungeon, repeatEventTables, recordRepeatVictory } from './repeat-event.js'
+import { currentMapMember } from './current-map-member.js'
 import { recordMainEntrustVictory } from './main-entrust-progress.js'
 import { recordRepeatClear } from './repeat-event-progress.js'
 import { recordBattlePassMainEntrustClear, recordBattlePassRepeatClear } from './battle-pass-tasks.js'
@@ -352,25 +353,10 @@ export function entrustMultiSnapshot(run) {
 }
 
 export function entrustMultiBaseSnapshot(state, accountId) {
-    const manager = state.player.group_mgrs.find((entry) => entry.type === 1)
-    const formation = manager?.groups.find((entry) => entry.id === manager.cur_group)
-    const active = (formation?.heros ?? [])
-        .map((entry) => state.player.heros_info.heros.find((hero) => hero.guid === entry.hero_id))
-        .filter(Boolean)
-    ensure(active.length > 0, 'Entrust formation has no hero')
-    const control = active.find((hero) => hero.guid === formation.control) ?? active[0]
     return {
         dungeon_id: state.entrust.run.dungeon_id,
         dungeon_scene_id: state.entrust.run.map_id,
-        player_list: [
-            {
-                player_id: accountId,
-                hero_id: control.conf_id,
-                name: Buffer.from(state.player.basic_info.name, 'base64').toString('utf8'),
-                lv: state.player.basic_info.lv,
-                heros: active.map((hero) => ({ hero_id: hero.conf_id })),
-            },
-        ],
+        player_list: [currentMapMember(state, accountId)],
         team_option_list: [{ player_id: accountId, stay: true }],
         player_status_list: [{ player_id: accountId, status: 1 }],
     }

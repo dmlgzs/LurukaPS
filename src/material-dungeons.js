@@ -23,6 +23,33 @@ export function materialDungeonUnlocked(rule, state) {
                 ensure(parts.length === 2, 'Invalid material level condition', ErrorCode.GameConfig)
                 return state.player.basic_info.lv >= id
             }
+            if (kind === 12045) {
+                ensure(parts.length === 3 && target > 0, 'Invalid material task-node condition', ErrorCode.GameConfig)
+                const tasks = state.tasks ?? []
+                ensure(Array.isArray(tasks), 'Invalid material task state', ErrorCode.GameConfig)
+                const task = tasks.find((entry) => entry.task_id === id)
+                if (task) {
+                    const finished = task.finish_nodes ?? []
+                    ensure(
+                        Array.isArray(finished) && finished.every((node) => Number.isSafeInteger(node) && node >= 0),
+                        'Invalid material finished-node state',
+                        ErrorCode.GameConfig,
+                    )
+                    // Current CheckTaskNodeIsFinished0602f31d checks the active
+                    // attempt first. A previous archive cannot finish its node.
+                    return finished.includes(target)
+                }
+                const records = state.taskRecords ?? []
+                ensure(Array.isArray(records), 'Invalid material task records', ErrorCode.GameConfig)
+                const record = records.find((entry) => entry.task_id === id)
+                if (!record) return false
+                ensure(
+                    Number.isSafeInteger(record.count) && record.count >= 0,
+                    'Invalid material task completion count',
+                    ErrorCode.GameConfig,
+                )
+                return record.count > 0
+            }
             ensure(kind === 13112, 'Material unlock condition is not implemented', ErrorCode.FunctionClosed)
             ensure(parts.length === 3 && target > 0, 'Invalid material clear condition', ErrorCode.GameConfig)
             const record = state.materialDungeonRecords?.[id]
