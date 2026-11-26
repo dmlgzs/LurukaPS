@@ -7,12 +7,28 @@ import { Protocol } from '../src/protocol.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { ErrorCode } from '../src/error-codes.js'
+import { staticTimeRows } from '../src/time-definitions.js'
+import { tableExportManifest } from '../src/table-source.js'
 const cfg = configuration(),
     tables = new Tables(cfg.tables)
-test('logged expired stage shops query as closed without entering invalid goods dates; purchases fail atomically', () => {
+test('current dated stage shops close after their exported end; public purchases then fail atomically', () => {
+    const ids = [100101, 100102, 100103],
+        source = ids.map((id) => tables.get('shop').find((row) => row.shopId === id)),
+        calendar = new ShopCatalog(tables),
+        state = seedPlayer(tables, 1, 'current-shop-window'),
+        observed = 1791824493
+    assert(source.every((row) => row && row.startTime && row.endTime))
+    // The historical October request is no longer after all current periods:
+    // current stages1/2 run through Jan2027 and stage3 starts in Dec2026.
+    assert.deepEqual(
+        ids.map((id) => calendar.shop(id, state, observed).open),
+        [true, true, false],
+    )
+    const endByShop = new Map(source.map((row) => [row.shopId, configTime(row.endTime)])),
+        cutoff = Math.max(...endByShop.values()) + 1
     const p = new Protocol(cfg.base),
         s = new Store(':memory:'),
-        g = new Game(p, s, tables, { clock: () => 1791824493 }),
+        g = new Game(p, s, tables, { clock: () => cutoff }),
         session = {}
     let seq = 1
     const call = (name, r = {}) => {
@@ -25,35 +41,57 @@ test('logged expired stage shops query as closed without entering invalid goods 
         const e = p.byName.get('CSProtoListShopArrayItems')
         const reply = p.decode(e.rsp, packets.find((packet) => packet.id === e.id).payload)
         assert.equal(reply.infos.length, 3)
-        assert.ok(reply.infos.every((x) => x.shop_items.length === 0 && x.end_time < 1791824493))
-        const before = structuredClone(s.load(session.id).state.player)
+        assert.ok(
+            reply.infos.every(
+                (x) => x.shop_items.length === 0 && x.end_time === endByShop.get(x.shop_id) && x.end_time < cutoff,
+            ),
+        )
+        const before = s.load(session.id)
         assert.throws(
             () => call('ShopBuyItems', { shop_id: 100101, items: [{ slot_id: 1001501, goods_id: 1001501, times: 1 }] }),
             (error) => error.code === ErrorCode.ShopNotOpen,
         )
-        assert.deepEqual(s.load(session.id).state.player, before)
+        assert.deepEqual(s.load(session.id), before)
     } finally {
         s.close()
     }
 })
-test('event launchType1 resolves common time limit then explicit dates, and boundaries preserve closed query semantics', () => {
+test('current complete export without a static calendar uses explicit dates and preserves exact boundaries and strict missing-source failures', () => {
     const catalog = new ShopCatalog(tables),
         state = seedPlayer(tables, 1, 'shop-window'),
         source = catalog.shops.get(100102)
-    catalog.shops.set(source.shopId, {
-        ...source,
-        goodsList: '',
-        startTime: '20261013-100000',
-        endTime: '20261014-100000',
-    })
-    assert.equal(catalog.shop(source.shopId, state, configTime('20261013-100000')).open, true)
-    assert.equal(catalog.shop(source.shopId, state, configTime('20261014-100000')).open, false)
-    const limit = tables.get('common_timelimit')[0]
-    assert.deepEqual(catalog.schedule({ timelimit: limit.id, launchType: 1 }), {
-        start: configTime(limit.startTime),
-        end: configTime(limit.endTime),
-    })
-    assert.throws(() => catalog.schedule({ timelimit: 999999, launchType: 1 }), /schedule configuration unavailable/)
+    const manifest = tableExportManifest(tables)
+    assert(manifest, 'only complete source evidence permits a missing static-calendar interpretation')
+    assert.equal(manifest.names.has('common_timelimit'), false)
+    assert.equal(staticTimeRows(tables), undefined)
+    const start = configTime(source.startTime),
+        end = configTime(source.endTime)
+    assert(source.timelimit > 0 && start > 0 && end > start)
+    assert.deepEqual(catalog.schedule(source), { start, end })
+    for (const [now, expected] of [
+        [start - 1, false],
+        [start, true],
+        [end - 1, true],
+        [end, false],
+    ])
+        assert.equal(catalog.shop(source.shopId, state, now).open, expected)
+    assert.throws(() => catalog.schedule({ timelimit: 999999, launchType: 1 }), { code: ErrorCode.GameConfig })
+    // These isolated negative source views are not restored/overlaid old tables.
+    // Unclassified absence or a corrupt optional provider must stay strict even
+    // when the calling row also carries otherwise valid explicit dates.
+    const unavailable = {
+        get(name) {
+            if (name === 'common_timelimit') throw Error('unclassified-calendar-missing')
+            return tables.get(name)
+        },
+    }
+    assert.throws(() => new ShopCatalog(unavailable).schedule(source), /unclassified-calendar-missing/)
+    const corrupt = {
+        get(name) {
+            return name === 'common_timelimit' ? { invalid: true } : tables.get(name)
+        },
+    }
+    assert.throws(() => new ShopCatalog(corrupt).schedule(source), { code: ErrorCode.GameConfig })
 })
 
 test('shop schedule distinguishes invalid fields from unsupported launch modes and absent shop records', () => {
