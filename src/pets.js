@@ -205,7 +205,7 @@ export function petData(tables, configId, guid, box, builderRuleId = 1001, rng =
     pet.talent_id = initialPetTalents(tables, configId)
     return pet
 }
-export function createPets(tables, state, configId, count, builderRuleId = 1001, rng = undefined) {
+function allocatePets(tables, state, configId, count, factory) {
     requirePetModel(tables, { config_id: configId })
     const boxCount = Number(tables.get('game').find((r) => r.title === 'PET_BOX_NUM')?.value),
         boxSize = Number(tables.get('game').find((r) => r.title === 'PET_BOX_LIMIT')?.value)
@@ -240,7 +240,7 @@ export function createPets(tables, state, configId, count, builderRuleId = 1001,
     const created = []
     for (let i = 0; i < count; i++) {
         const guid = ((2n << 56n) | (BigInt(configId) << 32n) | BigInt(sequence++)).toString()
-        const pet = petData(tables, configId, guid, slots[i], builderRuleId, rng)
+        const pet = factory(guid, slots[i])
         created.push(pet)
         const box = Math.floor(slots[i] / 100)
         if (!state.petBoxes.some((b) => b.id === box))
@@ -251,6 +251,62 @@ export function createPets(tables, state, configId, count, builderRuleId = 1001,
     state.nextPetSequence = sequence
     state.petRevision = (state.petRevision || 0) + 1
     return created
+}
+export function createPets(tables, state, configId, count, builderRuleId = 1001, rng = undefined) {
+    return allocatePets(tables, state, configId, count, (guid, box) =>
+        petData(tables, configId, guid, box, builderRuleId, rng),
+    )
+}
+// A wild specimen has already been rolled and published. Allocation must not
+// roll another pet (including invisible labor/mount data) and then overwrite it.
+export function createPetFromSpecimen(tables, state, specimen) {
+    ensure(
+        specimen && typeof specimen === 'object' && !Array.isArray(specimen),
+        'Invalid catch specimen',
+        ErrorCode.GameConfig,
+    )
+    const profile = structuredClone(specimen),
+        attributes = tables.get('pet_learningenum').map((row) => row.attributeEnum),
+        comprehension = profile.comprehension,
+        genes = profile.gene_infos,
+        maxGenes = Number(tables.get('game').find((row) => row.title === 'PET_DNA_MAX_NUM')?.value)
+    ensure(
+        Number.isSafeInteger(profile.config_id) &&
+            profile.config_id > 0 &&
+            Array.isArray(comprehension) &&
+            comprehension.length === attributes.length &&
+            new Set(comprehension.map((row) => row.attr_id)).size === attributes.length &&
+            attributes.every((id) =>
+                comprehension.some(
+                    (row) =>
+                        row.attr_id === id &&
+                        Number.isSafeInteger(row.level) &&
+                        row.level >= 1 &&
+                        row.level <= 9 &&
+                        Number.isSafeInteger(row.value) &&
+                        row.value >= 0,
+                ),
+            ) &&
+            Array.isArray(genes) &&
+            Number.isSafeInteger(maxGenes) &&
+            maxGenes > 0 &&
+            genes.length <= maxGenes &&
+            new Set(genes.map((gene) => gene.pos)).size === genes.length &&
+            genes.every(
+                (gene) =>
+                    Number.isSafeInteger(gene.pos) &&
+                    gene.pos >= 1 &&
+                    gene.pos <= maxGenes &&
+                    Number.isSafeInteger(gene.gene_lv) &&
+                    gene.gene_lv > 0 &&
+                    tables.find('pet_dna', gene.gene_id) &&
+                    tables.find('skill', gene.gene_id),
+            ) &&
+            profile.grade === petGrade(tables, profile),
+        'Invalid published catch specimen attributes',
+        ErrorCode.GameConfig,
+    )
+    return allocatePets(tables, state, profile.config_id, 1, (guid, box_id) => ({ ...profile, guid, box_id }))[0]
 }
 export function customizedPetRewardDefinition(tables, customizedId) {
     const config = tables.find('pet_customized', customizedId)
@@ -330,37 +386,65 @@ export function customizedPetRewardDefinition(tables, customizedId) {
             'Invalid customized pet mount speed',
             ErrorCode.GameConfig,
         )
+    ensure(
+        config.homeTalent === undefined || (Number.isSafeInteger(config.homeTalent) && config.homeTalent >= 0),
+        'Malformed customized pet home talent',
+        ErrorCode.GameConfig,
+    )
+    if (config.homeTalent > 0)
+        ensure(
+            tables.get('home_talent').some((row) => row.talentId === config.homeTalent),
+            'Customized pet home talent is unavailable',
+            ErrorCode.GameConfig,
+        )
     return { config, comprehensionRows, fixedGenes, maxGenes, labor }
 }
-export function createCustomizedPets(tables, state, customizedId, count) {
-    const { config, comprehensionRows, fixedGenes, maxGenes, labor } = customizedPetRewardDefinition(
-        tables,
-        customizedId,
-    )
-    const comprehension = comprehensionRows.map(({ attr_id, level, minimum, maximum }) => ({
+function customizedComprehension(comprehensionRows) {
+    return comprehensionRows.map(({ attr_id, level, minimum, maximum }) => ({
         attr_id,
         level,
         value: minimum === maximum ? minimum : randomInt(minimum, maximum + 1),
         init_level: level,
         cur_exp: 0,
     }))
-    const pets = createPets(tables, state, config.petId, count, config.builderRule || 1001)
-    for (const pet of pets) {
-        pet.customized_id = config.id
-        pet.lv = config.level
-        pet.comprehension = comprehension.map((row) => ({ ...row }))
-        if (config.talentDnaType === 1 || config.dnaType === 1) {
-            const ids =
-                config.dnaType === 1
-                    ? fixedGenes
-                    : [...new Set([...fixedGenes, ...pet.gene_infos.map((g) => g.gene_id)])].slice(0, maxGenes)
-            pet.gene_infos = ids.map((gene_id, index) => ({ pos: index + 1, gene_id, gene_lv: 1 }))
-            pet.gene_state = Math.ceil(ids.length / 2)
-        }
-        pet.can_not_release = config.isRelease === 0
-        if (labor) pet.labor_infos = labor.map((row) => ({ ...row }))
-        if (config.mountType === 1) pet.speed = config.mountSpeed
-        pet.grade = petGrade(tables, pet)
+}
+function decorateCustomizedPet(tables, pet, { config, fixedGenes, maxGenes, labor }, comprehension) {
+    pet.customized_id = config.id
+    pet.lv = config.level
+    pet.comprehension = comprehension.map((row) => ({ ...row }))
+    if (config.talentDnaType === 1 || config.dnaType === 1) {
+        const ids =
+            config.dnaType === 1
+                ? fixedGenes
+                : [...new Set([...fixedGenes, ...pet.gene_infos.map((g) => g.gene_id)])].slice(0, maxGenes)
+        pet.gene_infos = ids.map((gene_id, index) => ({ pos: index + 1, gene_id, gene_lv: 1 }))
+        pet.gene_state = Math.ceil(ids.length / 2)
     }
+    pet.can_not_release = config.isRelease === 0
+    if (labor) pet.labor_infos = labor.map((row) => ({ ...row }))
+    // Explicit template field; home_talent is keyed by talentId, not id.
+    // This local generation rule replaces the base random/default list.
+    if (config.homeTalent > 0) pet.talent_id = [config.homeTalent]
+    if (config.mountType === 1) pet.speed = config.mountSpeed
+    pet.grade = petGrade(tables, pet)
+    return pet
+}
+// Pure profile construction: no account, slot, GUID sequence or acquisition
+// record is touched. Uses the same customization rules as actual rewards.
+export function customizedPetData(tables, customizedId, guid = '0', box = 0) {
+    const definition = customizedPetRewardDefinition(tables, customizedId)
+    return decorateCustomizedPet(
+        tables,
+        petData(tables, definition.config.petId, guid, box, definition.config.builderRule || 1001),
+        definition,
+        customizedComprehension(definition.comprehensionRows),
+    )
+}
+export function createCustomizedPets(tables, state, customizedId, count) {
+    const definition = customizedPetRewardDefinition(tables, customizedId),
+        comprehension = customizedComprehension(definition.comprehensionRows),
+        { config } = definition,
+        pets = createPets(tables, state, config.petId, count, config.builderRule || 1001)
+    for (const pet of pets) decorateCustomizedPet(tables, pet, definition, comprehension)
     return pets
 }

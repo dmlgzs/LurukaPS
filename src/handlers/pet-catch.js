@@ -1,8 +1,9 @@
 import { recordNoviceCounter } from '../novice-counters.js'
+import { ErrorCode } from '../error-codes.js'
 import { recordActiveProgress } from '../daily-active.js'
 import { ensure } from './common.js'
 import { enemyDefinition } from '../enemy-state.js'
-import { createPets, petData } from '../pets.js'
+import { createPetFromSpecimen, customizedPetData, customizedPetRewardDefinition, petData, petGrade } from '../pets.js'
 import { addItems, spend } from '../inventory.js'
 import { retireCapturedEnemy } from './world-combat.js'
 
@@ -49,19 +50,49 @@ function target(c, value, preview = false) {
     )
         return null
     ensure(pack?.uncatchableType !== 1, 'Pet cannot be caught')
+    // Current TDEnemy.GetBasePetId060238fd dereferences pet_customized only
+    // for category30. Its source ID is not the owned pet's base config ID.
+    const customizedId = config?.petCategory === 30 ? petId : 0,
+        basePetId = customizedId ? customizedPetRewardDefinition(c.tables, customizedId).config.petId : petId
     ensure(
-        petId && c.tables.find('pet', petId) && c.tables.find('template_value', petId),
+        basePetId && c.tables.find('pet', basePetId) && c.tables.find('template_value', basePetId),
         'Target is not a catchable pet',
+        ErrorCode.GameConfig,
     )
-    return { id, enemy, petId }
+    return { id, enemy, petId: basePetId, customizedId }
 }
-function info(c, id, petId, len = 0) {
+function catchSpecimen(c, { id, enemy, petId, customizedId }) {
     c.state.petCatchPreviews ??= {}
     let specimen = c.state.petCatchPreviews[id]
-    if (!specimen || specimen.config_id !== petId) {
-        const rolled = petData(c.tables, petId, '0', 0)
+    if (
+        !specimen?.profile ||
+        specimen.config_id !== petId ||
+        specimen.map_id !== c.state.world.map_id ||
+        specimen.enemy_id !== enemy.config_id ||
+        specimen.customized_id !== customizedId
+    ) {
+        const rolled = customizedId ? customizedPetData(c.tables, customizedId) : petData(c.tables, petId, '0', 0)
+        // Retain the attributes already published by the earlier normal-pet
+        // preview schema. Its invisible fields were never sealed; generate
+        // those once and recompute grade from the retained actual attributes.
+        if (
+            !customizedId &&
+            specimen?.config_id === petId &&
+            !specimen.profile &&
+            Array.isArray(specimen.gene_infos) &&
+            Array.isArray(specimen.comprehension)
+        ) {
+            rolled.gene_infos = structuredClone(specimen.gene_infos)
+            rolled.comprehension = structuredClone(specimen.comprehension)
+            rolled.gene_state = Math.ceil(rolled.gene_infos.length / 2)
+            rolled.grade = petGrade(c.tables, rolled)
+        }
         specimen = {
             config_id: petId,
+            customized_id: customizedId,
+            map_id: c.state.world.map_id,
+            enemy_id: enemy.config_id,
+            profile: rolled,
             grade: rolled.grade,
             gene_infos: rolled.gene_infos,
             comprehension: rolled.comprehension,
@@ -70,8 +101,12 @@ function info(c, id, petId, len = 0) {
         const keys = Object.keys(c.state.petCatchPreviews)
         if (keys.length > 128) delete c.state.petCatchPreviews[keys[0]]
     }
+    return specimen
+}
+function info(c, resolved, len = 0) {
+    const specimen = catchSpecimen(c, resolved)
     return {
-        uuid: id,
+        uuid: resolved.id,
         grade: specimen.grade,
         gene_size: specimen.gene_infos.length,
         gene_infos: specimen.gene_infos,
@@ -88,13 +123,14 @@ export function registerPetCatch(on) {
         ensure(Number.isInteger(r.day_weather) && r.day_weather >= 0 && r.day_weather <= 100, 'Invalid catch weather')
         const rows = [...new Set(ids)].flatMap((id) => {
             const resolved = target(c, id, true)
-            return resolved ? [info(c, resolved.id, resolved.petId, r.pet_len_id ?? 0)] : []
+            return resolved ? [info(c, resolved, r.pet_len_id ?? 0)] : []
         })
         c.pushBefore('CSProtoSyncCatchPetInfo', { pets: rows, reason: r.reason ?? 0 })
         return {}
     })
     on('CatchPet', (c, r) => {
-        const { id, petId, enemy } = target(c, r.tar_id),
+        const resolved = target(c, r.tar_id),
+            { id, petId, enemy } = resolved,
             item = c.tables.find('common_item', r.item_id)
         ensure(item?.type === 410 && item.subId > 0, 'Invalid catch card')
         const past = c.state.petCaptureResults?.[id]
@@ -111,9 +147,7 @@ export function registerPetCatch(on) {
                 ),
                 'Invalid catch position',
             )
-        const pet = createPets(c.tables, c.state, petId, 1)[0]
-        const preview = c.state.petCatchPreviews?.[id]
-        if (preview?.config_id === petId) pet.comprehension = structuredClone(preview.comprehension)
+        const pet = createPetFromSpecimen(c.tables, c.state, catchSpecimen(c, resolved).profile)
         if (c.state.petCatchPreviews) delete c.state.petCatchPreviews[id]
         card.state = 'used'
         card.target_id = id
