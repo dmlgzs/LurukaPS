@@ -591,7 +591,7 @@ export function registerEntrust(on, tables) {
         }
         ensure([1, 3, 4].includes(r.result), 'Invalid entrust result')
         if (r.result === 3) {
-            ensureEntrustSceneObjects(tables, c.state)
+            ensureEntrustSceneObjects(tables, c.state, c.now)
             ensure(entrustVictoryComplete(catalog, c.state, run.entrust_id), 'Entrust enemies are not defeated')
             // Combat unlocks the chest. Its 9133 interaction delivers the
             // reward and star; a 9507 victory report alone cannot claim it.
@@ -616,7 +616,7 @@ export function registerEntrust(on, tables) {
             return { reward: { rewards, src: rewardSource(c.tables, 'staminaChest') }, extra_reward: { rewards: [] } }
         }
         ensure(run && r.box_id === catalog.chest(run.entrust_id, run.kind).id, 'Invalid entrust chest claim')
-        ensureEntrustSceneObjects(tables, c.state)
+        ensureEntrustSceneObjects(tables, c.state, c.now)
         return {
             reward: { rewards: claimEntrustChest(c, r.times), src: rewardSource(c.tables, 'staminaChest') },
             extra_reward: { rewards: c.repeatExtraRewards ?? [], src: rewardSource(c.tables, 'staminaChest') },
