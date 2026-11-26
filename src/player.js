@@ -1,6 +1,7 @@
 import { petData } from './pets.js'
 import { petModelEligibility } from './pet-model-eligibility.js'
 import { mainHeroConfigId } from './main-hero.js'
+import { planPetGuidAllocation, commitPetGuidAllocation } from './pet-guid.js'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -67,7 +68,7 @@ export function seedPlayer(tables, id, openId) {
         .filter((h) => h.isUsable === 1)
         .map((h) => heroData(h.id, id, h.id === mainId ? 1 : 0))
     if (!heroes.length) throw Error('No usable heroes in table')
-    const pets = tables
+    const petConfigs = tables
         .get('pet')
         .filter(
             (p) =>
@@ -76,7 +77,17 @@ export function seedPlayer(tables, id, openId) {
                 tables.find('template_value', p.id) &&
                 petModelEligibility(tables, p.id).eligible,
         )
-        .map((p, i) => petData(tables, p.id, String(p.id), (Math.floor(i / 30) + 1) * 100 + (i % 30) + 1))
+    const identity = { player: { basic_info: { id } }, pets: [] },
+        plan = planPetGuidAllocation(tables, identity, petConfigs.length)
+    const pets = petConfigs.map((p, i) =>
+        petData(tables, p.id, plan.guids[i], (Math.floor(i / 30) + 1) * 100 + (i % 30) + 1),
+    )
+    commitPetGuidAllocation(
+        identity,
+        plan,
+        'server-starter',
+        petConfigs.map((row) => row.id),
+    )
     const essences = tables
         .get('soulessence')
         .map((e) => ({ guid: e.id, id: e.id, lv: 1, rank: 1, advance: 1, exp: 0, lock: true, wear_hero: '0' }))
@@ -132,6 +143,8 @@ export function seedPlayer(tables, id, openId) {
             custom_options: { entries: [] },
         },
         pets,
+        petGuidAllocation: identity.petGuidAllocation,
+        petProvenance: identity.petProvenance,
         recordPets: [],
         petCatalogVersion: 2,
         petBoxes: Array.from({ length: Math.ceil(pets.length / 30) }, (_, i) => ({

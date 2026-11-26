@@ -10,7 +10,7 @@ import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { createPets, petData } from '../src/pets.js'
 import { grantRewards } from '../src/rewards.js'
-import { repairPetCatalog } from '../src/pet-catalog.js'
+import { repairPetCatalog, isStarterPet } from '../src/pet-catalog.js'
 const cfg = configuration(),
     tables = new Tables(cfg.tables),
     protocol = new Protocol(cfg.base)
@@ -88,10 +88,10 @@ test('legacy starter unlocks are removed once; later acquisition of the same spe
     state.recordPets = state.pets.map((p) => p.config_id)
     repairPetCatalog(tables, state)
     assert.deepEqual(state.recordPets, [])
-    assert.equal(state.pets[0].guid, String(id))
+    assert.equal(isStarterPet(state.pets[0], state), true)
     createPets(tables, state, id, 1)
     assert.deepEqual(state.recordPets, [id])
-    state.pets = state.pets.filter((p) => String(p.guid) === String(p.config_id))
+    state.pets = state.pets.filter((p) => isStarterPet(p, state))
     repairPetCatalog(tables, state)
     assert.deepEqual(state.recordPets, [id])
 })

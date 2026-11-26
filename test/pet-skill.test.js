@@ -23,22 +23,23 @@ test('actual pet500002 query has asynchronous success reply and nonzero suppress
     }
     try {
         call('EnterGame', { open_id: 'fail-vec' }, 1)
-        let result = call('SkillFailVec', { unit_id: '500002' }, 2)
+        const guid = store.load(session.id).state.pets.find((pet) => pet.config_id === 500002).guid
+        let result = call('SkillFailVec', { unit_id: guid }, 2)
         assert.equal(result.length, 1)
         assert.equal(result[0].id, 11151)
         assert.equal(result[0].data.success, true)
         assert.deepEqual(result[0].data.fail_vec, [])
         assert.equal(draws, 0)
         store.transact(session.id, 0, (s) => {
-            const p = s.pets.find((p) => p.guid === '500002')
+            const p = s.pets.find((p) => p.guid === guid)
             p.suppress_lv = 8
             p.original_type = 1
         })
-        result = call('SkillFailVec', { unit_id: '500002' }, 3)
+        result = call('SkillFailVec', { unit_id: guid }, 3)
         assert.equal(result[0].data.success, false)
         assert.equal(result[0].data.fail_vec.length, 32)
         assert.deepEqual(result[0].data.fail_vec.slice(0, 4), [true, false, true, false])
-        assert.deepEqual(call('SkillFailVec', { unit_id: '500002' }, 3), result)
+        assert.deepEqual(call('SkillFailVec', { unit_id: guid }, 3), result)
         assert.equal(draws, 32)
         const before = store.load(session.id)
         assert.throws(() => call('SkillFailVec', { unit_id: '18446744073709551615' }, 4), /not owned/)
@@ -48,7 +49,7 @@ test('actual pet500002 query has asynchronous success reply and nonzero suppress
             if (existing) existing.attr_val = '8'
             else s.player.attr_infos.attrs.push({ attr_id: 22, attr_val: '8' })
         })
-        assert.equal(call('SkillFailVec', { unit_id: '500002' }, 5)[0].data.success, true)
+        assert.equal(call('SkillFailVec', { unit_id: guid }, 5)[0].data.success, true)
     } finally {
         store.close()
     }

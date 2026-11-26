@@ -23,7 +23,7 @@ class ModifiedTables extends Tables {
         return this.modify?.[name] ? this.get(name).find((row) => row.id === Number(id)) : super.find(name, id)
     }
 }
-const freshState = () => ({ pets: [], petBoxes: [], nextPetSequence: 1 })
+const freshState = () => ({ player: { basic_info: { id: 1 } }, pets: [], petBoxes: [], nextPetSequence: 1 })
 
 function fixture(name, tables = new ModifiedTables()) {
     const protocol = new Protocol(config.base),

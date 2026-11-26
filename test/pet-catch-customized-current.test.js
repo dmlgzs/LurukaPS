@@ -292,7 +292,7 @@ test('pure customized profiles and specimen allocation share creation rules with
     const tables = new Tables(config.tables),
         profile = customizedPetData(tables, 5001341),
         normal = petData(tables, 500297, '0', 0),
-        state = { pets: [], petBoxes: [], nextPetSequence: 1 },
+        state = { player: { basic_info: { id: 1 } }, pets: [], petBoxes: [], nextPetSequence: 1 },
         find = tables.find.bind(tables)
     tables.find = (name, id) => {
         assert.notEqual(name, 'pet_builder_rule', 'Allocation must not build another random specimen')
@@ -301,7 +301,9 @@ test('pure customized profiles and specimen allocation share creation rules with
     const created = createPetFromSpecimen(tables, state, profile)
     assert.notEqual(created.guid, profile.guid)
     assert(created.box_id > 0)
-    assert.equal(state.nextPetSequence, 2)
+    assert.equal(state.nextPetSequence, 1, 'Legacy low32 counter is not reused as the instance allocator')
+    assert.equal(BigInt(created.guid) & 0xffffffffn, 1n)
+    assert.equal(Number((BigInt(created.guid) >> 32n) & 0xffffffn), state.petGuidAllocation.nextIndex - 1)
     assert.equal(state.pets.length, 1)
     assert.deepEqual(created.gene_infos, profile.gene_infos)
     assert.deepEqual(created.comprehension, profile.comprehension)

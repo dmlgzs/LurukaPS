@@ -1,6 +1,7 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { petSoulRow } from './pet-star-soul.js'
+import { petGuidOwner } from './pet-guid.js'
 import policy from '../configs/pet-star-soul-progress-policy.json' with { type: 'json' }
 
 const uint = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff
@@ -132,11 +133,12 @@ export function petStarSoulAllocationFloor(tables, state) {
     // Old accounts may omit the allocator counter even after their last
     // kind2 individual was released. Historical identities remain reserved.
     if (state.petStarSoulProgress === undefined) return 1
-    const { saved } = ledger(tables, state)
+    const { saved } = ledger(tables, state),
+        owner = BigInt(petGuidOwner(state))
     let next = 1
     for (const key of Object.keys(saved.entries)) {
         const id = u64(key, false, 'Invalid reserved permanent pet identity')
-        if (id >> 56n === 2n) next = Math.max(next, Number(id & 0xffffffffn) + 1)
+        if (id >> 56n === 2n && (id & 0xffffffffn) === owner) next = Math.max(next, Number((id >> 32n) & 0xffffffn) + 1)
     }
     return next
 }

@@ -1,7 +1,12 @@
-// CBT3 socket_6517 feeds record_pets into CatalogStore.rsp_syncPetCatalog.
+import { petProvenanceEntries } from './pet-guid.js'
+
+// Current socket6517 feeds record_pets into CatalogStore.rsp_syncPetCatalog.
 // Acquisition history is independent of the current bag. Starter gifts are
 // excluded by server policy; old starter GUIDs were exactly their config ID.
-export function isStarterPet(pet) {
+export function isStarterPet(pet, state, entries) {
+    const origin =
+        state?.petProvenance === undefined ? null : (entries ?? petProvenanceEntries(state))[String(pet.guid)]
+    if (origin) return ['server-starter', 'legacy-starter'].includes(origin.kind) && origin.configId === pet.config_id
     return String(pet.guid) === String(pet.config_id)
 }
 export function recordPetAcquisition(tables, state, configId) {
@@ -13,9 +18,14 @@ export function recordPetAcquisition(tables, state, configId) {
     return true
 }
 export function repairPetCatalog(tables, state) {
-    const earned = new Set((state.pets ?? []).filter((pet) => !isStarterPet(pet)).map((pet) => pet.config_id))
+    const entries = state.petProvenance === undefined ? null : petProvenanceEntries(state)
+    const earned = new Set(
+        (state.pets ?? []).filter((pet) => !isStarterPet(pet, state, entries)).map((pet) => pet.config_id),
+    )
     for (const capture of Object.values(state.petCaptureResults ?? {})) earned.add(capture.pet_id)
-    const starters = new Set((state.pets ?? []).filter(isStarterPet).map((pet) => pet.config_id))
+    const starters = new Set(
+        (state.pets ?? []).filter((pet) => isStarterPet(pet, state, entries)).map((pet) => pet.config_id),
+    )
     const records = (state.recordPets ?? []).filter(
         (id) => state.petCatalogVersion === 2 || !starters.has(id) || earned.has(id),
     )

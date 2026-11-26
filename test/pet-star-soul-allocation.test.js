@@ -4,15 +4,27 @@ import { soulProgressFixture, packedSoul } from './pet-star-soul-progress-fixtur
 import { createPets } from '../src/pets.js'
 import { petStarSoulProgressValue } from '../src/pet-star-soul-progress.js'
 import { ErrorCode } from '../src/error-codes.js'
+import { parsePetGuid, permanentPetGuid } from '../src/pet-guid.js'
 
 const text = (value) => Buffer.from(String(value)).toString('base64')
 test('legacy missing sequence, final kind2 release and a newly trained permanent instance retain two distinct cumulative identities', () => {
     const f = soulProgressFixture('soul-legacy-allocation', 2)
+    const prepareLevel = (pet) => {
+        const template = f.tables.find('pet', pet.config_id).starsoulId
+        pet.lv = Math.max(
+            pet.lv,
+            ...f.tables
+                .get('pet_starsoul')
+                .filter((row) => row.templateId === template)
+                .map((row) => row.unlocklevel),
+        )
+    }
     try {
-        const first = f.ids.find((id) => BigInt(id) >> 56n === 2n)
+        const first = f.ids.at(-1)
         assert(first)
         f.edit((state) => {
             state.pets = state.pets.filter((p) => p.guid === first)
+            prepareLevel(state.pets[0])
         })
         f.advance(first, 6, 1)
         f.edit((state) => {
@@ -25,7 +37,9 @@ test('legacy missing sequence, final kind2 release and a newly trained permanent
         f.call('GMCommand', { command: text('give'), args: [5, 500001, 1].map(text) })
         const second = f.state().pets[0].guid
         assert.notEqual(second, first)
-        assert((BigInt(second) & 0xffffffffn) > (BigInt(first) & 0xffffffffn))
+        assert(parsePetGuid(second).index > parsePetGuid(first).index)
+        assert.equal(parsePetGuid(second).ownerId, f.session.id)
+        f.edit((state) => prepareLevel(state.pets[0]))
         f.advance(second, 6, 1)
         assert.equal(petStarSoulProgressValue(f.tables, f.state(), [15045, 6, 1, 100]), 2)
         f.edit((state) => {
@@ -51,7 +65,7 @@ test('historical highwater reserves the kind2 sequence across species and reject
     const f = soulProgressFixture('soul-allocation-domain')
     try {
         const state = f.state(),
-            id = ((2n << 56n) | (500001n << 32n) | 500n).toString()
+            id = permanentPetGuid(f.session.id, 700000)
         state.pets = []
         delete state.nextPetSequence
         state.petStarSoulProgress = {
@@ -63,7 +77,8 @@ test('historical highwater reserves the kind2 sequence across species and reject
             },
         }
         const made = createPets(f.tables, state, 500575, 1)
-        assert.equal(Number(BigInt(made[0].guid) & 0xffffffffn), 501)
+        assert.equal(parsePetGuid(made[0].guid).index, 700001)
+        assert.equal(parsePetGuid(made[0].guid).ownerId, f.session.id)
         assert.equal(made[0].config_id, 500575)
         assert.equal(
             state.petStarSoulProgress.entries[id].configId,
@@ -84,7 +99,7 @@ test('historical highwater reserves the kind2 sequence across species and reject
         full.pets = []
         delete full.nextPetSequence
         full.petStarSoulProgress.entries = {
-            [((2n << 56n) | (500001n << 32n) | 0xffffffffn).toString()]: { configId: 500001, level: packedSoul(6, 1) },
+            [permanentPetGuid(f.session.id, 0xffffff)]: { configId: 500001, level: packedSoul(6, 1) },
         }
         const before = structuredClone(full)
         assert.throws(

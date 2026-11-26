@@ -11,6 +11,7 @@ import { refreshPetCaressPeriod } from './pet-caress.js'
 import { lockedPetBoxes } from './pet-box-locks.js'
 import { initialPetSatiety } from './pet-initial-satiety.js'
 import { petStarSoulAllocationFloor } from './pet-star-soul-progress.js'
+import { planPetGuidAllocation, commitPetGuidAllocation } from './pet-guid.js'
 import { requirePetModel } from './pet-model-eligibility.js'
 import { initialPetLaborFromPolicy, fixedPetLabor } from './pet-labor.js'
 import laborPolicy from '../configs/pet-labor-policy.json' with { type: 'json' }
@@ -226,30 +227,23 @@ function allocatePets(tables, state, configId, count, factory) {
             if (!locked.has(box) && !used.has(id)) slots.push(id)
         }
     ensure(slots.length >= count, 'No free unlocked pet slot', ErrorCode.BagPetFullForAdd)
-    let sequence = state.nextPetSequence ?? 1
-    ensure(Number.isSafeInteger(sequence) && sequence > 0, 'Invalid saved pet allocation counter', ErrorCode.GameConfig)
-    sequence = Math.max(sequence, petStarSoulAllocationFloor(tables, state))
-    for (const pet of state.pets) {
-        const id = BigInt(pet.guid)
-        if (id >> 56n === 2n) sequence = Math.max(sequence, Number(id & 0xffffffffn) + 1)
-    }
-    ensure(
-        Number.isSafeInteger(sequence) && sequence + count - 1 <= 0xffffffff,
-        'Pet identity space exhausted',
-        ErrorCode.GameConfig,
+    // Validate retained attainment facts as well as reserving their identities.
+    // The canonical allocator reads middle24, never the owner's low32 bits.
+    petStarSoulAllocationFloor(tables, state)
+    const plan = planPetGuidAllocation(tables, state, count),
+        created = plan.guids.map((guid, index) => factory(guid, slots[index])),
+        boxes = [...new Set(slots.slice(0, count).map((slot) => Math.floor(slot / 100)))]
+            .filter((box) => !state.petBoxes.some((saved) => saved.id === box))
+            .map((box) => ({ id: box, box_name: Buffer.from(`奇波小屋${box}`).toString('base64') }))
+    commitPetGuidAllocation(
+        state,
+        plan,
+        'acquired',
+        created.map(() => configId),
     )
-    const created = []
-    for (let i = 0; i < count; i++) {
-        const guid = ((2n << 56n) | (BigInt(configId) << 32n) | BigInt(sequence++)).toString()
-        const pet = factory(guid, slots[i])
-        created.push(pet)
-        const box = Math.floor(slots[i] / 100)
-        if (!state.petBoxes.some((b) => b.id === box))
-            state.petBoxes.push({ id: box, box_name: Buffer.from(`奇波小屋${box}`).toString('base64') })
-    }
+    state.petBoxes.push(...boxes)
     state.pets.push(...created)
     recordPetAcquisition(tables, state, configId)
-    state.nextPetSequence = sequence
     state.petRevision = (state.petRevision || 0) + 1
     return created
 }
