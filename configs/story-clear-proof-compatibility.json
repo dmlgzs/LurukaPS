@@ -1,0 +1,26 @@
+{
+    "version": 1,
+    "local": true,
+    "officiallyVerified": false,
+    "bootstrapTrust": "trusted-local-unversioned-server-save",
+    "entries": [
+        {
+            "key": "historical-dungeon10031-ten-task-parent-clear",
+            "dungeonId": 10031,
+            "purpose": "historical-parent-resume-only",
+            "historical": {
+                "snapshotCommit": "67dadf1b3ce3d99c0d4d05e8059f33cc5efa6461",
+                "writerCommit": "6abd3c5ee27ab6571d6cbd908ba317cd240fb766",
+                "writerBlob": "0c107ad94470d362cf8706892aff7c4b37c95e1e",
+                "tableFileSha256": "3f59c392ac569de1d46489a68292f87a7a310e06d8a4375d9724b84350edc873",
+                "victoryCondition": "2007#104010",
+                "taskIds": [104001, 104002, 104003, 104004, 104005, 104006, 104007, 104008, 104009, 104010],
+                "mappingFingerprint": "fa039e36ade78bbee96a58d87e29d6ee04d866be66f06686ce4c596cd0d95259"
+            },
+            "current": {
+                "victoryCondition": "2007#104010",
+                "mappingFingerprint": "556ee3e0e9a3d0bb64b43a9f40212bcb0d3a624f2a7fa2defd120defe20c5b98"
+            }
+        }
+    ]
+}

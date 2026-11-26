@@ -1,4 +1,5 @@
 import { verifiedStoryCampaignStoryClear } from './story-campaign-story-receipts.js'
+import { hasHistoricalParentDungeonClear } from './story-clear-proof-migration.js'
 import { ErrorCode } from './error-codes.js'
 import { WorldObjectCatalog } from './world-objects.js'
 import { deliveryComplete, deliveryKey } from './task-delivery.js'
@@ -607,7 +608,10 @@ function clearedDungeonNode(tables, graph, node, state) {
                 condition.conditionId !== 12017 ||
                 ![true, 1].includes(data?.isOver) ||
                 conditionValue(condition, state) < 1 ||
-                !hasVerifiedTaskDungeonClear(tables, state, data.dungeonId)
+                !(
+                    hasVerifiedTaskDungeonClear(tables, state, data.dungeonId) ||
+                    hasHistoricalParentDungeonClear(tables, state, data.dungeonId)
+                )
             )
         })
     )

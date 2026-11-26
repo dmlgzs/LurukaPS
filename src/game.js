@@ -98,6 +98,7 @@ import { repairSavedElevatorVisibility } from './handlers/world-elevator.js'
 import { hiddenTaskPetGuids } from './task-pet-presentation.js'
 import { petSyncPresentation } from './pet-model-presentation.js'
 import { migratePetGuidIdentity } from './pet-guid-migration.js'
+import { initializeFreshStoryClearProofState, bootstrapStoryClearProofs } from './story-clear-proof-migration.js'
 import { repairPetCatalog } from './pet-catalog.js'
 import { preparePetHandbook, takePetHandbookSync, petHandbookSnapshot } from './pet-handbook.js'
 import { syncHandbookAttributes } from './pet-handbook-sync.js'
@@ -892,7 +893,11 @@ export class Game {
             }
             ensure(!session.entered, 'Already entered game')
             ensure(!session.openId || session.openId === r.open_id, 'Account switch requires reconnect')
-            const a = this.store.login(r.open_id, (id, openId) => seedPlayer(this.tables, id, openId))
+            const a = this.store.login(r.open_id, (id, openId) => {
+                const state = seedPlayer(this.tables, id, openId)
+                initializeFreshStoryClearProofState(state)
+                return state
+            })
             session.id = a.id
             session.openId = r.open_id
             session.token = session.token || randomBytes(24).toString('hex')
@@ -903,6 +908,7 @@ export class Game {
             const packets = this.store.transact(session.id, e.id, (state) => {
                 requireProductionWorkModel(state, this.productionWorkPolicy)
                 migratePetGuidIdentity(this.tables, state, this.protocol)
+                bootstrapStoryClearProofs(this.tables, state)
                 suspendUnavailableTasks(this.tables, state)
                 this.legacyMatchTeams.onLogin(session.id)
                 const previousMapId = state.world.map_id

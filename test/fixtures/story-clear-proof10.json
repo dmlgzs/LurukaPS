@@ -1,0 +1,17 @@
+{
+    "provenance": {
+        "snapshotCommit": "67dadf1b3ce3d99c0d4d05e8059f33cc5efa6461",
+        "writerBlob": "0c107ad94470d362cf8706892aff7c4b37c95e1e",
+        "writerFunctionSha256": "64dcc2a3fa9ceba74ead05bc0230413760798c41adf78244ac554ec20b237617",
+        "rawClearSha256": "782171bdba9ddea3a83d5b2e3cc6b8223ab8f91ef49e4904a68577e8afe43f7a",
+        "scope": "observer sink only, not an old reward/complete Game E2E"
+    },
+    "clear": {
+        "count": 1,
+        "time": 1700000000,
+        "task_proof": {
+            "victory_task_id": 104010,
+            "task_ids": [104001, 104002, 104003, 104004, 104005, 104006, 104007, 104008, 104009, 104010]
+        }
+    }
+}
