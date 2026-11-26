@@ -37,6 +37,10 @@ function fixture(filename = ':memory:') {
         return game.dispatch(session, { id: entry.id, seq: seq++, payload: protocol.encode(entry.req, request) })
     }
     call('EnterGame', { open_id: 'soul-level-current' })
+    // Current normal has no preowned essence. Grant just this actual instance
+    // through the existing producer; reopening must not create a second one.
+    if (!store.load(session.id).state.player.soulessence_infos.soulessences.some((row) => row.id === config.id))
+        call('GMCommand', { command: Buffer.from(`give 9 ${config.id} 1`).toString('base64') })
     return {
         store,
         session,
@@ -47,12 +51,17 @@ function fixture(filename = ':memory:') {
     }
 }
 function prepare(f, level = 20) {
+    f.call('GMCommands', {
+        cmds: [`give 3 ${material} ${quantity + 10}`, `give 10 2 ${goldCost + 19}`].map((command) => ({
+            command: Buffer.from(command).toString('base64'),
+        })),
+    })
     f.edit((s) => {
+        // Explicit already-strengthened/player-progress checkpoint. Materials
+        // and currency above have real inventory identities and are then spent.
         const soul = s.player.soulessence_infos.soulessences.find((row) => row.id === config.id)
         Object.assign(soul, { lv: 30, rank: 1, exp: 0 })
         s.player.basic_info.lv = level
-        s.player.basic_info.gold = 100000000
-        s.player.sbag_infos.items = [{ guid: '987654', itemtype: 3, itemid: material, itemnum: quantity + 10 }]
     })
     return f.state().player.soulessence_infos.soulessences.find((row) => row.id === config.id).guid
 }

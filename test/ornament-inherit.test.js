@@ -23,8 +23,11 @@ test('all current ornament templates and increasing quality pairs plan without c
     const f = ornamentFixture('inherit-all-templates')
     try {
         let count = 0
-        const qualities = f.tables.get('accessory_quality').map((r) => r.id)
-        for (const config of f.tables.get('accessory')) {
+        const definitions = f.tables.get('accessory'),
+            qualities = f.tables.get('accessory_quality').map((r) => r.id)
+        assert.equal(definitions.length, 147, 'all current templates must be exercised')
+        assert.equal(qualities.length, 5, 'all current quality grades must be exercised')
+        for (const config of definitions) {
             for (const low of qualities)
                 for (const high of qualities.filter((q) => q > low)) {
                     const state = {
@@ -46,7 +49,7 @@ test('all current ornament templates and increasing quality pairs plan without c
                     count++
                 }
         }
-        assert.equal(count, 1430)
+        assert.equal(count, (definitions.length * qualities.length * (qualities.length - 1)) / 2)
     } finally {
         f.store.close()
     }
