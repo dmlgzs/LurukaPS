@@ -34,7 +34,7 @@ function reply(packets, id = 6038) {
 test('talent material batch opens multiple choices from the same box and persists real inventory', () => {
     const c = setup([
         { itemid: 1520001, itemnum: 3 },
-        { itemid: 1520010, itemnum: 1 },
+        { itemid: 9191, itemnum: 1 },
     ])
     try {
         const r = reply(
@@ -42,7 +42,7 @@ test('talent material batch opens multiple choices from the same box and persist
                 items: [
                     { itemid: 1520001, num: 2, args: ['3', '1530001'] },
                     { itemid: 1520001, num: 1, args: ['3', '1530002'] },
-                    { itemid: 1520010, num: 1 },
+                    { itemid: 9191, num: 1 },
                 ],
             }),
         )
@@ -51,8 +51,14 @@ test('talent material batch opens multiple choices from the same box and persist
         assert.equal(s.player.sbag_infos.items.find((i) => i.itemid === 1520001).itemnum, 0)
         assert.equal(s.player.sbag_infos.items.find((i) => i.itemid === 1530001).itemnum, 2)
         assert.equal(s.player.sbag_infos.items.find((i) => i.itemid === 1530002).itemnum, 1)
-        assert.equal(s.player.basic_info.gold, 5000)
-        assert.ok(r.rewards.some((i) => i.itemid === 400001 && i.itemnum === 15))
+        const currentFixed = tables.find('common_item', 9191)
+        const drops = tables.get('drop').filter((row) => row.dropId === Number(currentFixed.useFunction))
+        assert.equal(drops.length, 1)
+        assert.equal(drops[0].type, 10)
+        assert.equal(drops[0].itemId, 2)
+        assert.equal(drops[0].minValue, drops[0].maxValue)
+        assert.equal(s.player.basic_info.gold, drops[0].minValue)
+        assert.ok(r.rewards.some((i) => i.itemtype === 10 && i.itemid === 2 && i.itemnum === drops[0].minValue))
     } finally {
         c.store.close()
     }
@@ -101,14 +107,14 @@ test('every current selectable gift uses its own visible choice and configured q
 test('invalid choices, argument shape, unsupported use types and later grant failure roll back the complete batch', () => {
     const c = setup([
         { itemid: 1520001, itemnum: 2 },
-        { itemid: 10001, itemnum: 1 },
+        { itemid: 9191, itemnum: 1 },
         { itemid: 9000, itemnum: 1 },
     ])
     try {
         for (const [items, code] of [
             [[{ itemid: 1520001, num: 1 }], ErrorCode.SelectGiftArgsSize],
             [[{ itemid: 1520001, num: 1, args: ['3', '400000'] }], ErrorCode.SelectGiftItemNotExist],
-            [[{ itemid: 10001, num: 1, args: ['3', '400000'] }], ErrorCode.UseItemArgFail],
+            [[{ itemid: 9191, num: 1, args: ['3', '400000'] }], ErrorCode.UseItemArgFail],
             [
                 [
                     { itemid: 1520001, num: 1, args: ['3', '1530001'] },
