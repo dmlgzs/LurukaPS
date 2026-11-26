@@ -2,6 +2,7 @@ import trialPolicy from '../configs/trial-equipment-policy.json' with { type: 'j
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { soulEssenceValue } from './soul-values.js'
+import { ornamentEntryEffects } from './ornament-entry-effects.js'
 export function trialSoulEssence(tables, interim) {
     const text = String(interim?.soulessence ?? '')
     if (!text || text === '0') return null
@@ -37,28 +38,63 @@ export function heroTrialSoulEssence(tables, hero) {
     return trialSoulEssence(tables, tables.find('hero_interim', id))
 }
 
-// Trial ornaments are derived from the interim catalogue, never added to the
-// owned bag. Current CBT3 getPackAtt ignores legacy interim group/infos fields:
-// it reads accessoryId + level + quality, and evaluates current grade entries.
+// Current TDHeroInterim.GetAccessorySet (06023b81) reads each entry as
+// accessory configId # level # grade # quality, with omitted tail fields zero.
+// These are virtual base-accessory items, never accessory_interim IDs or owned
+// inventory grants. getAccessoryListAttDic_trial (0602970d) preserves all four
+// values and creates an empty infos list.
 export function trialOrnaments(tables, interim) {
     const text = String(interim?.accessorySet ?? '')
     if (!text || text === '0') return []
-    const ids = text.split('|').map(Number)
-    ensure(
-        ids.every((id) => Number.isSafeInteger(id) && id > 0) && new Set(ids).size === ids.length,
-        'Invalid trial ornament configuration',
-        ErrorCode.GameConfig,
-    )
-    return ids.map((id) => {
-        const row = tables.find('accessory_interim', id)
+    const ids = new Set()
+    const items = text.split('|').map((token) => {
+        const parts = token.split('#')
         ensure(
-            row && tables.find('accessory', row.accessoryid),
-            'Trial ornament configuration unavailable',
+            parts.length >= 1 &&
+                parts.length <= 4 &&
+                parts.every(
+                    (part) =>
+                        /^(0|[1-9]\d*)$/.test(part) && Number.isSafeInteger(Number(part)) && Number(part) <= 0xffffffff,
+                ),
+            'Invalid trial ornament tuple',
+            ErrorCode.GameConfig,
+        )
+        const [id, level = 0, grade = 0, quality = 0] = parts.map(Number)
+        ensure(id > 0 && !ids.has(id), 'Duplicate or invalid trial ornament identity', ErrorCode.GameConfig)
+        ids.add(id)
+        const config = tables.find('accessory', id)
+        ensure(config, 'Trial ornament configuration unavailable', ErrorCode.OrnamentConfFail)
+        const mains = tables
+            .get('accessory_main')
+            .filter((row) => row.groupId === config.mainAttr && row.level === level)
+        ensure(mains.length > 0, 'Trial ornament level attributes unavailable', ErrorCode.OrnamentConfFail)
+        ensure(
+            mains.every(
+                (row) =>
+                    Number.isFinite(row.value) &&
+                    Number.isSafeInteger(Number(String(row.battleInfo).split('|')[0])) &&
+                    Number(String(row.battleInfo).split('|')[0]) > 0,
+            ),
+            'Invalid trial ornament main attributes',
+            ErrorCode.GameConfig,
+        )
+        ensure(
+            quality === 0 || Number.isFinite(tables.find('accessory_quality', quality)?.value),
+            'Trial ornament quality unavailable',
             ErrorCode.OrnamentConfFail,
         )
-        ensure(Number.isSafeInteger(row.level) && row.level >= 0, 'Invalid trial ornament level', ErrorCode.GameConfig)
-        return { id: row.accessoryid, lv: row.level, quality: 0, grade: 0, infos: [] }
+        ensure(
+            grade === 0 ||
+                tables.get('accessory_upgrade').some((row) => row.rarity === config.rarity && row.grade === grade),
+            'Trial ornament star is not configured',
+            ErrorCode.GameConfig,
+        )
+        return { id, lv: level, grade, quality, infos: [] }
     })
+    // Validate configured grade entries and any battle skills before accepting
+    // the temporary actor; the shared equipment projection later consumes them.
+    ornamentEntryEffects(tables, items)
+    return items
 }
 export function heroTrialOrnaments(tables, hero) {
     if (!hero.trail || BigInt(hero.guid) >> 56n !== 5n) return null
