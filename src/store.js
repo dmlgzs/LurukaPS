@@ -151,7 +151,7 @@ export class Store {
             )
             .get().count
     }
-    transact(id, messageId, fn, { defer = false, fork, persistWhen, logDeferred = false } = {}) {
+    transact(id, messageId, fn, { defer = false, fork, persistWhen, logDeferred = false, skipUnchanged = false } = {}) {
         if (defer) {
             const pending = this.pending.get(id),
                 row = pending ? null : this.playerById.get(id)
@@ -181,9 +181,11 @@ export class Store {
             return result
         }
         const related = new Map()
+        let unchanged = false
         const result = this.db
             .transaction(() => {
                 const { state } = this.load(id)
+                const previous = skipUnchanged ? JSON.stringify(state) : null
                 // Rare social operations may update another account. Borrow no
                 // live pending state, and publish neither account before the
                 // caller finishes encoding every response/notification.
@@ -196,7 +198,16 @@ export class Store {
                 }
                 const result = fn(state, { editPlayer })
                 if (result?.then) throw Error('Asynchronous player transaction is forbidden')
-                this.savePlayer.run(JSON.stringify(state), Date.now(), id)
+                const serialized = JSON.stringify(state)
+                // Opt-in queries still run every observer and encode all wire
+                // output. Only a truly unchanged private draft can avoid the
+                // player write and success log. Related-account edits remain
+                // conservatively durable even when the main draft is equal.
+                if (skipUnchanged && related.size === 0 && serialized === previous) {
+                    unchanged = true
+                    return result
+                }
+                this.savePlayer.run(serialized, Date.now(), id)
                 for (const entry of this.pending.get(id)?.logs ?? [])
                     this.log.run(id, entry.messageId, 'ok', entry.createdAt)
                 this.log.run(id, messageId, 'ok', Date.now())
@@ -209,10 +220,11 @@ export class Store {
                 return result
             })
             .immediate()
-        for (const peer of [id, ...related.keys()]) {
-            this.pending.delete(peer)
-            this.savedReadTokens.delete(peer)
-        }
+        if (!unchanged)
+            for (const peer of [id, ...related.keys()]) {
+                this.pending.delete(peer)
+                this.savedReadTokens.delete(peer)
+            }
         return result
     }
     nextSequence(name, max = 0xffffffff) {

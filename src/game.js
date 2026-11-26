@@ -271,6 +271,13 @@ import { registerBulletRebounds } from './bullet-rebound.js'
 import { registerVehicles, vehicleSnapshot, vehicleBattleAttributes } from './vehicles.js'
 import { mailboxLegacyPush } from './mailbox.js'
 import { registerGiftCodes } from './gift-codes.js'
+const unchangedReadQueries = new Set([
+    'CSProtoGetMailboxSummary',
+    'CSProtoListMails',
+    'CSProtoSyncMailbox',
+    'CSProtoShopInfoReq',
+    'CSProtoListShopArrayItems',
+])
 const deferredTaskProgress = new Set([
     'CSProtoTaskClientBefore',
     'CSProtoTaskClientCondAfter',
@@ -1779,6 +1786,7 @@ export class Game {
             },
             {
                 defer: deferredMessages.has(e.name),
+                skipUnchanged: unchangedReadQueries.has(e.name),
                 // Pure phase/trace acknowledgments do not require a disk commit.
                 // Item actions and newly granted After rewards remain durable.
                 logDeferred: deferredTaskProgress.has(e.name),
