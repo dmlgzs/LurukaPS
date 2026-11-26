@@ -14,6 +14,7 @@ import {
 import { inactiveCampaignEnemyGroup } from './inactive-campaign-enemies.js'
 import { abyssTables } from './abyss-catalog.js'
 import { activeTaskWorldBattleSource } from './task-world-battle-source.js'
+import { worldCondition } from './handlers/world-objects.js'
 
 const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
 const uint = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff
@@ -417,8 +418,42 @@ function prepareEnemy(c, descriptor, battle) {
     return entity
 }
 
+function describeCreation(c, id) {
+    try {
+        return describe(c, id)
+    } catch (error) {
+        if (error.code !== ErrorCode.InvalidTarget || id.kind !== 3) throw error
+        const tables = scopedTables(c.tables, c.state),
+            row = catalog(tables).find('worldmap_' + c.state.world.map_id, id.objectId)
+        if (!row?.disappearCond || activeTaskWorldBattleSource(tables, c.state, row)) throw error
+        let retired
+        try {
+            retired = worldCondition(row.appearCond, c.state) && worldCondition(row.disappearCond, c.state)
+        } catch (conditionError) {
+            if (![ErrorCode.GameConfig, ErrorCode.FunctionClosed].includes(conditionError.code)) throw conditionError
+            throw error
+        }
+        if (!retired) throw error
+        // Validate the current static source, full roster and requested slot.
+        // A vanished phase is not permission to swallow unknown/broken data.
+        const descriptor = describe(c, id, true)
+        valid(
+            positive(descriptor.definition?.max_hp) && positive(descriptor.definition?.level),
+            'Retired world enemy definition is malformed',
+        )
+        // LOCAL no-admission/drain for a known expired phase. The current
+        // manager clears its pending/inflight batch on success. Omitting this
+        // entry does not affirmatively cancel an active EnemyUnit, so never
+        // use it for an active target or fabricate an agent/Appear/Disappear.
+        return null
+    }
+}
+
 export function createWorldObjectAoi(c, request) {
-    const descriptors = requestIds(request.objs).map((id) => describe(c, id))
+    const descriptors = requestIds(request.objs)
+        .map((id) => describeCreation(c, id))
+        .filter(Boolean)
+    if (!descriptors.length) return { objs: [] }
     const battle = combatState(c.state, c.now),
         leases = ledger(c, battle),
         objs = []
