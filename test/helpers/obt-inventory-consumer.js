@@ -84,8 +84,8 @@ export class ObtInventoryConsumer {
         return (
             this.tables
                 .get('hero_favorability_exp')
-                .filter((row) => row.favorabilityLevel < hero.favorability_lv)
-                .reduce((sum, row) => sum + row.favorabilityExp, 0) + hero.favorability_exp
+                .filter((row) => row.favorabilityLevel < (hero.favorability_lv ?? 0))
+                .reduce((sum, row) => sum + row.favorabilityExp, 0) + (hero.favorability_exp ?? 0)
         )
     }
     equipment(heroGuid) {
