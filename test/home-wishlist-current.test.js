@@ -1,3 +1,4 @@
+import { newStarterProfile } from '../src/starter-profile.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -26,6 +27,7 @@ const digest = (v) => createHash('sha256').update(JSON.stringify(v)).digest('hex
 const native = (count = 2) => ({ uid: productId, product_id: productId, count, trace: false, selects: [] })
 function baseline(name, setup, qualified = true) {
     const s = seedPlayer(tables, 1, name)
+    if (!qualified) s.starterProfile = newStarterProfile('normal')
     // Trusted independent post-main-task checkpoint, not an assertion that
     // these tests play the preceding story or earn a wishlist completion.
     if (qualified) {

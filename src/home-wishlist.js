@@ -1,3 +1,4 @@
+import { preparedSystemAccess } from './system-access.js'
 import { createHash } from 'node:crypto'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
@@ -24,6 +25,12 @@ valid(
 const catalogs = new WeakMap()
 const accessRules = new WeakMap()
 export function requireHomeWishlistAccess(tables, state) {
+    const prepared = preparedSystemAccess(tables, state, 1504)
+    if (prepared !== undefined) {
+        ensure(prepared, 'Wishlist system is locked', ErrorCode.SystemLock)
+        return
+    }
+
     let rule = accessRules.get(tables)
     if (rule === undefined) {
         const system = tables.find('system_unlock', 1504)
