@@ -153,6 +153,64 @@ export function collectionPlan(tables, state, build) {
     })
     return { station, pet, streams, slots, stack: station.collectionlatticelimit }
 }
+function requireExecutionPlan(tables, plan, build, job) {
+    const bound = plan.pet && plan.pet.work_build === build.guid && [1, 2].includes(plan.pet.work_status)
+    if (!bound && !job?.clocks?.length) return // Idle/unbound presentation is not an execution plan.
+    const raw = plan.station.planID
+    ensure(
+        typeof raw === 'string' && /^\d+(\|\d+)*$/.test(raw),
+        'Collection plan declaration is malformed',
+        ErrorCode.GameConfig,
+    )
+    const ids = raw.split('|').map(Number)
+    ensure(
+        ids.every((id) => Number.isSafeInteger(id) && id > 0) && new Set(ids).size === ids.length,
+        'Collection plan declaration has invalid identities',
+        ErrorCode.GameConfig,
+    )
+    const saved = build.collect_build_data?.product_choose_id ?? 0
+    ensure(
+        Number.isSafeInteger(saved) && saved >= 0 && (!saved || ids.includes(saved)),
+        'Saved collection plan is outside its declaration',
+        ErrorCode.GameConfig,
+    )
+    ensure(saved || ids.length === 1, 'Collection plan selection is not implemented', ErrorCode.FunctionClosed)
+    const selected = saved || ids[0]
+    const data = catalog(tables),
+        rows = tables.get('home_building_collectionplan')
+    const base = []
+    for (const id of ids) {
+        const matches = rows.filter((row) => row.id === id)
+        ensure(
+            matches.length === 1 && matches[0].groupId === plan.station.groupId,
+            'Declared collection plan is missing or belongs to another station',
+            ErrorCode.GameConfig,
+        )
+        const products = matches[0].products
+        ensure(
+            typeof products === 'string' && (!products || /^\d+(\|\d+)*$/.test(products)),
+            'Declared collection plan products are malformed',
+            ErrorCode.GameConfig,
+        )
+        for (const productId of list(products)) {
+            const product = data.products.get(productId)
+            ensure(product, 'Declared collection product is missing', ErrorCode.CollectProductConfNotFound)
+            ensure(
+                data.drops.has(product.homeDropId),
+                'Declared collection drop is missing',
+                ErrorCode.CollectDropConfNotFound,
+            )
+            if (id === selected) base.push(productId)
+        }
+    }
+    // Extra technology/world flows cannot stand in for unresolved basic plan outputs.
+    const parsed = new Set(plan.streams.map((stream) => stream.product))
+    ensure(
+        base.length > 0 && base.every((id) => parsed.has(id)),
+        'Current collection plan execution is not implemented',
+        ErrorCode.FunctionClosed,
+    )
+}
 function wire(build) {
     return (build.collect_build_data ??= {
         guid: build.guid,
@@ -227,18 +285,19 @@ export function retimeCollections(tables, state, now) {
     if (jobs) for (const id of Object.keys(jobs)) if (!builds.some((b) => String(b.guid) === id)) delete jobs[id]
     for (const build of builds) {
         if (build.build_type !== 24) continue
+        const plan = collectionPlan(tables, state, build)
+        let job = state.home.collectionProduction?.[build.guid]
+        requireExecutionPlan(tables, plan, build, job)
         if (!build.collect_build_data) {
             wire(build)
             updated = true
         }
-        const plan = collectionPlan(tables, state, build)
         const active =
             build.locate &&
             [1, 4].includes(build.status) &&
             plan.pet &&
             plan.pet.work_build === build.guid &&
             [1, 2].includes(plan.pet.work_status)
-        let job = state.home.collectionProduction?.[build.guid]
         if (!active) {
             if ((job?.pet !== undefined && job.pet !== '0') || build.collect_build_data.start_time) {
                 stopCollection(build, state, now)
@@ -308,6 +367,7 @@ export function settleCollections(tables, state, now, rng = randomInt) {
         const job = state.home?.collectionProduction?.[build.guid]
         if (!job || job.pet === '0' || job.blocked || !job.clocks.some((c) => c.next <= now)) continue
         const plan = collectionPlan(tables, state, build)
+        requireExecutionPlan(tables, plan, build, job)
         if (
             !build.locate ||
             ![1, 4].includes(build.status) ||
