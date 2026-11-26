@@ -1,0 +1,15 @@
+{
+    "schemaVersion": 1,
+    "policyId": "task-package-scope-1.0.0-v1",
+    "origin": "LOCAL",
+    "targetVersion": "1.0.0",
+    "packageVersion": "3217420",
+    "isReviewPackage": false,
+    "selection": "server-deployment-only",
+    "predicateSource": "TaskHelper.IsTaskValidInCurrentReviewMode0602f1c2; VersionCheckHelper.GetGamePackageVersionType()==3",
+    "mode0": "non-review-only",
+    "mode2": "review-only",
+    "otherModes": "allowed",
+    "isolation": "archive-active-task-and-owned-pending; preserve-completion-rewards-appearance",
+    "restore": "explicit-offline-review-required; never-automatic-reaccept"
+}

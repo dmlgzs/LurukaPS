@@ -99,6 +99,7 @@ import { hiddenTaskPetGuids } from './task-pet-presentation.js'
 import { petSyncPresentation } from './pet-model-presentation.js'
 import { migratePetGuidIdentity } from './pet-guid-migration.js'
 import { initializeFreshStoryClearProofState, bootstrapStoryClearProofs } from './story-clear-proof-migration.js'
+import { reconcileTaskPackageScope } from './task-package-scope.js'
 import { repairPetCatalog } from './pet-catalog.js'
 import { preparePetHandbook, takePetHandbookSync, petHandbookSnapshot } from './pet-handbook.js'
 import { syncHandbookAttributes } from './pet-handbook-sync.js'
@@ -912,6 +913,7 @@ export class Game {
                 requireProductionWorkModel(state, this.productionWorkPolicy)
                 migratePetGuidIdentity(this.tables, state, this.protocol)
                 bootstrapStoryClearProofs(this.tables, state)
+                reconcileTaskPackageScope(this.tables, state, now)
                 resetWorldObjectAoiSession(state, session.token)
                 suspendUnavailableTasks(this.tables, state)
                 this.legacyMatchTeams.onLogin(session.id)

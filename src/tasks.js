@@ -14,6 +14,7 @@ import { taskActionData, taskOverrideNodeIds } from './task-action-data.js'
 import { currentTaskAvailable, suspendedTaskIds } from './task-compatibility.js'
 import { taskNodeFinishedCurrentAttempt } from './task-node-status.js'
 import { taskAcceptStoryCompleted, taskAcceptOwnedPetGroup } from './task-acceptance.js'
+import { taskPackageEligible, taskPackageRestoreRequired, packageIsolatedTaskIds } from './task-package-scope.js'
 export const asList = (value) => (value == null ? [] : Array.isArray(value) ? value : [value])
 const graphTables = new WeakMap()
 export class TaskGraphs {
@@ -267,6 +268,7 @@ export function advancePetChoiceBranch(graph, task, state) {
 }
 
 export function taskUnlocked(graph, state, context) {
+    if (!taskPackageEligible(graph.config) || taskPackageRestoreRequired(state, graph.config.id)) return false
     context = { ...context, tables: context?.tables ?? graphTables.get(graph) }
     if (graph.dungeonId && state.storyCampaign?.dungeon_id !== graph.dungeonId) return false
     const rules = String(graph.config.unlockcondition || '')
@@ -392,6 +394,8 @@ export function unlockAutomaticTasks(tables, state, now) {
         if (
             config.autoAccept !== 1 ||
             config.canRepeat === 1 ||
+            !taskPackageEligible(config) ||
+            taskPackageRestoreRequired(state, config.id) ||
             state.tasks.some((t) => t.task_id === config.id) ||
             (state.taskRecords ?? []).some((t) => t.task_id === config.id && t.count > 0)
         )
@@ -426,6 +430,7 @@ function requiredTaskLevel(config) {
     return levels.length && levels.every((level) => Number.isSafeInteger(level) && level > 0) ? Math.max(...levels) : 0
 }
 export function taskVisibleAtLevel(tables, state, task) {
+    if (!taskPackageEligible(tables.find('task', task.task_id))) return false
     const required = requiredTaskLevel(tables.find('task', task.task_id))
     return !required || state.player.basic_info.lv >= required
 }
@@ -442,6 +447,8 @@ function nextLevelLockedMain(tables, state) {
             config.type !== 1 ||
             config.autoAccept !== 1 ||
             config.canRepeat === 1 ||
+            !taskPackageEligible(config) ||
+            taskPackageRestoreRequired(state, config.id) ||
             state.tasks.some((task) => task.task_id === config.id) ||
             (state.taskRecords ?? []).some((record) => record.task_id === config.id && record.count > 0)
         )
@@ -489,13 +496,20 @@ export function taskSnapshot(tables, state) {
     return {
         tasks: visibleTasks,
         ...taskItemSnapshot(state),
-        del_tasks: [...new Set([...hiddenTasks.map((task) => task.task_id), ...suspendedTaskIds(state)])],
+        del_tasks: [
+            ...new Set([
+                ...hiddenTasks.map((task) => task.task_id),
+                ...suspendedTaskIds(state),
+                ...packageIsolatedTaskIds(state),
+            ]),
+        ],
         task_records: taskRecords,
         trace_list: visibleTasks.filter((task) => task.client_trace).map((task) => task.task_id),
         del_trace_list: [
             ...new Set([
                 ...hiddenTasks.filter((task) => task.client_trace).map((task) => task.task_id),
                 ...suspendedTaskIds(state),
+                ...packageIsolatedTaskIds(state),
             ]),
         ],
         // The client treats next_main_id as an unaccepted placeholder. An
