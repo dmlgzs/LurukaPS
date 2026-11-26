@@ -20,7 +20,7 @@ function members(tables, text, kind) {
         ensure(position === -1 || !positions.has(position), 'Duplicate current trial slot', ErrorCode.GameConfig)
         ids.add(id)
         positions.add(position)
-        const config = tables.find(kind === 'hero' ? 'hero_interim' : 'pet_interim', id)
+        const config = tables.find(kind === 'hero' ? 'hero_interim' : 'pet_customized', id)
         ensure(config, 'Current trial actor configuration is missing', ErrorCode.GameConfig)
         if (kind === 'hero')
             ensure(

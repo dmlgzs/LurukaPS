@@ -4,8 +4,8 @@ import { taskOverrideNodeIds } from '../task-action-data.js'
 import { trialSoulEssence, trialOrnaments, trialRuneIds } from '../trial-equipment.js'
 import { TaskGraphs, asList, nodeConditions } from '../tasks.js'
 import { ensure, manager, group } from './common.js'
-import { syncBattle, pairs } from '../battle.js'
-import { petData } from '../pets.js'
+import { syncBattle } from '../battle.js'
+import { hydrateTrialPet } from '../trial-pet-hydration.js'
 import { retireTrialActors, temporaryHeroes, temporaryPets } from '../trial-actors.js'
 import { mainHeroConfigId } from '../main-hero.js'
 import { currentTrialAdmission, currentTrialPetSlots } from '../current-trial-request-policy.js'
@@ -37,7 +37,7 @@ export function refreshTrialPetBindings(state) {
     }
     return changed
 }
-// The middle 24 bits are the pet_interim row ID. Client GetUuid2ConfigId
+// The middle 24 bits are the pet_customized row ID. Client GetUuid2ConfigId
 // looks that ID up directly; adding 0x800000 made row 102 appear as 8388710.
 const trialPetGuid = (account, id) => ((9n << 56n) | (BigInt(id) << 32n) | BigInt(account)).toString()
 const trialHeroGuid = (account, id) => ((5n << 56n) | (BigInt(id) << 32n) | BigInt(account)).toString()
@@ -50,22 +50,6 @@ function trialHeroConfigId(tables, config, state) {
     return config.heroId
 }
 
-function applyTrialPetComprehension(pet, cfg) {
-    // rsp_syncTrialPetItem replaces aptitude with pet_interim.param in the client.
-    // The battle attribute packet must use those same values, not an owned-pet roll.
-    const values = pairs(cfg.param)
-    if (!values.size) return false
-    const comprehension = [...values].map(([attr_id, value]) => ({
-        attr_id,
-        value,
-        level: 1,
-        init_level: 1,
-        cur_exp: 0,
-    }))
-    if (JSON.stringify(pet.comprehension) === JSON.stringify(comprehension)) return false
-    pet.comprehension = comprehension
-    return true
-}
 export function repairTrialActorGuids(tables, state) {
     const trial = state.trialGroup
     if (!trial) return false
@@ -108,10 +92,12 @@ export function repairTrialActorGuids(tables, state) {
         const old = pet.guid,
             encoded = Number((BigInt(old) >> 32n) & 0xffffffn),
             interimId = encoded >= 0x800000 ? encoded - 0x800000 : encoded
-        const cfg = tables.find('pet_interim', interimId)
-        if (cfg?.petId !== pet.config_id) continue
-        if (applyTrialPetComprehension(pet, cfg)) changed = true
         const correct = trialPetGuid(account, interimId)
+        const hydrated = hydrateTrialPet(tables, interimId, correct, pet)
+        if (JSON.stringify(pet) !== JSON.stringify(hydrated)) {
+            Object.assign(pet, hydrated)
+            changed = true
+        }
         if (old === correct) continue
         pet.guid = correct
         for (const g of m.groups) for (const slot of g.heros) if (slot.pet_id === old) slot.pet_id = correct
@@ -299,34 +285,13 @@ function attachTrialPets(c, tables, trial, positions, requested) {
         petIds = [...(trial.petIds ?? [])]
     for (const [id, pos] of unique) {
         while (positions.length <= pos) positions.push(emptySlot())
-        const cfg = tables.find('pet_interim', id)
-        ensure(
-            cfg && tables.find('pet', cfg.petId) && tables.find('template_value', cfg.petId),
-            'Unknown trial pet',
-            ErrorCode.TrialPetNotExist,
-        )
-        const guid = trialPetGuid(c.id, cfg.id)
-        let pet = pets.find((p) => p.guid === guid)
-        if (!pet) {
-            pet = petData(tables, cfg.petId, guid, 0, undefined, undefined, { temporary: true })
-            pet.type = 2
-            pet.lv = cfg.petLevel
-            pet.feature = cfg.feature || 1
-            const skills = new Map(pet.inherent_skills.map((skill) => [skill.skill_slot, skill]))
-            if (cfg.signatureSkillList)
-                skills.set(206, { skill_slot: 206, skill_id: cfg.signatureSkillList, skill_lv: 1, type: 0 })
-            String(cfg.skillList || '')
-                .split('|')
-                .filter(Boolean)
-                .forEach((skill, index) =>
-                    skills.set(index + 1, { skill_slot: index + 1, skill_id: Number(skill), skill_lv: 1, type: 0 }),
-                )
-            pet.inherent_skills = [...skills.values()]
-            pets.push(pet)
-        }
-        applyTrialPetComprehension(pet, cfg)
-        pet.hero_id = positions[pos].hero_id || '0'
-        if (!petIds.includes(cfg.id)) petIds.push(cfg.id)
+        const guid = trialPetGuid(c.id, id)
+        const existing = pets.find((pet) => pet.guid === guid)
+        const hydrated = hydrateTrialPet(tables, id, guid, existing)
+        hydrated.hero_id = positions[pos].hero_id || '0'
+        if (existing) Object.assign(existing, hydrated)
+        else pets.push(hydrated)
+        if (!petIds.includes(id)) petIds.push(id)
         positions[pos].pet_id = guid
     }
     trial.pets = pets

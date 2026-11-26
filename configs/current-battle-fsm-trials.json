@@ -1,0 +1,856 @@
+{
+    "schemaVersion": 1,
+    "clientVersion": "1.0.0",
+    "packageVersion": "3217420",
+    "origin": "CURRENT_CLIENT_STATIC",
+    "provenance": {
+        "globalAsset": "Config/Battle/ast_globalBattleConfig.asset",
+        "globalAssetSha256": "7291a007a741fb5aff1867de6d67979cd4d25df7fcb374c63a750e1eacfd9b0c",
+        "manifestSha256": "ce7bb0118ed6c1e0d71d0728f7fd0236d156a0f6a497908bc2b7fe5af02ba361",
+        "algorithm": "exact global battleTypeEnumDic -> exact container-bound FSM serializedGraph -> enabled typed trial actions",
+        "sourceCount": 87,
+        "parsedCount": 84
+    },
+    "fsms": [
+        {
+            "id": 0,
+            "path": "Config/Battle/NCFsm/ast_fsm_static_normal.asset",
+            "status": "parsed",
+            "assetSha256": "1d0d469a4b03e6a19c9ec6de8536cf9db8ca503d4cc09cb3ee77bc60f2102137",
+            "graphSha256": "42729e85b53ff1e38d97fd4554cbf2ba1d98920e782bfc0d86c27727090ef0eb",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 8,
+            "path": "Config/Battle/NCFsm/ast_fsm_dungeon_normal.asset",
+            "status": "parsed",
+            "assetSha256": "5cec2d2d64804355f2f890491884a58ce86d48c15ffd9d9e0726845ebf2241c1",
+            "graphSha256": "3368d39c09f2ca79a188631d58891f7a155c84a832240a87720e3df23af48826",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_limitTime.asset",
+            "status": "parsed",
+            "assetSha256": "a34f8ad947a9a9a264dee4129a5355e3b6e16a9e68c4843c7137f1035438681f",
+            "graphSha256": "070610109ee1ca2305efc4750f6e15633f9c23fb2ed4b329b91fa3594e7b5811",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 2,
+            "path": "Config/Battle/NCFsm/ast_fsm_2000_4.asset",
+            "status": "missing-current-asset",
+            "trialRefs": []
+        },
+        {
+            "id": 3,
+            "path": "Config/Battle/NCFsm/ast_fsm_2000_2.asset",
+            "status": "missing-current-asset",
+            "trialRefs": []
+        },
+        {
+            "id": 4,
+            "path": "Config/Battle/NCFsm/ast_fsm_2000_1.asset",
+            "status": "missing-current-asset",
+            "trialRefs": []
+        },
+        {
+            "id": 5,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_interim.asset",
+            "status": "parsed",
+            "assetSha256": "7541ab8567e7abfdccbf52367e8625afc9b4bf5f058c88a8861eadf542706dcb",
+            "graphSha256": "9ec4c2c0e992c0cfe052e744a359d8d341c65f2c8eb7ac6f33f5c13ec413ff8a",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 6,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_interim_2.asset",
+            "status": "parsed",
+            "assetSha256": "d8667bb1f59b25a2508b897ea71295440c3004bfa74409ef0f00692b56a024cc",
+            "graphSha256": "68c62c0a7736a5844ba46c1aa200c7ec7113f067ddd1aedcbc673262389b6323",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 7,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_interim_3.asset",
+            "status": "parsed",
+            "assetSha256": "ff916ee2a776720b53af0810e9ba47e0769c49cae99b640f6c31dc76427bcb2a",
+            "graphSha256": "ff791366414ce5d5c04244277d837fed5781ec898d4d8da4c77ea6a5cabc99d1",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 10,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_boss.asset",
+            "status": "parsed",
+            "assetSha256": "9508b1ecb7ec6448a3348c863639cb367fd09e62fa2730eca8851a174d3e9601",
+            "graphSha256": "5ca0e183d39fe02f1397ac2cd7e24058995d91506fe6d61702617c33f59b6502",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 11,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_boss_bgm_not_reset.asset",
+            "status": "parsed",
+            "assetSha256": "17a035fc7fc4652769c63982a9fdbaf8f9c11be896ce918f189f737a371c72ee",
+            "graphSha256": "c86488f76ea9806cce36c61f4f60abc4354ede58696aa6f32376ec00c83d3648",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 99,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_debug.asset",
+            "status": "parsed",
+            "assetSha256": "e7c9a77d038dfd4bdd112b1395a0be2ca8e06072999d39a03d4e845ae2e40ac6",
+            "graphSha256": "9ef6400c76d9eeb54ef38033ffe677a2d8455b3db044f8eff9b72bb9f931949f",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 101,
+            "path": "Config/Battle/NCFsm/ast_fsm_2000_101.asset",
+            "status": "parsed",
+            "assetSha256": "0cbf8bd0faf87258b1a27e6e139f98234796c5332947d77570c4251c2f337216",
+            "graphSha256": "d300aa9af4fd8702b77aa51946e8b7be4b7674cbad22eae9588daa371ffe4e3d",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 102,
+            "path": "Config/Battle/NCFsm/ast_fsm_prologue_boss.asset",
+            "status": "parsed",
+            "assetSha256": "3fcbd098d2c0b6f9000b5724ad5a6054e1dd769337d8d09a356cd3fa22402265",
+            "graphSha256": "a747cba77ca927cd97a492e73d61d3275ed9a407c6085be8febfd04d8fb0029c",
+            "trialIds": [2, 3],
+            "trialRefs": [
+                {
+                    "trialId": 3,
+                    "isOn": true,
+                    "enabled": true,
+                    "nodeId": "14",
+                    "path": "$.nodes.14._actionList.actions.1",
+                    "type": "Lens.Gameplay.Modules.BigWorld.CanvasNodes.ChangeTrialFormation"
+                },
+                {
+                    "trialId": 2,
+                    "isOn": false,
+                    "enabled": true,
+                    "nodeId": "30",
+                    "path": "$.nodes.30._actionList.actions.1",
+                    "type": "Lens.Gameplay.Modules.BigWorld.CanvasNodes.ChangeTrialFormation"
+                },
+                {
+                    "trialId": 2,
+                    "isOn": true,
+                    "enabled": true,
+                    "nodeId": "30",
+                    "path": "$.nodes.30._actionList.actions.2",
+                    "type": "Lens.Gameplay.Modules.BigWorld.CanvasNodes.ChangeTrialFormation"
+                },
+                {
+                    "trialId": 2,
+                    "isOn": false,
+                    "enabled": true,
+                    "path": "$.nodes.42._actionList.actions.0",
+                    "type": "Lens.Gameplay.Modules.BigWorld.CanvasNodes.ChangeTrialFormation"
+                }
+            ]
+        },
+        {
+            "id": 1001,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1001.asset",
+            "status": "parsed",
+            "assetSha256": "f37f1dc1838ececedfbc8a5d175f90eddd98abaa449118f8f3709692e5194da3",
+            "graphSha256": "4958ae6f692bb0df9913b384947be9f31234c8a4d59cb177bdaa6e8dc4ae3d01",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1002,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1002.asset",
+            "status": "parsed",
+            "assetSha256": "4b3ac4f28e42152173e0fd6cf5a2ad659f09557e35ff6e4af4312a12684bca25",
+            "graphSha256": "a3578e97c7cb2fcfa068e0d7110af9a81451c6b4628f48609c3e7d581a1f6bcf",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1003,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1003.asset",
+            "status": "parsed",
+            "assetSha256": "fd7e60d15fef09611d112aff2f3d17954486f750584a1d17fb4e4afe89b0809c",
+            "graphSha256": "3f6f26936065ef18f1b22de68df7ea95551f06c91289c708991944e231873d76",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 2001,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_2001.asset",
+            "status": "parsed",
+            "assetSha256": "4178e60bebee1cb76b277e6cb54bab96876c9c6c5a343a59a09a3450a6886d78",
+            "graphSha256": "e97a9dda27055dadd828a0f9519fa273b98f85d57baca390660b6739905a187e",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 2002,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_2002.asset",
+            "status": "parsed",
+            "assetSha256": "2b1874ffe68556236b78449ac19ff2f05ce5d3e2e88c0d78367dc6e5b6e87300",
+            "graphSha256": "d78c78415f59df595e8c261ecaac4dd2235fec1a0706ef9c9224313a9c40375d",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 3001,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_3001.asset",
+            "status": "parsed",
+            "assetSha256": "4408ff5d7876a3f94fd7f7e36c9f5e268679fedfc5c83724d475e8bd4f815ed3",
+            "graphSha256": "ed2baad795bf9a4c3e01329df674e76ca1948481e1ad4d33bd18666ccbeae71c",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 4001,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_4001.asset",
+            "status": "parsed",
+            "assetSha256": "4c4a342caaaea989697c8101928a0ff21066c3cd37c0a226697eec7a1af8764a",
+            "graphSha256": "fbd4fe96550105003a8792a003874e49e2e24ab1704e5561a2bfdd8307103c5a",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 10001,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_10001.asset",
+            "status": "parsed",
+            "assetSha256": "69f7ea6496b1ed074fea2f6cfb2aba109f1b901e78b25a02d43c972e15876c4d",
+            "graphSha256": "94deeaeef73f0185a8936878589109fdaba3a24694ddcdb59257c7a471924a89",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1010031,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1010031.asset",
+            "status": "parsed",
+            "assetSha256": "d96afebd105b4d30b05be1123c2865b8f0e09ff686da24ea260a8ac893840e10",
+            "graphSha256": "b341e67bed3c8a43aa4e45e44e57e3be5bb9379b7234f2179f2eac8577b6ab7e",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1010032,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1010032.asset",
+            "status": "parsed",
+            "assetSha256": "f0e24794db0d4669ea43eae0b593f200051031467f1a44732cd9e1913eaaf6d5",
+            "graphSha256": "36938995a548384ee5a73d7a6108d3032d04312e4fa7ec8297f586713d563663",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1010041,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1010041.asset",
+            "status": "parsed",
+            "assetSha256": "3e16a6623526c14ed495bc5c42b12eb4c451204f6e24452355870cfcc88d9d1a",
+            "graphSha256": "25a08c6bc6227c006a4b9733b0dfefdb91edbac8aed51d334b83c66a54f08151",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1010042,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1010042.asset",
+            "status": "parsed",
+            "assetSha256": "7f0ee96fe1e9d580a63024f82f6a3eb99a4035a8ae0bf191fde866836f3b4197",
+            "graphSha256": "4a5b9fa1e4acebe50ad7f059c3f3396614a908901b73cdf835c9ed8b4f2e4ad0",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1010071,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1010071.asset",
+            "status": "parsed",
+            "assetSha256": "c250aeabe1a57b21bd225470b25ea4edfbaac4e050ea44bcc08865996ab58d33",
+            "graphSha256": "1e63917f1ab0aedc5d95e54ad39594526ed02f51bd377a2a2ef0d9681e243854",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1010072,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1010072.asset",
+            "status": "parsed",
+            "assetSha256": "a77ff28eedc1f3cf1f2cca15cfa0e6d2dbef6830c9f63e9bcfaff82524ce0351",
+            "graphSha256": "8cc3eb899f0805b8163e50c37a2861a86ec015d412e045d295ae544d9ef809f8",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1010081,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1010081.asset",
+            "status": "parsed",
+            "assetSha256": "9a42ddde98fd0a6928d1070d1e7dcadc0115f11aa6f3b80b2f2ad81bb664319c",
+            "graphSha256": "6320b0a6fd037addc44153dc7cfd2286de8b4cee79391be64fdc197331a93d88",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1010082,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1010082.asset",
+            "status": "parsed",
+            "assetSha256": "1e19e2a93e6f56042eda5c216cad07b119926c2786bac6484ad1f4de9bf49372",
+            "graphSha256": "38f5a55b577d89ecbca6c4f8de468b926d41a95d0de1cfb26fb966e8e0e8c29d",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1010101,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1010101.asset",
+            "status": "parsed",
+            "assetSha256": "d7639bffffd32d163b536dd5e60ee51b4b247ae127acd752cf381e24b9b5087f",
+            "graphSha256": "baed990c614f6afd8a87c5b08c320a749aed3ddb519b61561d34e97ab12d8ae5",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1010102,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1010102.asset",
+            "status": "parsed",
+            "assetSha256": "81c50b1023fe602cab5f60773fc71dab6832437a476f4e90aee61cfdcce49273",
+            "graphSha256": "38f5a55b577d89ecbca6c4f8de468b926d41a95d0de1cfb26fb966e8e0e8c29d",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1020011,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1020011.asset",
+            "status": "parsed",
+            "assetSha256": "7f7278a2f9fd279921685e3aa9d27fada579c6584964347ae98ca0beebd758eb",
+            "graphSha256": "d0a7190f0e93232a357bc5c41f20a02e0c096900e917ba8acb1d70c98b2ad9d6",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1020012,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1020012.asset",
+            "status": "parsed",
+            "assetSha256": "1a0e573591fbf569a9c142b5eb11fa0a9d7c1f23c4a1a702218de39c18c714e0",
+            "graphSha256": "b5d757988aa04a0c6dfa15ac7d8e70c24c727eb22101382f823c84edc49fc04b",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1030021,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1030021.asset",
+            "status": "parsed",
+            "assetSha256": "2fd4931fdbf05f853978fd0b17724901bd757067b938ba8d78f0ab00fca15f0f",
+            "graphSha256": "0b6670b20d2ffa89fd972dfbd57333caa4462525d11b2551cffc4143dd865ab7",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1030022,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1030022.asset",
+            "status": "parsed",
+            "assetSha256": "96f4c277ab0ce17fefc3e2cc7834cd82d4848cdd5ad4c927ab431244e3f9b6d6",
+            "graphSha256": "fba088dfe0306b5224f19a7dd9db007249644e3955d2e00ba691578afd04d971",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1070011,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1070011.asset",
+            "status": "parsed",
+            "assetSha256": "36d5209dbe1b9acf76ceb78a2980e20dd5a2e9d1faf18c1fdbd19b4b11f0d2ee",
+            "graphSha256": "a4838e32a01a0a9618040652a14d79ecae6ca1c3ffc9bca55177014dd40566ec",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1070012,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1070012.asset",
+            "status": "parsed",
+            "assetSha256": "a5da27af671140fbbe15d870983bbfbc7753b3185f0fa9703c9c7f140fd6d375",
+            "graphSha256": "38f5a55b577d89ecbca6c4f8de468b926d41a95d0de1cfb26fb966e8e0e8c29d",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1070021,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1070021.asset",
+            "status": "parsed",
+            "assetSha256": "fda9005095841da47cfe21f65c8ec1991adaa77bebe536eeb4c25b63cac4bc42",
+            "graphSha256": "416049775c607b482401318ba19637b1d459873f03088633bef7ba5ed4a4364a",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1070022,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1070022.asset",
+            "status": "parsed",
+            "assetSha256": "ebb73c00666ac619c60b2a415e8c485af9c5074c1f92f1187db4ce96ed678286",
+            "graphSha256": "0fdbbf7acc1bbf89560ede7cf938a288d5b15faadc42e83f6d3df91c470b015f",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1070031,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1070031.asset",
+            "status": "parsed",
+            "assetSha256": "087b01a396de02cffdb849e35adbec9de1bf37210ec05714a9ee87fc4f5f9359",
+            "graphSha256": "2f22cb516475a54ff3841239f8e4485defaf2e1e35df7ce79c4d8e5746c780b2",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1070032,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1070032.asset",
+            "status": "parsed",
+            "assetSha256": "04360a5ee362a8e8f2f1f2680fe99ba39a676701e75517f46fdf7c4963f65b87",
+            "graphSha256": "fa9971a6ee8a4127c707467df502ce306694f5f5855687d4bf769227333e208b",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1080011,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1080011.asset",
+            "status": "parsed",
+            "assetSha256": "f2ab3a2b67f2655a42bb9cf8008a9ca4c2687c32f37a786d9e957043e16b738c",
+            "graphSha256": "4147911bddd3227ece162f370f7ad6cfb8a685cf5f1941ec60f2c36635792708",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1080012,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1080012.asset",
+            "status": "parsed",
+            "assetSha256": "4c507d262b04b8131b9feb220bd69db148570cebcf31978acec88c1b4a68303f",
+            "graphSha256": "38f5a55b577d89ecbca6c4f8de468b926d41a95d0de1cfb26fb966e8e0e8c29d",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1080021,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1080021.asset",
+            "status": "parsed",
+            "assetSha256": "c478d8f6d51f1ea154ca0bfb24429d73517dfcf391ca4ff4a0e33d6d64615955",
+            "graphSha256": "61027386e57550a986a8b8578337562444c019f8273830b6ae46ee89b31a8c06",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1080022,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1080022.asset",
+            "status": "parsed",
+            "assetSha256": "21e72ede91506d52c1b716a900bfd282a327a5e8349d69c7255299e980c203d6",
+            "graphSha256": "2d93b73cf9a0940e753a13f3fe6f0374fd109dbce378443f0e4c514f228ac52f",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1080031,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1080031.asset",
+            "status": "parsed",
+            "assetSha256": "4f5e9cf2904ac9c9e8cbb783b0ea4dffbd328743d30b89682597d62857f2f458",
+            "graphSha256": "0cee50b7f515d1c2e418ebb64a96776c6d573a27b9c33a0dd9f36939249f60e1",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1080032,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1080032.asset",
+            "status": "parsed",
+            "assetSha256": "619ccb2192794704a777833d49f6b5651fc0432c2c78c1b902929fa861c595c6",
+            "graphSha256": "38f5a55b577d89ecbca6c4f8de468b926d41a95d0de1cfb26fb966e8e0e8c29d",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1080051,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1080051.asset",
+            "status": "parsed",
+            "assetSha256": "51055c29088f9fa04fb2271fc6bc085436cca2ba15cb4e7de36f2a07418f8c1c",
+            "graphSha256": "1e13294567d3815807655ecdbacc2a399135c97b605096213400c972a27253d6",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1080052,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1080052.asset",
+            "status": "parsed",
+            "assetSha256": "f040f99ffb95ecde5557f50f0e6e80fb806f7183d126dfd3e54fc224afe025a0",
+            "graphSha256": "38f5a55b577d89ecbca6c4f8de468b926d41a95d0de1cfb26fb966e8e0e8c29d",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1090011,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1090011.asset",
+            "status": "parsed",
+            "assetSha256": "fb6a722307aeb9bbbd1eea35bc0fc8ea9460f05b6239d79760c0ee2e00c85a5a",
+            "graphSha256": "636014d85d1e3073bad60de79d32955482fdf41929bf8351142dc611aaa620ee",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1090012,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1090012.asset",
+            "status": "parsed",
+            "assetSha256": "fc9eabb41de00e69c19ca0ba0e92bf316a9c01dfdf948297a22260b71023e08d",
+            "graphSha256": "38f5a55b577d89ecbca6c4f8de468b926d41a95d0de1cfb26fb966e8e0e8c29d",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1090021,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1090021.asset",
+            "status": "parsed",
+            "assetSha256": "04bf08b09e51d5d2f115fc4c1266c50479e5fc8757fab3e80c8d9edbf669abcd",
+            "graphSha256": "90c14b4023d06f124cb59e24ea47ba3d7523f1982775fa7d2f2b793a0245cda5",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1090022,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1090022.asset",
+            "status": "parsed",
+            "assetSha256": "005dc22da7bf05240957159a290f53fb32114a187e2c91a1fce0cd4aebf9d47c",
+            "graphSha256": "af24fb3f1d1a5e721c00a0f8e518aa05cf881959f293689079e8745a6a4c1ce4",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1110011,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1110011.asset",
+            "status": "parsed",
+            "assetSha256": "a1ccdd4bf667a34c7972f62925ba7c26023aa00effc262ea1104acf78346ac79",
+            "graphSha256": "ba3d19d3ef1764dbf52a526ed3230a345aae9b65b5d177409ca53a1260696d7a",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1110012,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1110012.asset",
+            "status": "parsed",
+            "assetSha256": "3a05ea37a49985665fe33840ef46df08bdc3dcf6ea5a5b1632f803e42ab56a00",
+            "graphSha256": "3a34e171d85421f0152fbea1ebfa20bc4778c41c3bb660232d572088b7e21156",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1120011,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1120011.asset",
+            "status": "parsed",
+            "assetSha256": "572c5f331c3cf00f94a1b2974bf79d84be3f5e4ca35244f76d279f5f52630572",
+            "graphSha256": "b72ce103de75378c6dd2a6440263a87ad4a6fcb1b71f54e73b96cb0a02236420",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1120012,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1120012.asset",
+            "status": "parsed",
+            "assetSha256": "bbc3a79d0b507be5d383e4d865bf0d1f90c75424fd79231fc794662b1d118562",
+            "graphSha256": "ecc48c9284a723a0aab5fe359923a95018f8c76543871fc1dd0e4460e90a189a",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1120021,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1120021.asset",
+            "status": "parsed",
+            "assetSha256": "32dee2f2e62aa5b6f27bcea54ef2847c58820db0728fb830229b070738188b2d",
+            "graphSha256": "5b757a55295f7a2546102d99c8bebcf0f41ef679027d7b7708d81eef33f51a0c",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1120022,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1120022.asset",
+            "status": "parsed",
+            "assetSha256": "8a29d53355bd2d0710246df22e87d495f33b46e021e91ee4ac60087ee81267ab",
+            "graphSha256": "77315834529c3ad53e073bcbfc17f29fa0f7c537e04e7ed1271844a5c16cede2",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1990011,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1990011.asset",
+            "status": "parsed",
+            "assetSha256": "fd58373780e755a5c0ca7455205b7ffbf3ee433d9b963a8d438aa1aa8c3b8e75",
+            "graphSha256": "453e475fec3ba30a55bf41ba30e3b3ab815e8c1e5122407345d32588d86c36be",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1990012,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1990012.asset",
+            "status": "parsed",
+            "assetSha256": "2ecdc8b7d462c8ebadfb1369db5c18941419854e91c7422a34aa86e3df118f9a",
+            "graphSha256": "d30d79b9c9b209cde402d36a9ec0b8ea2d3ebb29adc7a1cc752b7f2037f0a204",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1990021,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1990021.asset",
+            "status": "parsed",
+            "assetSha256": "e03dad8282e80ccce5c3148186a9f036ecd37b64865dcf00c2203e7315db8e86",
+            "graphSha256": "7765e5409bb43f534bcb3d29cc4c369857142e6b50fa188487ca6e344aba2025",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1990022,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1990022.asset",
+            "status": "parsed",
+            "assetSha256": "d5e40cf3255aa95ca73179422caebddfc3ade74d14385f9141d94bb926873bd5",
+            "graphSha256": "d30d79b9c9b209cde402d36a9ec0b8ea2d3ebb29adc7a1cc752b7f2037f0a204",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1990031,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1990031.asset",
+            "status": "parsed",
+            "assetSha256": "65f24c8431153dc8b9aca799a59d169177ca148d2e48feaae817c074fad8c33d",
+            "graphSha256": "172568c9a51e84149fa485ee0d709eaa8e0b9e0909d1e44c40082dc936eeb6a1",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1990032,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1990032.asset",
+            "status": "parsed",
+            "assetSha256": "f8ee068e294d33e49f6f2b61b790c26e3c1f1d805f566f6d14aa36c599ca6f81",
+            "graphSha256": "f3ef1efb9e8287f5962ef715c93017fae4cdb7c41e45993b05317cceaea71fcc",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 31068101,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_boss_310681.asset",
+            "status": "parsed",
+            "assetSha256": "62c2dc885974f5a7627e157694e0d194919988e6c94749d2f0e0d14d6380813b",
+            "graphSha256": "1ae0665d75061e46f1a735161dcebf5d740f57d73f6e67a235a3713e6386e43a",
+            "trialIds": [],
+            "trialRefs": [
+                {
+                    "trialId": 0,
+                    "isOn": true,
+                    "enabled": true,
+                    "nodeId": "10",
+                    "path": "$.nodes.10._actionList.actions.0",
+                    "type": "Lens.Gameplay.Modules.BigWorld.CanvasNodes.ChangeTrialFormation"
+                }
+            ]
+        },
+        {
+            "id": 40007801,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_boss_400078.asset",
+            "status": "parsed",
+            "assetSha256": "00f0ab8aae5818d2551713b7497cb59df9ff3b3e8178072151f01e044d1f129b",
+            "graphSha256": "e1af32ee15ef909cbf7e0f9ec671a6af3ba991557814879225e1cdcc7ac9b416",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 40007601,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_boss_400076.asset",
+            "status": "parsed",
+            "assetSha256": "ed67fd00c8c1fd4f4d7372c869302893071e05391d348e9b42aec65544bc7360",
+            "graphSha256": "d2b487344ff6df0540460daad047af8bbedd7fad10b2ce82655a8c4c5231e159",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 40008401,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_boss_400084.asset",
+            "status": "parsed",
+            "assetSha256": "d44d17dbf6a6d8e591196d2638333e5c8027ad2e3e3e61f3af9354cfa361494e",
+            "graphSha256": "5fc84aed7ced801bdccdd0a73521db9d0f2871edb28405db7be472138dadddf7",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 40007901,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_boss_400079.asset",
+            "status": "parsed",
+            "assetSha256": "1eb3e93625bf0d81827fa26f178a02c12f8eb8efed3c945689dc9a6fb82947ae",
+            "graphSha256": "d2a0e440bee0a990a9267902c11cce09736c17573ed393d5ea152519320b11c6",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 40008001,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_boss_400080.asset",
+            "status": "parsed",
+            "assetSha256": "0594708d2ff6d91c22fd2f719c1d5b6975083cc8d03e40a09ba05e20f5a6f0ce",
+            "graphSha256": "4110abb8d02ef05194506451a1da8a3f81258a6fe0a6b5efbefe7f1b1a82843b",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 101524,
+            "path": "Config/Battle/NCFsm/ast_fsm_story_101524.asset",
+            "status": "parsed",
+            "assetSha256": "ad4e5c61fbe75fa9d5bdd9a438b8d83a3fd7f68846fe1dab150e21c9608d5f0e",
+            "graphSha256": "ad65f7cedad22ab999da627793b6aa78238293a80c983da6a8ee56065cce8de5",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1010061,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1010061.asset",
+            "status": "parsed",
+            "assetSha256": "216fca0a4dc9f3b21f45f696ee00bcebddeb77548038ecc2f488fab707dcaa5a",
+            "graphSha256": "ff51d85a83de3dd39b0e08862f423d59818b4f4a485788d5cee78c9004f9a763",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1010062,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1010062.asset",
+            "status": "parsed",
+            "assetSha256": "70f27edbd29c91689bca5fabbfea6a00fb0e326db71fd926aeeacdc947f91b0f",
+            "graphSha256": "38f5a55b577d89ecbca6c4f8de468b926d41a95d0de1cfb26fb966e8e0e8c29d",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1990081,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1990081.asset",
+            "status": "parsed",
+            "assetSha256": "7dd55fefe33ad476d836550ae3a16d507547537049eff65aed68afc3824c87ff",
+            "graphSha256": "149fd29ab69bb1295966bcb48e1a75c9242bed0cd30b2183a29a99266086cbb7",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1990082,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1990082.asset",
+            "status": "parsed",
+            "assetSha256": "db314e76596c19dbd40da55ddaffb5356fe9dc8af928f25eddf4cd64643e2a9d",
+            "graphSha256": "4a5b9fa1e4acebe50ad7f059c3f3396614a908901b73cdf835c9ed8b4f2e4ad0",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1010141,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1010141.asset",
+            "status": "parsed",
+            "assetSha256": "5202d0a72dde200d091ae72ba40d4857e554708948a5355a66a21a2682ddb035",
+            "graphSha256": "d645979ba5f99e7bf4ca5838c6c244b0f2b77f3e7f888b9307d2bc4d2fc34eb3",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1010142,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1010142.asset",
+            "status": "parsed",
+            "assetSha256": "06014e930bb1f8912b227c22eff3025bdaee51289e8185148519edece78658f1",
+            "graphSha256": "77315834529c3ad53e073bcbfc17f29fa0f7c537e04e7ed1271844a5c16cede2",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 3002,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_3002.asset",
+            "status": "parsed",
+            "assetSha256": "f05e424fdee643d2f9d13ba69a4a68bbf3802fce9882a8dc4ea81d1225c36494",
+            "graphSha256": "30e3dfc666881ae369df57696e59dfe00043027887db12bf463fbdb3473aefd9",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 5001,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_5001.asset",
+            "status": "parsed",
+            "assetSha256": "cc451422fefc5e630ab30b8823ca2db0698998f1ae5eed92213561b3d1bafbfe",
+            "graphSha256": "314d6b97e44614bc278eb287db7c50f1b19ffa18acfaabae5387090aa2679d09",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 6001,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_6001.asset",
+            "status": "parsed",
+            "assetSha256": "ec01326c55b093af77d87e2b91b660e0bf899660dc935b09b118d4d243a1098a",
+            "graphSha256": "efe4cb4706f81d97ba36ff089fd7742556f5bd69652afeaf6df8f52e0d10bc7c",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 40008301,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_boss_400083.asset",
+            "status": "parsed",
+            "assetSha256": "d5a32e90460ec93b310a68b048f33f025724ebcdaef02bd643fe9b713c80c953",
+            "graphSha256": "95cea95ca69cf5ed82b03e9f32902cc01e1dc6dbd96ed89c9667f5d76100f032",
+            "trialIds": [621402],
+            "trialRefs": [
+                {
+                    "trialId": 621402,
+                    "isOn": true,
+                    "enabled": true,
+                    "nodeId": "7",
+                    "path": "$.nodes.7._actionList.actions.0",
+                    "type": "Lens.Gameplay.Modules.BigWorld.CanvasNodes.ChangeTrialFormation"
+                },
+                {
+                    "trialId": 0,
+                    "isOn": true,
+                    "enabled": true,
+                    "nodeId": "11",
+                    "path": "$.nodes.11._actionList.actions.0",
+                    "type": "Lens.Gameplay.Modules.BigWorld.CanvasNodes.ChangeTrialFormation"
+                },
+                {
+                    "trialId": 0,
+                    "isOn": false,
+                    "enabled": true,
+                    "nodeId": "17",
+                    "path": "$.nodes.17._actionList.actions.4",
+                    "type": "Lens.Gameplay.Modules.BigWorld.CanvasNodes.ChangeTrialFormation"
+                }
+            ]
+        },
+        {
+            "id": 1040011,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1040011.asset",
+            "status": "parsed",
+            "assetSha256": "2a0413c818d0d1640892e4491ee090c626e5f70184db89bb51fecffd8691024c",
+            "graphSha256": "706cd08435638ede81d4df87193a3a07f30ef4f3aa68e2354121c8465ea06704",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 1040012,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_teach_1040012.asset",
+            "status": "parsed",
+            "assetSha256": "e708b56a7e36f3afb52981db61f39ccc4e18e9a8faf1db32e3d80108f66a6118",
+            "graphSha256": "4a5b9fa1e4acebe50ad7f059c3f3396614a908901b73cdf835c9ed8b4f2e4ad0",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 31100501,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_boss_311005.asset",
+            "status": "parsed",
+            "assetSha256": "bc4dafd16c3d4c941741acaf41324b1d4df22c65eae66c578a1214836a09fe59",
+            "graphSha256": "dc108743149501e893669fc4255314353cfc553144401adad7000ff3153f6349",
+            "trialIds": [],
+            "trialRefs": []
+        },
+        {
+            "id": 40009301,
+            "path": "Config/Battle/NCFsm/ast_fsm_battle_boss_400093.asset",
+            "status": "parsed",
+            "assetSha256": "257f447280618202e951338adb596afaae11f4064268e4189b36ef19356d1d46",
+            "graphSha256": "1e2694c1cf9b888f848a922e4222cc9c351f91f6ac774b8a4fa1c93736838895",
+            "trialIds": [],
+            "trialRefs": []
+        }
+    ]
+}

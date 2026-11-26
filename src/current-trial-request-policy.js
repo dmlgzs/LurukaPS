@@ -3,6 +3,7 @@ import { TaskGraphs, nodeConditions, asList } from './tasks.js'
 import { taskOverrideNodeIds } from './task-action-data.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
+import { currentBattleFsmTrialAdmission } from './current-battle-fsm-trials.js'
 
 export function currentTrialAdmission(tables, state, groupId) {
     const roster = resolveCurrentTrialGroup(tables, groupId),
@@ -34,7 +35,9 @@ export function currentTrialAdmission(tables, state, groupId) {
         }),
     )
     ensure(tasks.length <= 1, 'Current trial group has ambiguous active task authority', ErrorCode.GameConfig)
-    return tasks.length ? { roster, source: 'task-controller', taskId: tasks[0].task_id } : null
+    return tasks.length
+        ? { roster, source: 'task-controller', taskId: tasks[0].task_id }
+        : currentBattleFsmTrialAdmission(tables, state, groupId)
 }
 
 export function currentTrialPetSlots(roster, resolvedHeroSlots) {

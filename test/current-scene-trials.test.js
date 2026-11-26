@@ -85,9 +85,9 @@ test('missing current actor prototypes and attributes fail before actor creation
     for (const [name, id, code] of [
         ['hero_interim', 2108103, ErrorCode.GameConfig],
         ['hero', 108003, ErrorCode.HeroNotExist],
-        ['pet_interim', 104, ErrorCode.GameConfig],
-        ['pet', 500747, ErrorCode.PetConfNotExist],
-        ['template_value', 500747, ErrorCode.GameConfig],
+        ['pet_customized', 104, ErrorCode.GameConfig],
+        ['pet', 500156, ErrorCode.PetConfNotExist],
+        ['template_value', 500156, ErrorCode.GameConfig],
     ])
         assert.throws(
             () =>
