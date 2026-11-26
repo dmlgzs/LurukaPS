@@ -25,6 +25,7 @@ import {
     expireArenaTrialTrainer,
 } from '../npc-kibo-trainer.js'
 import { trialPayload } from './trial-groups.js'
+import { currentMapMember } from '../current-map-member.js'
 import { petData, petGrade } from '../pets.js'
 import { ensureEntrustSceneObjects } from '../entrust.js'
 import { storyCampaignSnapshot } from '../story-campaign.js'
@@ -416,15 +417,7 @@ export function registerKiboDuel(on, tables, protocol) {
         c.pushBefore('CSProtoMultiCampaignBaseInfoSync', {
             dungeon_id: dungeon.id,
             dungeon_scene_id: scene,
-            player_list: [
-                {
-                    player_id: c.id,
-                    hero_id: hero.conf_id,
-                    name,
-                    lv: c.state.player.basic_info.lv,
-                    heros: [{ hero_id: hero.conf_id }],
-                },
-            ],
+            player_list: [currentMapMember(c.state, c.id, { hero })],
             team_option_list: [{ player_id: c.id, stay: true }],
             player_status_list: [{ player_id: c.id, status: 1 }],
         })

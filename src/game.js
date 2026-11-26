@@ -1,3 +1,4 @@
+import { currentMapMember } from './current-map-member.js'
 import {
     medicineCooldownPayload,
     medicineDeliveryPayload,
@@ -1088,15 +1089,7 @@ export class Game {
                         this.packet('CSProtoMultiCampaignBaseInfoSync', {
                             dungeon_id: wire.dungeon_id,
                             dungeon_scene_id: wire.dungeon_scene_id,
-                            player_list: [
-                                {
-                                    player_id: session.id,
-                                    hero_id: hero.conf_id,
-                                    name,
-                                    lv: activeState.player.basic_info.lv,
-                                    heros: [{ hero_id: hero.conf_id }],
-                                },
-                            ],
+                            player_list: [currentMapMember(activeState, session.id, { hero })],
                             team_option_list: [{ player_id: session.id, stay: true }],
                             player_status_list: [{ player_id: session.id, status: 1 }],
                         }),
