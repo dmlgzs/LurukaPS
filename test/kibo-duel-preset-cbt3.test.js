@@ -1,4 +1,4 @@
-import test from 'node:test'
+import baseTest from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
 import { Tables } from '../src/player.js'
@@ -10,6 +10,18 @@ import { selectedArenaGroup } from '../src/npc-kibo-duel.js'
 const config = configuration(),
     tables = new Tables(config.tables),
     protocol = new Protocol(config.base)
+// Historical CBT3 requests are explicitly deferred by the user. Keep their
+// regression vectors, but do not restore10743 or label them current1.0 support.
+const test = (name, run) =>
+    baseTest(
+        name,
+        {
+            skip: protocol.retiredNames.has('CSProtoKiboDuelSetCurGroup')
+                ? 'CBT3 10743 is retired in1.0; legacy Kibo work explicitly deferred'
+                : false,
+        },
+        run,
+    )
 function setup() {
     const store = new Store(':memory:'),
         game = new Game(protocol, store, tables, { clock: () => 1792682000 })
