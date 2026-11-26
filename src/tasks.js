@@ -672,14 +672,32 @@ export function refreshTaskProgress(tables, state) {
                 if (q.conditionId === 2500 && node.client_before) {
                     const base = q.__type_TaskConditionBaseData ?? {},
                         d = base.__type_TaskCondBattleTriggerData
-                    if (
-                        !d ||
-                        d.checkNameType !== 5 ||
-                        d.count !== 1 ||
-                        base.mapData?.sceneId !== state.world.map_id ||
-                        state.combat?.map_id !== state.world.map_id
-                    )
+                    if (!d || d.checkNameType !== 5 || d.count !== 1 || state.combat?.map_id !== state.world.map_id)
                         return
+                    if (base.mapData?.sceneId !== state.world.map_id) {
+                        const run = state.storyCampaign
+                        // Current dungeon-only graphs can leave their scene unset.
+                        // Bind that zero only to the active, declared dungeon-task
+                        // context; it is not a wildcard for ordinary task worlds.
+                        if (
+                            base.mapData?.sceneId !== 0 ||
+                            run?.status !== 2 ||
+                            run.map_id !== state.world.map_id ||
+                            !Array.isArray(run.scenes) ||
+                            !run.scenes.includes(state.world.map_id) ||
+                            !Array.isArray(run.task_ids) ||
+                            !run.task_ids.includes(task.task_id)
+                        )
+                            return
+                        const mapping = tables.get('dungeon_task').find((row) => row.dungeonId === run.dungeon_id)
+                        if (
+                            !String(mapping?.taskIds ?? '')
+                                .split('|')
+                                .map(Number)
+                                .includes(task.task_id)
+                        )
+                            return
+                    }
                     let world = worldCatalogs.get(tables)
                     if (!world) {
                         world = new WorldObjectCatalog(tables)
