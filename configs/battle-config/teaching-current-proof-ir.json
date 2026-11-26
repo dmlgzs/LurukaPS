@@ -3,7 +3,7 @@
     "kind": "current-teaching-proof-ir",
     "targetVersion": "1.0.0",
     "packageVersion": "3217420",
-    "evidenceSha256": "e2af6aa526883f824bf55a987065675c08eee89b3dd696090bc638ab256ac732",
+    "evidenceSha256": "5a1be8df05a46d891f819106179ca0f1e9472a402bb340330c467ed31b5e0961",
     "clockPolicy": {
         "id": "local-server-clock-v1",
         "origin": "LOCAL",
@@ -20,7 +20,18 @@
             "WaitAttackHit": "c1d172283a78cad49fb5313a9c5e55fe50bb212dd59e47a0fc8ace8abe56e45d",
             "WaitElementAdd": "f5af9ccf6d6165247cecc829f4c40366275cdc5218c1e7e9244de7873a3897f2",
             "WaitTriggerBase": "e5d466b7aca1ad3110a8b8f1bba8667564cfe6f4f0cbd1f39966d65df2aca62a",
-            "GraphPrime": "70e53d50ecc60d437a5e0bdc50b578ba8076bc64faa1298b07a79d5518f8785e"
+            "GraphPrime": "70e53d50ecc60d437a5e0bdc50b578ba8076bc64faa1298b07a79d5518f8785e",
+            "NotifyGuideRestart": "7c819c0d82714c8c20beaca95821fff57969c865651ce19733a4b960542726e1",
+            "CustomTriggerGuide": "77a9682629bc4381e2bc46fd782ccb93091fead8ed057cc211ce5921405f21cc",
+            "ActionList": "cc73db5b27d6bd62627b334ef5d2c4bb0ba72ca7b3b85ba9143cf209c75bb3c5",
+            "ActionState": "e2ac0af5900a5d35054dffd3101498ed1f9a6dcfd6e1eaf08e2c202cabef5838",
+            "FSMState": "415c30e4e1749e3c9932424f912117b3c7fa979b2fbce7143297e66bce388deb",
+            "SetInt": "33bba4652953126f12fb7065a29c03e05764e199341b0a07c9c155393924e7ce",
+            "SetBoolean": "d226039ffdea4ae62dc064a6bdd0f221bcfbdf6d72bb7943dd69ba129a12932b",
+            "CheckInt": "55fe0a378f8b39e4bf6a31efba0d7a80c90839eb94117cb729ad2b7878528cd7",
+            "CheckBoolean": "891bc741fa09cfc92b9fd7270ed74dfdfc3a627bfa3f7edd6b7395f8f97d60e4",
+            "OperationTools-OperateInt": "990bf11bb745cbceaa7031a3ffe62e7037582ae465490fa24336c81a3b851acc",
+            "OperationTools-CompareInt": "615b300c9c91a0aa7fac3be21728171c8cd0476bacd08e8db62fac64b2b3368e"
         }
     },
     "profiles": [
@@ -76,6 +87,254 @@
                 { "kind": "wait", "milliseconds": 1000 },
                 { "kind": "element", "id": 296, "executorTypes": [14], "count": 3, "stage": 1, "challengeId": 30012 },
                 { "kind": "wait", "milliseconds": 1000 }
+            ],
+            "terminal": { "kind": "story-kill-request", "protocolId": 10799 }
+        },
+        {
+            "battleFsmType": 1010071,
+            "sourceShape": "current-teaching-sequence-v1",
+            "sourceGraph": "ast_fsm_battle_teach_1010071",
+            "sourceSha256": "1e63917f1ab0aedc5d95e54ad39594526ed02f51bd377a2a2ef0d9681e243854",
+            "proofPolicy": "local-server-clock-v1",
+            "ops": [
+                { "kind": "skill", "id": 10100704, "index": 0, "count": 1, "stage": 0, "challengeId": 10100711 },
+                { "kind": "skill", "id": 10100705, "index": 0, "count": 1, "stage": 1, "challengeId": 10100712 },
+                { "kind": "skill", "id": 10100712, "index": 1, "count": 1, "stage": 2, "challengeId": 10100713 },
+                { "kind": "wait", "milliseconds": 2000 }
+            ],
+            "terminal": { "kind": "story-kill-request", "protocolId": 10799 }
+        },
+        {
+            "battleFsmType": 1010101,
+            "sourceShape": "current-teaching-sequence-v1",
+            "sourceGraph": "ast_fsm_battle_teach_1010101",
+            "sourceSha256": "baed990c614f6afd8a87c5b08c320a749aed3ddb519b61561d34e97ab12d8ae5",
+            "proofPolicy": "local-server-clock-v1",
+            "ops": [
+                {
+                    "kind": "element",
+                    "id": 101010129,
+                    "executorTypes": [1],
+                    "count": 1,
+                    "stage": 0,
+                    "challengeId": 10101011,
+                    "networkOperations": [1],
+                    "elementContract": {
+                        "shape": "current-lasting-initial-local-add-v1",
+                        "runtimeIsLasting": true,
+                        "serializedIsLasting": false,
+                        "elementType": 8,
+                        "combineType": 5,
+                        "sourceType": "Azur.Core.MMap.ConfigTBuffElementParams",
+                        "sourceHashes": {
+                            "mmap": "c590dbb2720eb45d23d900734bcb4968f5139aeff41eb51e3c9b9832c0dafe87",
+                            "vstring": "cf8b8516e6e98ee7ca860f189e9248538e9264a44c0d4c7598d0fbf5d7eaaac1",
+                            "normalExecution": "8ff808c4f2dae1bfba6e76ccac7759d3741bdfec4ed5c105e59bda135f055ee9",
+                            "execution": "7aae975e0e4807797590bdf1855f6ae90713b3f568dc6a56a9f6c18face6195a",
+                            "network": "f62dd2470122b2b1a973786f13b5ed06ec5ddc48c1f29a58096f961dd1fcf869",
+                            "typedGetter": "e642596877a8c62b4adfcd0fd82dd81174d9ba491895c01310d3926e5798ccba",
+                            "parse": "1ba4b222a1a123884bc0184b0b25cebe524f2a57aa656ca2485bb05459d6a9af"
+                        },
+                        "nodeContract": {
+                            "parseToken": "0600bbb4",
+                            "runtimeLastingOffset": "IL0023..0024",
+                            "onInjectedToken": "0600b9e4",
+                            "onInjectedOffset": "IL0243..0263",
+                            "executionToken": "0600b9f6",
+                            "initialLocalAddOffset": "IL01f0..01f8",
+                            "networkToken": "060006dd"
+                        },
+                        "scope": "Initial or replacement local Add with a new UID only; op2 removal, op7 combine and op10 remote/rebuild are not equated to a fresh trigger. Runtime lasting is Parse evidence, not a wire flag or time-equality check."
+                    }
+                },
+                { "kind": "skill", "id": 10101005, "index": 1, "count": 2, "stage": 1, "challengeId": 10101012 },
+                { "kind": "wait", "milliseconds": 2000 },
+                {
+                    "kind": "any-of",
+                    "count": 1,
+                    "children": [
+                        { "kind": "skill", "id": 10101042, "index": 0, "count": 1, "stage": 0, "challengeId": 0 },
+                        { "kind": "skill", "id": 10101042, "index": 1, "count": 1, "stage": 0, "challengeId": 0 }
+                    ]
+                },
+                {
+                    "kind": "any-of",
+                    "count": 1,
+                    "children": [
+                        { "kind": "skill", "id": 10101042, "index": 0, "count": 1, "stage": 0, "challengeId": 0 },
+                        { "kind": "skill", "id": 10101042, "index": 1, "count": 1, "stage": 0, "challengeId": 0 }
+                    ]
+                },
+                {
+                    "kind": "any-of",
+                    "count": 1,
+                    "children": [
+                        { "kind": "skill", "id": 10101042, "index": 0, "count": 1, "stage": 0, "challengeId": 0 },
+                        { "kind": "skill", "id": 10101042, "index": 1, "count": 1, "stage": 0, "challengeId": 0 }
+                    ]
+                },
+                { "kind": "wait", "milliseconds": 2000 }
+            ],
+            "terminal": { "kind": "story-kill-request", "protocolId": 10799 }
+        },
+        {
+            "battleFsmType": 1010141,
+            "sourceShape": "current-teaching-sequence-v1",
+            "sourceGraph": "ast_fsm_battle_teach_1010141",
+            "sourceSha256": "d645979ba5f99e7bf4ca5838c6c244b0f2b77f3e7f888b9307d2bc4d2fc34eb3",
+            "proofPolicy": "local-server-clock-v1",
+            "ops": [
+                { "kind": "skill", "id": 10101412, "index": 0, "count": 1, "stage": 0, "challengeId": 10101411 },
+                { "kind": "wait", "milliseconds": 1000 },
+                { "kind": "skill", "id": 10101404, "index": 0, "count": 1, "stage": 1, "challengeId": 10101412 },
+                { "kind": "wait", "milliseconds": 1500 },
+                { "kind": "skill", "id": 10101412, "index": 0, "count": 1, "stage": 2, "challengeId": 10101413 },
+                { "kind": "wait", "milliseconds": 1500 },
+                { "kind": "skill", "id": 10101413, "index": 0, "count": 1, "stage": 3, "challengeId": 10101414 },
+                { "kind": "wait", "milliseconds": 6000 }
+            ],
+            "terminal": { "kind": "story-kill-request", "protocolId": 10799 }
+        },
+        {
+            "battleFsmType": 1020011,
+            "sourceShape": "current-teaching-sequence-v1",
+            "sourceGraph": "ast_fsm_battle_teach_1020011",
+            "sourceSha256": "d0a7190f0e93232a357bc5c41f20a02e0c096900e917ba8acb1d70c98b2ad9d6",
+            "proofPolicy": "local-server-clock-v1",
+            "ops": [
+                { "kind": "skill", "id": 10200112, "index": 0, "count": 1, "stage": 0, "challengeId": 10200111 },
+                {
+                    "kind": "element",
+                    "id": 102001423,
+                    "executorTypes": [1],
+                    "count": 1,
+                    "stage": 1,
+                    "challengeId": 10200112,
+                    "networkOperations": [1],
+                    "elementContract": {
+                        "shape": "current-lasting-initial-local-add-v1",
+                        "runtimeIsLasting": true,
+                        "serializedIsLasting": false,
+                        "elementType": 6,
+                        "combineType": 3,
+                        "sourceType": "Azur.Core.MMap.ConfigTImmuneElementParams",
+                        "sourceHashes": {
+                            "mmap": "c590dbb2720eb45d23d900734bcb4968f5139aeff41eb51e3c9b9832c0dafe87",
+                            "vstring": "cf8b8516e6e98ee7ca860f189e9248538e9264a44c0d4c7598d0fbf5d7eaaac1",
+                            "normalExecution": "8ff808c4f2dae1bfba6e76ccac7759d3741bdfec4ed5c105e59bda135f055ee9",
+                            "execution": "7aae975e0e4807797590bdf1855f6ae90713b3f568dc6a56a9f6c18face6195a",
+                            "network": "f62dd2470122b2b1a973786f13b5ed06ec5ddc48c1f29a58096f961dd1fcf869",
+                            "typedGetter": "fb6a5e5f13ebb25c3d441dcc446a0f6c506b5cc5db44f32683023416ebb8aac6",
+                            "parse": "c3ed0938b2a1d24524faf8d36f14b0d243e485bbe88378d1bb5fb055940f73b5"
+                        },
+                        "nodeContract": {
+                            "parseToken": "0600bd16",
+                            "runtimeLastingOffset": "IL0023..0024",
+                            "onInjectedToken": "0600b9e4",
+                            "onInjectedOffset": "IL0243..0263",
+                            "executionToken": "0600b9f6",
+                            "initialLocalAddOffset": "IL01f0..01f8",
+                            "networkToken": "060006dd"
+                        },
+                        "scope": "Initial or replacement local Add with a new UID only; op2 removal, op7 combine and op10 remote/rebuild are not equated to a fresh trigger. Runtime lasting is Parse evidence, not a wire flag or time-equality check."
+                    }
+                },
+                { "kind": "wait", "milliseconds": 1000 }
+            ],
+            "terminal": { "kind": "story-kill-request", "protocolId": 10799 }
+        },
+        {
+            "battleFsmType": 1070021,
+            "sourceShape": "current-teaching-sequence-v1",
+            "sourceGraph": "ast_fsm_battle_teach_1070021",
+            "sourceSha256": "416049775c607b482401318ba19637b1d459873f03088633bef7ba5ed4a4364a",
+            "proofPolicy": "local-server-clock-v1",
+            "ops": [
+                { "kind": "skill", "id": 10700204, "index": 0, "count": 1, "stage": 0, "challengeId": 10700205 },
+                { "kind": "skill", "id": 10700212, "index": 0, "count": 1, "stage": 1, "challengeId": 10700212 },
+                { "kind": "wait", "milliseconds": 3000 },
+                { "kind": "skill", "id": 10700213, "index": 0, "count": 1, "stage": 2, "challengeId": 10700213 },
+                { "kind": "skill", "id": 10700210, "index": 0, "count": 1, "stage": 3, "challengeId": 10700210 },
+                { "kind": "wait", "milliseconds": 3000 }
+            ],
+            "terminal": { "kind": "story-kill-request", "protocolId": 10799 }
+        },
+        {
+            "battleFsmType": 1070031,
+            "sourceShape": "current-teaching-sequence-v1",
+            "sourceGraph": "ast_fsm_battle_teach_1070031",
+            "sourceSha256": "2f22cb516475a54ff3841239f8e4485defaf2e1e35df7ce79c4d8e5746c780b2",
+            "proofPolicy": "local-server-clock-v1",
+            "ops": [
+                { "kind": "skill", "id": 10700310, "index": 0, "count": 1, "stage": 0, "challengeId": 10700311 },
+                { "kind": "skill", "id": 10700310, "index": 1, "count": 1, "stage": 1, "challengeId": 10700312 },
+                { "kind": "skill", "id": 10700310, "index": 2, "count": 1, "stage": 2, "challengeId": 10700313 },
+                { "kind": "wait", "milliseconds": 3000 }
+            ],
+            "terminal": { "kind": "story-kill-request", "protocolId": 10799 }
+        },
+        {
+            "battleFsmType": 1080051,
+            "sourceShape": "current-teaching-sequence-v1",
+            "sourceGraph": "ast_fsm_battle_teach_1080051",
+            "sourceSha256": "1e13294567d3815807655ecdbacc2a399135c97b605096213400c972a27253d6",
+            "proofPolicy": "local-server-clock-v1",
+            "ops": [
+                { "kind": "skill", "id": 10800513, "index": 0, "count": 1, "stage": 0, "challengeId": 10800511 },
+                { "kind": "wait", "milliseconds": 2000 },
+                { "kind": "skill", "id": 10800510, "index": 2, "count": 2, "stage": 1, "challengeId": 10800512 },
+                { "kind": "wait", "milliseconds": 2000 }
+            ],
+            "terminal": { "kind": "story-kill-request", "protocolId": 10799 }
+        },
+        {
+            "battleFsmType": 1120021,
+            "sourceShape": "current-teaching-sequence-v1",
+            "sourceGraph": "ast_fsm_battle_teach_1120021",
+            "sourceSha256": "5b757a55295f7a2546102d99c8bebcf0f41ef679027d7b7708d81eef33f51a0c",
+            "proofPolicy": "local-server-clock-v1",
+            "ops": [
+                {
+                    "kind": "element",
+                    "id": 112002118,
+                    "executorTypes": [1],
+                    "count": 1,
+                    "stage": 0,
+                    "challengeId": 11200211,
+                    "networkOperations": [1],
+                    "elementContract": {
+                        "shape": "current-lasting-initial-local-add-v1",
+                        "runtimeIsLasting": true,
+                        "serializedIsLasting": false,
+                        "elementType": 8,
+                        "combineType": 3,
+                        "sourceType": "Azur.Core.MMap.ConfigTBuffElementParams",
+                        "sourceHashes": {
+                            "mmap": "c590dbb2720eb45d23d900734bcb4968f5139aeff41eb51e3c9b9832c0dafe87",
+                            "vstring": "cf8b8516e6e98ee7ca860f189e9248538e9264a44c0d4c7598d0fbf5d7eaaac1",
+                            "normalExecution": "8ff808c4f2dae1bfba6e76ccac7759d3741bdfec4ed5c105e59bda135f055ee9",
+                            "execution": "7aae975e0e4807797590bdf1855f6ae90713b3f568dc6a56a9f6c18face6195a",
+                            "network": "f62dd2470122b2b1a973786f13b5ed06ec5ddc48c1f29a58096f961dd1fcf869",
+                            "typedGetter": "e642596877a8c62b4adfcd0fd82dd81174d9ba491895c01310d3926e5798ccba",
+                            "parse": "1ba4b222a1a123884bc0184b0b25cebe524f2a57aa656ca2485bb05459d6a9af"
+                        },
+                        "nodeContract": {
+                            "parseToken": "0600bbb4",
+                            "runtimeLastingOffset": "IL0023..0024",
+                            "onInjectedToken": "0600b9e4",
+                            "onInjectedOffset": "IL0243..0263",
+                            "executionToken": "0600b9f6",
+                            "initialLocalAddOffset": "IL01f0..01f8",
+                            "networkToken": "060006dd"
+                        },
+                        "scope": "Initial or replacement local Add with a new UID only; op2 removal, op7 combine and op10 remote/rebuild are not equated to a fresh trigger. Runtime lasting is Parse evidence, not a wire flag or time-equality check."
+                    }
+                },
+                { "kind": "wait", "milliseconds": 1000 },
+                { "kind": "skill", "id": 11200212, "index": 0, "count": 1, "stage": 1, "challengeId": 11200212 },
+                { "kind": "wait", "milliseconds": 2000 },
+                { "kind": "skill", "id": 11200213, "index": 0, "count": 1, "stage": 2, "challengeId": 11200213 },
+                { "kind": "wait", "milliseconds": 3000 }
             ],
             "terminal": { "kind": "story-kill-request", "protocolId": 10799 }
         }

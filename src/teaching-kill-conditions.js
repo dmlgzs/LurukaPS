@@ -8,6 +8,7 @@ import {
     observeCurrentTeachingProof,
     currentTeachingProofReady,
     currentTeachingIntentReady,
+    currentTeachingReceipt,
 } from './current-teaching-proof.js'
 function currentData(filename) {
     const file = new URL('../configs/battle-config/' + filename, import.meta.url)
@@ -66,6 +67,11 @@ export function currentTeachingProofCapability(battleFsmType) {
     const rule = currentRules.get(battleFsmType)
     if (rule?.ops?.some((op) => op.kind === 'attack-hit') && !currentDamage)
         return { available: false, reason: 'current-teaching-damage-predicate-unavailable' }
+    if (
+        rule?.ops?.some((op) => op?.kind === 'skill' || op?.kind === 'any-of') &&
+        rule.ops.some((op) => op?.kind === 'element' && (!op.elementContract || !op.networkOperations))
+    )
+        return { available: false, reason: 'current-teaching-element-contract-unavailable' }
     return rule
         ? { available: true, source: rule.sourceSha256 }
         : { available: false, reason: 'current-teaching-proof-ir-unavailable' }
@@ -75,6 +81,31 @@ const rules = new Map(
         fs.readFileSync(new URL('../configs/battle-config/teaching-kill-conditions.json', import.meta.url)),
     ).rules.map((r) => [r.battleFsmType, r]),
 )
+function selectedCurrentRule(group) {
+    if (group?.canForceKill !== 1) return null
+    const rule = currentRules.get(group.battleFsmType)
+    ensure(
+        !rules.has(group.battleFsmType) || rule,
+        'Current teaching proof capability is unavailable',
+        ErrorCode.FunctionClosed,
+    )
+    if (rule)
+        ensure(
+            currentTeachingProofCapability(group.battleFsmType).available,
+            'Current teaching proof producer capability is unavailable',
+            ErrorCode.FunctionClosed,
+        )
+    return rule
+}
+export function assertCurrentTeachingProofCapabilities(tables, config) {
+    for (const { scene } of config.scenes) {
+        const [kind, spawner, , target] = String(scene.victoryCondition).split('#').map(Number)
+        if (kind !== 2500) continue
+        for (const row of tables.get('worldmap_' + scene.id))
+            if (row.spawnerId === spawner && (!target || row.id === target))
+                selectedCurrentRule(tables.find('world_enemy_group', row.expandId))
+    }
+}
 function targets(tables, state) {
     const run = state.storyCampaign
     if (
@@ -96,7 +127,7 @@ function targets(tables, state) {
         .filter((row) => row.spawnerId === spawner && (!target || row.id === target))
         .flatMap((row) => {
             const group = tables.find('world_enemy_group', row.expandId),
-                rule = currentRules.get(group?.battleFsmType) ?? rules.get(group?.battleFsmType)
+                rule = selectedCurrentRule(group)
             return group?.canForceKill === 1 && rule ? [{ row, group, rule }] : []
         })
 }
@@ -209,7 +240,7 @@ function observe(c, actor, event, key) {
     for (const { row, rule } of list) {
         if (c.state.worldObjects?.[c.state.world.map_id + ':' + row.id]?.active === false) continue
         if (rule.sourceShape === currentTeachingShape) {
-            const receipt = event.kind === 'skill' ? `s:${actor}:${event.cast}` : `e:${event.element?.uniqueId}`
+            const receipt = currentTeachingReceipt(rule, actor, event)
             observeCurrentTeachingProof(c, actor, event, receipt, row, rule)
             continue
         }

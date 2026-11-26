@@ -5,6 +5,7 @@ import { ensureStoryCampaignScene, storyCampaignSnapshot } from '../story-campai
 import { worldSync } from './world.js'
 import { syncBattle } from '../battle.js'
 import { syncStoryCampaignEnemies } from './story-campaign.js'
+import { assertCurrentTeachingProofCapabilities } from '../teaching-kill-conditions.js'
 
 export function registerTeaching(on, tables) {
     on('TeachStart', (c, r) => {
@@ -29,6 +30,7 @@ export function registerTeaching(on, tables) {
         ensure(kind === 2004, 'Teaching unlock condition type is not supported', ErrorCode.InvalidLogic)
         ensure(c.state.player.basic_info.lv >= level, 'Teaching task is locked', ErrorCode.TeachUnlock)
         const config = teachingConfig(tables, tables.find('dungeon', train.dungeonId))
+        assertCurrentTeachingProofCapabilities(tables, config)
         if (r.activity_id) {
             ensure(c.activityCatalog, 'Activity catalog unavailable', ErrorCode.GameConfig)
             const activity = c.activityCatalog.rows.find((row) => row.id === r.activity_id)

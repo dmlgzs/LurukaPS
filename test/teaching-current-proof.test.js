@@ -11,6 +11,7 @@ import {
     observeCurrentTeachingProof,
     currentTeachingShape,
     currentTeachingIntentReady,
+    currentTeachingReceipt,
 } from '../src/current-teaching-proof.js'
 
 const config = configuration(),
@@ -265,4 +266,138 @@ test('current epoch keeps same-millisecond injections, blocks new-run replay and
         () => inject(f, r, 250, player, 6, player, { verify_info: { op_time: 'bad' } }),
         /operation time is malformed/,
     )
+})
+
+test('current exact skills distinguish legitimate id/index reports without changing slot receipt identity', () => {
+    const f = fixture(201),
+        actor = f.hero(107001),
+        cast = String(f.c.arena_now_ms)
+    const r = rule([
+        { kind: 'skill', id: 10700121, index: 0, count: 1 },
+        { kind: 'skill', id: 10700121, index: 1, count: 1 },
+    ])
+    const event = (index) => ({ kind: 'skill', id: 10700121, index, cast, stamp: cast })
+    const first = currentTeachingReceipt(r, actor, event(0)),
+        second = currentTeachingReceipt(r, actor, event(1))
+    assert.notEqual(first, second)
+    observeCurrentTeachingProof(f.c, actor, event(1), second, f.row, r)
+    assert.equal(f.c.state.combat.teachingProof[f.row.id].op, 0, 'future input is consumed but cannot bypass ordering')
+    observeCurrentTeachingProof(f.c, actor, event(0), first, f.row, r)
+    observeCurrentTeachingProof(f.c, actor, event(1), second, f.row, r)
+    assert.equal(ready(f, r), false)
+    const fresh = { ...event(1), cast: String(++f.c.arena_now_ms), stamp: String(f.c.arena_now_ms) }
+    observeCurrentTeachingProof(f.c, actor, fresh, currentTeachingReceipt(r, actor, fresh), f.row, r)
+    assert.equal(ready(f, r), true)
+    const slot = rule([{ kind: 'skill-slot', slot: 203, count: 1 }])
+    assert.equal(currentTeachingReceipt(slot, actor, event(0)), currentTeachingReceipt(slot, actor, event(1)))
+    assert.equal(currentTeachingReceipt(slot, actor, event(0)), `s:${actor}:${cast}`)
+})
+
+test('current bounded any-of advances one alternative per cast across mechanically expanded rounds', () => {
+    const f = fixture(201),
+        actor = f.hero(107001)
+    const choice = () => ({
+        kind: 'any-of',
+        count: 1,
+        children: [
+            { kind: 'skill', id: 10700121, index: 0, count: 1 },
+            { kind: 'skill', id: 10700121, index: 1, count: 1 },
+        ],
+    })
+    const r = rule([choice(), choice(), choice()])
+    const event = (index) => ({
+        kind: 'skill',
+        id: 10700121,
+        index,
+        cast: String(f.c.arena_now_ms),
+        stamp: String(f.c.arena_now_ms),
+    })
+    const fire = (index) => {
+        const e = event(index)
+        observeCurrentTeachingProof(f.c, actor, e, currentTeachingReceipt(r, actor, e), f.row, r)
+    }
+    fire(1)
+    assert.equal(f.c.state.combat.teachingProof[f.row.id].op, 1)
+    fire(0)
+    assert.equal(
+        f.c.state.combat.teachingProof[f.row.id].op,
+        1,
+        'same cast cannot become another alternative in the next round',
+    )
+    f.c.arena_now_ms++
+    fire(0)
+    f.c.arena_now_ms++
+    fire(1)
+    assert.equal(ready(f, r), true)
+    for (const bad of [null, undefined])
+        assert.throws(
+            () => currentTeachingReceipt(rule([{ kind: 'any-of', count: 1, children: bad }]), actor, event(0)),
+            /alternative skill contract is malformed/,
+        )
+})
+
+test('current exact-trigger programs require the current lasting producer contract and a fresh local add', () => {
+    const f = fixture(201),
+        actor = f.hero(107001)
+    const element = {
+        kind: 'element',
+        id: 112002118,
+        executorTypes: [1],
+        count: 1,
+        networkOperations: [1],
+        elementContract: {
+            runtimeIsLasting: true,
+            serializedIsLasting: false,
+            elementType: 8,
+            combineType: 3,
+            sourceHashes: { unitFixture: 'b'.repeat(64) },
+        },
+    }
+    const r = rule([element, { kind: 'wait', milliseconds: 1000 }, { kind: 'skill', id: 10700121, index: 0, count: 1 }])
+    const event = {
+        kind: 'element',
+        fresh: true,
+        element: {
+            op: 1,
+            uniqueId: '901',
+            buff: { cfg_id: 112002118, executor_id: actor },
+            verify_info: { op_time: String(f.c.arena_now_ms) },
+        },
+    }
+    const malformed = [
+        { ...element, elementContract: undefined },
+        { ...element, networkOperations: [7] },
+        { ...element, elementContract: { ...element.elementContract, runtimeIsLasting: false } },
+    ]
+    for (const candidate of malformed)
+        assert.throws(
+            () => currentTeachingReceipt(rule([candidate, r.ops[2]]), actor, event),
+            /producer contract is unavailable/,
+        )
+    for (const invalid of [
+        { ...event, fresh: false },
+        { ...event, element: { ...event.element, op: 7 } },
+        { ...event, element: { ...event.element, op: 10 } },
+        { ...event, element: { ...event.element, op: 2 } },
+    ])
+        observeCurrentTeachingProof(f.c, actor, invalid, currentTeachingReceipt(r, actor, invalid), f.row, r)
+    assert.equal(f.c.state.combat.teachingProof, undefined)
+    observeCurrentTeachingProof(f.c, actor, event, currentTeachingReceipt(r, actor, event), f.row, r)
+    assert.equal(f.c.state.combat.teachingProof[f.row.id].op, 2)
+    const skill = () => ({
+        kind: 'skill',
+        id: 10700121,
+        index: 0,
+        cast: String(f.c.arena_now_ms),
+        stamp: String(f.c.arena_now_ms),
+    })
+    const early = skill()
+    observeCurrentTeachingProof(f.c, actor, early, currentTeachingReceipt(r, actor, early), f.row, r)
+    assert.equal(ready(f, r), false)
+    f.c.arena_now_ms += 1000
+    observeCurrentTeachingProof(f.c, actor, early, currentTeachingReceipt(r, actor, early), f.row, r)
+    assert.equal(ready(f, r), false)
+    const fresh = skill()
+    observeCurrentTeachingProof(f.c, actor, fresh, currentTeachingReceipt(r, actor, fresh), f.row, r)
+    assert.equal(ready(f, r), true)
 })

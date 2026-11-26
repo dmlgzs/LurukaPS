@@ -10,6 +10,17 @@ export const currentTeachingShape = 'current-teaching-sequence-v1'
 const uint = (n) => Number.isSafeInteger(n) && n >= 0
 const positive = (n) => uint(n) && n > 0
 
+export function currentTeachingReceipt(rule, actor, event) {
+    validate(rule)
+    if (event.kind !== 'skill') return `e:${event.element?.uniqueId}`
+    // Keep the persisted identities of the three original profiles unchanged.
+    if (rule.ops.some((op) => op.kind === 'skill-slot')) return `s:${actor}:${event.cast}`
+    const alternative = rule.ops.some(
+        (op) => op.kind === 'any-of' && op.children.some((child) => child.id === event.id),
+    )
+    return alternative ? `s:${actor}:${event.id}:${event.cast}` : `s:${actor}:${event.id}:${event.index}:${event.cast}`
+}
+
 function formation(state) {
     const manager = activeFormationManager(state)
     const group = manager?.groups.find((g) => g.id === manager.cur_group)
@@ -68,9 +79,26 @@ function validate(rule) {
             continue
         }
         ensure(positive(op.count), 'Current teaching trigger count is malformed', ErrorCode.GameConfig)
-        if (op.kind === 'skill-slot')
+        if (op.kind === 'skill')
+            ensure(positive(op.id) && uint(op.index), 'Current teaching exact skill is malformed', ErrorCode.GameConfig)
+        else if (op.kind === 'any-of')
+            ensure(
+                op.count === 1 &&
+                    Array.isArray(op.children) &&
+                    op.children.length >= 2 &&
+                    op.children.length <= 16 &&
+                    op.children.every(
+                        (child) =>
+                            child?.kind === 'skill' && positive(child.id) && uint(child.index) && child.count === 1,
+                    ) &&
+                    new Set(op.children.map((child) => child.id)).size === 1 &&
+                    new Set(op.children.map((child) => child.index)).size === op.children.length,
+                'Current teaching alternative skill contract is malformed',
+                ErrorCode.GameConfig,
+            )
+        else if (op.kind === 'skill-slot')
             ensure(uint(op.slot), 'Current teaching skill slot is malformed', ErrorCode.GameConfig)
-        else if (op.kind === 'element')
+        else if (op.kind === 'element') {
             ensure(
                 positive(op.id) &&
                     Array.isArray(op.executorTypes) &&
@@ -79,7 +107,21 @@ function validate(rule) {
                 'Current teaching executor predicate is malformed',
                 ErrorCode.GameConfig,
             )
-        else if (op.kind === 'attack-hit')
+            if (rule.ops.some((candidate) => candidate?.kind === 'skill' || candidate?.kind === 'any-of'))
+                ensure(
+                    Array.isArray(op.networkOperations) &&
+                        op.networkOperations.length === 1 &&
+                        op.networkOperations[0] === 1 &&
+                        op.elementContract?.runtimeIsLasting === true &&
+                        positive(op.elementContract.elementType) &&
+                        uint(op.elementContract.combineType) &&
+                        op.elementContract.sourceHashes &&
+                        Object.values(op.elementContract.sourceHashes).length > 0 &&
+                        Object.values(op.elementContract.sourceHashes).every((hash) => /^[0-9a-f]{64}$/.test(hash)),
+                    'Current teaching element producer contract is unavailable',
+                    ErrorCode.GameConfig,
+                )
+        } else if (op.kind === 'attack-hit')
             ensure(
                 positive(op.actor?.heroId) &&
                     positive(op.requiredTag) &&
@@ -141,6 +183,15 @@ function proof(state, row, rule) {
 }
 
 function matches(c, actor, event, op, rule) {
+    if (op.kind === 'any-of') return op.children.some((child) => matches(c, actor, event, child, rule))
+    if (op.kind === 'skill') {
+        if (event.kind !== 'skill' || actor?.entityType !== 1 || event.id !== op.id || event.index !== op.index)
+            return false
+        const hero = formation(c.state).heroes.find((h) => h.guid === actor.id)
+        return heroModules(c.tables, c.state, hero).modules.some((module) =>
+            module.sub_modules.some((sub) => sub.skills?.skills.some((skill) => skill.skill_id === event.id)),
+        )
+    }
     if (op.kind === 'skill-slot') {
         if (event.kind !== 'skill' || (event.slot !== undefined && event.slot !== op.slot) || actor?.entityType !== 1)
             return false
@@ -163,7 +214,7 @@ function matches(c, actor, event, op, rule) {
         })
     }
     const element = event.element
-    if (!element || element.op !== 1 || !event.fresh) return false
+    if (!element || !(op.networkOperations ?? [1]).includes(element.op) || !event.fresh) return false
     if (op.kind === 'element') {
         const executor = currentTeachingActor(c.tables, c.state, element.buff?.executor_id)
         return element.buff?.cfg_id === op.id && executor && op.executorTypes.includes(executor.entityType)
