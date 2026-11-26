@@ -11,7 +11,9 @@ import { workFoodTaskConditionValue, clearWorkFoodTaskWitnesses } from './task-w
 import { taskActionData, taskOverrideNodeIds } from './task-action-data.js'
 import { currentTaskAvailable, suspendedTaskIds } from './task-compatibility.js'
 import { taskNodeFinishedCurrentAttempt } from './task-node-status.js'
+import { taskAcceptStoryCompleted, taskAcceptOwnedPetGroup } from './task-acceptance.js'
 export const asList = (value) => (value == null ? [] : Array.isArray(value) ? value : [value])
+const graphTables = new WeakMap()
 export class TaskGraphs {
     constructor(tables, directory = path.resolve(tables.dir, '../Config/Task')) {
         this.tables = tables
@@ -56,6 +58,7 @@ export class TaskGraphs {
             npcs: asList(raw.createNpcData),
             transports: asList(raw.otherData),
         }
+        graphTables.set(graph, this.tables)
         this.cache.set(id, graph)
         return graph
     }
@@ -89,15 +92,21 @@ export function conditionValue(condition, state, context) {
     }
     if (condition.conditionId === 2507) {
         const open = base.__type_TaskCondStoryOpenTaskData
-        if (!open || open.storyId) return 0
-        const dynamic = open.isNowCreate === 1
+        if (!open || ![true, false, 0, 1].includes(open.isNowCreate)) return 0
+        if (
+            open.storyId &&
+            (!taskAcceptStoryCompleted(state, open.storyId, open.storyTag ?? 0) ||
+                (context?.tables && !context.tables.find('story', open.storyId)))
+        )
+            return 0
+        const dynamic = open.isNowCreate === true || open.isNowCreate === 1
         if (
             dynamic
                 ? !Number.isSafeInteger(open.npcData?.createNpcId) || open.npcData.createNpcId <= 0
-                : open.isNowCreate !== 0 || !Number.isInteger(open.npcId) || open.npcId <= 0
+                : !Number.isInteger(open.npcId) || open.npcId <= 0
         )
             return 0
-        // CBT3 GetRegisterSceneId: dynamic NPC override owns its scene;
+        // Current GetRegisterSceneId0602e78a: dynamic NPC override owns its scene;
         // fixed NPC uses the entry scene, then mapData, then the current map.
         const scene = dynamic
             ? open.npcData.sceneId || state.world.map_id
@@ -256,6 +265,7 @@ export function advancePetChoiceBranch(graph, task, state) {
 }
 
 export function taskUnlocked(graph, state, context) {
+    context = { ...context, tables: context?.tables ?? graphTables.get(graph) }
     if (graph.dungeonId && state.storyCampaign?.dungeon_id !== graph.dungeonId) return false
     const rules = String(graph.config.unlockcondition || '')
         .split('|')
@@ -272,6 +282,7 @@ export function taskUnlocked(graph, state, context) {
                     rest[0] > 0 &&
                     taskNodeCompleted(state, id, rest[0])
                 )
+            if (kind === 2527) return rest.length === 0 && taskAcceptOwnedPetGroup(context?.tables, state, id)
             if (rest.length || !Number.isInteger(id) || id <= 0) return false
             if (kind === 2004) return state.player.basic_info.lv >= id
             if (kind === 2007) return (state.taskRecords ?? []).some((t) => t.task_id === id && t.count > 0)
