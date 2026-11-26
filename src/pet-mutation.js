@@ -1,10 +1,12 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { petGrade } from './pets.js'
+import { mutationProposalProofGuid } from './pet-guid-aliases.js'
 import { petInActiveNpcDuel } from './npc-kibo-duel.js'
 import { effectGeneSkills } from './pet-dna-skills.js'
 import {
     mutationCatalog,
+    mutationProofCatalog,
     mutationGenome,
     mutationSlotDomain,
     mutationBaseHash,
@@ -213,7 +215,7 @@ export function confirmMutation(tables, state, guid, accept, now) {
     let update = { mutation_info: visibleEmpty() },
         projection = null
     if (accept) {
-        const catalog = mutationCatalog(tables),
+        const catalog = mutationProofCatalog(tables),
             genes = mutationGenome(catalog, saved.pet)
         ensure(
             catalog.ruleId === pending.ruleId && catalog.fingerprint === pending.configFingerprint,
@@ -221,10 +223,12 @@ export function confirmMutation(tables, state, guid, accept, now) {
             ErrorCode.GameConfig,
         )
         ensure(
-            mutationBaseHash(saved.pet, genes) === pending.baseHash,
+            mutationBaseHash({ ...saved.pet, guid: mutationProposalProofGuid(state, guid, pending) }, genes) ===
+                pending.baseHash,
             'Mutation genome changed while awaiting choice',
             ErrorCode.InvalidLogic,
         )
+        catalog.definition(pending.candidate.gene_id, pending.candidate.gene_lv, { candidate: false })
         ensure(
             contains(mutationSlotDomain(catalog, saved.pet, genes, pending.pos), pending.candidate.gene_id),
             'Stored mutation candidate is not currently legal',

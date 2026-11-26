@@ -97,6 +97,7 @@ import { repairSavedPetPuzzleVisibility } from './pet-puzzles.js'
 import { repairSavedElevatorVisibility } from './handlers/world-elevator.js'
 import { hiddenTaskPetGuids } from './task-pet-presentation.js'
 import { petSyncPresentation } from './pet-model-presentation.js'
+import { migratePetGuidIdentity } from './pet-guid-migration.js'
 import { repairPetCatalog } from './pet-catalog.js'
 import { preparePetHandbook, takePetHandbookSync, petHandbookSnapshot } from './pet-handbook.js'
 import { syncHandbookAttributes } from './pet-handbook-sync.js'
@@ -901,6 +902,7 @@ export class Game {
             }
             const packets = this.store.transact(session.id, e.id, (state) => {
                 requireProductionWorkModel(state, this.productionWorkPolicy)
+                migratePetGuidIdentity(this.tables, state, this.protocol)
                 suspendUnavailableTasks(this.tables, state)
                 this.legacyMatchTeams.onLogin(session.id)
                 const previousMapId = state.world.map_id

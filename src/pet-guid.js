@@ -117,6 +117,18 @@ export function reservedPermanentPetGuids(state) {
         if (id.type === 2 && id.ownerId === owner) result.add(id.guid)
     }
     for (const id of Object.keys(source.entries)) keep(id)
+    if (state.petGuidMigration !== undefined) {
+        const migrated = state.petGuidMigration
+        ensure(
+            object(migrated) && migrated.version === 1 && migrated.ownerId === owner && object(migrated.aliases),
+            'Malformed migrated pet reservations',
+            ErrorCode.GameConfig,
+        )
+        for (const id of Object.values(migrated.aliases)) {
+            ensure(isCanonicalPetGuid(id, owner), 'Invalid migrated pet reservation', ErrorCode.GameConfig)
+            keep(id)
+        }
+    }
     for (const pet of list(state.pets, 'owned roster')) keep(pet.guid)
     for (const id of Object.keys(map(state.petStarSoulProgress?.entries, 'star-soul entries'))) keep(id)
     for (const receipt of Object.values(map(state.hatchReceipts, 'hatch receipts'))) {

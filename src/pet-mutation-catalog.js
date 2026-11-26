@@ -124,9 +124,20 @@ function definition(data, id, level = 1, { candidate = true } = {}) {
     return { ...gene, skillType: skill.skillType, level }
 }
 export function mutationCatalog(tables, selectedRule = mutationPolicy().generation.defaultRule) {
+    return compileCatalog(tables, selectedRule, true)
+}
+// Reading an already paid proposal does not authorize fresh random generation.
+// Do not require every unselected pool member to have a proven execution path.
+// The chosen candidate, current genome, domain and identical rule fingerprint
+// still pass their ordinary confirmation guards.
+export function mutationProofCatalog(tables, selectedRule = mutationPolicy().generation.defaultRule) {
+    return compileCatalog(tables, selectedRule, false)
+}
+function compileCatalog(tables, selectedRule, generation) {
     let cache = ruleCache.get(tables)
     if (!cache) ruleCache.set(tables, (cache = new Map()))
-    if (cache.has(selectedRule)) return cache.get(selectedRule)
+    const cacheKey = selectedRule + ':' + generation
+    if (cache.has(cacheKey)) return cache.get(cacheKey)
     const data = shared(tables)
     const rule = data.rules.get(selectedRule)
     ensure(rule, 'Mutation builder rule unavailable', ErrorCode.GeneConfIsNull)
@@ -154,6 +165,7 @@ export function mutationCatalog(tables, selectedRule = mutationPolicy().generati
             ErrorCode.GameConfig,
         )
         if (
+            generation &&
             row.weight > 0 &&
             row.talentDnaType === 2 &&
             quality.some((q) => q.value === data.dna.get(row.dna).rarity && q.weight > 0)
@@ -213,7 +225,7 @@ export function mutationCatalog(tables, selectedRule = mutationPolicy().generati
         fingerprint: mutationHash(semantics),
         definition: (id, level, options) => definition(data, id, level, options),
     }
-    cache.set(selectedRule, result)
+    cache.set(cacheKey, result)
     return result
 }
 export function mutationGenome(catalog, pet) {

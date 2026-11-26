@@ -11,12 +11,16 @@ const retiredIds = [
     500189, 500190, 500191, 500192, 500193, 500194, 500195, 500196, 500197, 500198, 500199, 500200, 500227, 500229,
     500230, 500835,
 ]
-function insertLegacy(f, { defer = false } = {}) {
+function insertLegacy(f, { defer = false, beforeIdentityMigration = false } = {}) {
     let legacy
     f.store.transact(
         f.session.id,
         0,
         (state) => {
+            // Explicit pre-Phase2 mixed save: canonical pets may already have
+            // been granted, while the old imported instances were not migrated.
+            // Never insert legacy identities into a completed migration fixture.
+            if (beforeIdentityMigration) delete state.petGuidMigration
             const template = state.pets.find((pet) => pet.config_id === 500001),
                 hero = state.player.heros_info.heros.find((row) => row.type === 1)
             legacy = retiredIds.map((id, index) => ({
@@ -212,22 +216,24 @@ test('real task profiles prime both cold and existing caches before removal, inc
 test('actual Game full login, ordinary delta, idle tick and reconnect retain all16 saved assets while every emitted model lookup is valid', () => {
     const f = petModelFixture('current-pet-model-game')
     try {
-        const legacy = insertLegacy(f),
+        const legacy = insertLegacy(f, { beforeIdentityMigration: true }),
             visible = new Set(),
             initial = f.call('EnterGame', { open_id: f.name }, {})
+        const mapping = f.state().petGuidMigration.aliases,
+            retainedGuids = new Set(legacy.flatMap((pet) => [pet.guid, mapping[pet.guid]]))
         const check = (packets) => {
             for (const payload of packetPayloads(f, packets)) {
                 checkLuaPreconditions(f.tables, payload, visible)
                 assert(!(payload.pet_infos?.pets ?? []).some((pet) => retiredIds.includes(pet.config_id)))
-                assert(!(payload.pet_infos?.guid ?? []).some((id) => legacy.some((pet) => pet.guid === id)))
+                assert(!(payload.pet_infos?.guid ?? []).some((id) => retainedGuids.has(id)))
             }
         }
         assert(packetPayloads(f, initial).length)
         check(initial)
         for (const pet of legacy)
             assert.deepEqual(
-                f.state().pets.find((row) => row.guid === pet.guid),
-                { ...pet, hero_id: '0' },
+                f.state().pets.find((row) => row.guid === mapping[pet.guid]),
+                { ...pet, guid: mapping[pet.guid], hero_id: '0' },
             )
         const before = f.state().pets.filter((pet) => retiredIds.includes(pet.config_id)),
             legal = f.state().pets.find((pet) => pet.config_id === 500001),
@@ -250,7 +256,7 @@ test('actual Game projection encoding failure preserves saved pets/bindings and 
     const f = petModelFixture('current-pet-model-codec'),
         encode = f.protocol.encode
     try {
-        const legacy = insertLegacy(f, { defer: true }),
+        const legacy = insertLegacy(f, { defer: true, beforeIdentityMigration: true }),
             before = f.state(),
             pending = f.store.pending.get(f.session.id),
             disk = f.store.db.prepare('SELECT state,revision FROM players WHERE account_id=?').get(f.session.id),
@@ -270,7 +276,15 @@ test('actual Game projection encoding failure preserves saved pets/bindings and 
         const packets = f.call('EnterGame', { open_id: f.name }, {})
         for (const payload of packetPayloads(f, packets)) checkLuaPreconditions(f.tables, payload)
         assert.equal(f.state().pets.length, before.pets.length)
-        assert(legacy.every((pet) => f.state().pets.some((row) => row.guid === pet.guid)))
+        const after = f.state()
+        for (const pet of legacy) {
+            const guid = after.petGuidMigration.aliases[pet.guid]
+            assert(guid, 'cold migration records the real retained instance identity')
+            assert.deepEqual(
+                after.pets.find((row) => row.guid === guid),
+                { ...pet, guid, hero_id: '0' },
+            )
+        }
     } finally {
         f.protocol.encode = encode
         f.store.close()

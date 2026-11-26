@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { mutationCreditLimits, mutationPolicy } from './pet-mutation-policy.js'
+import { mutationProposalProofGuid } from './pet-guid-aliases.js'
 
 export { mutationPolicy }
 export const MutationSourceSkipTag = Object.freeze({
@@ -268,6 +269,14 @@ export function mutationManualState(tables, state, guid) {
         )
     if (row?.pending) {
         validateMutationPending(guid, row.pending)
+        const proofGuid = mutationProposalProofGuid(state, guid, row.pending)
+        if (proofGuid !== guid)
+            ensure(
+                mutationHash({ ...row.pending, petGuid: proofGuid }) ===
+                    state.petGuidMigration.pendingLinks[guid][row.pending.generation].proposalHash,
+                'Migrated mutation proposal differs from its original artifact',
+                ErrorCode.GameConfig,
+            )
         ensure(
             BigInt(row.pending.generation) <= BigInt(root.generationHighWater) &&
                 !Object.hasOwn(row.resolutions, row.pending.generation),

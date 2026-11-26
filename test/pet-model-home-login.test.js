@@ -11,18 +11,28 @@ test('5001 explicitly repairs only idle home model bindings atomically with core
         file = path.join(dir, 'state.db')
     let f = homeModelFixture('pet-model-home-login', file)
     try {
-        f.oldBad()
+        const unavailable = 500189,
+            oldGuid = String(unavailable),
+            oldIdleGuid = '5001890'
+        assert.equal(f.tables.find('pet', unavailable), undefined, 'known retired current-config absence')
         f.store.transact(
             f.session.id,
             0,
             (s) => {
-                const p = s.pets.find((p) => p.guid === '500638'),
+                // A pre-Phase2 saved import, not a newly granted broken pet.
+                delete s.petGuidMigration
+                const p = {
+                        ...structuredClone(s.pets.find((pet) => pet.config_id === 500001)),
+                        config_id: unavailable,
+                        guid: oldGuid,
+                        box_id: 2999,
+                    },
                     idle = structuredClone(p)
-                idle.guid = '5006380'
+                idle.guid = oldIdleGuid
                 idle.work_status = 0
                 idle.work_build = 777
                 idle.capacity_id = 888
-                s.pets.push(idle)
+                s.pets.push(p, idle)
                 Object.assign(p, { work_status: 7, work_build: 0, capacity_id: 0 })
                 // Deliberately inconsistent old save exercises both repair
                 // branches and the single shared petRevision increment.
@@ -30,7 +40,7 @@ test('5001 explicitly repairs only idle home model bindings atomically with core
                 hero.pet_id = p.guid
                 p.hero_id = hero.guid
                 s.player.group_mgrs.find((m) => m.type === 1).groups.find((g) => g.id === 1).heros[0].pet_id = p.guid
-                const valid = s.pets.find((p) => p.config_id !== 500638 && !p.work_status)
+                const valid = s.pets.find((p) => p.config_id !== unavailable && !p.work_status)
                 valid.work_status = 7
                 valid.work_build = 0
                 valid.capacity_id = 0
@@ -70,19 +80,34 @@ test('5001 explicitly repairs only idle home model bindings atomically with core
         f.store.db.exec('DROP TRIGGER home_model_abort')
         f.call('EnterGame', { open_id: f.name }, {})
         const after = f.state(),
-            revision = after.petRevision
+            revision = after.petRevision,
+            migratedGuid = after.petGuidMigration.aliases[oldGuid],
+            migratedIdleGuid = after.petGuidMigration.aliases[oldIdleGuid]
+        assert(migratedGuid && migratedIdleGuid && migratedGuid !== migratedIdleGuid)
         assert.equal(after.pets.length, before.pets.length)
         assert.deepEqual(after.player.sbag_infos, before.player.sbag_infos)
         assert.deepEqual(after.home.builds, before.home.builds)
         assert.deepEqual(after.home.ranches, before.home.ranches)
-        assert.equal(after.pets.find((p) => p.guid === '500638').work_status, 0)
+        assert.equal(after.pets.find((p) => p.guid === migratedGuid).work_status, 0)
         assert.deepEqual(
-            after.pets.find((p) => p.guid === '5006380'),
-            before.pets.find((p) => p.guid === '5006380'),
+            after.pets.find((p) => p.guid === migratedGuid),
+            {
+                ...before.pets.find((p) => p.guid === oldGuid),
+                guid: migratedGuid,
+                hero_id: '0',
+                work_status: 0,
+                work_build: 0,
+                capacity_id: 0,
+            },
+        )
+        assert(after.player.heros_info.heros.every((hero) => ![oldGuid, migratedGuid].includes(hero.pet_id)))
+        assert.deepEqual(
+            after.pets.find((p) => p.guid === migratedIdleGuid),
+            { ...before.pets.find((p) => p.guid === oldIdleGuid), guid: migratedIdleGuid },
         )
         assert.deepEqual(
             after.home.stationPets,
-            before.home.stationPets.filter((id) => !['500638', '5006380'].includes(id)),
+            before.home.stationPets.filter((id) => ![oldGuid, oldIdleGuid].includes(id)),
         )
         assert.equal(after.homeRevision, (before.homeRevision ?? 0) + 1)
         assert.equal(revision, (before.petRevision ?? 0) + 1)
@@ -90,9 +115,9 @@ test('5001 explicitly repairs only idle home model bindings atomically with core
         assert.equal(f.state().petRevision, revision)
         f.store.close()
         f = homeModelFixture('pet-model-home-login', file)
-        assert.equal(f.state().pets.find((p) => p.guid === '500638').work_status, 0)
-        assert(!f.state().home.stationPets.includes('500638'))
-        assert(!f.state().home.stationPets.includes('5006380'))
+        assert.equal(f.state().pets.find((p) => p.guid === migratedGuid).work_status, 0)
+        assert(!f.state().home.stationPets.includes(migratedGuid))
+        assert(!f.state().home.stationPets.includes(migratedIdleGuid))
     } finally {
         f.store.close()
         const target = path.resolve(dir)
