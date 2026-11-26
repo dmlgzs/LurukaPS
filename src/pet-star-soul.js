@@ -120,19 +120,15 @@ export function planPetSoulUpgrade(tables, state, pet) {
     ensure(row.type !== 3, 'Star-soul maximum reached', ErrorCode.PetSoulMaxLevel)
     const next = rows[index + 1]
     ensure(next, 'Next star-soul node unavailable', ErrorCode.PetSoulLinkConfig)
-    const cond = String(row.unlockCondition ?? '')
-        .split('|')
-        .map(Number)
     ensure(
-        cond.length === 2 && cond[0] === 2004 && Number.isInteger(cond[1]) && cond[1] > 0,
-        'Unsupported star-soul condition',
+        Number.isSafeInteger(row.unlocklevel) && row.unlocklevel >= 0,
+        'Invalid star-soul unlock level',
         ErrorCode.PetSoulLinkConfig,
     )
-    ensure(
-        state.player.basic_info.lv >= cond[1],
-        'Star-soul level requirement not met',
-        ErrorCode.PetSoulLevelCondition,
-    )
+    ensure(Number.isSafeInteger(pet.lv) && pet.lv > 0, 'Invalid saved pet level', ErrorCode.GameConfig)
+    // Current petStarSoulTpl.getUnlockLevel and modulePetStarSoul compare the
+    // displayed/current node's unlocklevel with this pet's level, not player LV.
+    ensure(pet.lv >= row.unlocklevel, 'Star-soul level requirement not met', ErrorCode.PetSoulLevelCondition)
     const suppression = pet.suppress_lv ?? 0,
         force = BigInt(state.player.attr_infos.attrs.find((r) => r.attr_id === 22)?.attr_val ?? '0')
     ensure(Number.isInteger(suppression) && suppression >= 0, 'Invalid pet suppression', ErrorCode.GameConfig)
