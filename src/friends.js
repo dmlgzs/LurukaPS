@@ -1,3 +1,4 @@
+import { friendRemarkFields, forgetFriendRemark } from './friend-remarks.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { legacyChatBans } from './chat-shields.js'
@@ -60,7 +61,11 @@ export function friendSnapshot(state) {
     const list = friendLists(state)
     return {
         info: {
-            friends: list.friends.map((id) => ({ id, time: String(list.friendTimes[id] ?? 0) })),
+            friends: list.friends.map((id) => ({
+                id,
+                time: String(list.friendTimes[id] ?? 0),
+                ...friendRemarkFields(state, id),
+            })),
             apply: Object.entries(list.applications).map(([id, time]) => ({ id: Number(id), time: String(time) })),
             ban: list.bans.map((id) => ({ id, time: String(list.banTimes[id] ?? 0) })),
             // No producer for recent-team history is invented by this operation.
@@ -83,7 +88,7 @@ function limits(tables) {
             .split('|')
             .map(Number)
     ensure(
-        values.length === 3 && values.every((n) => Number.isSafeInteger(n) && n >= 0),
+        values.length >= 3 && values.every((n) => Number.isSafeInteger(n) && n >= 0),
         'Friend limits configuration is invalid',
         ErrorCode.FriendCfgErr,
     )
@@ -103,6 +108,7 @@ function setFriend(state, peer, add, time) {
         meta[peer] ??= time
     } else {
         next.delete(peer)
+        forgetFriendRemark(state, peer)
         delete meta[peer]
     }
     state.friends = [...next]
