@@ -40,6 +40,7 @@ import { protocolHandlerEntry } from './protocol-registration.js'
 import { registerDownloadStartCompatibility } from './handlers/download-start.js'
 import { registerFriends } from './handlers/friends.js'
 import { registerFriendRemarks } from './handlers/friend-remarks.js'
+import { registerPlayerReports } from './handlers/player-reports.js'
 import { registerLegacyMatchTeams } from './legacy-match-teams.js'
 import { friendLoginSnapshots } from './friends.js'
 import { registerChatShields } from './handlers/chat-shields.js'
@@ -655,6 +656,7 @@ export class Game {
         registerChatShields(on, store)
         registerFriends(on, store)
         registerFriendRemarks(on, store)
+        registerPlayerReports(on, store)
         this.legacyMatchTeams = registerLegacyMatchTeams(on, store, tables, (name, value, recipient) =>
             this.packet(name, value, { recipient }),
         )

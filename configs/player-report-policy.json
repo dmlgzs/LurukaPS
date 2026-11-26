@@ -1,0 +1,17 @@
+{
+    "version": 1,
+    "origin": "LOCAL",
+    "clientVersion": "1.0.0",
+    "packageVersion": 3217420,
+    "mode": "persistent-local-receipt",
+    "forwarding": "none",
+    "automaticPenalties": "none",
+    "targetIdentity": "existing-local-player",
+    "maxTargets": 64,
+    "maxKiboGuids": 128,
+    "maxSpecialDataBytes": 16384,
+    "cooldown": "per-account-report-type-current-table-seconds",
+    "deduplication": "identical-request-within-cooldown",
+    "descriptionLengthUnit": "utf16-code-units",
+    "TODO": "Official review, forwarding, sanctions and hidden backend rules have not been recovered."
+}
