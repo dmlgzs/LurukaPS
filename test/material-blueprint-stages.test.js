@@ -1,258 +1,169 @@
-import test from 'node:test'
+import test, { after } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
-import { achievementFixture } from './achievement-fixture.js'
-import { getEntrustCatalog, EntrustCatalog } from '../src/entrust.js'
-import { materialBlueprintStages } from '../src/material-blueprint-stages.js'
-import { ErrorCode } from '../src/error-codes.js'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { registerHooks } from 'node:module'
 
-const targets = [30604, 30803, 30804]
-function withRows(tables, table, changed) {
-    return {
-        get: (name) => (name === table ? changed : tables.get(name)),
-        find: (name, id) => (name === table ? changed.find((r) => r.id === Number(id)) : tables.find(name, id)),
-    }
+// Normal destination is LurukaPS/test. The override only permits running this
+// unchanged candidate from work; it is not an input containing saved results.
+const project = fs.realpathSync(
+    process.env.LURUKAPS_CATALOGUE_TEST_ROOT ?? fileURLToPath(new URL('../', import.meta.url)),
+)
+const base = pathToFileURL(project + path.sep)
+const obsoleteSnapshot = new URL('configs/material-blueprint-stages.json', base).href
+let obsoleteLoadRequests = 0
+const dependencyGuard = registerHooks({
+    load(url, context, nextLoad) {
+        if (url === obsoleteSnapshot) {
+            obsoleteLoadRequests++
+            throw Error('Current material catalogue must not depend on the obsolete snapshot')
+        }
+        return nextLoad(url, context)
+    },
+})
+after(() => dependencyGuard.deregister())
+
+const { configuration } = await import(new URL('src/config.js', base))
+const { Tables } = await import(new URL('src/player.js', base))
+const { EntrustCatalog } = await import(new URL('src/entrust.js', base))
+const { materialBlueprintStages } = await import(new URL('src/material-blueprint-stages.js', base))
+const { ErrorCode } = await import(new URL('src/error-codes.js', base))
+const tables = new Tables(configuration().tables)
+const catalogue = new EntrustCatalog(tables)
+const targets = new Map([
+    [30604, 60064],
+    [30803, 60033],
+    [30804, 60034],
+])
+
+function indexedStages(scene) {
+    return tables
+        .get(`worldmap_${scene.id}`)
+        .flatMap((row) => {
+            const token = String(row.expandParams ?? '')
+                .split('|')
+                .find((part) => part.toLowerCase().startsWith('autobattleindex#'))
+            return token
+                ? [
+                      {
+                          index: Number(token.split('#')[1]),
+                          type: tables.find('world_spawner', row.spawnerId)?.objectType,
+                          row,
+                      },
+                  ]
+                : []
+        })
+        .sort((a, b) => a.index - b.index)
 }
-test('compiled tag path resolves all92 routes, preserves indexed89 and follows tag order rather than object IDs', () => {
-    const f = achievementFixture('material-blueprint-schema')
-    try {
-        const c = getEntrustCatalog(f.tables)
-        for (const material of f.tables.get('dungeon_material')) {
-            const route = c.get(material.id, 'material'),
-                stages = c.stages(material.id, 'material')
+
+test('current material/weekly catalogue resolves all110 routes from current tables without old saved expectations', () => {
+    const materials = tables.get('dungeon_material'),
+        weekly = tables.get('dungeon_weekly')
+    assert.equal(materials.length, 92)
+    assert.equal(weekly.length, 18)
+    let parsed = 0,
+        explicitMaterials = 0
+    for (const [kind, records] of [
+        ['material', materials],
+        ['weekly', weekly],
+    ]) {
+        for (const record of records) {
+            const config = catalogue.get(record.id, kind),
+                stages = catalogue.stages(record.id, kind)
+            const victory = catalogue.victoryObjects(record.id, kind),
+                chest = catalogue.chest(record.id, kind)
+            assert.equal(config.dungeon.id, record.dungeonId)
+            assert.equal(config.city.type, 12)
+            assert.equal(config.scene.mapId, config.city.id)
+            assert.equal(chest.worldFilter, `4|${record.dungeonId}`)
+            assert.equal(chest.worldmapcityid, config.scene.id)
             assert.equal(stages[0].type, 13)
             assert.equal(stages.at(-1).type, 30)
-            assert.equal(c.victoryObjects(material.id, 'material').length, stages.length - 2)
-            if (!targets.includes(material.id))
-                assert.equal(materialBlueprintStages(f.tables, route.scene, material, stages), stages)
-            else
-                assert.deepEqual(
-                    stages.map((r) => [r.index, r.type, r.row.commonTag]),
-                    [
-                        [1, 13, '1'],
-                        [2, 50, '2'],
-                        [3, 50, '3'],
-                        [4, 30, '0'],
-                    ],
-                )
+            assert.equal(stages.at(-1).row.id, chest.worldmapid)
+            assert.equal(new Set(stages.map((stage) => stage.row.id)).size, stages.length)
+            assert(stages.every((stage, index) => index === 0 || stage.index > stages[index - 1].index))
+            const groups = stages.filter((stage) => stage.type === 50)
+            assert.equal(groups.length, victory.length)
+            assert.deepEqual(
+                groups.map((stage) => stage.row.id).sort((a, b) => a - b),
+                victory.map((row) => row.objectId).sort((a, b) => a - b),
+            )
+            for (const group of groups) {
+                const definition = tables.find('world_enemy_group', group.row.expandId)
+                assert(definition)
+                const packs = String(definition.enemyList).split('|').filter(Boolean).map(Number)
+                assert.equal(packs.length, victory.find((row) => row.objectId === group.row.id).count)
+                assert(packs.every((id) => tables.find('enemy_pack', id)))
+            }
+            if (kind === 'material' && !targets.has(record.id)) {
+                const indexed = indexedStages(config.scene)
+                assert.equal(materialBlueprintStages(tables, config.scene, record, indexed), indexed)
+                explicitMaterials++
+            }
+            parsed++
         }
-        const map = f.tables
-            .get('worldmap_60064')
-            .map((r) => (r.id === 5 ? { ...r, commonTag: '3' } : r.id === 6 ? { ...r, commonTag: '2' } : r))
-        const reversed = new EntrustCatalog(withRows(f.tables, 'worldmap_60064', map)).stages(30604, 'material')
+    }
+    assert.equal(parsed, 110)
+    assert.equal(explicitMaterials, 89)
+})
+
+test('three current B routes use their exact dual-blueprint marker/enemy/chest bindings', () => {
+    const capability = JSON.parse(fs.readFileSync(new URL('configs/material-front-execution.json', base)))
+    assert.equal(capability.clientVersion, '1.0.0')
+    assert.equal(capability.packageVersion, '3217420')
+    assert.equal(capability.policy.origin, 'LOCAL')
+    for (const [id, map] of targets) {
+        const config = catalogue.get(id, 'material'),
+            stages = catalogue.stages(id, 'material')
+        assert.equal(config.scene.id, map)
+        assert.equal(config.scene.blueprintId, 300358)
+        assert.equal(config.scene.serverBlueprintId, 300351)
         assert.deepEqual(
-            reversed.map((r) => r.row.id),
-            [3, 6, 5, 4],
-        )
-    } finally {
-        f.store.close()
-    }
-})
-test('missing waits never grant empty victory; extra same-tag objects, conflicting anchors and unknown topology close', () => {
-    const f = achievementFixture('material-blueprint-closed')
-    try {
-        const raw = f.tables.get('worldmap_60064')
-        for (const map of [
-            raw.map((r) => (r.id === 5 ? { ...r, commonTag: '' } : r)),
-            raw.map((r) => (r.id === 5 ? { ...r, expandParams: r.expandParams + '|autoBattleIndex#9' } : r)),
-            [...raw, { ...raw.find((r) => r.id === 1800000), id: 100000, commonTag: '2' }],
-        ])
-            assert.throws(
-                () => new EntrustCatalog(withRows(f.tables, 'worldmap_60064', map)).stages(30604, 'material'),
-                (e) => [ErrorCode.GameConfig, ErrorCode.FunctionClosed].includes(e.code),
-            )
-        for (const patch of [
-            { blueprintId: 0 },
-            { intParam: 'enemyTag2#4' },
-            { stringParam: 'enemyTag2#4' },
-            { boolParam: 'isBossOnly#1' },
-        ]) {
-            const scenes = f.tables.get('dungeon_scene').map((r) => (r.id === 60064 ? { ...r, ...patch } : r))
-            assert.throws(
-                () => new EntrustCatalog(withRows(f.tables, 'dungeon_scene', scenes)).stages(30604, 'material'),
-                (e) => e.code === ErrorCode.FunctionClosed,
-            )
-        }
-        const definitions = f.tables
-            .get('world_blueprint')
-            .map((r) => (r.id === 300351 ? { ...r, intParam: 'enemyTag2#4' } : r))
-        assert.throws(
-            () => new EntrustCatalog(withRows(f.tables, 'world_blueprint', definitions)).stages(30604, 'material'),
-            (e) => e.code === ErrorCode.FunctionClosed,
-        )
-    } finally {
-        f.store.close()
-    }
-})
-test('three real material entries advance their configured groups, clear once, preserve rollback and pay their actual chest', () => {
-    const f = achievementFixture('material-blueprint-actual')
-    try {
-        f.store.transact(f.session.id, 0, (s) => {
-            s.player.basic_info.lv = 80
-            s.player.attr_infos.attrs.find((a) => a.attr_id === 3).attr_val = '10000'
-            // Earlier difficulties are prerequisite-only records, not these
-            // three targets or claimed source events.
-            s.materialDungeonRecords ??= {}
-            function unlock(id) {
-                const row = f.tables.find('dungeon_material', id)
-                for (const token of String(row.unlock || '')
-                    .split('|')
-                    .filter(Boolean)) {
-                    const [kind, prior] = token.split('#').map(Number)
-                    if (kind === 2004) continue
-                    assert.equal(kind, 13112)
-                    if (targets.includes(prior)) continue
-                    unlock(prior)
-                    const old = f.tables.find('dungeon_material', prior)
-                    s.materialDungeonRecords[prior] = {
-                        material_id: prior,
-                        difficulty_id: old.diff,
-                        success_count: 1,
-                        success_time: '1799999900',
-                        material_star: 7,
-                    }
-                }
-            }
-            for (const id of targets) unlock(id)
-        })
-        const c = getEntrustCatalog(f.tables)
-        const hit = (object) => {
-            const s = f.state(),
-                enemies = Object.values(s.combat.entities).filter((e) => e.object_id === object && e.hp > 0)
-            assert(enemies.length)
-            return f.call('BattleInfoReduce', {
-                uint64_dic: [s.player.heros_info.heros[0].guid, ...enemies.map((e) => e.uuid)],
-                battle_info: enemies.map((e, i) => ({
-                    hurt_info: { from_id: '1', tar_id: String(i + 2), hp_change: -e.hp },
-                })),
-                base_time: '0',
-            })
-        }
-        for (const id of targets) {
-            f.call('MultiCampaignCreate', {
-                dungeon_id: f.tables.find('dungeon_material', id).dungeonId,
-                scene_type: 12,
-            })
-            f.call('MultiCampaignPlayerLoadFinish')
-            const phases = c.stages(id, 'material'),
-                map = f.state().world.map_id,
-                marker = phases[0].row.id
-            f.call('WorldObjInteract', {
-                objs: [
-                    {
-                        obj: {
-                            obj_id: marker,
-                            complete: true,
-                            state_data: { step: f.state().worldObjects[`${map}:${marker}`]?.state_data?.step ?? 0 },
-                        },
-                        interact_type: 2,
-                    },
-                ],
-            })
-            const [first, last] = phases.filter((p) => p.type === 50)
-            assert.equal(f.state().worldObjects[`${map}:${first.row.id}`].active, true)
-            assert.equal(f.state().worldObjects[`${map}:${last.row.id}`].active, false)
-            if (id === 30604) {
-                const before = structuredClone(f.state()),
-                    packet = f.game.packet
-                f.game.packet = function (name, ...args) {
-                    if (name === 'CSProtoWorldMapSync') throw Error('material-blueprint-codec')
-                    return packet.call(this, name, ...args)
-                }
-                try {
-                    assert.throws(() => hit(first.row.id), /material-blueprint-codec/)
-                } finally {
-                    f.game.packet = packet
-                }
-                assert.deepEqual(f.state(), before)
-            }
-            hit(first.row.id)
-            assert.equal(f.state().materialDungeonRecords[id], undefined)
-            assert.equal(f.state().worldObjects[`${map}:${last.row.id}`].active, true)
-            hit(last.row.id)
-            assert.equal(f.state().entrust.run.battle_complete, true)
-            assert.equal(f.state().materialDungeonRecords[id].success_count, 1)
-            const chest = c.chest(id, 'material')
-            assert.equal(chest.worldmapid, phases.at(-1).row.id)
-            const chestPackets = f.call('StaminaBoxGet', { box_id: chest.id, times: 1 })
-            assert(chestPackets.some((p) => p.id === 9974))
-            assert.equal(f.state().entrust.run.chest_claimed, true)
-            f.call('EndDungeonScene')
-            assert.equal(f.state().materialDungeonRecords[id].success_count, 1)
-            f.call('MultiCampaignQuit')
-        }
-    } finally {
-        f.store.close()
-    }
-})
-test('a blueprint-derived wave resumes afterSQLite reopen without reviving the defeated group', () => {
-    const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'material-blueprint-stage-'))
-    const file = path.join(folder, 'state.sqlite')
-    let f = achievementFixture('material-blueprint-resume', file)
-    try {
-        f.store.transact(f.session.id, 0, (s) => {
-            s.player.basic_info.lv = 80
-            s.materialDungeonRecords = {
-                30603: {
-                    material_id: 30603,
-                    difficulty_id: 4,
-                    material_star: 7,
-                    success_count: 1,
-                    success_time: '1799999900',
-                },
-            }
-        })
-        const id = 30604,
-            c = getEntrustCatalog(f.tables)
-        f.call('MultiCampaignCreate', { dungeon_id: f.tables.find('dungeon_material', id).dungeonId, scene_type: 12 })
-        f.call('MultiCampaignPlayerLoadFinish')
-        const phases = c.stages(id, 'material'),
-            map = f.state().world.map_id
-        const marker = phases[0].row.id
-        f.call('WorldObjInteract', {
-            objs: [
-                {
-                    obj: {
-                        obj_id: marker,
-                        complete: true,
-                        state_data: { step: f.state().worldObjects[`${map}:${marker}`]?.state_data?.step ?? 0 },
-                    },
-                    interact_type: 2,
-                },
+            stages.map((stage) => [stage.index, stage.type, stage.row.id]),
+            [
+                [1, 13, 3],
+                [2, 50, 5],
+                [3, 50, 6],
+                [4, 30, 4],
             ],
-        })
-        function finish(object) {
-            const state = f.state(),
-                enemies = Object.values(state.combat.entities).filter((e) => e.object_id === object && e.hp > 0)
-            assert(enemies.length)
-            f.call('BattleInfoReduce', {
-                uint64_dic: [state.player.heros_info.heros[0].guid, ...enemies.map((e) => e.uuid)],
-                battle_info: enemies.map((e, i) => ({
-                    hurt_info: { from_id: '1', tar_id: String(i + 2), hp_change: -e.hp },
-                })),
-                base_time: '0',
-            })
-        }
-        finish(phases[1].row.id)
-        assert.equal(f.state().entrust.run.stage_index, phases[2].index)
-        assert.equal(f.state().materialDungeonRecords[id], undefined)
-        f.store.close()
-        f = achievementFixture('material-blueprint-resume', file)
-        assert.equal(f.state().entrust.run.stage_index, phases[2].index)
-        assert.equal(f.state().worldObjects[`${map}:${phases[1].row.id}`].active, false)
-        assert(
-            Object.values(f.state().combat.entities)
-                .filter((e) => e.object_id === phases[1].row.id)
-                .every((e) => e.hp === 0),
         )
-        assert.equal(f.state().worldObjects[`${map}:${phases[2].row.id}`].active, true)
-        finish(phases[2].row.id)
-        assert.equal(f.state().materialDungeonRecords[id].success_count, 1)
-    } finally {
-        f.store.close()
-        fs.rmSync(file, { force: true })
-        fs.rmdirSync(folder)
+        const matching = capability.scenes.filter(
+            (scene) => scene.material_id === id && scene.dungeon_id === config.dungeon.id && scene.scene_id === map,
+        )
+        assert.equal(matching.length, 1)
+        assert.deepEqual(
+            matching[0].stages.map((stage) => stage.object_id),
+            stages.map((stage) => stage.row.id),
+        )
+        assert.deepEqual(matching[0].victory.object_ids, [5, 6])
+        assert.equal(matching[0].chest.object_id, catalogue.chest(id, 'material').worldmapid)
     }
+})
+
+test('unknown missing-stage topologies including a synthetic front351 reject with named FunctionClosed', () => {
+    const record = tables.find('dungeon_material', 30604),
+        { scene } = catalogue.get(record.id, 'material')
+    const indexed = indexedStages(scene),
+        before = JSON.stringify(tables.get(`worldmap_${scene.id}`))
+    assert.deepEqual(
+        indexed.map((stage) => stage.row.id),
+        [3, 4],
+    )
+    for (const patch of [
+        { blueprintId: 0, serverBlueprintId: 0 },
+        { blueprintId: 300351, serverBlueprintId: 0 },
+        { blueprintId: 300358, serverBlueprintId: 0 },
+        { blueprintId: 987654321, serverBlueprintId: 0 },
+    ]) {
+        assert.throws(
+            () => materialBlueprintStages(tables, { ...scene, ...patch }, record, indexed),
+            (error) => error.code === ErrorCode.FunctionClosed,
+        )
+    }
+    assert.equal(JSON.stringify(tables.get(`worldmap_${scene.id}`)), before)
+})
+
+test('fresh module graph and all catalogue paths request no obsolete material snapshot', () => {
+    assert.equal(obsoleteLoadRequests, 0)
 })
