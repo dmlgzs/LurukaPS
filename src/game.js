@@ -267,6 +267,7 @@ import { ensureAppearance, clothesSnapshot, heroSkinsSnapshot } from './appearan
 import { registerCollection } from './handlers/collection.js'
 import { registerWorld, repairLegacyMountState } from './handlers/world.js'
 import { registerMail } from './handlers/mail.js'
+import { registerVehicles, vehicleSnapshot, vehicleBattleAttributes } from './vehicles.js'
 import { mailboxLegacyPush } from './mailbox.js'
 import { registerGiftCodes } from './gift-codes.js'
 const deferredTaskProgress = new Set([
@@ -606,6 +607,7 @@ export class Game {
         registerRepeatEvent(on)
         registerPetEvolution(on)
         registerPetCosmetics(on)
+        registerVehicles(on)
         registerPlayableLifecycle(on, tables)
         const runGM = registerGM(on, { enabled: gmEnabled })
         registerCore(on)
@@ -1424,6 +1426,8 @@ export class Game {
                 const ornamentIdsBefore = (state.ornaments || []).map((entry) => entry.guid)
                 const petRevision = state.petRevision || 0
                 const petSkinRevision = state.petSkinRevision ?? 0
+                const vehicleRevision = state.vehicleRevision ?? 0
+                const worldPointRewardRevision = state.worldPointRewardRevision ?? 0
                 const appearanceRevision = state.appearanceRevision ?? 0
                 const handbookBonusesBefore = state.petHandbookBonuses
                 const petViewBefore = battleReport ? null : hiddenTaskPetGuids(this.tables, state).join(',')
@@ -1743,6 +1747,17 @@ export class Game {
                         : []),
                     ...((state.petSkinRevision ?? 0) !== petSkinRevision
                         ? [this.packet('CSProtoPetSkinInfoSync', petSkinsSnapshot(this.tables, state))]
+                        : []),
+                    ...((state.vehicleRevision ?? 0) !== vehicleRevision
+                        ? [
+                              this.packet('SCProtoVehicleDataSync', vehicleSnapshot(this.tables, state)),
+                              this.packet('CSProtoHeroAttrInfoSync', {
+                                  heros: vehicleBattleAttributes(this.tables, state),
+                              }),
+                          ]
+                        : []),
+                    ...((state.worldPointRewardRevision ?? 0) !== worldPointRewardRevision
+                        ? [this.packet('CSProtoWorldMapPointSync', { u32s: state.world.points })]
                         : []),
                     ...playerSync,
                     ...saddleSync,
@@ -2181,6 +2196,7 @@ export class Game {
                 smelt_num: state.ornamentSmeltNum || 0,
             }),
             this.packet('CSProtoRideMountInfo', mountPayload(this.tables, state)),
+            this.packet('SCProtoVehicleDataSync', vehicleSnapshot(this.tables, state)),
             this.packet('CSProtoTeachInfoSync', { u32s: state.teachingRecords ?? [] }),
             this.packet('CSProtoEntrustInfoSync', entrustInfoSnapshot(state)),
             this.packet('CSProtoRepeatEventSync', repeatSnapshot(state, this.activities, now)),

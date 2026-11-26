@@ -2,6 +2,15 @@ import { endMountActionLifecycle } from './mount-action-lifecycle.js'
 import { ErrorCode } from './error-codes.js'
 import { randomInt } from 'node:crypto'
 import { ensure } from './handlers/common.js'
+import { ownedVehicle } from './vehicles.js'
+
+export function ownedMount(tables, state, id) {
+    const mount = state.pets.find((entry) => entry.guid === String(id))
+    if (!mount) return { mount: ownedVehicle(tables, state, id), vehicle: true }
+    ensure(!mount.work_status, 'Stationed pet cannot be mounted')
+    ensure(tables.find('mount', mount.config_id), 'Pet is not a mount', ErrorCode.PetIsNotMount)
+    return { mount, vehicle: false }
+}
 
 export function randomMountSpeed(tables, rng = randomInt) {
     const rows = tables.get('mount_speed'),
@@ -34,10 +43,18 @@ export function mountCandidates(tables, state) {
         .sort((a, b) => a.roulette_pos - b.roulette_pos || a.config_id - b.config_id)
 }
 export function repairMountSelection(tables, state) {
-    const candidates = mountCandidates(tables, state)
+    const candidates = [
+        ...mountCandidates(tables, state),
+        ...(state.vehicles ?? [])
+            .filter((vehicle) => vehicle.roulette_pos > 0 && tables.find('vehicle', vehicle.conf_id))
+            .sort((a, b) => a.roulette_pos - b.roulette_pos),
+    ]
     if (candidates.some((p) => p.guid === state.mountRideId)) return false
     // Prefer the first ordinary mount for a short press; gliders use move type 5.
-    const next = candidates.find((p) => tables.find('mount', p.config_id)?.defaultMoveType !== 5) ?? candidates[0]
+    const next =
+        candidates.find(
+            (p) => tables.find(p.conf_id ? 'vehicle' : 'mount', p.conf_id ?? p.config_id)?.defaultMoveType !== 5,
+        ) ?? candidates[0]
     const id = next?.guid ?? '0'
     if (state.mountRideId === id) return false
     state.mountRideId = id

@@ -4,6 +4,8 @@ import { appearanceCatalog } from './appearance.js'
 import { customOrnamentConfiguration } from './ornaments.js'
 import { eggRewardDefinition } from './eggs.js'
 import { customizedPetRewardDefinition } from './pets.js'
+import { vehicleDefinition } from './vehicles.js'
+import { worldPointRewardDefinition } from './world-point-rewards.js'
 const uint = (value) => Number.isSafeInteger(value) && value > 0 && value <= 0xffffffff
 const recipe = (fn) => {
     try {
@@ -58,7 +60,7 @@ export function validateRewardTotals(tables, rewards) {
             const group = [...groups].find((id) => id === itemid || tables.find('groups', id)?.reputation === itemid)
             ensure(group, 'Deferred reputation total has no group', ErrorCode.GameConfig)
             add(`reputation:${group}`, itemnum, 0xffffffffn, 'reputation')
-        } else if ([1, 17, 25, 26, 28, 34, 37, 39, 40].includes(itemtype))
+        } else if ([1, 17, 21, 25, 26, 28, 34, 37, 39, 40, 41].includes(itemtype))
             add(`unique:${itemtype}:${itemid}`, itemnum, 1n, 'unique reward')
         else ensure(false, 'Unsupported deferred reward total type', ErrorCode.GameConfig)
     }
@@ -80,7 +82,7 @@ export function validateRewardDefinitions(tables, rewards, { channel = 'mail' } 
             'Malformed deferred reward quantity or identity',
             ErrorCode.GameConfig,
         )
-        if ([1, 17, 25, 26, 28, 34, 37, 39, 40].includes(itemtype))
+        if ([1, 17, 21, 25, 26, 28, 34, 37, 39, 40, 41].includes(itemtype))
             ensure(itemnum === 1, 'Unique deferred reward must have quantity one', ErrorCode.GameConfig)
         if (itemtype === 5 || itemtype === 30) {
             const boxes = Number(tables.get('game').find((r) => r.title === 'PET_BOX_NUM')?.value),
@@ -129,6 +131,10 @@ export function validateRewardDefinitions(tables, rewards, { channel = 'mail' } 
                 'Deferred reputation definition is unavailable',
                 ErrorCode.GameConfig,
             )
+        } else if (itemtype === 21) {
+            worldPointRewardDefinition(tables, itemid)
+        } else if (itemtype === 41) {
+            vehicleDefinition(tables, itemid)
         } else if (itemtype === 33) {
             recipe(() => customOrnamentConfiguration(tables, itemid))
             ensure(itemnum <= 1000, 'Deferred ornament quantity exceeds the constructor bound', ErrorCode.GameConfig)

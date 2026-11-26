@@ -2,9 +2,14 @@ import { appearanceCatalog } from './appearance.js'
 import { petSkinIds } from './pet-skins.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
+import { vehicleDefinition } from './vehicles.js'
 
 // Cosmetic ownership has dedicated CBT3 channels; these are not bag stacks.
 export function cosmeticOwnedCount(tables, state, type, id) {
+    if (type === 41) {
+        vehicleDefinition(tables, id)
+        return (state.vehicles ?? []).some((vehicle) => vehicle.conf_id === id) ? 1 : 0
+    }
     if (type === 34) {
         ensure(
             appearanceCatalog(tables).clothes.has(id),

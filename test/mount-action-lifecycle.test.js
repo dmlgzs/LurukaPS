@@ -47,7 +47,9 @@ test('unknown owned instance, nonmount configuration and a table-forbidden scene
         const before = structuredClone(f.state())
         assert.throws(() => f.mount('999999'))
         assert.deepEqual(f.state(), before)
-        const nonmount = tables.get('pet').find((p) => !tables.find('mount', p.id))
+        const nonmount = tables
+            .get('pet')
+            .find((p) => !tables.find('mount', p.id) && tables.find('template_value', p.id))
         f.store.transact(f.session.id, 0, (s) => s.pets.push(petData(tables, nonmount.id, '999998', 1)))
         reject(f, () => f.mount('999998'), ErrorCode.PetIsNotMount)
         f.call('EnterWorldMap', { map_id: 104, point_id: 10401 })

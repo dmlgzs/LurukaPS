@@ -23,6 +23,8 @@ import { grantPetSkin } from './pet-skins.js'
 import { grantPlayerTitle } from './player-titles.js'
 import { grantAppearanceReward } from './appearance-rewards.js'
 import { grantEntryHeroFavor } from './hero-favor-rewards.js'
+import { grantVehicle } from './vehicles.js'
+import { grantWorldPoint } from './world-point-rewards.js'
 export { validateRewardDefinitions } from './reward-definitions.js'
 export function parseRewards(value, allowZero = false) {
     if (!value) return []
@@ -85,6 +87,12 @@ export function grantRewards(tables, state, rewards, depth = 0, context = {}) {
             recordResourceAcquisition(state, itemtype, itemid, itemnum)
             addItems(state, [reward])
             if (state.home) refreshAutoCropShortcut(tables, state, itemid)
+        } else if (itemtype === 21) {
+            ensure(itemnum === 1, 'World point reward is unique', ErrorCode.GameConfig)
+            grantWorldPoint(tables, state, itemid)
+            // Type 21 changes MapStore's unlock set via 9105, not a bag stack.
+            // Current ResType has no 21 presentation; do not send an empty item card.
+            continue
         } else if (itemtype === 20) {
             changeTaskItem(tables, state, itemid, itemnum)
         } else if (itemtype === 5) {
@@ -124,6 +132,11 @@ export function grantRewards(tables, state, rewards, depth = 0, context = {}) {
             ensure(tables.find('mount_saddle', itemid), 'Unknown mount saddle', ErrorCode.MountSaddleConfNotFound)
             state.mountSaddles ??= tables.get('mount_saddle').map((r) => r.id)
             if (!state.mountSaddles.includes(itemid)) state.mountSaddles.push(itemid)
+        } else if (itemtype === 41) {
+            ensure(itemnum === 1, 'Vehicle reward is unique', ErrorCode.GameConfig)
+            const vehicle = grantVehicle(tables, state, itemid)
+            if (vehicle) granted.push({ ...reward, guid: vehicle.guid })
+            continue
         } else if (itemtype === 40) {
             ensureHome(tables, state)
             grantDormStyle(tables, state, itemid)

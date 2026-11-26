@@ -17,7 +17,7 @@ import { expireTaskTrialGroup, trialPayload } from './trial-groups.js'
 import { validateTaskTransfer } from '../task-scenes.js'
 import { heroBattleLimits, heroModules, syncBattle } from '../battle.js'
 import { ensure, group, pet, syncGroupControl } from './common.js'
-import { mountPayload, clearSceneMount } from '../mounts.js'
+import { mountPayload, clearSceneMount, ownedMount } from '../mounts.js'
 import { restoreLegacyHomeFormation } from '../home-formation.js'
 import { repairMainHeroType } from '../main-hero.js'
 import { campaignSnapshot, entrustChestSnapshot } from '../entrust.js'
@@ -572,9 +572,7 @@ export function registerWorld(on) {
         delete w.lastMountMetadata // Retire the withdrawn client-identity compatibility state.
         if (r.status === 1) {
             delete w.pendingMountExit
-            const mount = pet(c.state, arg)
-            ensure(!mount.work_status, 'Stationed pet cannot be mounted')
-            ensure(c.tables.find('mount', mount.config_id), 'Pet is not a mount', ErrorCode.PetIsNotMount)
+            const { mount } = ownedMount(c.tables, c.state, arg)
             const scene = c.tables.find('world_city', w.map_id)
             ensure(scene, 'Mount scene configuration is missing', ErrorCode.NoWorldCityConf)
             ensure(
@@ -611,7 +609,7 @@ export function registerWorld(on) {
         const w = c.state.world
         if (isExitedMountAction(c)) return {}
         ensure(w.status === 1 && w.mount && w.mount !== '0', 'Player is not mounted', ErrorCode.PlayerNotInMountType)
-        pet(c.state, w.mount)
+        ownedMount(c.tables, c.state, w.mount)
         // TODO: Reconstruct official mount satiety drain/recovery and sync semantics.
         // Until then satiety is intentionally not part of local action validation.
         w.last_mount_action = { action: r.action, time: c.now }

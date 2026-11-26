@@ -1,6 +1,7 @@
 import { invalidateTrackedHeroes, observeAcceptedHeroVitals } from './medicine-state.js'
 import { numericGeneAttributes } from './pet-gene-numeric.js'
 import { effectGeneSkills } from './pet-dna-skills.js'
+import { vehicleBattleAttributes } from './vehicles.js'
 import { petSoulAttributes } from './pet-star-soul.js'
 import { runeBonuses, ornamentAttributes, ornamentSkills } from './hero-equipment.js'
 import { temporaryHeroes, temporaryPets, activeFormationManager } from './trial-actors.js'
@@ -246,7 +247,7 @@ export function syncBattle(c) {
     const pets = [...c.state.pets, ...temporaryPets(c.state)]
         .filter((p) => c.tables.find('template_value', p.config_id))
         .map((p) => petModules(c.tables, c.state, p, heros))
-    c.push('CSProtoHeroAttrInfoSync', { heros: [...heros, ...pets] })
+    c.push('CSProtoHeroAttrInfoSync', { heros: [...heros, ...pets, ...vehicleBattleAttributes(c.tables, c.state)] })
     const active = activeFormationManager(c.state),
         formation = active?.groups.find((entry) => entry.id === active.cur_group),
         heroIds = new Set((formation?.heros ?? []).map((entry) => entry.hero_id)),
