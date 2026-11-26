@@ -28,7 +28,7 @@ export class MallCatalog {
             reset_time: String(period.end),
             unlock_cond_id: condition.ids,
             unlock_progress: condition.progress,
-            is_all_cond_done: condition.passed,
+            is_all_cond_done: condition.processPassed,
         }
     }
     window(row, now) {

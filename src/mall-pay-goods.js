@@ -30,7 +30,12 @@ export function payGoodsPlan(c, r, catalog) {
         'Mall purchase is outside its schedule',
         ErrorCode.MallBuyTimeInvalid,
     )
-    ensure(goodsCondition.passed, 'Pay goods ownership condition is not met', ErrorCode.MallGoodsDynamicCondInvalid)
+    ensure(
+        goodsCondition.processPassed,
+        'Pay goods progress condition is not met',
+        ErrorCode.MallGoodsDynamicCondInvalid,
+    )
+    ensure(goodsCondition.staticPassed, 'Pay goods static condition is not met', ErrorCode.MallGoodsStaticCondInvalid)
     const wire = catalog.goods(true, goods.goodsId, c.state, c.now)
     ensure(
         Number.isSafeInteger(wire.curr_purchase_num) &&

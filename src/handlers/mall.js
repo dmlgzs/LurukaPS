@@ -6,6 +6,7 @@ import { grantRewards, parseRewards } from '../rewards.js'
 import { WorldObjectCatalog } from '../world-objects.js'
 import { registerPayGoods } from '../mall-pay-goods.js'
 import { takeRechargePopup } from '../mall-popup.js'
+import { mallConditions } from '../mall-conditions.js'
 export function registerMall(on, tables) {
     const catalog = new MallCatalog(tables),
         drops = new WorldObjectCatalog(tables)
@@ -24,6 +25,14 @@ export function registerMall(on, tables) {
             'Unsupported mall purchase condition',
             ErrorCode.InvalidProtoID,
         )
+        const condition = mallConditions(tables, c.state, goods.commonCondition)
+        ensure(condition.supported, 'Mall condition type is not implemented', ErrorCode.FunctionClosed)
+        ensure(
+            condition.processPassed,
+            'Mall goods progress condition is not met',
+            ErrorCode.MallGoodsDynamicCondInvalid,
+        )
+        ensure(condition.staticPassed, 'Mall goods static condition is not met', ErrorCode.MallGoodsStaticCondInvalid)
         const wire = catalog.goods(false, goods.goodsId, c.state, c.now)
         ensure(
             wire.is_all_cond_done &&
