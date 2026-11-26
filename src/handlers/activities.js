@@ -9,12 +9,14 @@ import { spend, spendCurrency } from '../inventory.js'
 import { rewardSource } from '../reward-source.js'
 import { rollActivityRewardDrop } from '../activity-drop-currency.js'
 import { activityConditionUnlocked } from '../activity-access.js'
+import { claimVersionSign } from '../activity-version-sign.js'
 
 export function registerActivities(on, tables, options = {}) {
     const catalog = new ActivityCatalog(tables, options),
         drops = new WorldObjectCatalog(tables)
     registerKiboTours(on, catalog)
     const activityTables = catalog.tables
+    on('ActivityVersionSign', (c, r) => claimVersionSign(c, catalog, r.u32))
     const publish = (c) => catalog.notify(c, true)
     const grant = (c, items) => {
         const rewards = grantRewards(tables, c.state, items)

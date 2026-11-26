@@ -13,6 +13,7 @@ import { activityRepeatStarValue } from './activity-repeat-star.js'
 import { staticTimeRows, shopTimeDefinitions, mergeCommonTime } from './time-definitions.js'
 import { mallCommonTimeDefinitions } from './mall-time-policy.js'
 import { activityWindow, activityUnlocked, activityGuideIssues } from './activity-access.js'
+import { versionSignSnapshot } from './activity-version-sign.js'
 
 export class ActivityCatalog {
     constructor(tables, { tourPolicy, cultRankReader } = {}) {
@@ -85,7 +86,7 @@ export class ActivityCatalog {
                             const required = condition.__type_TaskConditionBaseData?.__type_TaskCondDungeonData
                             const receipt = state.storyCampaignClears?.[required?.dungeonId]
                             return (
-                                required?.isOver === 1 &&
+                                (required?.isOver === true || required?.isOver === 1) &&
                                 (!dungeonId || required.dungeonId === dungeonId) &&
                                 receipt?.count >= Math.max(1, required.count ?? 1) &&
                                 receipt.task_proof
@@ -275,6 +276,8 @@ export class ActivityCatalog {
                         reward_count: entry.sign.reward_count,
                     }
                 else data.sign = { count: entry.sign.count, time: entry.sign.time, show: !entry.sign.hidden }
+            } else if (row.type === 4) {
+                data.version_sign = versionSignSnapshot(this.tables, entry, row, now, (time) => this.day(time))
             } else if (row.type === 30) {
                 data.submit_item_task = {
                     cur_order: 1,
