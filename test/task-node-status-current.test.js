@@ -12,6 +12,8 @@ import { Tables } from '../src/player.js'
 import { Protocol } from '../src/protocol.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
+import { taskPackageEligible } from '../src/task-package-scope.js'
+import taskPackagePolicy from '../configs/task-package-scope-policy.json' with { type: 'json' }
 
 const state = (extra = {}) => ({ player: { basic_info: { lv: 15 } }, tasks: [], taskRecords: [], ...extra })
 const consumers = [
@@ -96,7 +98,12 @@ test('damaged relevant completion state fails explicitly rather than letting his
 })
 
 test('existing level, home-level and task-node unlock conditions keep their independent requirements', () => {
-    const graph = { config: { unlockcondition: '2004#15|12045#106015#24' }, requirements: [] }
+    const tables = new Tables(configuration().tables),
+        formal = tables.find('task', 106001)
+    assert.equal(formal.isReviewMode_tishen, 0)
+    // A compound-condition unit fixture, not the real106001 acceptance rule.
+    // Keep its actual current id/package metadata before overriding this rule.
+    const graph = { config: { ...formal, unlockcondition: '2004#15|12045#106015#24' }, requirements: [] }
     const s = state({ tasks: [{ task_id: 106015, finish_nodes: [24] }], home: { level: 3, stage: 2 } })
     assert(taskUnlocked(graph, s))
     assert(homeCondition('15017#3|12045#106015#24', s))
@@ -110,6 +117,37 @@ test('existing level, home-level and task-node unlock conditions keep their inde
     assert(!homeCondition('15017#3|12045#106015#24', s))
     s.tasks[0].finish_nodes = [23]
     assert(!taskUnlocked(graph, s))
+})
+
+test('current formal/review package metadata gates before the same node rule and missing metadata stays invalid', () => {
+    const tables = new Tables(configuration().tables),
+        formal = tables.find('task', 106001),
+        review = tables.find('task', 106003)
+    assert.equal(formal.isReviewMode_tishen, 0)
+    assert.equal(review.isReviewMode_tishen, 2)
+    assert.equal(taskPackagePolicy.isReviewPackage, false, 'the current server deployment is formal')
+    const graph = (config) => ({ config: { ...config, unlockcondition: '2004#15|12045#106015#24' }, requirements: [] })
+    const s = state({ tasks: [{ task_id: 106015, finish_nodes: [24] }] })
+    assert.equal(taskUnlocked(graph(formal), s), true)
+    assert.equal(taskUnlocked(graph(review), s), false)
+    assert.equal(
+        taskUnlocked(graph(review), { ...s, isReviewPackage: true }),
+        false,
+        'player flags cannot select the deployment package',
+    )
+    const reviewDeployment = { ...taskPackagePolicy, isReviewPackage: true }
+    assert.equal(taskPackageEligible(formal, reviewDeployment), false)
+    assert.equal(taskPackageEligible(review, reviewDeployment), true)
+    for (const config of [
+        { id: formal.id, unlockcondition: '2004#15|12045#106015#24' },
+        { ...formal, isReviewMode_tishen: '0' },
+    ])
+        assert.throws(
+            () => taskUnlocked(graph(config), s),
+            (error) => error.code === ErrorCode.GameConfig,
+        )
+    s.tasks[0].finish_nodes = []
+    assert.equal(taskUnlocked(graph(formal), s), false, 'formal package metadata does not complete the tested node')
 })
 
 test('real Journey sync cache changes generation when an archived task becomes active, completes a node or returns to archive', () => {

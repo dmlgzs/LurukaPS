@@ -7,12 +7,13 @@ import { Protocol } from '../src/protocol.js'
 import { Game } from '../src/game.js'
 import { recordGuidedKill, recoverInitialDungeonKills } from '../src/task-kills.js'
 import { guidedConditionValue } from '../src/guided-conditions.js'
+import { activeFormationManager } from '../src/trial-actors.js'
 const cfg = configuration(),
     tables = new Tables(cfg.tables),
     protocol = new Protocol(cfg.base)
 function fixture() {
     const store = new Store(':memory:'),
-        game = new Game(protocol, store, tables),
+        game = new Game(protocol, store, tables, { clock: () => 1800000000 }),
         session = {}
     let seq = 1
     const call = (name, r = {}) => {
@@ -50,10 +51,13 @@ test('table-guided400084 kill counts once, syncs the goal and permits the config
     const f = fixture()
     try {
         const s = f.state(),
-            source = s.player.heros_info.heros[0].guid,
+            formation = activeFormationManager(s),
+            source = formation.groups.find((group) => group.id === formation.cur_group).control,
             hp = s.combat.entities[target].hp
+        let reportTime = 1800000000000
         assert.equal(guidedConditionValue(1070161, s, context), 0)
         const packets = f.call('BattleInfoReduce', {
+            base_time: String(++reportTime),
             uint64_dic: [source, target],
             battle_info: [{ hurt_info: { from_id: '1', tar_id: '2', hp_change: -hp } }],
         })
@@ -61,6 +65,7 @@ test('table-guided400084 kill counts once, syncs the goal and permits the config
         assert.equal(guidedConditionValue(1070161, f.state(), context), 1)
         assert.ok(packets.some((p) => p.id === 9860 || protocol.byId.get(p.id)?.name === 'CSProtoTaskSync'))
         f.call('BattleInfoReduce', {
+            base_time: String(++reportTime),
             uint64_dic: [source, target],
             battle_info: [{ hurt_info: { from_id: '1', tar_id: '2', hp_change: -hp } }],
         })
