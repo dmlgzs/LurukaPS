@@ -3,6 +3,7 @@ import { beginMountActionLifecycle, endMountActionLifecycle, isExitedMountAction
 import { recoverFallPosition, acceptFallRecoveryMovement, resetFallRecoveryScope } from '../fall-recovery.js'
 import { resetPlayerBattleRelations } from './world-combat.js'
 import { ErrorCode } from '../error-codes.js'
+import { isCurrentSavedWorldObject } from '../world-repairs.js'
 import { checkpointSnapshot } from '../world-checkpoints.js'
 import { clearAbyssRuntime, publishAbyssExit } from '../abyss-flow.js'
 import { abyssHeroMapElements } from '../abyss-buffs.js'
@@ -249,7 +250,7 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
             ...(s.abyssRun?.map_id === w.map_id ? { map_ele: abyssHeroMapElements(c.tables, s.abyssRun) } : {}),
             ...(r.campaign_start ? { campaign_start: r.campaign_start } : {}),
             objs: Object.entries(s.worldObjects ?? {})
-                .filter(([key]) => key.startsWith(w.map_id + ':'))
+                .filter(([key]) => key.startsWith(w.map_id + ':') && isCurrentSavedWorldObject(c.tables, s, key))
                 .map(([, record]) => {
                     const { claims, ...obj } = record
                     return obj

@@ -13,12 +13,13 @@ export function hiddenTaskPetGuids(tables, state) {
             const conditions = nodeConditions(graphs.get(task.task_id).nodes.get(node.node_id))
             const index = conditions.findIndex((c) => {
                 const d = c.__type_TaskConditionBaseData?.__type_TaskCondOpenPageData
-                // Exported page enum 97 resolves to pageGetPet in CBT3.
+                // 1.0 TaskCondOpenPageData stores the literal page name and
+                // bool flags. Enum97 belongs only to old explicit graph exports.
                 return (
                     c.conditionId === 2508 &&
-                    d?.openPageName?.attrButeInfos === 97 &&
-                    d.autoOpen === 0 &&
-                    d.isCloseOver === 1
+                    (d?.openPageName === 'pageGetPet' || d?.openPageName?.attrButeInfos === 97) &&
+                    [false, 0].includes(d.autoOpen) &&
+                    [true, 1].includes(d.isCloseOver)
                 )
             })
             if (index < 0 || node.client_cond_after?.[index] || node.node_values?.[index] > 0) continue

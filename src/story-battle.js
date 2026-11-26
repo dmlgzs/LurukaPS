@@ -10,6 +10,7 @@ import { createHash } from 'node:crypto'
 import { guidedKillRule } from './guided-conditions.js'
 import { recordGuidedKill } from './task-kills.js'
 import { teachingKillReady } from './teaching-kill-conditions.js'
+import { taskOverrideNodeIds } from './task-action-data.js'
 import { settleStoryCampaignScene, endStoryCampaignScene } from './handlers/story-campaign.js'
 function activeStoryGroup(tables, state, def, world, graphs) {
     for (const task of state.tasks)
@@ -54,7 +55,7 @@ function activeStoryGroup(tables, state, def, world, graphs) {
                 if (enemies.useExistEnemy && enemies.createNpcId === def.object_id)
                     groups.push(
                         ...graph.controllers
-                            .filter((c) => asList(c.field_530003).includes(node.node_id))
+                            .filter((c) => taskOverrideNodeIds(c).includes(node.node_id))
                             .flatMap((c) => asList(c.__type_TaskCreateBattleUnitDataController?.enemiesDatas)),
                     )
                 const data = groups.find((g) => g?.sceneId === state.world.map_id && g.createNpcId === def.object_id)

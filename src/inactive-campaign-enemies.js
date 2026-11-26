@@ -1,6 +1,7 @@
 import { WorldObjectCatalog } from './world-objects.js'
 import { TaskGraphs, asList, nodeConditions } from './tasks.js'
 import { abyssTables } from './abyss-catalog.js'
+import { taskOverrideNodeIds } from './task-action-data.js'
 const catalogs = new WeakMap()
 export function inactiveCampaignEnemyGroup(tables, state, uuid) {
     const id = BigInt(uuid),
@@ -47,7 +48,7 @@ export function inactiveCampaignEnemyGroup(tables, state, uuid) {
             )
                 return null
             for (const controller of graph.controllers)
-                if (asList(controller.field_530003).includes(node.node_id))
+                if (taskOverrideNodeIds(controller).includes(node.node_id))
                     if (
                         asList(controller.__type_TaskCreateBattleUnitDataController?.enemiesDatas).some(
                             (d) => d.npcId === objectId || d.createNpcId === objectId,

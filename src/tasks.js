@@ -8,6 +8,8 @@ import { ensure } from './handlers/common.js'
 import { guidedConditionValue, guidedRequirement } from './guided-conditions.js'
 import { taskEnemyPacks } from './task-enemy-slots.js'
 import { workFoodTaskConditionValue, clearWorkFoodTaskWitnesses } from './task-work-food-witness.js'
+import { taskActionData, taskOverrideNodeIds } from './task-action-data.js'
+import { currentTaskAvailable, suspendedTaskIds } from './task-compatibility.js'
 export const asList = (value) => (value == null ? [] : Array.isArray(value) ? value : [value])
 export class TaskGraphs {
     constructor(tables, directory = path.resolve(tables.dir, '../Config/Task')) {
@@ -113,7 +115,7 @@ export function conditionValue(condition, state, context) {
     if (condition.conditionId === 12017) {
         const dungeon = base.__type_TaskCondDungeonData
         const clear = state.storyCampaignClears?.[dungeon?.dungeonId]
-        return dungeon?.isOver === 1 && clear && clear.count >= Math.max(1, dungeon.count ?? 1) ? 1 : 0
+        return [true, 1].includes(dungeon?.isOver) && clear && clear.count >= Math.max(1, dungeon.count ?? 1) ? 1 : 0
     }
     if (condition.conditionId === 2518) {
         const achievId = base.__type_TaskCondGuidedAchievementsData?.achievId
@@ -194,7 +196,8 @@ export function conditionTargetValue(condition) {
           : 1
 }
 export function conditionSatisfied(condition, value) {
-    return condition.__type_TaskConditionBaseData?.unneedCompleted === 1 || value >= conditionTargetValue(condition)
+    const optional = condition.__type_TaskConditionBaseData?.unneedCompleted
+    return optional === true || optional === 1 || value >= conditionTargetValue(condition)
 }
 export function activeTask(state, id) {
     const task = state.tasks.find((t) => t.task_id === id)
@@ -446,10 +449,14 @@ function nextLevelLockedMain(tables, state) {
     return candidates[0]?.id ?? 0
 }
 export function taskSnapshot(tables, state) {
-    const visibleTasks = state.tasks.filter((task) => taskVisibleAtLevel(tables, state, task))
+    const visibleTasks = state.tasks.filter(
+        (task) => currentTaskAvailable(tables, task.task_id) && taskVisibleAtLevel(tables, state, task),
+    )
     const hiddenTasks = state.tasks.filter((task) => !visibleTasks.includes(task))
     const main = visibleTasks.find((task) => tables.find('task', task.task_id)?.type === 1)
     const hiddenMain = hiddenTasks.find((task) => tables.find('task', task.task_id)?.type === 1)
+    // Current TaskStore keeps completed IDs in m_finishTask without loading
+    // graphs; later current conditions may still reference historical facts.
     const taskRecords = (state.taskRecords ?? []).map((record) => ({ ...record }))
     if (state.world?.unlockAllMaps) {
         const unlockTaskIds = new Set()
@@ -471,10 +478,15 @@ export function taskSnapshot(tables, state) {
     return {
         tasks: visibleTasks,
         ...taskItemSnapshot(state),
-        del_tasks: hiddenTasks.map((task) => task.task_id),
+        del_tasks: [...new Set([...hiddenTasks.map((task) => task.task_id), ...suspendedTaskIds(state)])],
         task_records: taskRecords,
         trace_list: visibleTasks.filter((task) => task.client_trace).map((task) => task.task_id),
-        del_trace_list: hiddenTasks.filter((task) => task.client_trace).map((task) => task.task_id),
+        del_trace_list: [
+            ...new Set([
+                ...hiddenTasks.filter((task) => task.client_trace).map((task) => task.task_id),
+                ...suspendedTaskIds(state),
+            ]),
+        ],
         // The client treats next_main_id as an unaccepted placeholder. An
         // accepted main must clear it, even when it is the same story ID.
         next_main_id: main ? 0 : (hiddenMain?.task_id ?? nextLevelLockedMain(tables, state)),
@@ -491,11 +503,11 @@ function storyReported(state, storyId, tag = 0) {
 export function deferTaskSyncUntilAfterStories(state, taskId, nodeId, config) {
     const node = config.__type_TaskConditionNodeData ?? config,
         stories = asList(node.afterActionList)
-            .map((action) => action.dataType?.__type_TaskOpenStoryData)
+            .map((action) => taskActionData(action).__type_TaskOpenStoryData)
             // TaskEntityOpenStory binds PlayStoryOver to WaitFlow's end callback
             // for 0, and begin callback for 1. After already proves end for 0;
             // only a begin callback needs a separate story-completion barrier.
-            .filter((story) => story?.isPlayEndCb === 1)
+            .filter((story) => story?.isPlayEndCb === true || story?.isPlayEndCb === 1)
             .filter((story) => Number.isInteger(story?.storyId) && story.storyId > 0)
             .map((story) => ({ story_id: story.storyId, tag: story.storyTag ?? 0 }))
             .filter((story) => !storyReported(state, story.story_id, story.tag))
@@ -562,16 +574,16 @@ function clearedDungeonNode(tables, graph, node, state) {
         before.some(
             (action) =>
                 !(
-                    (action.contentType === 1400 && action.dataType?.__type_TaskCreatNPCExportData) ||
+                    (action.contentType === 1400 && taskActionData(action).__type_TaskCreatNPCExportData) ||
                     (action.contentType === 1600 &&
                         action.conditionId === 2705 &&
-                        action.dataType?.__type_TaskDeleteNPCExportData)
+                        taskActionData(action).__type_TaskDeleteNPCExportData)
                 ),
         )
     )
         return null
     const required = nodeConditions(config).filter(
-        (condition) => condition.__type_TaskConditionBaseData?.unneedCompleted !== 1,
+        (condition) => ![true, 1].includes(condition.__type_TaskConditionBaseData?.unneedCompleted),
     )
     if (
         !required.length ||
@@ -582,7 +594,7 @@ function clearedDungeonNode(tables, graph, node, state) {
                     state.storyCampaign?.dungeon_id === data.dungeonId &&
                     state.storyCampaign.status !== 3) ||
                 condition.conditionId !== 12017 ||
-                data?.isOver !== 1 ||
+                ![true, 1].includes(data?.isOver) ||
                 conditionValue(condition, state) < 1 ||
                 !hasVerifiedTaskDungeonClear(tables, state, data.dungeonId)
             )
@@ -620,8 +632,9 @@ export function reconcileTaskBefore(tables, graph, task, node, state) {
         asList(config.__type_TaskConditionNodeData?.afterActionList).length
     )
         return false
-    const point = actions[0]?.dataType?.__type_TaskTransferBaseData?.transferPointId
-    if (!point || !actions[1]?.dataType?.__type_TaskCreatNPCExportData || state.world.point_id !== point) return false
+    const point = actions[0] && taskActionData(actions[0]).__type_TaskTransferBaseData?.transferPointId
+    if (!point || !taskActionData(actions[1]).__type_TaskCreatNPCExportData || state.world.point_id !== point)
+        return false
     const birth = tables.find('world_borthpos', point)
     if (birth?.cityId !== state.world.map_id) return false
     const conditions = nodeConditions(config)
@@ -694,7 +707,7 @@ export function refreshTaskProgress(tables, state) {
                         // not this condition's enemiesDatas. Client group-removal
                         // callbacks may be absent; verify every configured slot.
                         const groups = graph.controllers
-                            .filter((controller) => asList(controller.field_530003).includes(node.node_id))
+                            .filter((controller) => taskOverrideNodeIds(controller).includes(node.node_id))
                             .flatMap((controller) =>
                                 asList(controller.__type_TaskCreateBattleUnitDataController?.enemiesDatas),
                             )

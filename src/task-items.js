@@ -1,5 +1,6 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
+import { taskActionData } from './task-action-data.js'
 
 export function taskItemCount(state, id) {
     return state.taskItems?.find((item) => item.item_id === id)?.item_num ?? 0
@@ -35,10 +36,11 @@ function itemActions(config, phase) {
     return list(node?.[phase === 'before' ? 'beforActionList' : 'afterActionList']).flatMap((action, index) => {
         if (![1300, 1500].includes(action.contentType)) return []
         // The CBT3 exporter names the creation subtype "bagType".
+        const payload = taskActionData(action)
         const data =
             action.contentType === 1300
-                ? (action.dataType?.__type_TaskCreatItemData ?? action.dataType?.bagType)
-                : action.dataType?.__type_TaskDeleteItemData
+                ? (payload.__type_TaskCreatItemData ?? payload.bagType)
+                : payload.__type_TaskDeleteItemData
         ensure(
             data && Number.isInteger(data.itemId) && Number.isInteger(data.itemCount) && data.itemCount > 0,
             'Invalid task item action',

@@ -1,6 +1,7 @@
 import { ensure } from './handlers/common.js'
 import { WorldObjectCatalog } from './world-objects.js'
 import { TaskGraphs, asList } from './tasks.js'
+import { taskOverrideNodeIds } from './task-action-data.js'
 const catalogs = new WeakMap()
 function definedIn(value, id, map, depth = 0) {
     if (!value || typeof value !== 'object' || depth > 12) return false
@@ -27,10 +28,12 @@ export function recordWorldDiscovery(tables, state, ids) {
                 return (
                     task.nodes.some((node) => definedIn(graph.nodes.get(node.node_id), id, map)) ||
                     asList(graph.npcs).some(
-                        (data) => asList(data.field_520407).some((node) => nodes.has(node)) && definedIn(data, id, map),
+                        (data) =>
+                            taskOverrideNodeIds(data, 'field_520407').some((node) => nodes.has(node)) &&
+                            definedIn(data, id, map),
                     ) ||
                     graph.controllers.some(
-                        (data) => asList(data.field_530003).some((node) => nodes.has(node)) && definedIn(data, id, map),
+                        (data) => taskOverrideNodeIds(data).some((node) => nodes.has(node)) && definedIn(data, id, map),
                     )
                 )
             })

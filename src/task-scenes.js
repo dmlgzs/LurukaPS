@@ -1,6 +1,7 @@
 import { ErrorCode } from './error-codes.js'
 import { TaskGraphs, asList } from './tasks.js'
 import { ensure } from './handlers/common.js'
+import { taskActionData, taskOverrideNodeIds } from './task-action-data.js'
 const graphsByTables = new WeakMap()
 function catalog(tables) {
     let graphs = graphsByTables.get(tables)
@@ -18,7 +19,7 @@ export function taskActions(node, phase = 'before') {
         node.__type_TaskEndExportData ??
         {}
     return asList(phase === 'before' ? (data.beforActionList ?? data.actionList) : data.afterActionList).map(
-        (a) => a.dataType ?? {},
+        taskActionData,
     )
 }
 export function taskBirthPoint(tables, id, map) {
@@ -75,13 +76,26 @@ export function prepareTaskScenes(tables, state, { login = false } = {}) {
             else if (
                 login &&
                 graph.controllers.some(
-                    (c) => c.__type_TaskTeamController && asList(c.field_530003).includes(node.node_id),
+                    (c) => c.__type_TaskTeamController && taskOverrideNodeIds(c).includes(node.node_id),
                 )
             ) {
                 const checkpoint = graph.transports
                     .map((x) => x.__type_TaskNodeTransposData)
                     .find((d) => d && asList(d.taskKeepList).includes(node.node_id))
-                if (checkpoint) point = taskBirthPoint(tables, checkpoint.transPoint)
+                if (checkpoint) {
+                    // TaskGetStaticDataHandler.GetTaskTransferData 0602ee99
+                    // logs and returns false when an optional static resume
+                    // point is absent. It is not a mandatory transfer action.
+                    point = tables.find('world_borthpos', checkpoint.transPoint)
+                    if (!point) {
+                        state.compatibilityDiagnostics ??= {}
+                        state.compatibilityDiagnostics.taskStaticTransfers ??= {}
+                        state.compatibilityDiagnostics.taskStaticTransfers[key] = {
+                            reason: 'static-task-transfer-point-unavailable',
+                            point_id: checkpoint.transPoint,
+                        }
+                    }
+                }
             }
             if (!point) continue
             if (state.world.map_id !== point.cityId) {

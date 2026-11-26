@@ -1,4 +1,24 @@
 import { WorldObjectCatalog } from './world-objects.js'
+import { createHash } from 'node:crypto'
+
+function unavailableSavedRepair(tables, map, id, record) {
+    // This 1.0.0 export retains recipe 10121, but removed world object
+    // 2610017. Match the complete current map ID export before treating its
+    // absence as legacy content; arbitrary missing current rows still fail.
+    if (map !== 100 || id !== 2610017 || record.claims?.repair?.id !== 10121) return false
+    const rows = tables.get('worldmap_100')
+    return (
+        !rows.some((row) => row.id === id) &&
+        createHash('sha256')
+            .update(JSON.stringify(rows.map((row) => row.id).sort((a, b) => a - b)))
+            .digest('hex') === '7a8c24c143a5e4675957e0e290d8412215e06cf1c650400c6663d23b619d2881'
+    )
+}
+
+export function isCurrentSavedWorldObject(tables, state, key) {
+    const [map, id] = key.split(':').map(Number)
+    return !unavailableSavedRepair(tables, map, id, state.worldObjects?.[key] ?? {})
+}
 export function applyRepairVisuals(tables, state, map, objectId, catalog = new WorldObjectCatalog(tables)) {
     const records = (state.worldObjects ??= {}),
         root = records[`${map}:${objectId}`]
@@ -35,6 +55,16 @@ export function repairSavedWorldRepairs(tables, state) {
         const [map, id] = key.split(':').map(Number),
             config = tables.find('common_world_repair', record.claims.repair.id)
         if (config?.cityId !== map || config.worldmapId !== id) continue
+        if (unavailableSavedRepair(tables, map, id, record)) {
+            state.compatibilityDiagnostics ??= {}
+            state.compatibilityDiagnostics.worldRepairs ??= {}
+            state.compatibilityDiagnostics.worldRepairs[key] = {
+                version: '1.0.0',
+                reason: 'unavailableCurrentObject',
+                repairId: config.id,
+            }
+            continue
+        }
         applyRepairVisuals(tables, state, map, id, catalog)
     }
 }

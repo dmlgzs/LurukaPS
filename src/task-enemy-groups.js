@@ -1,4 +1,5 @@
 import { TaskGraphs, asList } from './tasks.js'
+import { taskOverrideNodeIds } from './task-action-data.js'
 const catalogs = new WeakMap()
 export function taskEnemyGroups(tables, state) {
     let catalog = catalogs.get(tables)
@@ -15,12 +16,19 @@ export function taskEnemyGroups(tables, state) {
     for (const task of state.tasks ?? []) {
         const graph = graphs.get(task.task_id),
             nodes = new Set(task.nodes.map((node) => node.node_id))
-        for (const controller of graph.controllers) {
-            if (!asList(controller.field_530003).some((id) => nodes.has(id))) continue
+        for (const [controllerIndex, controller] of graph.controllers.entries()) {
+            if (!taskOverrideNodeIds(controller).some((id) => nodes.has(id))) continue
             for (const data of asList(controller.__type_TaskCreateBattleUnitDataController?.enemiesDatas)) {
                 const groupId = data?.__type_TaskEnemiesOverrideData?.enemiesGroupId
                 if (!groupId || data.sceneId !== state.world.map_id) continue
-                groups.push({ groupId, objectId: data.createNpcId, taskConfig: graph.config, data })
+                groups.push({
+                    groupId,
+                    objectId: data.createNpcId,
+                    taskConfig: graph.config,
+                    data,
+                    taskId: task.task_id,
+                    controllerIndex,
+                })
             }
         }
     }

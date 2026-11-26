@@ -1,6 +1,7 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import policy from '../configs/hero-favor-ownership-policy.json' with { type: 'json' }
+import { currentHeroAvailable } from './hero-compatibility.js'
 
 const uint = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff
 const object = (value) => value && typeof value === 'object' && !Array.isArray(value)
@@ -100,6 +101,10 @@ export function permanentHeroFavorRecords(tables, state) {
         ids.add(id)
         configs.add(actor.conf_id)
         const config = rows.get(actor.conf_id)
+        // Preserve legacy ownership and favor in the save, but this exact
+        // unavailable 1.0 actor cannot contribute to current roster predicates.
+        // Unknown missing configurations retain the original dedicated error.
+        if (!config && actor.conf_id === 104001 && !currentHeroAvailable(tables, actor)) continue
         ensure(config, 'Hero favorability qualification is unavailable', ErrorCode.HeroFavorConfNone)
         result.push({ actor, config, id })
     }

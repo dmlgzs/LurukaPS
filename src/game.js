@@ -267,6 +267,8 @@ import { ensureAppearance, clothesSnapshot, heroSkinsSnapshot } from './appearan
 import { registerCollection } from './handlers/collection.js'
 import { registerWorld, repairLegacyMountState } from './handlers/world.js'
 import { registerMail } from './handlers/mail.js'
+import { projectCurrentHeroes, suspendUnavailableHeroFormations } from './hero-compatibility.js'
+import { suspendUnavailableTasks } from './task-compatibility.js'
 import { registerAppearancePresets, clothesPresetsSnapshot } from './appearance-presets.js'
 import { registerBulletRebounds } from './bullet-rebound.js'
 import { registerVehicles, vehicleSnapshot, vehicleBattleAttributes } from './vehicles.js'
@@ -894,6 +896,7 @@ export class Game {
             }
             const packets = this.store.transact(session.id, e.id, (state) => {
                 requireProductionWorkModel(state, this.productionWorkPolicy)
+                suspendUnavailableTasks(this.tables, state)
                 this.legacyMatchTeams.onLogin(session.id)
                 const previousMapId = state.world.map_id
                 delete state.world.mountActionLifecycle // A login never inherits prior-session exit authorization.
@@ -929,6 +932,7 @@ export class Game {
                 repairCharacterCreationMarker(state)
                 restoreLegacyHomeFormation(state)
                 repairMainHeroType(this.tables, state)
+                suspendUnavailableHeroFormations(this.tables, state)
                 ensureArenaFormationManager(state)
                 reconcileFormationPets(state)
                 upgradeInventory(state)
@@ -1422,6 +1426,7 @@ export class Game {
                     if (name === 'CSProtoWorldBuffSync') preparePersonalBuffPacket(state, this.tables, value)
                     if (name === 'CSProtoPetInfoSync') value = taskPetPresentation(this.tables, state, value)
                     if (name === 'CSProtoSyncPlayerData' && value) {
+                        value = projectCurrentHeroes(this.tables, state, value)
                         syncCurrencyMirrors(state.player)
                         const { sbag_infos, soulessence_infos, ...other } = value
                         value = {
@@ -2154,7 +2159,7 @@ export class Game {
             this.packet(
                 id,
                 {
-                    data: playerWithSoulStoryRecords(state),
+                    data: projectCurrentHeroes(this.tables, state, playerWithSoulStoryRecords(state)),
                     reconnect: !!r.reconnect,
                     time_zone: 8,
                     time: now,

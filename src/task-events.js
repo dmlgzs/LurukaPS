@@ -162,7 +162,7 @@ export function virtualStateReportTarget(data) {
 }
 function isLateOptionalNpc(condition, target) {
     const base = condition?.__type_TaskConditionBaseData
-    if (base?.unneedCompleted !== 1) return false
+    if (![true, 1].includes(base?.unneedCompleted)) return false
     const npc = base.__type_TaskCondNPCTriggerData
     const active = base.__type_TaskCondActiveNPCTriggerData ?? base.__type_TaskCondActiveSpecialNPCTriggerData
     const expected = npc?.npcId ?? (active?.isNowCreate ? active.npcData?.createNpcId : active?.createNpcId)

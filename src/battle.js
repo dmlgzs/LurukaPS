@@ -11,6 +11,7 @@ import { soulSkillsAtGrade } from './skills.js'
 import { heroGradeEffects } from './hero-grade.js'
 import { soulEssenceValue } from './soul-values.js'
 import { petHandbookAttributes, preparePetHandbook } from './pet-handbook.js'
+import { currentHeroAvailable } from './hero-compatibility.js'
 // CBT3 client evidence: ui_configtpl_herotpl.lua:getHeroConfigAtt;
 // ui_store_hero_data_heroattrmoduleinfo.lua:addSub; const.lua:SpecialAttList.
 export const specialAttributes = new Set([1, 3, 5, 201, 229, 230])
@@ -203,11 +204,18 @@ export function heroBattleLimits(info) {
     return { hp, sp }
 }
 export function refreshBattleState(tables, state) {
-    const heros = [...state.player.heros_info.heros, ...temporaryHeroes(state)].map((hero) =>
-        heroModules(tables, state, hero),
-    )
+    const heros = [...state.player.heros_info.heros, ...temporaryHeroes(state)]
+        .filter((hero) => currentHeroAvailable(tables, hero))
+        .map((hero) => heroModules(tables, state, hero))
     const previous = new Map((state.player.heros_info.battle_infos || []).map((x) => [x.hero_id, x]))
     const oldTracked = state.medicine?.tracked
+    const suspended = (state.player.heros_info.battle_infos || []).filter((row) =>
+        state.player.heros_info.heros.some((hero) => hero.guid === row.hero_id && !currentHeroAvailable(tables, hero)),
+    )
+    if (suspended.length) {
+        state.compatibilityDiagnostics ??= {}
+        state.compatibilityDiagnostics.suspendedHeroBattleInfos = suspended
+    }
     state.player.heros_info.battle_infos = heros.map((h) => {
         const { hp: maxhp, sp: maxsp } = heroBattleLimits(h)
         const old = previous.get(h.hero_guid)

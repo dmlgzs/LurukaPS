@@ -11,7 +11,7 @@ import { taskEnemyPacks } from '../src/task-enemy-slots.js'
 const cfg = configuration(),
     tables = new Tables(cfg.tables),
     protocol = new Protocol(cfg.base)
-test('206001 credits the pet kill of the only displayed slot, including an existing blocked save', () => {
+test('current 206001 waits for all three inline enemy slots and recovers only complete kill proof', () => {
     const store = new Store(':memory:'),
         game = new Game(protocol, store, tables),
         session = {}
@@ -41,10 +41,19 @@ test('206001 credits the pet kill of the only displayed slot, including an exist
         const state = store.load(session.id).state
         assert.equal(state.combat.entities[target].hp, 0)
         assert.equal(state.combat.entities[target].final_blow_guid, source)
-        assert.equal(state.tasks[0].nodes[0].node_values[0], 1)
+        assert.equal(state.tasks[0].nodes[0].node_values[0], 0, 'one of three current inline slots is insufficient')
         assert.equal(Object.values(state.combat.entities).filter((entity) => entity.object_id === 206001003).length, 1)
-        // Re-evaluate an old blocked save with only the real slot-0 tombstone.
-        const blocked = structuredClone(state)
+        for (const slot of [1, 2]) {
+            const id = ((4n << 56n) | (BigInt(slot) << 32n) | 206001003n).toString()
+            call('BattleInfoReduce', {
+                uint64_dic: [source, id],
+                battle_info: [{ hurt_info: { from_id: '1', tar_id: '2', hp_change: -2147483647 } }],
+            })
+        }
+        const complete = store.load(session.id).state
+        assert.equal(complete.tasks[0].nodes[0].node_values[0], 1)
+        // Re-evaluate an old blocked save only when all current slots are proven dead.
+        const blocked = structuredClone(complete)
         blocked.tasks[0].nodes[0].node_values = [0]
         blocked.taskEvents = {}
         assert.equal(refreshTaskProgress(tables, blocked).length, 1)

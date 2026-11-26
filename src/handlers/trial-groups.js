@@ -1,5 +1,6 @@
 import { invalidateTrackedHeroes, invalidateMedicineContext, reconcileMedicineContext } from '../medicine-state.js'
 import { ErrorCode } from '../error-codes.js'
+import { taskOverrideNodeIds } from '../task-action-data.js'
 import { trialSoulEssence, trialOrnaments, trialRuneIds } from '../trial-equipment.js'
 import { TaskGraphs, asList, nodeConditions } from '../tasks.js'
 import { ensure, manager, group } from './common.js'
@@ -163,7 +164,7 @@ export function restoreMixedTrialGroup(tables, state) {
                     .controllers.find(
                         (row) =>
                             row.__type_TaskTeamController &&
-                            task.nodes.some((n) => asList(row.field_530003).includes(n.node_id)),
+                            task.nodes.some((n) => taskOverrideNodeIds(row).includes(n.node_id)),
                     )
         forced = !!controller?.__type_TaskTeamController?.isForceChange
     }
@@ -263,7 +264,7 @@ export function expireTaskTrialGroup(tables, state) {
                 return (
                     d &&
                     asList(d.stateScene).includes(state.world.map_id) &&
-                    task.nodes.some((n) => asList(controller.field_530003).includes(n.node_id)) &&
+                    task.nodes.some((n) => taskOverrideNodeIds(controller).includes(n.node_id)) &&
                     trial.ids.every((id) => asList(d.teamMemberList).some((m) => m.memberId === id))
                 )
             }))
@@ -440,7 +441,7 @@ export function registerTrialGroups(on, tables) {
                 if (
                     !data ||
                     !asList(data.stateScene).includes(c.state.world.map_id) ||
-                    !task.nodes.some((n) => asList(controller.field_530003).includes(n.node_id))
+                    !task.nodes.some((n) => taskOverrideNodeIds(controller).includes(n.node_id))
                 )
                     continue
                 const members = asList(data.teamMemberList)
