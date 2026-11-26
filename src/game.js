@@ -267,6 +267,7 @@ import { ensureAppearance, clothesSnapshot, heroSkinsSnapshot } from './appearan
 import { registerCollection } from './handlers/collection.js'
 import { registerWorld, repairLegacyMountState } from './handlers/world.js'
 import { registerMail } from './handlers/mail.js'
+import { registerBulletRebounds } from './bullet-rebound.js'
 import { registerVehicles, vehicleSnapshot, vehicleBattleAttributes } from './vehicles.js'
 import { mailboxLegacyPush } from './mailbox.js'
 import { registerGiftCodes } from './gift-codes.js'
@@ -623,6 +624,10 @@ export class Game {
         this.legacyMatchTeams = registerLegacyMatchTeams(on, store, tables, (name, value, recipient) =>
             this.packet(name, value, { recipient }),
         )
+        registerBulletRebounds(on, store, {
+            isOnline: (id) => this.legacyMatchTeams.isOnline(id),
+            connectionKey: (id) => this.legacyMatchTeams.connectionKey(id),
+        })
         registerShortcuts(on)
         registerPhotoTemplates(on)
         registerChatCustomization(on)
