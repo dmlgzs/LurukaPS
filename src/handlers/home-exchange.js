@@ -1,3 +1,4 @@
+import { clearExchangeReservations } from '../home-exchange-clear.js'
 import {
     exchangeHistorySnapshot,
     ensureHomeExchange,
@@ -14,6 +15,7 @@ import {
     submitExchangeOrder,
 } from '../home-exchange-orders.js'
 export function registerHomeExchange(on, tables) {
+    on('CSCancelAllObj', clearExchangeReservations)
     on('CSHistoryReport', (c) => exchangeHistorySnapshot(c.state, true))
     on('CSExchangeObjInfo', (c) => {
         ensureHomeExchange(tables, c.state, c.now, c.randomInt)
