@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
-import { Tables } from '../src/player.js'
+import { Tables, seedPlayer } from '../src/player.js'
 import { Protocol } from '../src/protocol.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
@@ -12,23 +12,31 @@ import os from 'node:os'
 import path from 'node:path'
 const tables = new Tables(configuration().tables),
     protocol = new Protocol(configuration().base)
+const privateTestClocks = new Map()
 function fixture(name, store = new Store(':memory:'), initialize = true) {
-    let now = 1800000000,
+    const accountKey = name
+    let now = privateTestClocks.get(accountKey)?.now ?? 1800000000,
+        reportMs = privateTestClocks.get(accountKey)?.reportMs ?? 0,
         seq = 1,
         session = {}
     const game = new Game(protocol, store, tables, { clock: () => now })
     const call = (name, r = {}) => {
         const e = protocol.byName.get('CSProto' + name)
-        return game.dispatch(session, {
-            id: e.id,
-            seq: seq++,
-            payload: e.req ? protocol.encode(e.req, r) : Buffer.alloc(0),
-        })
+        try {
+            return game.dispatch(session, {
+                id: e.id,
+                seq: seq++,
+                payload: e.req ? protocol.encode(e.req, r) : Buffer.alloc(0),
+            })
+        } finally {
+            privateTestClocks.set(accountKey, { now, reportMs })
+        }
     }
     const login = () => {
         session = {}
         return call('EnterGame', { open_id: name })
     }
+    store.login(name, (id, account) => seedPlayer(tables, id, account, { mode: 'sandbox' }))
     login()
     const edit = (fn) => store.transact(session.id, 0, fn)
     if (initialize)
@@ -43,6 +51,7 @@ function fixture(name, store = new Store(':memory:'), initialize = true) {
         run = () => state().entrust?.run
     const start = () => {
         call('MultiCampaignCreate', { dungeon_id: 35750, scene_type: 12 })
+        call('MultiCampaignPlayerLoaded')
         call('MultiCampaignPlayerLoadFinish')
         const p = materialStoryPlan(tables, run())
         edit((s) => {
@@ -55,7 +64,24 @@ function fixture(name, store = new Store(':memory:'), initialize = true) {
     }
     const vote = (id = run().materialStory.story_id) => call('WorldVotingStartReq', { type: 1, params: [String(id)] })
     const end = () => call('PlayerStoryStop', { story_id: run().materialStory.story_id, op: 1 })
-    return { store, call, login, edit, state, run, start, vote, end, tick: (n) => (now += n), now: () => now }
+    return {
+        store,
+        call,
+        login,
+        edit,
+        state,
+        run,
+        start,
+        vote,
+        end,
+        tick: (n) =>
+            (() => {
+                now += n
+                privateTestClocks.set(accountKey, { now, reportMs })
+                return now
+            })(),
+        now: () => now,
+    }
 }
 const msg = (packets, name) => {
     const e = protocol.byName.get(name),

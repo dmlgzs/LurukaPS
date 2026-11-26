@@ -1,10 +1,11 @@
+import { activeFormationManager } from '../src/trial-actors.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { configuration } from '../src/config.js'
-import { Tables } from '../src/player.js'
+import { Tables, seedPlayer } from '../src/player.js'
 import { Protocol } from '../src/protocol.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
@@ -12,42 +13,81 @@ import { getEntrustCatalog } from '../src/entrust.js'
 import { materialStoryPlan } from '../src/multiple-material-story.js'
 import { WorldObjectCatalog } from '../src/world-objects.js'
 import { ErrorCode } from '../src/error-codes.js'
-import { weeklyQuotaView } from '../src/weekly-dungeons.js'
+import { weeklyQuotaView, weeklyDungeonUnlocked } from '../src/weekly-dungeons.js'
 const tables = new Tables(configuration().tables),
     protocol = new Protocol(configuration().base)
+const privateTestClocks = new Map()
 function fixture(name, store = new Store(':memory:'), initialize = true) {
-    let now = 1800000000,
+    const accountKey = name
+    let now = privateTestClocks.get(accountKey)?.now ?? 1800000000,
         seq = 1,
+        reportMs = privateTestClocks.get(accountKey)?.reportMs ?? 0,
         session = {}
     const game = new Game(protocol, store, tables, { clock: () => now, rng: () => 0 })
     const call = (name, r = {}, nonce, who = session) => {
         const e = protocol.byName.get('CSProto' + name)
-        return game.dispatch(who, {
-            id: e.id,
-            seq: nonce ?? seq++,
-            payload: e.req ? protocol.encode(e.req, r) : Buffer.alloc(0),
-        })
+        try {
+            return game.dispatch(who, {
+                id: e.id,
+                seq: nonce ?? seq++,
+                payload: e.req ? protocol.encode(e.req, r) : Buffer.alloc(0),
+            })
+        } finally {
+            privateTestClocks.set(accountKey, { now, reportMs })
+        }
     }
     const login = () => {
         session = {}
         return call('EnterGame', { open_id: name })
     }
+    store.login(name, (id, account) => seedPlayer(tables, id, account, { mode: 'sandbox' }))
     login()
     const state = () => store.load(session.id).state,
         edit = (fn) => store.transact(session.id, 0, fn)
     if (initialize)
         edit((s) => {
-            s.player.basic_info.lv = 70
+            s.player.basic_info.lv = Math.max(
+                70,
+                ...tables
+                    .get('dungeon_weekly')
+                    .flatMap((r) =>
+                        String(r.taskUnlock)
+                            .split('|')
+                            .map((t) => t.split('#').map(Number)),
+                    )
+                    .filter(([kind]) => kind === 2004)
+                    .map(([, level]) => level),
+            )
             ;(s.taskRecords ??= []).push({ task_id: 106013, count: 1 })
             s.entrust ??= { records: {}, starRewards: {}, nextInstanceId: 1 }
             s.entrust.records[8] = { entrust_id: 8, entrust_star: 1, success_time: String(now) }
             s.player.attr_infos.attrs.find((a) => a.attr_id === 3).attr_val = '10000'
             s.player.attr_infos.attrs.find((a) => a.attr_id === 104).attr_val = '999'
-            ;(s.taskRecords ??= []).push({ task_id: 106027, count: 1 })
+            // Exact current dungeon prerequisite tasks, not a blanket
+            // completed-task set and never a fabricated weekly victory.
+            for (const part of tables.get('dungeon_weekly').flatMap((row) => String(row.taskUnlock).split('|'))) {
+                const [kind, task] = part.split('#').map(Number)
+                if (kind === 12045 && !s.taskRecords.some((row) => row.task_id === task))
+                    s.taskRecords.push({ task_id: task, count: 1 })
+            }
         })
     const complete = (id = 101) => {
         const row = tables.find('dungeon_weekly', id)
+        assert(
+            weeklyDungeonUnlocked(row.taskUnlock, state()),
+            JSON.stringify({
+                weekly: id,
+                rule: row.taskUnlock,
+                level: state().player.basic_info.lv,
+                stars: Object.fromEntries(
+                    Object.entries(state().weeklyDungeonRecords ?? {}).map(([id, r]) => [id, r.star]),
+                ),
+                taskRecords: state().taskRecords,
+                activeTasks: state().tasks?.map((t) => t.task_id),
+            }),
+        )
         call('MultiCampaignCreate', { dungeon_id: row.dungeonId, scene_type: 12 })
+        call('MultiCampaignPlayerLoaded')
         call('MultiCampaignPlayerLoadFinish')
         const plan = materialStoryPlan(tables, state().entrust.run)
         edit((s) => {
@@ -61,11 +101,14 @@ function fixture(name, store = new Store(':memory:'), initialize = true) {
         const s = state(),
             targets = Object.values(s.combat.entities).filter((e) => e.hp > 0)
         call('BattleInfoReduce', {
-            uint64_dic: [s.player.heros_info.heros[0].guid, ...targets.map((e) => e.uuid)],
+            uint64_dic: [
+                activeFormationManager(s).groups.find((g) => g.id === activeFormationManager(s).cur_group).control,
+                ...targets.map((e) => e.uuid),
+            ],
             battle_info: targets.map((e, i) => ({
                 hurt_info: { from_id: '1', tar_id: String(i + 2), hp_change: -e.hp },
             })),
-            base_time: '0',
+            base_time: String(now * 1000 + ++reportMs),
         })
         assert.equal(state().entrust.run.battle_complete, true)
         return getEntrustCatalog(tables).chest(id, 'weekly')
@@ -83,7 +126,12 @@ function fixture(name, store = new Store(':memory:'), initialize = true) {
         balance,
         login,
         now: () => now,
-        tick: (n) => (now += n),
+        tick: (n) =>
+            (() => {
+                now += n
+                privateTestClocks.set(accountKey, { now, reportMs })
+                return now
+            })(),
         session: () => session,
         decode: (packets) =>
             protocol.decode(
@@ -111,9 +159,10 @@ function expected(box, weekly, mask) {
     }
     return [...merged.values()].sort((a, b) => a.itemtype - b.itemtype || a.itemid - b.itemid)
 }
-test('9974 all12 actual weekly chest routes pay the configured base/challenge drops with one40+1 fee', () => {
+test('9974 all18 actual weekly chest routes pay the configured base/challenge drops with one40+1 fee', () => {
     const f = fixture('weekly-chest-all12')
     try {
+        assert.equal(tables.get('dungeon_weekly').length, 18, 'the full current weekly catalogue must be exercised')
         for (const row of tables.get('dungeon_weekly')) {
             const box = f.complete(row.id),
                 before = f.state(),

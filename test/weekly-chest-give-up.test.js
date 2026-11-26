@@ -1,7 +1,8 @@
+import { activeFormationManager } from '../src/trial-actors.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
-import { Tables } from '../src/player.js'
+import { Tables, seedPlayer } from '../src/player.js'
 import { Protocol } from '../src/protocol.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
@@ -13,23 +14,31 @@ import os from 'node:os'
 import path from 'node:path'
 const tables = new Tables(configuration().tables),
     protocol = new Protocol(configuration().base)
+const privateTestClocks = new Map()
 function fixture(name, store = new Store(':memory:'), initialize = true) {
-    let now = 1800000000,
+    const accountKey = name
+    let now = privateTestClocks.get(accountKey)?.now ?? 1800000000,
         seq = 1,
+        reportMs = privateTestClocks.get(accountKey)?.reportMs ?? 0,
         session = {}
     const game = new Game(protocol, store, tables, { clock: () => now, rng: () => 0 })
     const call = (name, r = {}, nonce) => {
         const e = protocol.byName.get('CSProto' + name)
-        return game.dispatch(session, {
-            id: e.id,
-            seq: nonce ?? seq++,
-            payload: e.req ? protocol.encode(e.req, r) : Buffer.alloc(0),
-        })
+        try {
+            return game.dispatch(session, {
+                id: e.id,
+                seq: nonce ?? seq++,
+                payload: e.req ? protocol.encode(e.req, r) : Buffer.alloc(0),
+            })
+        } finally {
+            privateTestClocks.set(accountKey, { now, reportMs })
+        }
     }
     const login = () => {
         session = {}
         return call('EnterGame', { open_id: name })
     }
+    store.login(name, (id, account) => seedPlayer(tables, id, account, { mode: 'sandbox' }))
     login()
     const state = () => store.load(session.id).state,
         edit = (fn) => store.transact(session.id, 0, fn)
@@ -43,6 +52,7 @@ function fixture(name, store = new Store(':memory:'), initialize = true) {
         })
     const complete = () => {
         call('MultiCampaignCreate', { dungeon_id: 35750, scene_type: 12 })
+        call('MultiCampaignPlayerLoaded')
         call('MultiCampaignPlayerLoadFinish')
         const plan = materialStoryPlan(tables, state().entrust.run)
         edit((s) => {
@@ -56,22 +66,39 @@ function fixture(name, store = new Store(':memory:'), initialize = true) {
         const s = state(),
             enemy = Object.values(s.combat.entities)[0]
         call('BattleInfoReduce', {
-            uint64_dic: [s.player.heros_info.heros[0].guid, enemy.uuid],
+            uint64_dic: [
+                activeFormationManager(s).groups.find((g) => g.id === activeFormationManager(s).cur_group).control,
+                enemy.uuid,
+            ],
             battle_info: [{ hurt_info: { from_id: '1', tar_id: '2', hp_change: -enemy.hp } }],
-            base_time: '0',
+            base_time: String(now * 1000 + ++reportMs),
         })
         return getEntrustCatalog(tables).chest(101, 'weekly')
     }
-    return { store, game, call, login, state, edit, complete, tick: (n) => (now += n) }
+    return {
+        store,
+        game,
+        call,
+        login,
+        state,
+        edit,
+        complete,
+        tick: (n) =>
+            (() => {
+                now += n
+                privateTestClocks.set(accountKey, { now, reportMs })
+                return now
+            })(),
+    }
 }
-test('9976 weekly cancellation keeps clear record/map/inventory/quota, expires only this box and rejects later9974', () => {
+test('9979 weekly cancellation keeps clear record/map/inventory/quota, expires only this box and rejects later9974', () => {
     const f = fixture('weekly-give-up')
     try {
         const box = f.complete(),
             before = f.state()
         const result = f.call('StaminaBoxGiveUp', { box_id: box.id }, 777)
         assert(
-            result.some((p) => p.id === 9976),
+            result.some((p) => p.id === protocol.byName.get('CSProtoStaminaBoxGiveUp').id),
             'real ACK contract retained',
         )
         assert.deepEqual(f.state().player, before.player)
@@ -101,7 +128,7 @@ test('9976 weekly cancellation keeps clear record/map/inventory/quota, expires o
         f.store.close()
     }
 })
-test('9976 weekly abandonment receipt survives real SQLite reopen and only a genuine fresh entry creates another box', () => {
+test('9979 weekly abandonment receipt survives real SQLite reopen and only a genuine fresh entry creates another box', () => {
     const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'weekly-abandon-b24-')),
         file = path.join(folder, 'state.db'),
         stores = []
@@ -134,7 +161,7 @@ test('9976 weekly abandonment receipt survives real SQLite reopen and only a gen
         fs.rmSync(resolved, { recursive: true, force: true })
     }
 })
-test('9976 weekly wrong identity, wrong map, stale receipt and expiry reject without erasing history', () => {
+test('9979 weekly wrong identity, wrong map, stale receipt and expiry reject without erasing history', () => {
     const f = fixture('weekly-give-up-errors')
     try {
         const box = f.complete()
@@ -166,7 +193,7 @@ test('9976 weekly wrong identity, wrong map, stale receipt and expiry reject wit
         f.store.close()
     }
 })
-test('9976 weekly response or box notification codec failure rolls back the cancellation receipt and visibility', () => {
+test('9979 weekly response or box notification codec failure rolls back the cancellation receipt and visibility', () => {
     const f = fixture('weekly-give-up-codec')
     try {
         const box = f.complete(),
