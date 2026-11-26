@@ -14,6 +14,7 @@ import { petStarSoulAllocationFloor } from './pet-star-soul-progress.js'
 import { requirePetModel } from './pet-model-eligibility.js'
 import { initialPetLaborFromPolicy, fixedPetLabor } from './pet-labor.js'
 import laborPolicy from '../configs/pet-labor-policy.json' with { type: 'json' }
+import { customizedPetAppearanceDefinition, customizedPetAppearance } from './customized-pet-appearance.js'
 
 // Scores and localized fields come from the same validated versioned export.
 const petScores = new Map(readTable('pet').map((row) => [row.id, row.gradeScore]))
@@ -324,6 +325,7 @@ export function customizedPetRewardDefinition(tables, customizedId) {
         'Unsupported customized pet configuration',
         ErrorCode.GameConfig,
     )
+    const appearance = customizedPetAppearanceDefinition(tables, config)
     const levels = new Map(
         String(config.petAttr || '')
             .split('|')
@@ -397,7 +399,7 @@ export function customizedPetRewardDefinition(tables, customizedId) {
             'Customized pet home talent is unavailable',
             ErrorCode.GameConfig,
         )
-    return { config, comprehensionRows, fixedGenes, maxGenes, labor }
+    return { config, comprehensionRows, fixedGenes, maxGenes, labor, appearance }
 }
 function customizedComprehension(comprehensionRows) {
     return comprehensionRows.map(({ attr_id, level, minimum, maximum }) => ({
@@ -408,7 +410,7 @@ function customizedComprehension(comprehensionRows) {
         cur_exp: 0,
     }))
 }
-function decorateCustomizedPet(tables, pet, { config, fixedGenes, maxGenes, labor }, comprehension) {
+function decorateCustomizedPet(tables, pet, { config, fixedGenes, maxGenes, labor, appearance }, comprehension) {
     pet.customized_id = config.id
     pet.lv = config.level
     pet.comprehension = comprehension.map((row) => ({ ...row }))
@@ -426,6 +428,7 @@ function decorateCustomizedPet(tables, pet, { config, fixedGenes, maxGenes, labo
     // This local generation rule replaces the base random/default list.
     if (config.homeTalent > 0) pet.talent_id = [config.homeTalent]
     if (config.mountType === 1) pet.speed = config.mountSpeed
+    Object.assign(pet, customizedPetAppearance(tables, appearance, pet))
     pet.grade = petGrade(tables, pet)
     return pet
 }
