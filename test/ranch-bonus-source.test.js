@@ -1,13 +1,14 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { ranchBonusFixture, ranchBonusFile } from './ranch-bonus-fixture.js'
+import { ranchBonusFixture, ranchBonusFile, ranchProduction, earnRanchPending } from './ranch-bonus-fixture.js'
 import { readHomeCurrencyAcquisition } from '../src/home-currency-acquisition.js'
 import { ErrorCode } from '../src/error-codes.js'
+import { selectedRanchBonuses } from '../src/ranch-bonus.js'
 
 const ranch = (f) => f.state().home.ranches[201]
 const coins = (f) => BigInt(f.state().player.attr_infos.attrs.find((row) => row.attr_id === 103)?.attr_val ?? '0')
 // Real ordinary dispatch pre-settlement, independently of the pending-only tick hook.
-const produce = (f) => f.call('ActivityGet')
+const produce = (f) => f.call('HomeTechnologyTypeInfo', { type: 1 })
 function collect(f, keepCurrency = false) {
     const observed = []
     for (let i = 0; i < 4; i++) {
@@ -19,36 +20,20 @@ function collect(f, keepCurrency = false) {
     throw Error('Unexpected unbounded post-pickup production')
 }
 function cycles(f, count, keepCurrency = false) {
-    const observed = []
-    for (let i = 0; i < count; i++) {
-        f.elapse(360)
-        produce(f)
-        observed.push(...collect(f, keepCurrency))
-    }
-    return observed
+    f.elapse(ranchProduction(f).period * count)
+    produce(f)
+    return collect(f, keepCurrency)
 }
-function earnTwoPending(f) {
-    f.technologies([2204801, 2011301])
-    f.assign()
-    for (let i = 1; i <= 70; i++) {
-        f.elapse(360)
-        produce(f)
-        if (i <= 61) collect(f)
-    }
-    assert.equal(ranch(f).drops.length, 18)
-    assert.equal(ranch(f).bonus.pendingBonus.length, 2)
-    return structuredClone(ranch(f).bonus.pendingBonus)
-}
+const earnTwoPending = earnRanchPending
 
 test('real6162 and ordinary Game settlement support all four current technologies and I+II through actual6160 claims', () => {
-    for (const [ids, periodCount, expected] of [
-        [[2007701], 15, [[3006, 2007701, 1]]],
-        [[2204801], 10, [[3006, 2204801, 1]]],
-        [[2008201], 50, [[3005, 2008201, 1]]],
-        [[2011301], 35, [[3005, 2011301, 1]]],
+    for (const [ids, expected] of [
+        [[2007701], [[3006, 2007701, 1]]],
+        [[2204801], [[3006, 2204801, 1]]],
+        [[2008201], [[3005, 2008201, 1]]],
+        [[2011301], [[3005, 2011301, 1]]],
         [
             [2007701, 2204801, 2008201, 2011301],
-            35,
             [
                 [3005, 2011301, 1],
                 [3006, 2204801, 3],
@@ -59,11 +44,16 @@ test('real6162 and ordinary Game settlement support all four current technologie
         try {
             f.technologies(ids)
             f.assign()
+            const spec = ranchProduction(f),
+                definitions = selectedRanchBonuses(f.tables, f.state()),
+                totalUnits = Math.max(...expected.map(([kind, , count]) => definitions.get(kind).threshold * count)),
+                periodCount = totalUnits / spec.units
+            assert(Number.isInteger(periodCount))
             const observed = cycles(f, periodCount),
                 base = observed.filter((row) => !row.bonus_source),
                 bonus = observed.filter((row) => row.bonus_source)
-            assert.equal(base.length, periodCount * 2)
-            assert(base.every((row) => row.item.itemnum === 2))
+            assert.equal(base.length, periodCount * spec.rows.length)
+            assert(base.every((row) => row.item.itemnum === f.tables.find('home_drop', row.drop_id).minValue))
             for (const [kind, technologyId, count] of expected)
                 assert.equal(
                     bonus.filter(
@@ -82,9 +72,9 @@ test('real6162 and ordinary Game settlement support all four current technologie
     }
 })
 test('actual1052/1056 production stores500/5000 without credit, then6163 grants currency and normal acquisition exactly once', () => {
-    for (const [technology, maximum, periods, dropId, amount] of [
-        [2008201, 2620, 50, 1052, 500],
-        [2011301, 2160, 35, 1056, 5000],
+    for (const [technology, maximum, dropId, amount] of [
+        [2008201, 2620, 1052, 500],
+        [2011301, 2160, 1056, 5000],
     ]) {
         const f = ranchBonusFixture('ranch-real-currency-' + dropId)
         try {
@@ -94,7 +84,7 @@ test('actual1052/1056 production stores500/5000 without credit, then6163 grants 
             const before = coins(f),
                 acquired = readHomeCurrencyAcquisition(f.state())
             f.setRoll((max) => (max === maximum ? 1000 : 0))
-            cycles(f, periods, true)
+            cycles(f, selectedRanchBonuses(f.tables, f.state()).get(3005).threshold / ranchProduction(f).units, true)
             const drop = ranch(f).drops.find((row) => row.bonus_source)
             assert.equal(drop.drop_id, dropId)
             assert.deepEqual(drop.item, { itemtype: 10, itemid: 103, itemnum: amount })
@@ -131,7 +121,10 @@ test('full last slot seals two bonuses; real worker removal and6160 release drai
         })
         const guid = ranch(f).drops[0].guid
         const packets = f.call('RanchPlayerGetReward', { block_id: 201, reward_guids: [guid] })
-        assert.equal(ranch(f).drops.length, 18)
+        assert.equal(
+            ranch(f).drops.length,
+            f.tables.get('home_ranch').find((row) => row.level === ranch(f).lv).petProductLimit,
+        )
         assert.equal(ranch(f).bonus.pendingBonus.length, 1)
         const published = ranch(f).drops.find((row) => row.guid === pending[0].guid)
         assert.deepEqual(
@@ -208,7 +201,7 @@ test('source generation and post-pickup drain rollback pending references and SQ
         }
     }
 })
-test('legacy overdue windows receive no bonus history and long offline sampling stays bounded; failures never add committed units', () => {
+test('pre-bonus current windows earn no retro bonus; current guaranteed output and long offline RNG failures remain bounded and atomic', () => {
     const f = ranchBonusFixture('ranch-real-legacy-offline')
     try {
         f.technologies([2007701])
@@ -216,16 +209,27 @@ test('legacy overdue windows receive no bonus history and long offline sampling 
         f.edit((state) => {
             delete state.home.ranches[201].bonus
         })
-        f.elapse(360)
+        f.elapse(ranchProduction(f).period)
         produce(f)
         assert.equal(ranch(f).bonus.adoptedAt, f.now())
         assert.equal(ranch(f).bonus.families[3006].creditUnits, 0)
         collect(f)
         f.setRoll((max) => max - 1)
-        f.elapse(360)
+        f.elapse(ranchProduction(f).period)
         produce(f)
-        assert.equal(ranch(f).bonus.families[3006].creditUnits, 0)
-        assert.equal(ranch(f).drops.length, 0)
+        assert.equal(ranch(f).bonus.families[3006].creditUnits, ranchProduction(f).units)
+        assert.equal(ranch(f).drops.length, ranchProduction(f).rows.length)
+        collect(f)
+        f.setRoll((max) => max) // No failed base probability exists in this current guaranteed pool; reject a real invalid bonus draw.
+        const before = f.store.load(f.session.id),
+            spec = ranchProduction(f),
+            definition = selectedRanchBonuses(f.tables, f.state()).get(3006)
+        f.elapse(spec.period * Math.ceil(definition.threshold / spec.units))
+        assert.throws(
+            () => produce(f),
+            (error) => error.code === ErrorCode.GameConfig,
+        )
+        assert.deepEqual(f.store.load(f.session.id), before)
         let samples = 0
         f.setRoll(() => {
             samples++

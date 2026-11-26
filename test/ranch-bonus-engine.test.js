@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { ranchBonusFixture } from './ranch-bonus-fixture.js'
+import { ranchBonusFixture, ranchProduction, earnRanchPending } from './ranch-bonus-fixture.js'
 import { settleRanches, ranchDue, drainRanchPending } from '../src/ranch.js'
 import { validateRanchBonus } from '../src/ranch-bonus.js'
 import { ErrorCode } from '../src/error-codes.js'
@@ -28,7 +28,7 @@ function engine(name, technologies) {
         roll(fn) {
             random = fn
         },
-        step(clear = true, seconds = 360) {
+        step(clear = true, seconds = ranchProduction(f).period) {
             now += seconds
             settleRanches(f.tables, state, now, random)
             const ranch = state.home.ranches[201]
@@ -44,7 +44,7 @@ function engine(name, technologies) {
         },
     }
 }
-test('all four actual technology definitions follow committed quantity2 thresholds and descendant II overrides both I inputs', () => {
+test('all four actual technology definitions follow committed current HomeDrop unit thresholds and descendant II overrides both I inputs', () => {
     for (const [id, kind, threshold] of [
         [2007701, 3006, 60],
         [2204801, 3006, 40],
@@ -53,7 +53,7 @@ test('all four actual technology definitions follow committed quantity2 threshol
     ]) {
         const e = engine('ranch-four-' + id, [id])
         try {
-            for (let i = 0; i < threshold / 4; i++) e.step()
+            for (let i = 0; i < threshold / ranchProduction(e.f).units; i++) e.step()
             assert.equal(e.produced.length, 1, String(id))
             assert.equal(e.produced[0].bonus_source.technologyId, id)
             assert.equal(e.ranch.bonus.families[kind].creditUnits, 0)
@@ -65,7 +65,7 @@ test('all four actual technology definitions follow committed quantity2 threshol
     }
     const e = engine('ranch-both-tiers', [2007701, 2204801, 2008201, 2011301])
     try {
-        for (let i = 0; i < 35; i++) e.step()
+        for (let i = 0; i < 140 / ranchProduction(e.f).units; i++) e.step()
         assert(e.produced.every((row) => [2204801, 2011301].includes(row.bonus_source.technologyId)))
         assert.equal(e.produced.filter((row) => row.bonus_source.family === 3005).length, 1)
         assert.equal(e.produced.filter((row) => row.bonus_source.family === 3006).length, 3)
@@ -106,8 +106,12 @@ test('all nine weighted surprise outputs and original78-position material pool p
                 state.home.technology.levels[row.type] = { level: 1 }
                 let now = initial.now,
                     found
-                for (let i = 0; i < 50 && !found; i++) {
-                    now += 360
+                for (
+                    let i = 0;
+                    i < (technology === 2008201 ? 200 : 140) / ranchProduction(initial.f).units && !found;
+                    i++
+                ) {
+                    now += ranchProduction(initial.f).period
                     settleRanches(initial.f.tables, state, now, (max) => (max === maximum ? pick : 0))
                     found = state.home.ranches[201].drops.find((drop) => drop.bonus_source)
                     state.home.ranches[201].drops = []
@@ -121,8 +125,8 @@ test('all nine weighted surprise outputs and original78-position material pool p
         state.home.technology.levels[20077] = { level: 1 }
         let now = initial.now,
             found
-        for (let i = 0; i < 15; i++) {
-            now += 360
+        for (let i = 0; i < 60 / ranchProduction(initial.f).units; i++) {
+            now += ranchProduction(initial.f).period
             settleRanches(initial.f.tables, state, now, (max) => (max === 78 ? 16 : 0))
             found ??= state.home.ranches[201].drops.find((drop) => drop.bonus_source)
             state.home.ranches[201].drops = []
@@ -138,61 +142,58 @@ test('all nine weighted surprise outputs and original78-position material pool p
     }
 })
 test('last base floor slot seals two complete pending instances; no worker still drains from real table room and shallow base stays unchanged', () => {
-    const e = engine('ranch-two-pending', [2204801, 2011301])
+    const f = ranchBonusFixture('ranch-two-pending')
     try {
-        for (let i = 1; i <= 70; i++) e.step(i <= 61)
-        assert.equal(e.ranch.drops.length, 18)
-        assert.equal(e.ranch.bonus.pendingBonus.length, 2)
-        const pending = structuredClone(e.ranch.bonus.pendingBonus)
-        assert(pending.every((row) => row.pet_guid === e.f.pets[0] && [1050, 1055].includes(row.drop_id)))
-        e.ranch.product_pets = []
-        assert.equal(ranchDue(e.f.tables, e.state, e.now), false)
-        e.ranch.drops.shift()
-        const before = structuredClone(e.state),
-            draft = { ...e.state }
-        assert.equal(ranchDue(e.f.tables, draft, e.now), true)
-        const result = drainRanchPending(e.f.tables, draft, draft.home.ranches[201], e.now)
+        const pending = earnRanchPending(f),
+            state = f.state(),
+            ranch = state.home.ranches[201],
+            now = f.now()
+        assert(pending.every((row) => row.pet_guid === f.pets[0] && [1050, 1055].includes(row.drop_id)))
+        ranch.product_pets = [] // Pure drainage boundary; actual worker-removal contract is tested through6162 elsewhere.
+        assert.equal(ranchDue(f.tables, state, now), false)
+        ranch.drops.shift()
+        const before = structuredClone(state),
+            draft = { ...state }
+        assert.equal(ranchDue(f.tables, draft, now), true)
+        const result = drainRanchPending(f.tables, draft, draft.home.ranches[201], now)
         assert.equal(result.movedGuids.length, 1)
-        assert.deepEqual(e.state, before)
+        assert.deepEqual(state, before)
         assert.equal(draft.home.ranches[201].drops.at(-1).guid, pending[0].guid)
         assert.deepEqual(draft.home.ranches[201].drops.at(-1).item, pending[0].item)
         assert.equal(draft.home.ranches[201].bonus.pendingBonus[0].guid, pending[1].guid)
-        assert.equal(ranchDue(e.f.tables, draft, e.now), false)
+        assert.equal(ranchDue(f.tables, draft, now), false)
     } finally {
-        e.close()
+        f.close()
     }
 })
-test('legacy<=T settles without bonus before adoption; future>T and upgrade credit retain exact integer units', () => {
+
+test('pre-bonus current windows settle before adoption; future units and upgrade credit retain exact integer quantities', () => {
     const e = engine('ranch-adoption-upgrade', [2007701])
     try {
         delete e.ranch.bonus
-        const cutoff = e.now + 360
+        const spec = ranchProduction(e.f),
+            cutoff = e.now + spec.period
         settleRanches(e.f.tables, e.state, cutoff, () => 0)
         assert.equal(e.ranch.bonus.adoptedAt, cutoff)
         assert.equal(e.ranch.bonus.families[3006].creditUnits, 0)
-        assert.equal(e.ranch.drops.length, 2)
+        assert.equal(e.ranch.drops.length, spec.rows.length)
         e.ranch.drops = []
-        for (let i = 1; i <= 12; i++) {
-            settleRanches(e.f.tables, e.state, cutoff + i * 360, () => 0)
+        const oldThreshold = 60,
+            nextThreshold = 40,
+            credit = (oldThreshold + nextThreshold) / 2,
+            beforeCycles = credit / spec.units
+        assert(Number.isInteger(beforeCycles))
+        for (let i = 1; i <= beforeCycles; i++) {
+            settleRanches(e.f.tables, e.state, cutoff + i * spec.period, () => 0)
             e.ranch.drops = []
         }
-        assert.equal(e.ranch.bonus.families[3006].creditUnits, 48)
-        // Make exactly one actual stream succeed: a legal RNG control, no fact injection.
-        let stream = 0
-        settleRanches(e.f.tables, e.state, cutoff + 13 * 360, (max) =>
-            max === 0x100000000 ? (stream++ === 0 ? 0 : max - 1) : 0,
-        )
-        assert.equal(e.ranch.bonus.families[3006].creditUnits, 50)
-        e.ranch.drops = []
+        assert.equal(e.ranch.bonus.families[3006].creditUnits, credit)
         e.state.home.technology.levels[22048] = { level: 1 }
-        settleRanches(e.f.tables, e.state, cutoff + 13 * 360, () => 0)
-        assert.equal(e.ranch.bonus.families[3006].creditUnits, 50)
+        settleRanches(e.f.tables, e.state, cutoff + beforeCycles * spec.period, () => 0)
+        assert.equal(e.ranch.bonus.families[3006].creditUnits, credit)
         assert.equal(e.ranch.bonus.pendingBonus.length, 0)
-        stream = 0
-        settleRanches(e.f.tables, e.state, cutoff + 14 * 360, (max) =>
-            max === 0x100000000 ? (stream++ === 0 ? 0 : max - 1) : 0,
-        )
-        assert.equal(e.ranch.bonus.families[3006].creditUnits, 12)
+        settleRanches(e.f.tables, e.state, cutoff + (beforeCycles + 1) * spec.period, () => 0)
+        assert.equal(e.ranch.bonus.families[3006].creditUnits, credit + spec.units - nextThreshold)
         assert.equal(e.ranch.drops.filter((row) => row.bonus_source).length, 1)
         const valid = structuredClone(e.ranch)
         for (const mutate of [

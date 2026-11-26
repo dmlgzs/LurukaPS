@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { ranchBonusFixture, ranchBonusFile } from './ranch-bonus-fixture.js'
+import { ranchBonusFixture, ranchBonusFile, ranchProduction, earnRanchPending } from './ranch-bonus-fixture.js'
 import { ErrorCode } from '../src/error-codes.js'
 
 const ranch = (f) => f.state().home.ranches[201]
@@ -12,18 +12,8 @@ function collect(f) {
     }
     throw Error('Unbounded collect')
 }
-function pendingFromRealTicks(f) {
-    f.technologies([2204801, 2011301])
-    f.assign()
-    for (let i = 1; i <= 70; i++) {
-        f.elapse(360)
-        f.tick()
-        if (i <= 61) collect(f)
-    }
-    assert.equal(ranch(f).drops.length, 18)
-    assert.equal(ranch(f).bonus.pendingBonus.length, 2)
-    return structuredClone(ranch(f).bonus.pendingBonus)
-}
+const pendingFromRealTicks = earnRanchPending
+
 test('new Game tick observes pending-only room without producers; full idle does not save and recovery codec/SQL preserve the sealed source', () => {
     const temp = ranchBonusFile(),
         f = ranchBonusFixture('ranch-pending-tick', { file: temp.file })
@@ -110,7 +100,7 @@ test('actual6161 release publishes a sealed currency source before its empty ACK
         f.close()
     }
 })
-test('real6206 upgrade preserves50 raw units without a gift then the next successful quantity2 yields one reward and12', () => {
+test('real10020 upgrade preserves50 raw units without a gift; the next current unit cycle grants one bonus and retains12', () => {
     const f = ranchBonusFixture('ranch-real-research')
     try {
         f.edit((state) => {
@@ -130,15 +120,14 @@ test('real6206 upgrade preserves50 raw units without a gift then the next succes
             add(20113) // Legitimate historical prerequisite fixture, not new bonus facts.
         })
         f.assign()
-        const oneSuccess = () => {
-            let stream = 0
-            f.setRoll((maximum) => (maximum === 0x100000000 ? (stream++ === 0 ? 0 : maximum - 1) : 0))
+        const oneCycle = () => {
+            f.setRoll(() => 0)
             const due = Math.min(...ranch(f).product_pets.flatMap((slot) => slot.drop_times.map((clock) => clock.time)))
             f.elapse(due - f.now())
             f.tick()
             collect(f)
         }
-        for (let i = 0; i < 25; i++) oneSuccess()
+        for (let i = 0; i < 50 / ranchProduction(f).units; i++) oneCycle()
         assert.equal(ranch(f).bonus.families[3006].creditUnits, 50)
         const epoch = ranch(f).bonus.epoch,
             next = ranch(f).nextDropGuid
@@ -147,9 +136,9 @@ test('real6206 upgrade preserves50 raw units without a gift then the next succes
         assert(ranch(f).bonus.epoch > epoch)
         assert.equal(ranch(f).bonus.families[3006].creditUnits, 50)
         assert.equal(ranch(f).nextDropGuid, next)
-        oneSuccess()
+        oneCycle()
         assert.equal(ranch(f).bonus.families[3006].creditUnits, 12)
-        assert.equal(ranch(f).nextDropGuid, next + 2) // One base and one sealed bonus.
+        assert.equal(ranch(f).nextDropGuid, next + ranchProduction(f).rows.length + 1) // Current base instances plus one sealed bonus.
     } finally {
         f.close()
     }
@@ -164,14 +153,17 @@ test('two actual accounts ranch201 stay isolated; two legal producers contribute
         first.assign(first.pets[1], 2)
         second.technologies([2204801])
         second.assign()
-        first.elapse(360)
+        first.elapse(ranchProduction(first).period)
         first.tick()
         assert.equal(ranch(first).drops.length, 4)
         assert.deepEqual(
             ranch(first).drops.map((row) => row.pet_guid),
             [first.pets[0], first.pets[0], first.pets[1], first.pets[1]],
         )
-        assert.equal(ranch(first).bonus.families[3006].creditUnits, 8)
+        assert.equal(
+            ranch(first).bonus.families[3006].creditUnits,
+            ranch(first).drops.reduce((n, row) => n + row.item.itemnum, 0),
+        )
         assert.equal(ranch(second).bonus.families[3006].creditUnits, 0)
         assert.equal(ranch(second).drops.length, 0)
         // Only one current blockType2 exists; a second same-account official
