@@ -35,6 +35,7 @@ test('pet and vehicle riders follow the current control, and a real table-author
     for (const kind of ['pet', 'vehicle']) {
         const f = fixture(`mount-${kind}`)
         try {
+            assert.equal(f.state().starterProfile.mode, 'normal')
             // Trusted, narrow owned-asset checkpoint through the real producer;
             // do not depend on the retired all-assets new-account factory.
             f.call('GMCommands', {

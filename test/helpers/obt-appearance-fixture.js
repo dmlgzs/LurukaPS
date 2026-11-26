@@ -10,11 +10,11 @@ const config = configuration()
 export const tables = new Tables(config.tables),
     protocol = new Protocol(config.base)
 const now = 1800000000
-export function fixture(name) {
+export function fixture(name, { starterProfile = 'normal' } = {}) {
     const store = new Store(':memory:'),
         session = {},
         client = new ObtAppearanceConsumer(tables, protocol)
-    const game = new Game(protocol, store, tables, { clock: () => now })
+    const game = new Game(protocol, store, tables, { clock: () => now, starterProfile })
     let seq = 1
     const call = (name, data = {}, consumer = client, target = session) => {
         const entry = protocol.byName.get('CSProto' + name)

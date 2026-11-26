@@ -16,7 +16,7 @@ const palette = (sex, clothesid, present, offset = 0) => {
     return { sex, clothesid, present, parts: [{ type: 1, id: clothesid, colors }] }
 }
 test('9805 incremental facial and portrait updates match the current cache and remain identical after reconnect', () => {
-    const f = fixture('face')
+    const f = fixture('face', { starterProfile: 'sandbox' })
     try {
         const hair = tables.get('color_formula').find((row) => row.sex === 2 && row.part === 6)
         f.call('PinchFaceDataUp', {
@@ -54,7 +54,7 @@ test('9805 incremental facial and portrait updates match the current cache and r
 })
 
 test('9816 palettes refresh9815 before the callback, isolate sex/clothing/slot, overwrite and survive reconnect without wearing them', () => {
-    const f = fixture('palettes')
+    const f = fixture('palettes', { starterProfile: 'sandbox' })
     try {
         const equipped = structuredClone(f.state().player.basic_info)
         const requests = [palette(2, 10001, 1), palette(1, 10001, 1), palette(2, 10002, 1)]
@@ -105,7 +105,7 @@ test('9816 palettes refresh9815 before the callback, isolate sex/clothing/slot, 
 })
 
 test('current5023 callback recreates from the new decorations and keeps facial data in its separate channel', () => {
-    const f = fixture('clothes')
+    const f = fixture('clothes', { starterProfile: 'sandbox' })
     try {
         const face = f.client.facialSnapshot()
         let created
@@ -136,7 +136,7 @@ test('current5023 callback recreates from the new decorations and keeps facial d
 
 test('all current nondefault hero skins recreate the active hero with fresh skinned ultimate levels and can cast without a formation swap', () => {
     assert.equal(skins.length, 3)
-    const f = fixture('skins')
+    const f = fixture('skins', { starterProfile: 'sandbox' })
     try {
         assert.equal(f.client.unlockedClothes.size, tables.get('clothing_item').length)
         for (const skin of skins) assert(f.client.skinOwnership.get(skin.hero).has(skin.clothingid))
