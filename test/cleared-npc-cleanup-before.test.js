@@ -11,7 +11,11 @@ const cfg = configuration(),
     tables = new Tables(cfg.tables),
     protocol = new Protocol(cfg.base),
     request = { task_id: 107016, node_id: 41, indexes: [0] },
-    ids = [104001, 104002, 104003, 104004, 104005, 104006, 104007, 104008, 104009, 104010]
+    ids = tables
+        .get('dungeon_task')
+        .find((row) => row.dungeonId === 10031)
+        .taskIds.split('|')
+        .map(Number)
 test('actual cleared10031 recovers parent107016/41 NPC create/delete preparation before CondAfter, but incomplete proof or active battles do not', () => {
     const store = new Store(':memory:'),
         game = new Game(protocol, store, tables),
@@ -21,7 +25,11 @@ test('actual cleared10031 recovers parent107016/41 NPC create/delete preparation
         const e = protocol.byName.get('CSProto' + name)
         return game.dispatch(session, { id: e.id, seq: seq++, payload: protocol.encode(e.req, r) })
     }
+    // Current full saved-proof fixture; the migration suite separately covers
+    // the actual historical ten-task writer artifact and bootstrap boundary.
     try {
+        assert.equal(ids.length, 15)
+        assert.equal(ids.at(-1), 104010)
         call('EnterGame', { open_id: 'cleanup-before' })
         store.transact(session.id, 0, (s) => {
             s.world.map_id = 6224

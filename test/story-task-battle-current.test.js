@@ -133,8 +133,8 @@ test('real203/6214 entry records map0 dungeon task victory only after its active
             f.internal().nodes.map((row) => row.node_id),
             [3],
         )
-        // The separate2506 summary adapter remains unimplemented. This block
-        // proves the task witness/ack chain, not final campaign settlement.
+        // This case does not send TaskFinish or ending6060. It proves the task
+        // witness/ack chain and leaves final campaign settlement pending.
         assert.equal(f.state().storyCampaign.status, 2)
         assert.equal(f.state().storyCampaignClears?.[10022], undefined)
     } finally {
