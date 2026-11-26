@@ -1,7 +1,8 @@
+import { activeFormationManager } from '../src/trial-actors.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
-import { Tables } from '../src/player.js'
+import { Tables, seedPlayer } from '../src/player.js'
 import { Protocol } from '../src/protocol.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
@@ -19,9 +20,10 @@ import os from 'node:os'
 import path from 'node:path'
 const tables = new Tables(configuration().tables),
     protocol = new Protocol(configuration().base)
-function fixture(name, store = new Store(':memory:')) {
+function fixture(name, store = new Store(':memory:'), { profile = 'sandbox', qualified = true } = {}) {
     let now = 1800000000,
         seq = 1,
+        reportMs = 0,
         session = {}
     const game = new Game(protocol, store, tables, { clock: () => now })
     const call = (name, r = {}) => {
@@ -36,16 +38,25 @@ function fixture(name, store = new Store(':memory:')) {
         session = {}
         return call('EnterGame', { open_id: name })
     }
+    store.login(name, (id, account) => {
+        const s = seedPlayer(tables, id, account, { mode: profile })
+        const q = weeklyQuotaView(tables, s, now)
+        const balance = s.player.attr_infos.attrs.find((r) => r.attr_id === 104)
+        if (balance) balance.attr_val = String(q.limit)
+        else s.player.attr_infos.attrs.push({ attr_id: 104, attr_val: String(q.limit) })
+        return s
+    })
     login()
     const edit = (fn) => store.transact(session.id, 0, fn),
         state = () => store.load(session.id).state
-    edit((s) => {
-        s.player.basic_info.lv = 70
-        ;(s.taskRecords ??= []).push({ task_id: 106013, count: 1 })
-        s.entrust ??= { records: {}, starRewards: {}, nextInstanceId: 1 }
-        s.entrust.records[8] = { entrust_id: 8, entrust_star: 1, success_time: String(now) }
-        s.player.attr_infos.attrs.find((r) => r.attr_id === 3).attr_val = '500'
-    })
+    if (qualified)
+        edit((s) => {
+            s.player.basic_info.lv = 70
+            ;(s.taskRecords ??= []).push({ task_id: 106013, count: 1 })
+            s.entrust ??= { records: {}, starRewards: {}, nextInstanceId: 1 }
+            s.entrust.records[8] = { entrust_id: 8, entrust_star: 1, success_time: String(now) }
+            s.player.attr_infos.attrs.find((r) => r.attr_id === 3).attr_val = '500'
+        })
     const run = () => state().entrust?.run
     const interact = (id) =>
         call('WorldObjInteract', {
@@ -54,6 +65,7 @@ function fixture(name, store = new Store(':memory:')) {
     const enter = (id = 35750) => call('MultiCampaignCreate', { dungeon_id: id, scene_type: 12 })
     const start = (id = 35750) => {
         enter(id)
+        call('MultiCampaignPlayerLoaded')
         call('MultiCampaignPlayerLoadFinish')
         const plan = materialStoryPlan(tables, run())
         edit((s) => {
@@ -66,9 +78,13 @@ function fixture(name, store = new Store(':memory:')) {
             enemies = Object.values(s.combat.entities).filter((r) => r.hp > 0)
         const target = enemies[slot]
         return call('BattleInfoReduce', {
-            uint64_dic: [source ?? s.player.heros_info.heros[0].guid, target.uuid],
+            uint64_dic: [
+                source ??
+                    activeFormationManager(s).groups.find((g) => g.id === activeFormationManager(s).cur_group).control,
+                target.uuid,
+            ],
             battle_info: [{ hurt_info: { from_id: '1', tar_id: '2', hp_change: -target.hp } }],
-            base_time: '0',
+            base_time: String(now * 1000 + ++reportMs),
         })
     }
     return {
@@ -146,7 +162,7 @@ test('11850 weekly retries preserve quota, rewards and records while replaying t
         }
     }
 })
-test('weekly typed catalog resolves all12 configurations without colliding with commission IDs', () => {
+test('weekly typed catalog resolves all18 current configurations without colliding with commission IDs', () => {
     const c = getEntrustCatalog(tables)
     for (const row of tables.get('dungeon_weekly')) {
         const route = c.get(row.id, 'weekly')
@@ -158,9 +174,15 @@ test('weekly typed catalog resolves all12 configurations without colliding with 
             c.stages(row.id, 'weekly').map((r) => r.type),
             [13, 50, 30],
         )
-        const plan = materialStoryPlan(tables, { kind: 'weekly', map_id: route.scene.id })
-        assert.equal(plan.local_trigger_source.interact_id, 4012)
-        assert.equal(plan.range, 1000)
+        const plan = materialStoryPlan(tables, {
+            kind: 'weekly',
+            entrust_id: row.id,
+            dungeon_id: row.dungeonId,
+            map_id: route.scene.id,
+        })
+        assert.equal(plan.map_id, route.scene.id)
+        assert(tables.find('world_borthpos', plan.point_id))
+        assert(plan.story_id > 0 && plan.boss_id > 0 && plan.range > 0)
         assert.equal(c.victoryObjects(row.id, 'weekly')[0].count, route.scene.id === 6900 ? 2 : 1)
     }
     assert.throws(
@@ -312,15 +334,9 @@ test('weekly LOCAL quota preserves first zero/GM balances and sets once at align
         (e) => e.code === ErrorCode.GameConfig,
     )
 })
-test('9510 weekly system gate follows actual entrance relation and real task/commission conditions before run or quota changes', () => {
-    const f = fixture('weekly-system-gate')
+test('9510 weekly unearned normal system rejects until both task/commission conditions; own dungeon rules remain separate', () => {
+    const f = fixture('weekly-system-gate', new Store(':memory:'), { profile: 'normal', qualified: false })
     try {
-        f.edit((s) => {
-            delete s.weeklyDungeonQuota
-            s.player.attr_infos.attrs.find((a) => a.attr_id === 104).attr_val = '0'
-            s.taskRecords = s.taskRecords.filter((r) => r.task_id !== 106013)
-            s.world.unlockAllMaps = true
-        })
         const reject = (code) => {
             const before = f.state()
             assert.throws(
@@ -331,30 +347,41 @@ test('9510 weekly system gate follows actual entrance relation and real task/com
         }
         reject(ErrorCode.SystemLock)
         f.edit((s) => {
-            s.taskRecords.push({ task_id: 106013, count: 1 })
-            s.entrust.records[8].entrust_star = 0
+            s.player.basic_info.lv = 70
+            s.taskRecords = [...(s.taskRecords ?? []), { task_id: 106013, count: 1 }]
+            s.entrust ??= { records: {}, starRewards: {}, nextInstanceId: 1 }
+            s.entrust.records[8] = { entrust_id: 8, entrust_star: 0 }
         })
+        f.call('GetRechargePopupData', {})
         reject(ErrorCode.SystemLock)
         f.edit((s) => {
             s.entrust.records[8].entrust_star = 1
+        })
+        const ps = f.call('GetRechargePopupData', {})
+        assert(
+            ps
+                .filter((p) => p.id === 10600)
+                .flatMap((p) => protocol.decode(protocol.byId.get(10600).rsp, p.payload).unlock_id ?? [])
+                .includes(1735),
+        )
+        f.edit((s) => {
             s.player.basic_info.lv = 1
         })
         reject(ErrorCode.EntrustUnlock)
         f.edit((s) => {
             s.player.basic_info.lv = 70
+            s.player.attr_infos.attrs.find((a) => a.attr_id === 104).attr_val = '0'
+            delete s.weeklyDungeonQuota
         })
         f.enter()
         assert.equal(f.run().kind, 'weekly')
-        assert.equal(
-            weeklyQuotaView(tables, f.state(), f.now()).amount,
-            0n,
-            'first legitimate zero is not refilled by entry',
-        )
+        assert.equal(weeklyQuotaView(tables, f.state(), f.now()).amount, 0n)
     } finally {
         f.store.close()
     }
 })
-test('weekly trigger policy uses actual map option precedence, explicit parameters, and rejects disabled/ambiguous inference', () => {
+
+test('current weekly trigger identity and source precedence reject stale or ambiguous data and retain the required LOCAL compatibility gate', () => {
     const source = (change) => ({
         get(name) {
             return change(name, structuredClone(tables.get(name)))
@@ -363,51 +390,52 @@ test('weekly trigger policy uses actual map option precedence, explicit paramete
             return this.get(name).find((r) => r.id === Number(id))
         },
     })
-    const run = { kind: 'weekly', map_id: 6904 }
-    const overridden = source((name, rows) => {
-        if (name === 'worldmap_6904') rows.find((r) => r.id === 1500013).interactOptions = '4013'
+    const route = getEntrustCatalog(tables).get(101, 'weekly'),
+        run = { kind: 'weekly', entrust_id: 101, dungeon_id: route.dungeon.id, map_id: route.scene.id },
+        plan = materialStoryPlan(tables, run)
+    assert.equal(plan.local_trigger_source.interact_id, 4012)
+    assert.equal(plan.range, 1000)
+    const altered = source((name, rows) => {
+        if (name === 'worldmap_' + run.map_id) rows.find((r) => r.id === plan.marker_id).interactOptions = '4013'
         return rows
     })
-    const plan = materialStoryPlan(overridden, run)
-    assert.equal(plan.range, 300)
-    assert.equal(plan.local_trigger_source.interact_id, 4013)
-    assert.equal(plan.local_trigger_source.interact_options_source, 'worldmap')
+    assert.throws(
+        () => materialStoryPlan(altered, run),
+        (e) => e.code === ErrorCode.GameConfig,
+    )
     const enabled = weeklyDungeonPolicy.intro.enabled
     try {
         weeklyDungeonPolicy.intro.enabled = false
         assert.throws(
-            () =>
-                materialStoryPlan(
-                    source((n, r) => r),
-                    run,
-                ),
+            () => materialStoryPlan(tables, run),
             (e) => e.code === ErrorCode.FunctionClosed,
+            'current bound missing-trigger alias still requires its explicit LOCAL policy',
         )
-        const explicit = source((name, rows) => {
-            if (name === 'dungeon_scene') rows.find((r) => r.id === 6904).intParam += '|bossTriggerID#1500013'
-            return rows
-        })
-        assert.equal(materialStoryPlan(explicit, run).local_trigger_source, undefined)
     } finally {
         weeklyDungeonPolicy.intro.enabled = enabled
     }
-    const ambiguous = source((name, rows) => {
-        if (name === 'worldmap_6904') rows.push({ ...rows.find((r) => r.id === 1500013), id: 1500014 })
+    const duplicate = source((name, rows) => {
+        if (name === 'worldmap_' + run.map_id) rows.push({ ...rows.find((r) => r.id === plan.marker_id) })
         return rows
     })
     assert.throws(
-        () => materialStoryPlan(ambiguous, run),
+        () => materialStoryPlan(duplicate, run),
         (e) => e.code === ErrorCode.GameConfig,
     )
     const zero = source((name, rows) => {
-        if (name === 'dungeon_scene') rows.find((r) => r.id === 6904).intParam += '|bossTriggerID#0'
+        if (name === 'dungeon_scene') rows.find((r) => r.id === run.map_id).intParam += '|bossTriggerID#0'
         return rows
     })
     assert.throws(
         () => materialStoryPlan(zero, run),
         (e) => e.code === ErrorCode.GameConfig,
     )
+    assert.throws(
+        () => materialStoryPlan(tables, { kind: 'weekly', map_id: run.map_id }),
+        (e) => e.code === ErrorCode.GameConfig,
+    )
 })
+
 test('weekly pet final blow records real damage/clear and failed9513 codec rolls the death back', () => {
     const f = fixture('weekly-pet-death')
     try {
