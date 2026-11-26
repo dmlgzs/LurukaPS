@@ -1,4 +1,6 @@
-// Offline sandbox policy: make the configured, usable cosmetics available.
+import { starterProfileMode } from './starter-profile.js'
+
+// Explicit sandbox/legacy policy: make configured usable cosmetics available.
 // Ownership and equipped appearance are separate CBT3 data channels.
 const catalogs = new WeakMap()
 export function appearanceCatalog(tables) {
@@ -38,6 +40,25 @@ export function appearanceCatalog(tables) {
 }
 export function ensureAppearance(tables, state) {
     const catalog = appearanceCatalog(tables)
+    if (starterProfileMode(state) === 'normal') {
+        // Current table names the two necessary default equip parts. Preserve
+        // genuinely acquired lists; do not blanket-own the skin catalogue.
+        state.unlockedClothes = [
+            ...new Set([...(state.unlockedClothes ?? []), ...catalog.defaults.map((row) => row.id)]),
+        ]
+        state.unlockedHeroSkins ??= {}
+        // Current HeroStore.HasHeroClothing/InitHeroClothing treat a row with
+        // clothingid == hero as the universally available base appearance.
+        // Mirror that only for actually owned heroes; never add other skins.
+        for (const hero of state.player.heros_info.heros) {
+            const base = catalog.skins.get(hero.conf_id)
+            if (base?.hero !== hero.conf_id) continue
+            const owned = (state.unlockedHeroSkins[hero.conf_id] ??= [])
+            if (!owned.includes(base.clothingid)) owned.push(base.clothingid)
+        }
+        state.player.basic_info.clothes_info = normalizeClothes(tables, state.player.basic_info.clothes_info)
+        return
+    }
     state.unlockedClothes = [...new Set([...(state.unlockedClothes ?? []), ...catalog.clothes.keys()])]
     state.unlockedHeroSkins ??= {}
     const owned = new Set(

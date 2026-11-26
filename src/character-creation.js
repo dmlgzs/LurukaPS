@@ -1,4 +1,5 @@
 import { bytes } from './player.js'
+import { starterProfileMode } from './starter-profile.js'
 
 const isBlankGroup = (group) =>
     group.heros.every((slot) => !slot.hero_id || slot.hero_id === '0') && (!group.control || group.control === '0')
@@ -8,6 +9,9 @@ export function initializeCharacterFormation(tables, state) {
     // team1. Apply the player's choice only when the creation callback arrives;
     // do not rewrite saved formations during login.
     if (!state.characterCustomized) return false
+    // Normal has one stable persona already bound by its trusted factory.
+    // Preserve explicit pets/equipment/GM formations during appearance changes.
+    if (starterProfileMode(state) === 'normal') return false
     const groups = state.player.group_mgrs.find((manager) => manager.type === 1)?.groups,
         group = groups?.find((candidate) => candidate.id === 1)
     if (!group) return false

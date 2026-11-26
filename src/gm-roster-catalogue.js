@@ -7,6 +7,7 @@ import { permanentHeroFavorRecords } from './hero-favor-ownership.js'
 import { petModelEligibility } from './pet-model-eligibility.js'
 import { parsePetGuid } from './pet-guid.js'
 import { lockedPetBoxes } from './pet-box-locks.js'
+import { normalStarterAvatarOwnedConfigIds } from './normal-starter-avatar.js'
 
 const catalogues = new WeakMap()
 const positive = (value) => Number.isSafeInteger(value) && value > 0 && value <= 0xffffffff
@@ -91,6 +92,7 @@ export function gmHeroRewards(tables, state) {
     // This helper returns all permanent records, including the main avatar;
     // gift-recipient favor=1 qualification is deliberately not applied.
     const owned = new Set(permanentHeroFavorRecords(tables, state).map(({ actor }) => actor.conf_id))
+    for (const id of normalStarterAvatarOwnedConfigIds(tables, state)) owned.add(id)
     return gmRosterCatalogue(tables)
         .heroes.filter((id) => !owned.has(id))
         .map((id) => {

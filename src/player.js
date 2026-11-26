@@ -1,3 +1,7 @@
+import { newStarterProfile } from './starter-profile.js'
+import { ensure } from './handlers/common.js'
+import { ErrorCode } from './error-codes.js'
+import { ensureAppearance } from './appearance.js'
 import { petData } from './pets.js'
 import { petModelEligibility } from './pet-model-eligibility.js'
 import { mainHeroConfigId } from './main-hero.js'
@@ -61,48 +65,26 @@ export class Tables {
         }
     }
 }
-export function seedPlayer(tables, id, openId) {
-    const mainId = mainHeroConfigId(tables, 2)
-    const heroes = tables
-        .get('hero')
-        .filter((h) => h.isUsable === 1)
-        .map((h) => heroData(h.id, id, h.id === mainId ? 1 : 0))
-    if (!heroes.length) throw Error('No usable heroes in table')
-    const petConfigs = tables
-        .get('pet')
-        .filter(
-            (p) =>
-                p.petStage > 0 &&
-                p.IsCatch === 1 &&
-                tables.find('template_value', p.id) &&
-                petModelEligibility(tables, p.id).eligible,
-        )
-    const identity = { player: { basic_info: { id } }, pets: [] },
-        plan = planPetGuidAllocation(tables, identity, petConfigs.length)
-    const pets = petConfigs.map((p, i) =>
-        petData(tables, p.id, plan.guids[i], (Math.floor(i / 30) + 1) * 100 + (i % 30) + 1),
+// These minima are explicit LOCAL startup choices unless a current table is
+// named: empty owned assets, sex2 loading avatar and birth10045 compatibility.
+// They are not a claim that the official backend grants the same quantities.
+function emptyStarterPlayer(tables, id, openId, mode) {
+    const birth = tables.find('world_borthpos', 10045)
+    ensure(
+        birth && tables.find('world_city', birth.cityId),
+        'Starter birth10045 configuration unavailable',
+        ErrorCode.GameConfig,
     )
-    commitPetGuidAllocation(
-        identity,
-        plan,
-        'server-starter',
-        petConfigs.map((row) => row.id),
-    )
-    const essences = tables
-        .get('soulessence')
-        .map((e) => ({ guid: e.id, id: e.id, lv: 1, rank: 1, advance: 1, exp: 0, lock: true, wear_hero: '0' }))
-    const placeholder = heroes[0]
-    const groups = Array.from({ length: 10 }, (_, i) => ({
-        id: i + 1,
-        group_name: bytes(`队伍${i + 1}`),
+    const sandbox = mode === 'sandbox'
+    const groups = Array.from({ length: 10 }, (_, index) => ({
+        id: index + 1,
+        group_name: bytes(`队伍${index + 1}`),
         heros: Array.from({ length: 3 }, () => ({ hero_id: '0', pet_id: '0' })),
         control: '0',
     }))
-    groups[0].heros[0].hero_id = placeholder.guid
-    groups[0].control = placeholder.guid
-    const birth = tables.find('world_borthpos', 10045) || tables.get('world_borthpos')[0]
     return {
         schema: 1,
+        starterProfile: newStarterProfile(mode),
         player: {
             basic_info: {
                 id,
@@ -123,16 +105,18 @@ export function seedPlayer(tables, id, openId) {
                 lend_info: { can_lend_num: 0, last_lend_time: 0 },
                 language: 1,
                 birthday: { month: 1, day: 1 },
+                // Preserve these two existing wire values until their current
+                // consumers are recovered; they are not aliases of skip_guide.
                 is_created: true,
-                skip_guide: 0,
+                skip_guide: sandbox ? 1 : 0,
                 nest_guide_finish: 1,
                 apparel_info: {},
                 clothes_info: {},
             },
-            heros_info: { heros: heroes, battle_infos: [] },
+            heros_info: { heros: [], battle_infos: [] },
             sbag_infos: { items: [] },
             attr_infos: { attrs: [] },
-            soulessence_infos: { soulessences: essences },
+            soulessence_infos: { soulessences: [] },
             group_mgrs: [
                 { type: 1, cur_group: 1, last_group: 1, src: 0, groups },
                 { type: 6, cur_group: 1, last_group: 1, src: 0, groups: [] },
@@ -142,24 +126,101 @@ export function seedPlayer(tables, id, openId) {
             home_settings: { entries: [] },
             custom_options: { entries: [] },
         },
-        pets,
-        petGuidAllocation: identity.petGuidAllocation,
-        petProvenance: identity.petProvenance,
+        pets: [],
         recordPets: [],
         petCatalogVersion: 2,
-        petBoxes: Array.from({ length: Math.ceil(pets.length / 30) }, (_, i) => ({
-            id: i + 1,
-            box_name: bytes(`奇波小屋${i + 1}`),
-        })),
-        world: {
-            ...tables.position(birth),
-            weather: 1,
-            mount: '0',
-            points: tables.get('world_borthpos').map((p) => p.id),
-        },
+        petBoxes: [],
+        world: { ...tables.position(birth), weather: 1, mount: '0', points: [] },
         mail: [],
         tasks: [],
         claims: [],
         flags: {},
     }
+}
+
+function installStarterHeroes(state, heroes) {
+    ensure(heroes.length > 0, 'Starter hero is unavailable', ErrorCode.GameConfig)
+    state.player.heros_info.heros = heroes
+    const group = state.player.group_mgrs.find((row) => row.type === 1).groups[0]
+    group.heros[0].hero_id = heroes[0].guid
+    group.control = heroes[0].guid
+}
+
+function seedNormalAssets(tables, state, id) {
+    const mainId = mainHeroConfigId(tables, 2)
+    ensure(tables.find('hero', mainId), 'Configured starter protagonist unavailable', ErrorCode.HeroNotExist)
+    const main = heroData(mainId, id, 1)
+    installStarterHeroes(state, [main])
+    state.normalStarterAvatar = { version: 1, phase: 'provisional', sex: 2, configId: mainId, guid: main.guid }
+    // No petData,pet allocator,provenance/specimen or essence catalogue is
+    // touched. Real acquisition will allocate its first identity and box.
+    ensureAppearance(tables, state)
+}
+
+function seedSandboxAssets(tables, state, id) {
+    const mainId = mainHeroConfigId(tables, 2)
+    const heroes = tables
+        .get('hero')
+        .filter((row) => row.isUsable === 1)
+        .map((row) => heroData(row.id, id, row.id === mainId ? 1 : 0))
+    installStarterHeroes(state, heroes)
+    const configs = tables
+        .get('pet')
+        .filter(
+            (row) =>
+                row.petStage > 0 &&
+                row.IsCatch === 1 &&
+                tables.find('template_value', row.id) &&
+                petModelEligibility(tables, row.id).eligible,
+        )
+    const identity = { player: { basic_info: { id } }, pets: [] }
+    const allocation = planPetGuidAllocation(tables, identity, configs.length)
+    state.pets = configs.map((row, index) =>
+        petData(tables, row.id, allocation.guids[index], (Math.floor(index / 30) + 1) * 100 + (index % 30) + 1),
+    )
+    commitPetGuidAllocation(
+        identity,
+        allocation,
+        'server-starter',
+        configs.map((row) => row.id),
+    )
+    state.petGuidAllocation = identity.petGuidAllocation
+    state.petProvenance = identity.petProvenance
+    state.player.soulessence_infos.soulessences = tables.get('soulessence').map((row) => ({
+        guid: row.id,
+        id: row.id,
+        lv: 1,
+        rank: 1,
+        advance: 1,
+        exp: 0,
+        lock: true,
+        wear_hero: '0',
+    }))
+    state.petBoxes = Array.from({ length: Math.ceil(state.pets.length / 30) }, (_, index) => ({
+        id: index + 1,
+        box_name: bytes(`奇波小屋${index + 1}`),
+    }))
+    state.world.points = tables.get('world_borthpos').map((point) => point.id)
+}
+
+export function seedPlayer(tables, id, openId, options = {}) {
+    ensure(
+        options &&
+            typeof options === 'object' &&
+            !Array.isArray(options) &&
+            Object.keys(options).every((key) => key === 'mode'),
+        'Invalid starter factory options',
+        ErrorCode.GameConfig,
+    )
+    const mode = Object.hasOwn(options, 'mode') ? options.mode : 'normal'
+    ensure(['normal', 'sandbox'].includes(mode), 'Unknown starter factory mode', ErrorCode.GameConfig)
+    ensure(
+        Number.isSafeInteger(id) && id > 0 && id <= 0xffffffff && typeof openId === 'string' && openId.length > 0,
+        'Invalid new starter identity',
+        ErrorCode.GameConfig,
+    )
+    const state = emptyStarterPlayer(tables, id, openId, mode)
+    if (mode === 'normal') seedNormalAssets(tables, state, id)
+    else seedSandboxAssets(tables, state, id)
+    return state
 }

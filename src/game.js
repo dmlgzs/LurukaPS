@@ -571,6 +571,7 @@ export class Game {
             rng = randomInt,
             crcDelay = 0,
             gmEnabled = true,
+            starterProfile = 'normal',
             offlinePayments = true,
             taskEventDiagnosticsFile = null,
             syncOptimization = true,
@@ -583,6 +584,12 @@ export class Game {
     ) {
         this.announcementBaseUrl = 'http://127.0.0.1:20001/'
         this.syncOptimization = syncOptimization
+        ensure(
+            ['normal', 'sandbox'].includes(starterProfile),
+            'Unknown new-account starter profile',
+            ErrorCode.GameConfig,
+        )
+        this.newAccountStarterProfile = starterProfile
         // The runtime supplies the approved local model; isolated verification
         // may inject the same model explicitly without changing its rules.
         this.productionWorkPolicy = productionWorkPolicy
@@ -917,7 +924,7 @@ export class Game {
             ensure(!session.entered, 'Already entered game')
             ensure(!session.openId || session.openId === r.open_id, 'Account switch requires reconnect')
             const a = this.store.login(r.open_id, (id, openId) => {
-                const state = seedPlayer(this.tables, id, openId)
+                const state = seedPlayer(this.tables, id, openId, { mode: this.newAccountStarterProfile })
                 initializeFreshStoryClearProofState(state)
                 return state
             })

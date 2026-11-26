@@ -29,7 +29,7 @@ function fixture(name, options = {}) {
     // Private fresh ownership baseline, prepared before the first SQL insert.
     // This is not a migration or a proposal for the production starter factory.
     store.login(name, (id, openId) => {
-        const state = seedPlayer(tables, id, openId),
+        const state = seedPlayer(tables, id, openId, { mode: 'sandbox' }),
             main = state.player.heros_info.heros.find((hero) => hero.type === 1)
         assert(main)
         main.hero_lv = 3

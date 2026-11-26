@@ -14,7 +14,7 @@ const text = (s) => Buffer.from(s).toString('base64')
 const command = (name, args = []) => ({ command: text(name), args: args.map((x) => text(String(x))) })
 function fixture(options, fixtureTables = tables) {
     const store = new Store(':memory:'),
-        game = new Game(protocol, store, fixtureTables, options),
+        game = new Game(protocol, store, fixtureTables, { starterProfile: 'sandbox', ...options }),
         session = {}
     const call = (name, r) => {
         const e = protocol.byName.get('CSProto' + name)

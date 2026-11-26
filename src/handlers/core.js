@@ -5,8 +5,9 @@ import { ensureAppearance, appearanceCatalog, normalizeClothes } from '../appear
 import { initializeCharacterFormation } from '../character-creation.js'
 import { repairMainHeroType } from '../main-hero.js'
 import { mergeWardrobeInfo } from '../appearance-wardrobe.js'
+import { selectNormalStarterAvatar } from '../normal-starter-avatar.js'
 import { recordGuideStep, setGuideSkipChoice } from '../guide-progress.js'
-import { planPlayerRename, validatePlayerSignBytes } from '../player-text.js'
+import { planPlayerRename, validatePlayerSignBytes, validatePlayerNameBytes } from '../player-text.js'
 export function registerCore(on) {
     on('PresetWardrobeReq', (c, r) => {
         ensure([1, 2].includes(r.sex), 'Invalid preset sex')
@@ -39,11 +40,15 @@ export function registerCore(on) {
     on('PinchFaceDataUp', (c, r) => {
         const basic = c.state.player.basic_info
         const wardrobe = mergeWardrobeInfo(basic.wardrobe, r)
+        const avatar = selectNormalStarterAvatar(c.tables, c.state, wardrobe.sex)
         basic.wardrobe = wardrobe
         basic.sex = wardrobe.sex
         repairMainHeroType(c.tables, c.state)
         // The successful editor callback recreates the default hero immediately.
-        syncPlayer({ ...c, push: c.pushBefore }, { basic_info: basic, heros_info: c.state.player.heros_info })
+        if (avatar) ensureAppearance(c.tables, c.state)
+        const before = { ...c, push: c.pushBefore }
+        syncPlayer(before, { basic_info: basic, heros_info: c.state.player.heros_info })
+        if (avatar?.changed) syncBattle(before)
         return {}
     })
     on('SkipGuide', (c, r) => {
@@ -52,8 +57,17 @@ export function registerCore(on) {
         return {}
     })
     on('PlayerCustomData', (c, r) => {
+        const avatar = selectNormalStarterAvatar(
+            c.tables,
+            c.state,
+            r.wardrobe_info?.sex ?? c.state.player.basic_info.sex,
+        )
         const b = c.state.player.basic_info
-        if (r.name !== undefined) b.name = textValue(r.name, 15)
+        const initialName = avatar !== null && c.state.characterCustomized !== true
+        if (r.name !== undefined || initialName)
+            b.name = validatePlayerNameBytes(c.tables, r.name, {
+                initial: initialName,
+            })
         if (r.wardrobe_info) {
             ensure([1, 2].includes(r.wardrobe_info.sex), 'Invalid sex')
             b.wardrobe = r.wardrobe_info
@@ -62,11 +76,14 @@ export function registerCore(on) {
         c.state.characterCustomized = true
         initializeCharacterFormation(c.tables, c.state)
         repairMainHeroType(c.tables, c.state)
-        syncPlayer(c, {
+        if (avatar) ensureAppearance(c.tables, c.state)
+        const target = avatar ? { ...c, push: c.pushBefore } : c
+        syncPlayer(target, {
             basic_info: b,
             group_mgrs: c.state.player.group_mgrs,
             heros_info: c.state.player.heros_info,
         })
+        if (avatar?.changed || avatar?.initialized) syncBattle(target)
         return {}
     })
     on('ChangeName', (c, r) => {
