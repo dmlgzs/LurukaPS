@@ -8,484 +8,387 @@ import { mainHeroConfigId } from '../src/main-hero.js'
 import { Store } from '../src/store.js'
 import { Protocol } from '../src/protocol.js'
 import { Game } from '../src/game.js'
-import { TaskGraphs } from '../src/tasks.js'
-import { afterBattlePassBeforePush, fixtureNow } from './battle-pass-packet-fixture.js'
+import { TaskGraphs, makeNode } from '../src/tasks.js'
+import { activeFormationManager } from '../src/trial-actors.js'
+import { currentSceneTrialRoster } from '../src/current-scene-trials.js'
+
 const cfg = configuration(),
     tables = new Tables(cfg.tables),
-    protocol = new Protocol(cfg.base)
-test('actual prologue controller opens trial107001, supports combat and reconnect, then restores owned formation', () => {
+    protocol = new Protocol(cfg.base),
+    graphs = new TaskGraphs(tables),
+    now = 1800000000,
+    boss = ((3n << 56n) | 600003n).toString()
+function fixture(name) {
     const store = new Store(':memory:'),
-        game = new Game(protocol, store, tables, { clock: () => fixtureNow })
+        game = new Game(protocol, store, tables, { clock: () => now })
     let session = {},
-        seq = 1
-    const call = (name, r = {}) => {
+        seq = 1,
+        ms = now * 1000
+    const call = (name, request = {}) => {
         const e = protocol.byName.get('CSProto' + name)
         return game
-            .dispatch(session, { id: e.id, seq: seq++, payload: protocol.encode(e.req, r) })
+            .dispatch(session, {
+                id: e.id,
+                seq: seq++,
+                payload: e.req ? protocol.encode(e.req, request) : Buffer.alloc(0),
+            })
             .map((p) => ({ id: p.id, data: protocol.decode(protocol.byId.get(p.id).rsp, p.payload) }))
     }
-    const state = () => store.load(session.id).state
+    const state = () => store.load(session.id).state,
+        edit = (fn) => store.transact(session.id, 0, fn)
+    call('EnterGame', { open_id: name })
+    edit(populateParty)
+    return {
+        store,
+        game,
+        call,
+        state,
+        edit,
+        id: () => session.id,
+        reconnect: () => {
+            session = {}
+            return call('EnterGame', { open_id: name, reconnect: true })
+        },
+        hit: (from, target, amount) =>
+            call('BattleInfoReduce', {
+                base_time: String(++ms),
+                uint64_dic: from ? [from, target] : [target],
+                battle_info: [
+                    { hurt_info: { ...(from ? { from_id: '1' } : {}), tar_id: from ? '2' : '1', hp_change: -amount } },
+                ],
+            }),
+        timestamp: () => String(++ms),
+        close: () => store.close(),
+    }
+}
+const manager = (s) => activeFormationManager(s)
+const active = (s) => {
+    const m = manager(s)
+    return m.groups.find((g) => g.id === m.cur_group)
+}
+const saved = (s) => manager(s).groups.find((g) => g.id === 1)
+const info = (s, guid) => s.player.heros_info.battle_infos.find((h) => h.hero_id === guid)
+const trialDataId = protocol.byName.get('CSProtoTrialDatas').id
+function checkpoint(f, taskId, nodeId, map = 102) {
+    f.edit((s) => {
+        // Explicit trusted progress fixture, not a simulated completion receipt.
+        Object.assign(s.world, tables.position(tables.find('world_borthpos', map === 102 ? 10201 : 10401)))
+        const graph = graphs.get(taskId)
+        s.tasks = [
+            {
+                task_id: taskId,
+                nodes: [makeNode(graph, nodeId, s)],
+                finish_nodes: taskId === 106002 && nodeId === 59 ? [1, 56, 65, 61, 58, 63, 62, 57] : [graph.start],
+                reward_nodes: [],
+                client_trace: true,
+            },
+        ]
+        s.taskRecords = taskId === 106002 ? [{ task_id: 106001, count: 1, time: now - 1 }] : []
+        s.taskEpochs[taskId] = 1
+        delete s.pendingTaskStorySync
+        delete s.pendingTaskScene
+    })
+}
+function bossSource(f) {
+    checkpoint(f, 106002, 59)
+    f.call('TrialGroupChange', { open: true, trial_id: 2 })
+    f.call('EnterWorldMap', { map_id: 104, point_id: 10401, task_id: 106002, node_id: 59, client_trans_data: 2 })
+    f.call('MultiCampaignPlayerLoaded')
+    f.call('TryCreateWorldObj', { objs: [boss] })
+    f.call('TaskClientBefore', { task_id: 106002, node_id: 59 })
+}
+function ackThenActors(packets) {
+    const ack = packets.findIndex((p) => p.id === 5987),
+        attrs = packets.findIndex((p) => p.id === 10006),
+        actors = packets.findIndex((p) => p.id === trialDataId)
+    assert(ack >= 0 && attrs > ack && actors > attrs)
+    assert(packets.findIndex((p) => p.id === 5008 && p.data.group_mgrs?.length) > actors)
+}
+
+test('actual formal prologue controller opens trial1, preserves combat HP across reconnect and restores owned formation', () => {
+    const f = fixture('trial-current-formal1')
     try {
-        call('EnterGame', { open_id: 'trial-test' })
-        store.transact(session.id, 0, populateParty)
-        const original = structuredClone(state().player.group_mgrs[0]),
-            owned = structuredClone(state().player.heros_info.heros)
-        const request = { open: true, force: true, trial_heros: [{ id: 107001, pos: -1 }] },
-            packets = afterBattlePassBeforePush(call('TrialGroupChange', request), tables, state())
-        assert.equal(packets[0].id, 5987)
-        assert(packets.findIndex((p) => p.id === 10006) > 0)
-        assert(packets.findIndex((p) => p.id === 10006) < packets.findIndex((p) => p.id === 5008))
-        assert.equal(packets.at(-1).id, 5008)
-        let s = state()
-        const hero = s.trialGroup.heroes[0]
+        checkpoint(f, 106001, 5)
+        const original = structuredClone(manager(f.state())),
+            owned = structuredClone(f.state().player.heros_info.heros),
+            request = { open: true, trial_id: 1 },
+            packets = f.call('TrialGroupChange', request)
+        ackThenActors(packets)
+        const hero = f.state().trialGroup.heroes[0]
         assert.equal(hero.conf_id, 107001)
         assert.equal(hero.hero_lv, 1)
         assert(hero.trail)
-        assert(!owned.some((h) => h.guid === hero.guid))
-        assert.equal(s.player.group_mgrs[0].cur_group, 0)
-        assert.equal(s.player.group_mgrs[0].groups.find((g) => g.id === 0).control, hero.guid)
-        assert.equal(s.player.group_mgrs[0].src, 0)
         assert.equal(BigInt(hero.guid) >> 56n, 5n)
         assert.equal((BigInt(hero.guid) >> 32n) & 0xffffffn, 107001n)
-        assert.equal(packets.find((p) => p.id === 10006).data.heros.find((h) => h.hero_guid === hero.guid).type, 5)
+        assert.equal(manager(f.state()).cur_group, 0)
+        assert.equal(active(f.state()).control, hero.guid)
+        assert.equal(manager(f.state()).src, 0)
+        const attrs = packets.find((p) => p.id === 10006).data.heros.find((h) => h.hero_guid === hero.guid)
+        assert.equal(attrs.type, 5)
         assert(
-            packets
-                .find((p) => p.id === 10006)
-                .data.heros.find((h) => h.hero_guid === hero.guid)
-                .modules.some((module) =>
-                    module.sub_modules.some((sub) => sub.skills.skills.some((skill) => skill.skill_id === 10700113)),
-                ),
+            attrs.modules.some((m) =>
+                m.sub_modules.some((sub) => sub.skills.skills.some((skill) => skill.skill_id === 10700113)),
+            ),
         )
         const oldControl = original.groups.find((g) => g.id === original.cur_group).control,
-            position = structuredClone(s.world.pos)
-        call('SwitchWorldGroupControl', { type: 1, control: oldControl, pos: {}, switch_type: 56 })
-        call('SwitchGroupControlEnd', { uuid: oldControl })
-        assert.equal(state().player.group_mgrs[0].groups.find((g) => g.id === 0).control, hero.guid)
-        assert.deepEqual(state().world.pos, position)
+            pos = structuredClone(f.state().world.pos)
+        f.call('SwitchWorldGroupControl', { type: 1, control: oldControl, pos: {}, switch_type: 56 })
+        f.call('SwitchGroupControlEnd', { uuid: oldControl })
+        assert.equal(active(f.state()).control, hero.guid)
+        assert.deepEqual(f.state().world.pos, pos)
         const enemy = ((4n << 56n) | 10600101n).toString()
-        const hit = call('BattleInfoReduce', {
-            uint64_dic: [hero.guid, enemy],
-            battle_info: [{ hurt_info: { from_id: '1', tar_id: '2', hp_change: -10 } }],
+        assert(f.hit(hero.guid, enemy, 10).some((p) => p.id === 10706))
+        assert.equal(f.state().combat.entities[enemy].config_id, 310624)
+        assert.equal(f.state().combat.entities[enemy].hp, f.state().combat.entities[enemy].max_hp - 10)
+        const hp = info(f.state(), hero.guid).hp
+        f.hit(null, hero.guid, 1)
+        assert.equal(info(f.state(), hero.guid).hp, hp - 1)
+        f.call('TrialGroupChange', request)
+        assert.equal(f.state().trialGroup.previous_group, original.cur_group)
+        assert(f.reconnect().some((p) => p.id === trialDataId))
+        assert.equal(info(f.state(), hero.guid).hp, hp - 1)
+        const before = f.state()
+        assert.throws(() => f.call('TrialGroupChange', { open: true, trial_id: 3 }), /not admitted/)
+        assert.deepEqual(f.state(), before)
+        f.call('TrialGroupChange', { open: false })
+        assert.equal(f.state().trialGroup, undefined)
+        assert.deepEqual(manager(f.state()), original)
+        assert.deepEqual(f.state().player.heros_info.heros, owned)
+        assert(!info(f.state(), hero.guid))
+        f.call('TrialGroupChange', request)
+        // Trusted saved-scene boundary, followed by a normal RPC reconciliation.
+        f.edit((s) => {
+            s.world.map_id = 100
         })
-        assert(hit.some((p) => p.id === 10706))
-        assert.equal(state().combat.entities[enemy].config_id, 310624)
-        assert.equal(state().combat.entities[enemy].hp, state().combat.entities[enemy].max_hp - 10)
-        const hp = s.player.heros_info.battle_infos.find((h) => h.hero_id === hero.guid).hp
-        call('BattleInfoReduce', {
-            uint64_dic: [hero.guid],
-            battle_info: [{ hurt_info: { tar_id: '1', hp_change: -1 } }],
+        f.call('WorldTimeSync', { world_time: 43200 })
+        assert.equal(f.state().trialGroup, undefined)
+        checkpoint(f, 106001, 5)
+        f.call('TrialGroupChange', request)
+        f.edit((s) => {
+            s.tasks[0].nodes = [makeNode(graphs.get(106001), 63, s)]
         })
-        assert.equal(state().player.heros_info.battle_infos.find((h) => h.hero_id === hero.guid).hp, hp - 1)
-        call('TrialGroupChange', request)
-        assert.equal(state().trialGroup.previous_group, original.cur_group)
-        session = {}
-        const login = call('EnterGame', { open_id: 'trial-test' })
-        assert(login.some((p) => p.id === 5988))
-        assert.equal(state().player.group_mgrs[0].cur_group, 0)
-        const before = state()
-        assert.throws(
-            () => call('TrialGroupChange', { ...request, trial_heros: [{ id: 20000, pos: 0 }] }),
-            /active task/,
-        )
-        assert.deepEqual(state(), before)
-        call('TrialGroupChange', { open: false, force: true })
-        s = state()
-        assert.equal(s.player.group_mgrs[0].cur_group, original.cur_group)
-        assert.deepEqual(s.player.group_mgrs[0].groups, original.groups)
-        assert.deepEqual(s.player.heros_info.heros, owned)
-        assert.equal(s.trialGroup, undefined)
-        assert(!s.player.heros_info.battle_infos.some((h) => h.hero_id === hero.guid))
-        call('TrialGroupChange', request)
-        call('EnterWorldMap', { map_id: 100, point_id: 10045 })
-        assert.equal(state().trialGroup, undefined)
-        assert.equal(state().player.group_mgrs[0].cur_group, original.cur_group)
-        call('EnterWorldMap', { map_id: 102, point_id: 10201 })
-        call('TrialGroupChange', request)
-        store.transact(session.id, 0, (s) => {
-            s.tasks[0].nodes = [{ node_id: 63, node_values: [0], client_before: false, client_cond_after: [false] }]
-        })
-        session = {}
-        call('EnterGame', { open_id: 'trial-test' })
-        assert.equal(state().trialGroup, undefined)
-        assert.equal(state().player.group_mgrs[0].cur_group, original.cur_group)
+        f.reconnect()
+        assert.equal(f.state().trialGroup, undefined)
+        assert.deepEqual(manager(f.state()), original)
     } finally {
-        store.close()
+        f.close()
     }
 })
 
-test('actual node56 non-forced trial replaces one slot in a saved-party copy and restores it afterward', () => {
-    const store = new Store(':memory:'),
-        game = new Game(protocol, store, tables, { clock: () => fixtureNow }),
-        session = {}
-    let seq = 1
-    const call = (name, r = {}) => {
-        const e = protocol.byName.get('CSProto' + name)
-        return game
-            .dispatch(session, { id: e.id, seq: seq++, payload: protocol.encode(e.req, r) })
-            .map((p) => ({ id: p.id, data: protocol.decode(protocol.byId.get(p.id).rsp, p.payload) }))
-    }
+test('actual formal node56 template2 replaces one slot in a saved-party copy and restores it afterward', () => {
+    const f = fixture('trial-current-mixed2')
     try {
-        call('EnterGame', { open_id: 'trial-full-party' })
-        store.transact(session.id, 0, populateParty)
-        store.transact(session.id, 0, (s) => {
-            const graph = new TaskGraphs(tables).get(106002)
-            s.tasks = [
-                {
-                    task_id: 106002,
-                    nodes: [
-                        { node_id: 56, node_values: [0, 0], client_before: true, client_cond_after: [false, false] },
-                    ],
-                    finish_nodes: [graph.start],
-                    reward_nodes: [],
-                },
-            ]
-            s.taskRecords = [{ task_id: 106001, count: 1, time: 1 }]
-            s.world.map_id = 102
-        })
-        const before = store.load(session.id).state.player.group_mgrs[0],
-            original = structuredClone(before.groups.find((g) => g.id === before.cur_group))
-        const result = afterBattlePassBeforePush(
-            call('TrialGroupChange', { open: true, force: false, trial_heros: [{ id: 107001, pos: -1 }] }),
-            tables,
-            store.load(session.id).state,
-        )
-        assert.equal(result[0].id, 5987)
-        assert(result.findIndex((p) => p.id === 10006) > 0)
-        assert(result.findIndex((p) => p.id === 10006) < result.findIndex((p) => p.id === 5008))
-        const state = store.load(session.id).state,
-            group = state.player.group_mgrs[0].groups.find((g) => g.id === 0),
-            trial = state.trialGroup.heroes[0]
+        checkpoint(f, 106002, 56)
+        const original = structuredClone(saved(f.state())),
+            packets = f.call('TrialGroupChange', { open: true, trial_id: 2 })
+        ackThenActors(packets)
+        const s = f.state(),
+            group = active(s),
+            hero = s.trialGroup.heroes[0]
         assert.equal(group.heros.length, 3)
         assert.equal(group.heros[0].hero_id, original.heros[0].hero_id)
         assert.equal(group.heros[1].hero_id, original.heros[1].hero_id)
-        assert.equal(group.heros[2].hero_id, trial.guid)
-        assert.equal(group.control, trial.guid)
-        assert.deepEqual(
-            state.player.group_mgrs[0].groups.find((g) => g.id === 1),
-            original,
-        )
-        call('TrialGroupChange', { open: false, force: true })
-        const restored = store.load(session.id).state.player.group_mgrs[0]
-        assert.equal(restored.cur_group, 1)
-        assert.deepEqual(
-            restored.groups.find((g) => g.id === 1),
-            original,
-        )
-        assert(!restored.groups.some((g) => g.id === 0))
+        assert.equal(group.heros[2].hero_id, hero.guid)
+        assert.equal(group.control, hero.guid)
+        assert.equal(s.trialGroup.force, false)
+        assert.equal(s.trialGroup.current_group_id, 2)
+        assert.deepEqual(saved(s), original)
+        f.call('TrialGroupChange', { open: false })
+        assert.equal(manager(f.state()).cur_group, 1)
+        assert.deepEqual(saved(f.state()), original)
+        assert(!manager(f.state()).groups.some((g) => g.id === 0))
     } finally {
-        store.close()
+        f.close()
     }
 })
 
-test('node59 trial pet102 joins temporary formation, participates in combat and can be removed', () => {
-    const store = new Store(':memory:'),
-        game = new Game(protocol, store, tables),
-        session = {}
-    let seq = 1
-    const call = (name, r = {}) => {
-        const e = protocol.byName.get('CSProto' + name)
-        return game.dispatch(session, { id: e.id, seq: seq++, payload: protocol.encode(e.req, r) }).map((packet) => ({
-            id: packet.id,
-            data: protocol.decode(protocol.byId.get(packet.id).rsp, packet.payload),
-        }))
-    }
+test('published node59 FSM template3 binds Abi102 to Sif, supports combat, removal and stale-pet filtering', () => {
+    const f = fixture('trial-current-abi3')
     try {
-        call('EnterGame', { open_id: 'trial-pet-node59' })
-        store.transact(session.id, 0, populateParty)
-        store.transact(session.id, 0, (s) => {
-            s.world.map_id = 104
-            s.world.point_id = 10401
-            s.tasks = [
-                {
-                    task_id: 106002,
-                    nodes: [{ node_id: 59, node_values: [0], client_before: true, client_cond_after: [false] }],
-                    finish_nodes: [1, 56, 65, 61, 58, 63, 62, 57],
-                    reward_nodes: [],
-                },
-            ]
-            s.taskRecords = [{ task_id: 106001, count: 1, time: 1 }]
-            s.player.group_mgrs[0].groups.find((g) => g.id === 1).heros[1].pet_id = s.pets[0].guid
+        f.edit((s) => {
+            saved(s).heros[1].pet_id = s.pets[0].guid
         })
-        const original = structuredClone(
-            store.load(session.id).state.player.group_mgrs[0].groups.find((g) => g.id === 1),
-        )
-        call('TrialGroupChange', { open: true, force: false, trial_heros: [{ id: 107001, pos: -1 }] })
-        call('SwitchWorldGroupControl', { type: 1, control: original.heros[1].hero_id })
-        const packets = call('TrialGroupChange', { open: true, force: false, trial_pets: [{ id: 102, pos: 1 }] }),
-            state = store.load(session.id).state,
-            trial = state.trialGroup.pets[0]
-        const ids = packets.map((x) => x.id),
-            groupIndex = packets.findIndex((x) => x.id === 5008 && x.data.group_mgrs?.length)
-        assert.equal(ids[0], 5987)
-        assert(ids.indexOf(10006) < ids.indexOf(5988))
-        assert(ids.indexOf(5988) < groupIndex)
-        const heroPacket = packets.find((x) => x.id === 5008 && x.data.heros_info)
-        assert.equal(
-            heroPacket.data.heros_info.heros.find((h) => h.guid === original.heros[1].hero_id).trial_pet,
-            trial.guid,
-        )
-        assert.equal(state.player.group_mgrs[0].groups.find((g) => g.id === 0).control, original.heros[1].hero_id)
-        assert.equal(trial.config_id, 500264)
-        assert.equal(trial.satiety_val, 10000, 'temporary trial pets retain their explicit legacy compatibility value')
-        assert(
-            state.pets.every((pet) => pet.satiety_val === 60),
-            'new permanent roster remains in the configured normal domain',
-        )
-        assert.equal(trial.type, 2)
-        assert.equal(BigInt(trial.guid) >> 56n, 9n)
-        assert.equal((BigInt(trial.guid) >> 32n) & 0xffffffn, 102n)
-        assert.deepEqual(Object.fromEntries(trial.comprehension.map((c) => [c.attr_id, c.value])), {
-            1: 100,
-            3: 20,
-            5: 339,
-            230: 100,
-            229: 50,
-            7: 200,
+        const original = structuredClone(saved(f.state())),
+            ownedPets = structuredClone(f.state().pets)
+        bossSource(f)
+        const packets = f.call('TrialGroupChange', { open: true, trial_id: 3 }),
+            s = f.state(),
+            hero = s.trialGroup.heroes[0],
+            pet = s.trialGroup.pets[0]
+        ackThenActors(packets)
+        assert.equal(pet.config_id, 500264)
+        assert.equal(pet.type, 2)
+        assert.equal(BigInt(pet.guid) >> 56n, 9n)
+        assert.equal((BigInt(pet.guid) >> 32n) & 0xffffffn, 102n)
+        assert.equal(pet.hero_id, hero.guid)
+        assert.equal(hero.trial_pet, pet.guid)
+        assert.equal(active(s).control, hero.guid)
+        assert(active(s).heros.some((h) => h.hero_id === hero.guid && h.pet_id === pet.guid))
+        assert.equal(active(s).heros[1].pet_id, original.heros[1].pet_id)
+        assert.deepEqual(saved(s), original)
+        assert.deepEqual(s.pets, ownedPets)
+        // Pure legacy-ID repair boundary. Current connection-scoped FSM
+        // admission is re-established separately by the reconnect test below.
+        const legacy = structuredClone(s),
+            oldPetGuid = ((9n << 56n) | (BigInt(0x800000 + 102) << 32n) | BigInt(f.id())).toString(),
+            legacySlot = active(legacy).heros.find((h) => h.pet_id === pet.guid)
+        legacySlot.pet_id = oldPetGuid
+        legacy.trialGroup.pets[0].guid = oldPetGuid
+        legacy.combat.skills[oldPetGuid] = { skill: { skill_id: 50026401 } }
+        assert.equal(repairTrialActorGuids(tables, legacy), true)
+        assert.equal(legacy.trialGroup.pets[0].guid, pet.guid)
+        assert.equal(legacy.combat.skills[oldPetGuid], undefined)
+        assert.equal(active(legacy).heros.find((h) => h.hero_id === hero.guid).pet_id, pet.guid)
+        assert.deepEqual(legacy.pets, ownedPets)
+        assert.equal(repairTrialActorGuids(tables, legacy), false)
+        assert.deepEqual(Object.fromEntries(pet.comprehension.map((c) => [c.attr_id, c.value])), {
+            1: 120,
+            3: 130,
+            5: 130,
+            230: 120,
+            229: 120,
+            7: 400,
         })
-        assert.equal(state.player.group_mgrs[0].groups.find((g) => g.id === 0).heros[1].pet_id, trial.guid)
-        assert.equal(
-            state.player.group_mgrs[0].groups.find((g) => g.id === 0).heros[1].hero_id,
-            original.heros[1].hero_id,
-        )
-        assert.equal(trial.hero_id, original.heros[1].hero_id)
-        assert.deepEqual(
-            state.player.group_mgrs[0].groups.find((g) => g.id === 1),
-            original,
-        )
-        assert(packets.some((x) => x.id === 5988 && x.data.trial_pets[0].guid === trial.guid))
-        assert(packets.some((x) => x.id === 10006 && x.data.heros.some((h) => h.hero_guid === trial.guid)))
-        assert.equal(packets.find((x) => x.id === 10006).data.heros.find((h) => h.hero_guid === trial.guid).type, 9)
-        assert.equal(call('SkillFailVec', { unit_id: trial.guid })[0].data.success, true)
-        assert.equal(call('SwitchPetAction', { uuid: trial.guid, type: 1 })[0].id, 11062)
-        call('TrialGroupChange', { open: true, force: false, trial_pets: [{ id: 102, pos: 1 }] })
-        assert.deepEqual(store.load(session.id).state.trialGroup.pets[0], trial)
-        const enemy = ((3n << 56n) | 600003n).toString()
-        call('SkillEffectDone', { uuid: enemy, skill_id: 40001128 })
-        call('ShieldInfo', { uuid: enemy, shield: [{ id: 1, val: 109 }] })
-        assert.equal(store.load(session.id).state.combat.shields[enemy][0].val, 109)
-        call('ShieldInfoDel', { uuid: enemy, shield_id: [1] })
-        assert.equal(store.load(session.id).state.combat.shields[enemy], undefined)
-        call('BattleInfoReduce', {
-            uint64_dic: [trial.guid, enemy],
-            battle_info: [{ hurt_info: { from_id: '1', tar_id: '2', hp_change: -2147483647 } }],
-        })
-        assert.equal(store.load(session.id).state.combat.entities[enemy].hp, 0)
-        assert.equal(store.load(session.id).state.tasks[0].nodes[0].node_values[0], 1)
-        call('TrialGroupChange', {
-            open: false,
-            force: false,
-            trial_pets: [
-                { id: 102, pos: 1 },
-                { id: 102, pos: 1 },
-            ],
-        })
-        assert.equal(store.load(session.id).state.trialGroup.pets.length, 0)
-        assert.equal(
-            store.load(session.id).state.player.heros_info.heros.find((h) => h.guid === original.heros[1].hero_id)
-                .trial_pet,
-            '0',
-        )
-        assert.equal(
-            store.load(session.id).state.player.group_mgrs[0].groups.find((g) => g.id === 0).heros[1].pet_id,
-            original.heros[1].pet_id,
-        )
-        assert.deepEqual(call('SkillStart', { unit_id: trial.guid, skill: { skill_id: 536018 } }), [])
-        assert.deepEqual(call('SkillFailVec', { unit_id: trial.guid }), [])
-        assert.deepEqual(call('SwitchPetAction', { uuid: trial.guid, type: 1 }), [])
+        assert(packets.some((p) => p.id === trialDataId && p.data.trial_pets.some((v) => v.guid === pet.guid)))
+        assert.equal(packets.find((p) => p.id === 10006).data.heros.find((v) => v.hero_guid === pet.guid).type, 9)
+        assert.equal(f.call('SkillFailVec', { unit_id: pet.guid })[0].data.success, true)
+        assert.equal(f.call('SwitchPetAction', { uuid: pet.guid, type: 1 })[0].id, 11062)
+        f.call('TrialGroupChange', { open: true, trial_id: 3 })
+        assert.deepEqual(f.state().trialGroup.pets[0], pet)
+        f.call('SkillEffectDone', { uuid: boss, skill_id: 40001128 })
+        f.call('ShieldInfo', { uuid: boss, shield: [{ id: 1, val: 109 }] })
+        assert.equal(f.state().combat.shields[boss][0].val, 109)
+        f.call('ShieldInfoDel', { uuid: boss, shield_id: [1] })
+        assert.equal(f.state().combat.shields[boss], undefined)
+        f.hit(pet.guid, boss, 10)
+        assert.equal(f.state().combat.entities[boss].hp, f.state().combat.entities[boss].max_hp - 10)
+        f.call('TrialGroupChange', { open: false })
+        f.call('TrialGroupChange', { open: true, trial_id: 2 })
+        assert.equal(f.state().trialGroup.pets.length, 0)
+        assert.equal(f.state().trialGroup.heroes[0].trial_pet, '0')
+        assert.deepEqual(f.call('SkillStart', { unit_id: pet.guid, skill: { skill_id: 536018 } }), [])
+        assert.deepEqual(f.call('SkillFailVec', { unit_id: pet.guid }), [])
+        assert.deepEqual(f.call('SwitchPetAction', { uuid: pet.guid, type: 1 }), [])
         const living = original.heros[0].hero_id,
-            hp = store.load(session.id).state.player.heros_info.battle_infos.find((x) => x.hero_id === living).hp
-        call('BattleInfoReduce', {
-            uint64_dic: [trial.guid, living, enemy, '8082234599', '400011215'],
+            hp = info(f.state(), living).hp
+        f.call('BattleInfoReduce', {
+            base_time: f.timestamp(),
+            uint64_dic: [pet.guid, living, boss, '8082234599', '400011215'],
             battle_info: [
                 { element_info: { op: 1, tar_id: '1', uniqueId: '4', buff: { cfg_id: 5, creator_id: '3' } } },
                 { hurt_info: { from_id: '3', tar_id: '2', hp_change: -1 } },
             ],
         })
-        assert.equal(
-            store.load(session.id).state.player.heros_info.battle_infos.find((x) => x.hero_id === living).hp,
-            hp - 1,
-        )
-        assert.equal(store.load(session.id).state.combat.elements['8082234599'], undefined)
-        const rebuilt = call('TrialGroupChange', { open: true, force: false, trial_heros: [{ id: 107001, pos: -1 }] })
-        assert.equal(rebuilt.find((x) => x.id === 5988).data.trial_heros[0].trial_pet, '0')
-        call('TrialGroupChange', { open: true, force: false, trial_pets: [{ id: 102, pos: 1 }] })
-        assert.equal(call('SkillFailVec', { unit_id: trial.guid })[0].data.success, true)
+        assert.equal(info(f.state(), living).hp, hp - 1)
+        assert.equal(f.state().combat.elements['8082234599'], undefined)
+        f.call('TrialGroupChange', { open: true, trial_id: 3 })
+        assert.equal(f.state().trialGroup.pets.length, 1)
+        assert.equal(f.call('SkillFailVec', { unit_id: pet.guid })[0].data.success, true)
         assert.throws(
             () =>
-                call('SkillStart', {
-                    unit_id: ((9n << 56n) | (999n << 32n) | BigInt(session.id)).toString(),
+                f.call('SkillStart', {
+                    unit_id: ((9n << 56n) | (999n << 32n) | BigInt(f.id())).toString(),
                     skill: { skill_id: 536018 },
                 }),
             /not active/,
         )
-        call('TrialGroupChange', { open: false, force: true })
-        assert.deepEqual(
-            store.load(session.id).state.player.group_mgrs[0].groups.find((g) => g.id === 1),
-            original,
-        )
+        f.hit(pet.guid, boss, 2147483647)
+        assert.equal(f.state().combat.entities[boss].hp, 0)
+        assert.equal(f.state().tasks[0].nodes[0].node_values[0], 1)
+        f.call('TrialGroupChange', { open: false })
+        assert.deepEqual(saved(f.state()), original)
+        assert.deepEqual(f.state().pets, ownedPets)
     } finally {
-        store.close()
+        f.close()
     }
 })
 
-test('login restores a saved-party copy from a one-person independent trial party', () => {
-    const store = new Store(':memory:'),
-        game = new Game(protocol, store, tables),
-        session = {}
-    let seq = 1
-    const call = (who, name, r = {}) => {
-        const e = protocol.byName.get('CSProto' + name)
-        return game.dispatch(who, { id: e.id, seq: seq++, payload: protocol.encode(e.req, r) })
-    }
+test('login repairs a legacy one-person mixed trial party without changing its saved owned formation', () => {
+    const f = fixture('trial-current-mixed-migration')
     try {
-        call(session, 'EnterGame', { open_id: 'trial-mixed-migration' })
-        store.transact(session.id, 0, populateParty)
-        store.transact(session.id, 0, (s) => {
-            s.world.map_id = 104
-            s.tasks = [
-                {
-                    task_id: 106002,
-                    nodes: [{ node_id: 59, node_values: [0], client_before: true, client_cond_after: [false] }],
-                    finish_nodes: [1, 56, 65, 61, 58, 63, 62, 57],
-                    reward_nodes: [],
-                },
-            ]
-            s.taskRecords = [{ task_id: 106001, count: 1, time: 1 }]
-        })
-        call(session, 'TrialGroupChange', { open: true, force: false, trial_heros: [{ id: 107001, pos: -1 }] })
-        call(session, 'TrialGroupChange', { open: true, force: false, trial_pets: [{ id: 102, pos: 1 }] })
-        const oldPetGuid = ((9n << 56n) | (BigInt(0x800000 + 102) << 32n) | BigInt(session.id)).toString(),
-            oldHeroGuid = ((1n << 56n) | (BigInt(0x800000 + 107001) << 32n) | BigInt(session.id)).toString()
-        store.transact(session.id, 0, (s) => {
-            const trial = s.player.group_mgrs[0].groups.find((g) => g.id === 0)
-            trial.heros = [
-                { hero_id: oldHeroGuid, pet_id: '0' },
-                { hero_id: '0', pet_id: oldPetGuid },
-            ]
-            trial.control = oldHeroGuid
-            s.trialGroup.heroes[0].guid = oldHeroGuid
-            s.trialGroup.pets[0].guid = oldPetGuid
-            s.trialGroup.pets[0].hero_id = '0'
-            s.combat ??= { map_id: 104, skills: {}, bullets: {}, elements: {}, entities: {}, report_count: 0 }
-            s.combat.skills[oldPetGuid] = { skill: { skill_id: 50026401 } }
-            s.combat.skills[oldHeroGuid] = { skill: { skill_id: 10700113 } }
+        checkpoint(f, 106002, 56)
+        f.call('TrialGroupChange', { open: true, trial_id: 2 })
+        const original = structuredClone(saved(f.state())),
+            oldHero = ((1n << 56n) | (BigInt(0x800000 + 107001) << 32n) | BigInt(f.id())).toString(),
+            guid = f.state().trialGroup.heroes[0].guid,
+            hp = info(f.state(), guid).hp
+        f.edit((s) => {
+            const trial = active(s)
+            trial.heros = [{ hero_id: oldHero, pet_id: '0' }]
+            trial.control = oldHero
+            s.trialGroup.heroes[0].guid = oldHero
+            info(s, guid).hero_id = oldHero
+            s.combat ??= { map_id: 102, skills: {}, bullets: {}, entities: {} }
+            s.combat.skills ??= {}
+            s.combat.skills[oldHero] = [123]
             delete s.trialGroup.force
             delete s.trialGroup.heroSlots
         })
-        const original = structuredClone(
-            store.load(session.id).state.player.group_mgrs[0].groups.find((g) => g.id === 1),
-        )
-        const reconnected = {}
-        call(reconnected, 'EnterGame', { open_id: 'trial-mixed-migration' })
-        const s = store.load(session.id).state,
-            group = s.player.group_mgrs[0].groups.find((g) => g.id === 0)
-        assert.equal(group.heros.length, 3)
-        assert.equal(group.heros[0].hero_id, original.heros[0].hero_id)
-        assert.equal(group.heros[1].hero_id, original.heros[1].hero_id)
-        assert.equal(group.heros[2].hero_id, s.trialGroup.heroes[0].guid)
-        assert.equal(group.heros[1].pet_id, s.trialGroup.pets[0].guid)
-        assert.equal(s.trialGroup.pets[0].hero_id, original.heros[1].hero_id)
-        assert.equal((BigInt(s.trialGroup.pets[0].guid) >> 32n) & 0xffffffn, 102n)
-        assert.equal(s.combat.skills[oldPetGuid], undefined)
-        assert.equal(BigInt(s.trialGroup.heroes[0].guid) >> 56n, 5n)
-        assert.equal((BigInt(s.trialGroup.heroes[0].guid) >> 32n) & 0xffffffn, 107001n)
-        assert.equal(s.combat.skills[oldHeroGuid], undefined)
-        assert.deepEqual(
-            s.player.group_mgrs[0].groups.find((g) => g.id === 1),
-            original,
-        )
+        f.reconnect()
+        const s = f.state()
+        assert.equal(active(s).heros.length, 3)
+        assert.equal(s.trialGroup.heroes[0].guid, guid)
+        assert.equal(BigInt(guid) >> 56n, 5n)
+        assert.equal(info(s, guid).hp, hp)
+        assert.equal(s.combat.skills[oldHero], undefined)
+        assert.deepEqual(saved(s), original)
+        assert(active(s).heros.some((h) => h.hero_id === guid))
     } finally {
-        store.close()
+        f.close()
     }
 })
 
-test('logged reconnect request can restore trial hero and duplicated trial pet together', () => {
-    const store = new Store(':memory:'),
-        game = new Game(protocol, store, tables),
-        session = {}
-    let seq = 1
-    const call = (name, r = {}) => {
-        const e = protocol.byName.get('CSProto' + name)
-        return game.dispatch(session, { id: e.id, seq: seq++, payload: protocol.encode(e.req, r) }).map((packet) => ({
-            id: packet.id,
-            data: protocol.decode(protocol.byId.get(packet.id).rsp, packet.payload),
-        }))
-    }
+test('reconnect re-establishes the actual FSM source and current template3 repeats without duplicate actors', () => {
+    const f = fixture('trial-current-reconnect3')
     try {
-        call('EnterGame', { open_id: 'trial-mixed-request' })
-        call('PlayerCustomData', { name: Buffer.from('TrialTest').toString('base64'), wardrobe_info: { sex: 2 } })
-        store.transact(session.id, 0, (s) => {
-            s.world.map_id = 104
-            s.world.point_id = 10401
-            s.tasks = [
-                {
-                    task_id: 106002,
-                    nodes: [{ node_id: 59, node_values: [0], client_before: true, client_cond_after: [false] }],
-                    finish_nodes: [1, 56, 65, 61, 58, 63, 62, 57],
-                    reward_nodes: [],
-                },
-            ]
-            s.taskRecords = [{ task_id: 106001, count: 1, time: 1 }]
-        })
-        const request = {
-            open: true,
-            force: false,
-            trial_heros: [{ id: 107001, pos: -1 }],
-            trial_pets: [
-                { id: 102, pos: 1 },
-                { id: 102, pos: 1 },
-            ],
-        }
-        const packets = call('TrialGroupChange', request),
-            state = store.load(session.id).state,
-            hero = state.trialGroup.heroes[0],
-            pet = state.trialGroup.pets[0]
-        // Journey synchronization may precede this handler's ACK. Require the
-        // ACK itself to exist and still precede the task actor publication.
-        const ackIndex = packets.findIndex((p) => p.id === 5987),
-            trialIndex = packets.findIndex((p) => p.id === 5988)
-        assert(ackIndex >= 0 && trialIndex > ackIndex)
-        assert.equal(state.trialGroup.pets.length, 1)
-        assert.equal(packets.find((x) => x.id === 5988).data.trial_heros[0].trial_pet, pet.guid)
-        assert.equal((BigInt(hero.guid) >> 32n) & 0xffffffn, 107001n)
-        assert.equal((BigInt(pet.guid) >> 32n) & 0xffffffn, 102n)
-        assert.equal(state.player.group_mgrs[0].groups.find((g) => g.id === 0).heros[1].pet_id, pet.guid)
-        assert.deepEqual(call('SkillStart', { unit_id: hero.guid, skill: { skill_id: 10700161 } }), [])
-        const enemy = ((3n << 56n) | 600003n).toString()
-        call('BattleInfoReduce', {
-            uint64_dic: [hero.guid, enemy],
-            battle_info: [{ hurt_info: { from_id: '1', tar_id: '2', hp_change: -10 } }],
-        })
-        assert(
-            store.load(session.id).state.combat.entities[enemy].hp <
-                store.load(session.id).state.combat.entities[enemy].max_hp,
+        bossSource(f)
+        const request = { open: true, trial_id: 3 }
+        f.call('TrialGroupChange', request)
+        const old = f.state().trialGroup,
+            owned = structuredClone(f.state().pets)
+        f.reconnect()
+        // A new connection has a new AOI lifetime. Recreate its real current
+        // source instead of carrying a stale published lease into template3.
+        f.call('MultiCampaignPlayerLoaded')
+        f.call('TryCreateWorldObj', { objs: [boss] })
+        const packets = f.call('TrialGroupChange', request)
+        ackThenActors(packets)
+        const s = f.state(),
+            hero = s.trialGroup.heroes[0],
+            pet = s.trialGroup.pets[0]
+        assert.equal(s.trialGroup.pets.length, 1)
+        assert.equal(hero.guid, old.heroes[0].guid)
+        assert.equal(pet.guid, old.pets[0].guid)
+        assert.equal(packets.find((p) => p.id === trialDataId).data.trial_heros[0].trial_pet, pet.guid)
+        assert.equal(pet.hero_id, hero.guid)
+        assert.deepEqual(f.call('SkillStart', { unit_id: hero.guid, skill: { skill_id: 10700161 } }), [])
+        f.hit(hero.guid, boss, 10)
+        assert(f.state().combat.entities[boss].hp < f.state().combat.entities[boss].max_hp)
+        f.call('TrialGroupChange', request)
+        assert.equal(f.state().trialGroup.pets.length, 1)
+        assert.deepEqual(f.state().pets, owned)
+        const before = f.state()
+        assert.throws(
+            () =>
+                f.call('TrialGroupChange', {
+                    ...request,
+                    trial_pets: [
+                        { id: 102, pos: 1 },
+                        { id: 102, pos: 1 },
+                    ],
+                }),
+            /cannot supply/,
         )
-        call('TrialGroupChange', request)
-        assert.equal(store.load(session.id).state.trialGroup.pets.length, 1)
+        assert.deepEqual(f.state(), before)
     } finally {
-        store.close()
+        f.close()
     }
 })
 
-test('dungeon6207 publishes table-defined forced trial formation before its loading-completion ACK', () => {
-    const store = new Store(':memory:'),
-        game = new Game(protocol, store, tables),
-        session = {}
-    let seq = 1
-    const call = (name, value = {}) => {
-        const e = protocol.byName.get('CSProto' + name)
-        return game
-            .dispatch(session, { id: e.id, seq: seq++, payload: protocol.encode(e.req, value) })
-            .map((packet) => ({
-                id: packet.id,
-                data: protocol.decode(protocol.byId.get(packet.id).rsp, packet.payload),
-            }))
-    }
-    const state = () => store.load(session.id).state
+test('dungeon6207 publishes its current table-defined forced formation before the loading-completion ACK', () => {
+    const f = fixture('trial-current-dungeon6207')
     try {
-        call('EnterGame', { open_id: 'dungeon6207-trial-ready' })
-        store.transact(session.id, 0, (s) => {
-            populateParty(s)
+        f.edit((s) => {
             s.player.basic_info.lv = 20
             s.world.map_id = 100
             s.taskEpochs[107016] = 1
@@ -500,78 +403,58 @@ test('dungeon6207 publishes table-defined forced trial formation before its load
             s.taskRecords = tables
                 .get('task')
                 .filter((row) => row.type === 1 && row.id !== 107016)
-                .map((row) => ({ task_id: row.id, count: 1, time: 1 }))
+                .map((row) => ({ task_id: row.id, count: 1, time: now - 1 }))
             s.taskSceneReceipts['107016:1:34'] = true
             delete s.pendingTaskStorySync
             delete s.pendingTaskScene
         })
-        call('CampaignCreate', { group_id: 219, difficulty: 1 })
-        assert.equal(state().world.map_id, 6207)
-        const original = structuredClone(
-            state()
-                .player.group_mgrs.find((m) => m.type === 1)
-                .groups.find((g) => g.id === 1),
+        f.call('CampaignCreate', { group_id: 219, difficulty: 1 })
+        assert.equal(f.state().world.map_id, 6207)
+        const original = structuredClone(saved(f.state())),
+            roster = currentSceneTrialRoster(tables, 6207)
+        assert.equal(roster.groupId, 6207)
+        assert.deepEqual(
+            roster.heroes.map((h) => h.id),
+            [1070161, 1070162, 1070163],
         )
-        const ids = String(tables.find('dungeon_scene', 6207).trailGroup)
-            .split('|')
-            .map((entry) => Number(entry.split('#')[0]))
-        assert.deepEqual(ids, [1070161, 1070162, 1070163])
-        const request = {
-            open: true,
-            force: true,
-            trial_heros: ids.map((id, pos) => ({ id, pos })),
-            trial_control: { id: ids[0] },
-        }
+        const request = { open: true, trial_id: roster.groupId }
         const ready = (packets) => {
             const ack = packets.findIndex((p) => p.id === 5987)
-            for (const id of [5988, 10006, 10009])
-                assert.ok(
-                    packets.findIndex((p) => p.id === id) < ack,
-                    'trial data and battle state must arrive before the dungeon loading callback',
-                )
-            assert.ok(
-                packets.findIndex((p) => p.id === 5008 && p.data.group_mgrs?.length) < ack,
-                'the active group must be installed before loading completes',
-            )
-            const trial = packets.find((p) => p.id === 5988).data.trial_heros
+            for (const id of [trialDataId, 10006, 10009]) {
+                const index = packets.findIndex((p) => p.id === id)
+                assert(index >= 0 && index < ack)
+            }
+            const groupPacket = packets.findIndex((p) => p.id === 5008 && p.data.group_mgrs?.length)
+            assert(groupPacket >= 0 && groupPacket < ack)
+            const trial = packets.find((p) => p.id === trialDataId).data.trial_heros
             assert.equal(trial.length, 3)
-            assert.equal(trial[0].conf_id, mainHeroConfigId(tables, state().player.basic_info.wardrobe.sex))
-            const active = packets
-                .find((p) => p.id === 5008 && p.data.group_mgrs?.length)
-                .data.group_mgrs.find((m) => m.type === 1)
-                .groups.find((g) => g.id === 0)
+            assert.equal(trial[0].conf_id, mainHeroConfigId(tables, f.state().player.basic_info.wardrobe.sex))
+            const group = packets[groupPacket].data.group_mgrs.find((m) => m.type === 1).groups.find((g) => g.id === 0)
             assert.deepEqual(
-                active.heros.map((h) => h.hero_id),
+                group.heros.map((h) => h.hero_id),
                 trial.map((h) => h.guid),
             )
-            assert.equal(active.control, trial[0].guid)
-            for (const h of trial)
-                assert.ok(packets.find((p) => p.id === 10009).data.infos.find((info) => info.uuid === h.guid).hp > 0)
+            assert.equal(group.control, trial[0].guid)
+            for (const hero of trial)
+                assert(packets.find((p) => p.id === 10009).data.infos.find((i) => i.uuid === hero.guid).hp > 0)
         }
-        ready(call('TrialGroupChange', request))
-        const protagonist = state().trialGroup.heroes[0].guid
-        call('SwitchGroupControlEnd', { uuid: protagonist })
-        assert.equal(state().world.control_ready, protagonist)
-        store.transact(session.id, 0, (s) => {
-            s.player.heros_info.battle_infos.find((h) => h.hero_id === protagonist).hp -= 10
-        })
-        const hp = state().player.heros_info.battle_infos.find((h) => h.hero_id === protagonist).hp
-        ready(call('TrialGroupChange', request))
-        assert.equal(state().player.heros_info.battle_infos.find((h) => h.hero_id === protagonist).hp, hp)
-        assert.deepEqual(
-            state()
-                .player.group_mgrs.find((m) => m.type === 1)
-                .groups.find((g) => g.id === 1),
-            original,
-        )
-        const closed = call('TrialGroupChange', { open: false, force: true })
-        assert.ok(
-            closed.findIndex((p) => p.id === 5008 && p.data.group_mgrs?.length) <
-                closed.findIndex((p) => p.id === 5987),
-        )
-        assert.equal(state().trialGroup, undefined)
+        ready(f.call('TrialGroupChange', request))
+        const protagonist = f.state().trialGroup.heroes[0].guid
+        f.call('SwitchGroupControlEnd', { uuid: protagonist })
+        assert.equal(f.state().world.control_ready, protagonist)
+        const before = info(f.state(), protagonist).hp
+        f.hit(null, protagonist, 10)
+        assert.equal(info(f.state(), protagonist).hp, before - 10)
+        ready(f.call('TrialGroupChange', request))
+        assert.equal(info(f.state(), protagonist).hp, before - 10)
+        assert.deepEqual(saved(f.state()), original)
+        const packets = f.call('TrialGroupChange', { open: false }),
+            ack = packets.findIndex((p) => p.id === 5987),
+            group = packets.findIndex((p) => p.id === 5008 && p.data.group_mgrs?.length)
+        assert(group >= 0 && group < ack)
+        assert.equal(f.state().trialGroup, undefined)
     } finally {
-        store.close()
+        f.close()
     }
 })
 
