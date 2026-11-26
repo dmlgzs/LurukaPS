@@ -7,6 +7,7 @@ import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { grantRewards, parseRewards } from '../src/rewards.js'
 import { cosmeticOwnedCount } from '../src/appearance-rewards.js'
+import { ErrorCode } from '../src/error-codes.js'
 
 const cfg = configuration(),
     tables = new Tables(cfg.tables)
@@ -31,12 +32,13 @@ function fixture(name) {
                 data: protocol.decode(protocol.byId.get(packet.id).rsp, packet.payload),
             }))
     }
-    call('EnterGame', { open_id: name })
+    const initial = call('EnterGame', { open_id: name })
     return {
         protocol,
         store,
         game,
         session,
+        initial,
         call,
         state: () => store.load(session.id).state,
         edit: (callback) => store.transact(session.id, 0, callback),
@@ -130,6 +132,22 @@ test('current furniture recommendation shop projects actual701 bundles from18032
             [...ids].sort((a, b) => a - b),
             [70101, 70102],
         )
+        f.edit((state) => grantRewards(tables, state, [{ itemtype: 10, itemid: 901, itemnum: 50000 }]))
+        const ownedStyles = new Set(
+            f.initial
+                .filter((packet) => packet.id === 6102)
+                .flatMap((packet) => packet.data.dorm?.back_ground_scene?.rewards ?? [])
+                .filter((reward) => reward.itemtype === 40 && reward.itemnum > 0)
+                .map((reward) => reward.itemid),
+        )
+        const sqlSnapshot = () =>
+            f.store.db
+                .prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+                .all()
+                .map(({ name }) => {
+                    assert(/^[a-z_]+$/.test(name))
+                    return { name, rows: f.store.db.prepare('SELECT * FROM "' + name + '"').all() }
+                })
         const initialState = f.state(),
             before = structuredClone({
                 bag: f.state().player.sbag_infos,
@@ -153,11 +171,41 @@ test('current furniture recommendation shop projects actual701 bundles from18032
             assert(tables.get('mall_shop_hostel').some((row) => row.goodsId === id && row.heroId === style.heroId))
             const ownedBefore = cosmeticOwnedCount(tables, initialState, 40, dorm.itemid)
             assert.equal(cosmeticOwnedCount(tables, f.state(), 40, dorm.itemid), ownedBefore)
+            assert.equal(ownedStyles.has(dorm.itemid), ownedBefore > 0, 'client ownership comes from actual6102')
+            const wire = response.pay_goods_list.find((goods) => goods.goods_id === id),
+                processIds = wire.unlock_cond_id ?? []
+            // Current ShopStore0601c9e5/e6/e9 splits server process results
+            // from local remaining conditions; is_all_cond_done is not CanBuy.
+            assert.deepEqual(processIds, [])
+            assert.deepEqual(wire.unlock_progress ?? [], [])
+            assert.equal(wire.is_all_cond_done, true)
+            const processPassed = processIds.length === 0 || wire.is_all_cond_done,
+                staticPassed = recipe.commonCondition
+                    .split('|')
+                    .filter(Boolean)
+                    .every((term) => {
+                        const [kind, type, item, min, max] = term.split('#').map(Number)
+                        if (processIds.includes(kind)) return true
+                        assert.equal(kind, 12083)
+                        assert.equal(type, 40)
+                        const count = ownedStyles.has(item) ? 1 : 0
+                        return count >= min && count <= max
+                    })
             assert.equal(
-                response.pay_goods_list.find((goods) => goods.goods_id === id).is_all_cond_done,
+                processPassed && staticPassed,
                 ownedBefore === 0,
-                'current already-owned dorm bundles retain their purchase restriction',
+                'current already-owned dorm bundles remain locked after both native condition branches',
             )
+            if (ownedBefore > 0) {
+                const saved = f.store.load(f.session.id),
+                    sql = sqlSnapshot()
+                assert.throws(
+                    () => f.call('PlayerMallBuyPayGoods', { pay_shop_id: 701, pay_goods_id: id, buy_count: 1 }),
+                    (error) => error.code === ErrorCode.MallGoodsStaticCondInvalid,
+                )
+                assert.deepEqual(f.store.load(f.session.id), saved)
+                assert.deepEqual(sqlSnapshot(), sql)
+            }
             heroGoods.set(style.heroId, id)
         }
         assert.equal(heroGoods.size, 2, 'current client can build its hero-to-bundle recommendation model')
