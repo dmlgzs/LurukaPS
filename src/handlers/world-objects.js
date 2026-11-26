@@ -1,5 +1,6 @@
 import { recordPetPuzzleWorldCompletion } from '../pet-puzzle-progress.js'
 import { ErrorCode } from '../error-codes.js'
+import { activateWorldPoint } from '../world-point-activation.js'
 import { petPuzzleRule } from '../pet-puzzles.js'
 import { registerWorldElevator } from './world-elevator.js'
 import { rewardSource } from '../reward-source.js'
@@ -283,6 +284,7 @@ export function registerWorldObjects(on, tables) {
                         (!row.disappearCond || !worldCondition(row.disappearCond, c.state)),
                     'World object is not currently visible',
                 )
+                activateWorldPoint(c.tables, c.state, row, spawner, input)
                 if (drops.length) {
                     const index = full ? drops.length - 1 : Math.max(0, step - 1)
                     ensure(index < drops.length, 'World reward step outside configuration')
