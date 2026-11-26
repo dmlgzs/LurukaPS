@@ -9,7 +9,6 @@ import {
     mountTables as tables,
 } from './mount-lifecycle-fixture.js'
 import { ErrorCode } from '../src/error-codes.js'
-import { petData } from '../src/pets.js'
 import { clearSceneMount } from '../src/mounts.js'
 const reject = (f, fn, code) => {
     const before = structuredClone(f.state())
@@ -17,24 +16,24 @@ const reject = (f, fn, code) => {
     assert.deepEqual(f.state(), before)
 }
 
-test('9117 validates a real owned legacy mount and binds only a session SHA fingerprint, preserving ordinary and glider species', () => {
+test('9117 validates a real owned mount and binds only a session SHA fingerprint, preserving ordinary and flying species', () => {
     const f = fixture()
     try {
         assert.equal(f.state().world.mountActionLifecycle, undefined)
         f.mount()
         let p = f.state().world.mountActionLifecycle
         assert.equal(p.phase, 'riding')
-        assert.equal(p.mount, '500026')
+        assert.equal(p.mount, f.guid(500026))
         assert.equal(p.map_id, 101)
         assert.equal(p.epoch, 1)
         assert.match(p.session, /^[a-f0-9]{64}$/)
         assert.notEqual(p.session, f.session.token)
         assert(!JSON.stringify(p).includes(f.session.token))
         f.leave()
-        f.mount('500820')
+        f.mount(f.guid(500820))
         p = f.state().world.mountActionLifecycle
         assert.equal(p.phase, 'riding')
-        assert.equal(p.mount, '500820')
+        assert.equal(p.mount, f.guid(500820))
         assert.equal(p.epoch, 2)
         assert.deepEqual(protocol.decode('ProtoNullRsp', f.leave().find((p) => p.id === 9117).payload), {})
     } finally {
@@ -50,8 +49,10 @@ test('unknown owned instance, nonmount configuration and a table-forbidden scene
         const nonmount = tables
             .get('pet')
             .find((p) => !tables.find('mount', p.id) && tables.find('template_value', p.id))
-        f.store.transact(f.session.id, 0, (s) => s.pets.push(petData(tables, nonmount.id, '999998', 1)))
-        reject(f, () => f.mount('999998'), ErrorCode.PetIsNotMount)
+        f.call('GMCommand', { command: Buffer.from(`give 5 ${nonmount.id} 1`).toString('base64') })
+        const nonmountGuid = f.state().pets.find((pet) => pet.config_id === nonmount.id).guid
+        assert.equal(BigInt(nonmountGuid) >> 56n, 2n)
+        reject(f, () => f.mount(nonmountGuid), ErrorCode.PetIsNotMount)
         f.call('EnterWorldMap', { map_id: 104, point_id: 10401 })
         reject(f, () => f.mount(), ErrorCode.SceneCantMount)
         assert.equal(f.state().world.mountActionLifecycle, undefined)
@@ -103,8 +104,8 @@ test('a new login clears any prior-session proof and never promotes withdrawn co
     const f = fixture()
     try {
         f.store.transact(f.session.id, 0, (s) => {
-            s.world.pendingMountExit = { guid: '500026', map_id: 101 }
-            s.world.lastMountMetadata = { guid: '500026', map_id: 101 }
+            s.world.pendingMountExit = { guid: f.guid(500026), map_id: 101 }
+            s.world.lastMountMetadata = { guid: f.guid(500026), map_id: 101 }
         })
         assert.equal(f.state().world.mountActionLifecycle, undefined)
         f.mount()
@@ -157,7 +158,7 @@ test('temporary SQLite reopen retains real selection and inventory but clears th
         f = null
         f = fixture('mount-producer-sql', file, true)
         assert.equal(f.state().world.mountActionLifecycle, undefined)
-        assert.equal(f.state().mountRideId, '500026')
+        assert.equal(f.state().mountRideId, f.guid(500026))
         assert.deepEqual(f.state().pets, pets)
     } finally {
         f?.store.close()

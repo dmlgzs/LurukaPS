@@ -22,11 +22,11 @@ const logCount = (f) =>
 test('selected mount and withdrawn or forged fields do not authorize actions from a never-mounted player', () => {
     const f = fixture('mount-late-no-ride')
     try {
-        assert.equal(f.state().mountRideId, '500026')
+        assert.equal(f.state().mountRideId, f.guid(500026))
         reject(f, () => f.action())
         f.store.transact(f.session.id, 0, (s) => {
-            s.world.pendingMountExit = { guid: '500026', map_id: 101 }
-            s.world.lastMountMetadata = { guid: '500026', map_id: 101 }
+            s.world.pendingMountExit = { guid: f.guid(500026), map_id: 101 }
+            s.world.lastMountMetadata = { guid: f.guid(500026), map_id: 101 }
             s.world.last_mount_action = { action: 2, time: 1800000000 }
         })
         reject(f, () => f.action())
@@ -41,7 +41,7 @@ test('selected mount and withdrawn or forged fields do not authorize actions fro
                     epoch: 1,
                     map_id: 101,
                     exit_map_id: 101,
-                    mount: '500026',
+                    mount: f.guid(500026),
                 }),
         )
         reject(f, () => f.action())
@@ -102,18 +102,18 @@ test('a new mount epoch uses the current real actor and cannot revive the earlie
         f.mount()
         f.leave()
         const first = structuredClone(f.state().world.mountActionLifecycle)
-        f.mount('500820')
+        f.mount(f.guid(500820))
         assert(f.state().world.mountActionLifecycle.epoch > first.epoch)
         f.time.now++
         ack(f.action(3))
-        assert.equal(f.state().world.mount, '500820')
+        assert.equal(f.state().world.mount, f.guid(500820))
         assert.equal(f.state().world.last_mount_action.action, 3)
         f.leave()
         const before = structuredClone(f.state())
         ack(f.action(2))
         assert.deepEqual(f.state(), before)
-        assert.equal(f.state().world.mountActionLifecycle.mount, '500820')
-        assert.equal(f.state().mountRideId, '500820')
+        assert.equal(f.state().world.mountActionLifecycle.mount, f.guid(500820))
+        assert.equal(f.state().mountRideId, f.guid(500820))
     } finally {
         f.store.close()
     }
@@ -212,7 +212,7 @@ test('SQLite restart retains selection and inventory but never turns persisted e
         f = null
         f = fixture('mount-late-reopen', file, true)
         assert.deepEqual(f.state().pets, pets)
-        assert.equal(f.state().mountRideId, '500026')
+        assert.equal(f.state().mountRideId, f.guid(500026))
         assert.equal(f.state().world.mountActionLifecycle, undefined)
         reject(f, () => f.action())
     } finally {

@@ -24,10 +24,17 @@ function fixture() {
         }))
     }
     call('EnterGame', { open_id: 'mount-data' })
+    // Only the three current species required by these cases; normal starts
+    // without owned pets. Use the real reward/identity producer, not raw GUIDs.
+    call('GMCommands', {
+        cmds: [500022, 500297, 500820].map((id) => ({
+            command: Buffer.from(`give 5 ${id} 1`).toString('base64'),
+        })),
+    })
     return { store, call, session, state: () => store.load(session.id).state, close: () => store.close() }
 }
 
-test('mount speed uses weighted CBT3 ranges and login repairs missing speed and selected ride', () => {
+test('mount speed uses current weighted ranges and login repairs missing speed and selected ride', () => {
     const rows = tables.get('mount_speed'),
         total = rows.reduce((sum, row) => sum + row.weight, 0)
     assert.equal(
@@ -54,8 +61,8 @@ test('mount speed uses weighted CBT3 ranges and login repairs missing speed and 
             petInfo = packets.find((x) => x.id === 6517).data
         assert.equal(ride.ride_id, wolf.guid)
         assert.equal(f.state().mountRideId, wolf.guid)
-        assert(f.state().pets.find((p) => p.guid === wolf.guid).speed >= 9000)
-        assert(f.state().pets.find((p) => p.guid === wolf.guid).speed < 12000)
+        const repaired = f.state().pets.find((p) => p.guid === wolf.guid).speed
+        assert(rows.some((row) => repaired >= row.min && repaired <= row.max))
         assert(petInfo.pet_infos.pets.find((p) => p.guid === wolf.guid).speed > 0)
     } finally {
         f.close()

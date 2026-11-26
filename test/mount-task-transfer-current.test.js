@@ -35,6 +35,13 @@ test('pet and vehicle riders follow the current control, and a real table-author
     for (const kind of ['pet', 'vehicle']) {
         const f = fixture(`mount-${kind}`)
         try {
+            // Trusted, narrow owned-asset checkpoint through the real producer;
+            // do not depend on the retired all-assets new-account factory.
+            f.call('GMCommands', {
+                cmds: ['give 1 101010 1', 'give 1 107001 1', 'give 5 500022 1'].map((command) => ({
+                    command: Buffer.from(command).toString('base64'),
+                })),
+            })
             const { heroes } = party(f, [101010, 107001])
             f.call('EnterWorldMap', { map_id: 100, point_id: 10040 })
             f.call('SwitchWorldGroupControl', { type: 1, control: heroes[1].guid })

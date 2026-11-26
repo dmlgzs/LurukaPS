@@ -3,7 +3,7 @@ import { Tables, heroData } from '../src/player.js'
 import { Protocol } from '../src/protocol.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
-import { petData } from '../src/pets.js'
+import assert from 'node:assert/strict'
 import { populateParty } from './party-fixture.js'
 export const mountConfig = configuration(),
     mountTables = new Tables(mountConfig.tables),
@@ -19,7 +19,14 @@ export function mountLifecycleFixture(name = 'mount-lifecycle', file = ':memory:
         return game.dispatch(who, { id: e.id, seq: seq++, payload: mountProtocol.encode(e.req, data) })
     }
     call('EnterGame', { open_id: name })
-    if (!resume)
+    if (!resume) {
+        // Explicit current producer for only these two owned test mounts.
+        // Never append old low-ID pets after the login identity marker exists.
+        call('GMCommands', {
+            cmds: [500026, 500820].map((id) => ({
+                command: Buffer.from(`give 5 ${id} 1`).toString('base64'),
+            })),
+        })
         store.transact(session.id, 0, (s) => {
             s.tasks = []
             s.taskRecords = mountTables.get('task').map((t) => ({ task_id: t.id, count: 1 }))
@@ -29,22 +36,29 @@ export function mountLifecycleFixture(name = 'mount-lifecycle', file = ':memory:
                 s.world,
                 mountTables.position(mountTables.get('world_borthpos').find((p) => p.cityId === 101)),
             )
-            for (const [id, guid] of [
-                [500026, '500026'],
-                [500820, '500820'],
-            ])
-                if (!s.pets.some((p) => p.guid === guid)) s.pets.push(petData(mountTables, id, guid, 1))
-            s.pets.find((p) => p.guid === '500026').roulette_pos = 1
-            s.mountRideId = '500026'
         })
+        const mount = store.load(session.id).state.pets.find((pet) => pet.config_id === 500026)
+        call('PetSetRoulettePos', { guid: mount.guid, pos: 1 })
+    }
+    const guid = (configId) => {
+        const pet = store.load(session.id).state.pets.find((pet) => pet.config_id === configId)
+        assert(pet, `Missing current test mount ${configId}`)
+        assert.equal(BigInt(pet.guid) >> 56n, 2n)
+        return pet.guid
+    }
     return {
         store,
         session,
         time,
         game,
         call,
+        guid,
         state: () => store.load(session.id).state,
-        mount: (id = '500026') => call('WorldMapPlayerStatus', { status: 1, arg: id }),
+        mount: (id = '500026') =>
+            call('WorldMapPlayerStatus', {
+                status: 1,
+                arg: ['500026', '500820'].includes(String(id)) ? guid(Number(id)) : id,
+            }),
         leave: () => call('WorldMapPlayerStatus', { status: 0, arg: '0' }),
         action: (action = 2) => call('WorldMapPlayerPlayerAction', { action }),
     }
