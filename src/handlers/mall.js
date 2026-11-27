@@ -7,6 +7,7 @@ import { WorldObjectCatalog } from '../world-objects.js'
 import { registerPayGoods } from '../mall-pay-goods.js'
 import { takeRechargePopup } from '../mall-popup.js'
 import { mallConditions } from '../mall-conditions.js'
+import { mallReddotUpdate } from '../mall-reddots.js'
 export function registerMall(on, tables) {
     const catalog = new MallCatalog(tables),
         drops = new WorldObjectCatalog(tables)
@@ -110,25 +111,9 @@ export function registerMall(on, tables) {
     })
     on('GetRechargePopupData', (c) => takeRechargePopup(c.state))
     on('MallReddotSet', (c, r) => {
-        const mall = (c.state.mall ??= {}),
-            dots = (mall.reddots ??= { diamond_reddot: [], pay_reddot: [] })
-        for (const [field, goods] of [
-            ['diamond_reddot', catalog.diamond],
-            ['pay_reddot', catalog.pay],
-        ]) {
-            ensure((r[field] ?? []).length <= goods.size, 'Too many mall red dots')
-            const current = new Map(dots[field].map((x) => [x.goods_id, x]))
-            for (const item of r[field] ?? []) {
-                ensure(
-                    goods.has(item.goods_id) &&
-                        Number.isInteger(item.status) &&
-                        item.status >= 0 &&
-                        item.status <= 0xffffffff,
-                    'Invalid mall red dot',
-                )
-                current.set(item.goods_id, { goods_id: item.goods_id, status: item.status })
-            }
-            dots[field] = [...current.values()]
+        const dots = mallReddotUpdate(catalog, c.state.mall?.reddots, r, c.now)
+        if ((r.diamond_reddot?.length ?? 0) || (r.pay_reddot?.length ?? 0)) {
+            c.state.mall = { ...c.state.mall, reddots: dots }
         }
         c.pushBefore('SCProtoMallReddotSync', dots)
         return {}

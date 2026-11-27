@@ -307,6 +307,7 @@ const unchangedReadQueries = new Set([
     'CSProtoSyncMailbox',
     'CSProtoShopInfoReq',
     'CSProtoListShopArrayItems',
+    'CSProtoMallReddotSet',
 ])
 const deferredTaskProgress = new Set([
     'CSProtoTaskClientBefore',
