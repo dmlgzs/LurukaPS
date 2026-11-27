@@ -6,6 +6,7 @@ import { petData } from './pets.js'
 import { petModelEligibility } from './pet-model-eligibility.js'
 import { mainHeroConfigId } from './main-hero.js'
 import { planPetGuidAllocation, commitPetGuidAllocation } from './pet-guid.js'
+import { HERO_ACCESSORY_SLOT_COUNT } from './hero-accessory-slots.js'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -29,6 +30,7 @@ export const heroData = (configId, accountId, type = 0) => ({
     trial_pet: '0',
     pet_id: '0',
     wguid: 0,
+    oguid: Array(HERO_ACCESSORY_SLOT_COUNT).fill(0),
 })
 export class Tables {
     constructor(dir) {

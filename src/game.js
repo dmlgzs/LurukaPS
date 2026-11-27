@@ -307,6 +307,7 @@ import { mailboxLegacyPush } from './mailbox.js'
 import { registerClientReports } from './client-reports.js'
 import { sceneModePayload } from './scene-mode.js'
 import { projectCurrentHeroes, suspendUnavailableHeroFormations } from './hero-compatibility.js'
+import { repairHeroAccessorySlots } from './hero-accessory-slots.js'
 import { suspendUnavailableTasks } from './task-compatibility.js'
 import { registerAppearancePresets, clothesPresetsSnapshot } from './appearance-presets.js'
 import { publishCombatEnemyActivations, replayCombatEnemyTerminals } from './handlers/world-combat.js'
@@ -1017,6 +1018,7 @@ export class Game {
                 ensureArenaFormationManager(state)
                 reconcileFormationPets(state)
                 upgradeInventory(state)
+                repairHeroAccessorySlots(this.tables, state)
                 reconcileWorldCollectionFinalDrops(this.tables, state)
                 repairSavedWorldRepairs(this.tables, state)
                 repairSavedElevatorVisibility(this.tables, state)
@@ -2339,6 +2341,7 @@ export class Game {
         reconcileMedicine({ state, now, tables: this.tables })
         repairPetModelBindings(this.tables, state)
         const permanentSync = []
+        repairHeroAccessorySlots(this.tables, state)
         pushPermanent(
             { id: session.id, state, now, pushBefore: (name, value) => permanentSync.push(this.packet(name, value)) },
             this.activities,
