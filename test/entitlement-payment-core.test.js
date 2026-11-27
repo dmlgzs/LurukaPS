@@ -1,17 +1,21 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import { configuration } from '../src/config.js'
 import { Tables } from '../src/player.js'
 import { Protocol } from '../src/protocol.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { prepareBattlePass } from '../src/battle-pass.js'
+import { parseRewards } from '../src/rewards.js'
 
-function fixture() {
+function fixture(file = ':memory:') {
     const config = configuration(),
         tables = new Tables(config.tables),
         protocol = new Protocol(config.base)
-    const store = new Store(':memory:'),
+    const store = new Store(file),
         game = new Game(protocol, store, tables, { clock: () => 1800000000 }),
         session = {}
     let seq = 1
@@ -34,8 +38,15 @@ function fixture() {
 }
 
 test('pure benefit extraction leaves real18037 monthly and luxury order provenance and nonce delivery unchanged', () => {
-    const f = fixture()
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'entitlement-current-core-')),
+        file = path.join(directory, 'synthetic.sqlite')
+    let f = fixture(file)
     try {
+        const monthly =
+                f.tables.get('monthly_card').find((row) => row.purchaseSdkID === 5001 && row.id === 5001) ??
+                f.tables.get('monthly_card').find((row) => row.purchaseSdkID === 5001),
+            balances = new Map(f.state().player.attr_infos.attrs.map((a) => [a.attr_id, BigInt(a.attr_val)]))
+        assert(monthly)
         f.call(5001, 'core-monthly-0001', 2)
         let s = f.state(),
             orders = Object.values(s.mall.localOrders)
@@ -44,7 +55,11 @@ test('pure benefit extraction leaves real18037 monthly and luxury order provenan
         assert.equal(orders[0].count, 2)
         assert.equal(orders[0].mode, 'offline-simulated')
         assert.equal(s.monthlyCard.end_time, 1800000000 + 60 * 86400)
-        assert.equal(s.player.attr_infos.attrs.find((a) => a.attr_id === 901).attr_val, '600')
+        for (const reward of parseRewards(monthly.reward)) {
+            assert.equal(reward.itemtype, 10)
+            const value = BigInt(s.player.attr_infos.attrs.find((a) => a.attr_id === reward.itemid)?.attr_val ?? 0)
+            assert.equal(value, (balances.get(reward.itemid) ?? 0n) + BigInt(reward.itemnum * 2))
+        }
         f.call(4002, 'core-luxury-0001')
         s = f.state()
         orders = Object.values(s.mall.localOrders)
@@ -67,8 +82,32 @@ test('pure benefit extraction leaves real18037 monthly and luxury order provenan
         f.call(4002, 'core-luxury-0001')
         assert.deepEqual(f.state(), before)
         assert.equal(s.entitlementTickets, undefined)
+        const saved = {
+            monthly: structuredClone(s.monthlyCard),
+            orders: structuredClone(s.mall.localOrders),
+            balances: structuredClone(s.player.attr_infos),
+            premiumOrders: structuredClone(p.ledger.premiumOrders),
+            payState: p.ledger.pay_state,
+            level: p.ledger.level,
+        }
+        f.store.close()
+        f = fixture(file)
+        s = f.state()
+        const cold = prepareBattlePass(f.tables, s, 1800000000)
+        assert.deepEqual(s.monthlyCard, saved.monthly)
+        assert.deepEqual(s.mall.localOrders, saved.orders)
+        assert.deepEqual(s.player.attr_infos, saved.balances)
+        assert.deepEqual(cold.ledger.premiumOrders, saved.premiumOrders)
+        assert.equal(cold.ledger.pay_state, saved.payState)
+        assert.equal(cold.ledger.level, saved.level)
+        f.call(5001, 'core-monthly-0001', 2)
+        f.call(4002, 'core-luxury-0001')
+        assert.deepEqual(f.state().mall.localOrders, saved.orders)
+        assert.deepEqual(f.state().player.attr_infos, saved.balances)
     } finally {
         f.store.close()
+        assert(path.resolve(directory).startsWith(path.resolve(os.tmpdir()) + path.sep))
+        fs.rmSync(directory, { recursive: true, force: true })
     }
 })
 

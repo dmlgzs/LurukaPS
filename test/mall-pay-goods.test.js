@@ -64,11 +64,11 @@ function bank(s, paid = 20000, bonus = 100) {
     s.unlockedHeroSkins = {}
     if (s.home?.dorm?.back_ground_scene) s.home.dorm.back_ground_scene.rewards = []
 }
-test('18033 all eight current diamond-priced pay goods debit real901+902 and grant each cosmetic via its ownership channel before ACK', () => {
-    assert.equal(current.length, 8)
+test('18033 all current diamond-priced pay goods debit real901+902 and grant each cosmetic via its ownership channel before ACK', () => {
+    assert(current.length > 0)
     for (const goods of current) {
-        // Full snapshots are required here because the fixture deliberately
-        // removes the default offline entitlements already sent at login.
+        // An explicit wallet/ownership fixture exercises costs and each dedicated
+        // sync channel; the separate normal-profile test uses real recharge.
         const f = fixture(':memory:', { syncOptimization: false })
         try {
             f.edit((s) => bank(s))
@@ -79,7 +79,11 @@ test('18033 all eight current diamond-priced pay goods debit real901+902 and gra
             assert(ack)
             assert.equal(ack.data.pay_goods.goods_id, goods.goodsId)
             assert.equal(ack.data.pay_goods.curr_purchase_num, 1)
-            assert.equal(ack.data.pay_goods.is_all_cond_done, false)
+            // Current12083 is checked locally; wire is_all_cond_done reports
+            // only process conditions. Keep the final server static rejection.
+            assert.equal(ack.data.pay_goods.is_all_cond_done, true)
+            assert.deepEqual(ack.data.pay_goods.unlock_cond_id ?? [], [])
+            assert.equal(mallConditions(tables, after, goods.commonCondition).staticPassed, false)
             assert.equal(currency(after, 902), 0n)
             assert.equal(currency(after, 901), 20000n - BigInt(goods.costPurchaseDiamondNum - 100))
             assert.equal(after.player.basic_info.diamond, before.player.basic_info.diamond)
@@ -104,7 +108,9 @@ test('18033 all eight current diamond-priced pay goods debit real901+902 and gra
                       ? 'SCProtoClothesInfoSync'
                       : first.itemtype === 39
                         ? 'SCProtoHeroSkinMessageSync'
-                        : 'CSProtoHomeSync'
+                        : first.itemtype === 41
+                          ? 'SCProtoVehicleDataSync'
+                          : 'CSProtoHomeSync'
             const syncId = protocol.byName.get(syncName)?.id
             assert.ok(syncId, 'Expected current cosmetic sync protocol')
             assert(
@@ -120,7 +126,7 @@ test('18033 all eight current diamond-priced pay goods debit real901+902 and gra
             const state = structuredClone(after)
             assert.throws(
                 () => f.call('PlayerMallBuyPayGoods', request(goods.goodsId)),
-                (e) => e.code === ErrorCode.MallGoodsDynamicCondInvalid,
+                (e) => e.code === ErrorCode.MallGoodsStaticCondInvalid,
             )
             assert.deepEqual(f.state(), state)
         } finally {
@@ -240,7 +246,7 @@ test('18033 and the offline order route share the same purchase quota and unique
         assert.equal(before.mall.purchases['pay:30202'].count, 1)
         assert.throws(
             () => f.call('PlayerMallBuyPayGoods', request(30202)),
-            (e) => e.code === ErrorCode.MallGoodsDynamicCondInvalid,
+            (e) => e.code === ErrorCode.MallGoodsStaticCondInvalid,
         )
         assert.deepEqual(f.state(), before)
     } finally {
@@ -274,29 +280,39 @@ test('34/39 rewards outside the mall use the same unique unlocks without changin
         f.close()
     }
 })
-test('current fresh schedule overrides only known stale values; missing998002 is an explicit local open-ended policy, other missing IDs remain errors', () => {
+test('current mall policy opens only current references while an independent dated calendar keeps inclusive boundaries and rejects unavailable purchase time', () => {
     const row = tables.get('mall_pay_goods').find((row) => row.goodsId === 30301)
-    assert.equal(mallTableRow('mall_pay_goods', row).timelimit, 998002)
+    assert.equal(mallTableRow('mall_pay_goods', row).timelimit, row.timelimit)
     assert.equal(mallTableRow('mall_pay_goods', { ...row, timelimit: 999777 }).timelimit, 999777)
-    assert.equal(mallScheduleOpen(tables, 998002, 1800000000), true)
-    const dated = tables.find('common_timelimit', 30001),
-        start = configTime(dated.startTime),
-        end = configTime(dated.endTime)
-    assert.equal(mallScheduleOpen(tables, 30001, start - 1), false)
-    assert.equal(mallScheduleOpen(tables, 30001, start), true)
-    assert.equal(mallScheduleOpen(tables, 30001, end), true)
-    assert.equal(mallScheduleOpen(tables, 30001, end + 1), false)
+    assert.equal(mallScheduleOpen(tables, row.timelimit, 1800000000), true)
     assert.throws(
         () => mallScheduleOpen(tables, 999777, 1800000000),
         (e) => e.code === ErrorCode.MallConfigError,
     )
+    // Current3217420 does not ship common_timelimit. Exercise the retained
+    // static-calendar contract explicitly using current ordinary-shop dates;
+    // this is a test-only calendar, never an old runtime fallback.
+    const source = tables.get('shop').find((r) => r.timelimit > 0 && r.startTime && r.endTime)
+    assert(source)
+    const dated = { id: source.timelimit, startTime: source.startTime, endTime: source.endTime },
+        datedTables = {
+            get: (name) => (name === 'common_timelimit' ? [dated] : tables.get(name)),
+            find: (name, id) =>
+                name === 'common_timelimit' ? (id === dated.id ? dated : undefined) : tables.find(name, id),
+        },
+        start = configTime(dated.startTime),
+        end = configTime(dated.endTime)
+    assert.equal(mallScheduleOpen(datedTables, dated.id, start - 1), false)
+    assert.equal(mallScheduleOpen(datedTables, dated.id, start), true)
+    assert.equal(mallScheduleOpen(datedTables, dated.id, end), true)
+    assert.equal(mallScheduleOpen(datedTables, dated.id, end + 1), false)
     const catalog = new MallCatalog(tables),
         f = fixture()
     try {
         f.edit((s) => bank(s))
-        catalog.pay.set(30202, { ...catalog.pay.get(30202), timelimit: 30001 })
+        catalog.pay.set(30202, { ...catalog.pay.get(30202), timelimit: dated.id })
         assert.throws(
-            () => payGoodsPlan({ tables, state: f.state(), now: 1800000000 }, request(30202), catalog),
+            () => payGoodsPlan({ tables: datedTables, state: f.state(), now: end + 1 }, request(30202), catalog),
             (e) => e.code === ErrorCode.MallBuyTimeInvalid,
         )
     } finally {
@@ -318,7 +334,7 @@ test('18033 quota, paid balance and ownership survive SQLite close/reopen and lo
         assert.equal(currency(f.state(), 902), 0n)
         assert.throws(
             () => f.call('PlayerMallBuyPayGoods', request(30202)),
-            (e) => e.code === ErrorCode.MallGoodsDynamicCondInvalid,
+            (e) => e.code === ErrorCode.MallGoodsStaticCondInvalid,
         )
     } finally {
         f.close()

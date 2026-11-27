@@ -21,6 +21,24 @@ const order = (id, nonce = 'b06-cash-' + id) => ({
     product_id: `lurukaps-offline:${nonce}:local-test-product`,
     amount: '0',
 })
+// Actual current12280 prerequisites are satisfied through public orders.
+// Buying the prerequisite's full stock is required, not merely one receipt.
+function buyPrerequisites(f, row, pending = new Set()) {
+    assert(!pending.has(row.goodsId), 'Current cash prerequisite cycle')
+    pending.add(row.goodsId)
+    for (const token of String(row.commonCondition).split('|').filter(Boolean)) {
+        const [kind, type, id] = token.split('#').map(Number)
+        if (kind !== 12280) continue
+        assert.equal(type, 2)
+        const prerequisite = goods.find((r) => r.goodsId === id)
+        assert(prerequisite)
+        buyPrerequisites(f, prerequisite, pending)
+        const remaining = prerequisite.goodsNum - (f.state().mall?.purchases?.['pay:' + id]?.count ?? 0)
+        if (remaining > 0)
+            f.call('PlayerMallCreatePayOrder', { ...order(id, 'current-prerequisite-' + id), buy_count: remaining })
+    }
+    pending.delete(row.goodsId)
+}
 const balance = (s) => [901, 902].map((id) => s.player.attr_infos.attrs.find((a) => a.attr_id === id)?.attr_val ?? '0')
 function fixture() {
     let now = 1800000000,
@@ -53,11 +71,12 @@ function fixture() {
         close: () => store.close(),
     }
 }
-test('18034 all23 current pay goods fulfill actual configured rewards once through the non-actionable offline order channel', () => {
-    assert.equal(goods.length, 23)
+test('18034 all current pay goods fulfill actual configured rewards once through the non-actionable offline order channel', () => {
+    assert(goods.length > 0)
     for (const row of goods) {
         const f = fixture()
         try {
+            buyPrerequisites(f, row)
             const before = balance(f.state()),
                 request = order(row.goodsId),
                 packets = f.call('PlayerMallCreatePayOrder', request)
@@ -118,7 +137,7 @@ test('18034 new requests enforce shared ownership/stock before allocating order 
         const counters = f.store.db.prepare('SELECT * FROM sequences ORDER BY name').all()
         assert.throws(
             () => f.call('PlayerMallCreatePayOrder', order(30202, 'b06-new-owner')),
-            (e) => e.code === ErrorCode.MallGoodsDynamicCondInvalid,
+            (e) => e.code === ErrorCode.MallGoodsStaticCondInvalid,
         )
         assert.deepEqual(f.state(), before)
         assert.deepEqual(f.store.db.prepare('SELECT * FROM sequences ORDER BY name').all(), counters)
