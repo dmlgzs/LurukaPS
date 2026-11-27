@@ -8,6 +8,11 @@ export function registerPlayableEnemies(on, tables, store) {
         source = JSON.parse(fs.readFileSync(file)),
         assets = new Map(source.playables.map((p) => [p.id, p])),
         world = new WorldObjectCatalog(tables)
+    ensure(
+        source.version === '3217420' && source.clientVersion === '1.0.0',
+        'Playable enemy source is not current 1.0.0/3217420',
+        ErrorCode.GameConfig,
+    )
     on('WorldObjEnemyInfo', (c, r) => {
         const asset = assets.get(r.play_id)
         ensure(asset, 'Playable enemy configuration unavailable', ErrorCode.PlayableNoConf)
