@@ -86,13 +86,17 @@ Configuration is read from process environment variables. `.env` files are not l
 
 ### Using the Bundled CBT3 Client Shell
 
-`tools/shell/build/AzurPromilia.exe` is a Windows x64 replacement for the matching CBT3 client's original executable. **Replace the game's original `AzurPromilia.exe` with this file**, keeping the same filename. `tools/shell/build/cbt3-shell.ini` is its optional configuration.
+`tools/shell/build/LurukaPS.exe` is the Windows x64 client host. Place it beside the game's `AzurPromilia_Data/`, `UnityPlayer.dll`, and `GameAssembly.dll`. The host explicitly selects `AzurPromilia_Data/`, so the original EXE and data directory do not need renaming. `tools/shell/build/cbt3-shell.ini` is its optional configuration.
 
 1. Start LurukaPS with `npm start` and leave the server running.
-2. Close the game and back up its original `AzurPromilia.exe`.
-3. Overwrite the original game EXE with `tools/shell/build/AzurPromilia.exe`, and place `cbt3-shell.ini` beside it.
+2. Close the game.
+3. Copy `tools/shell/build/LurukaPS.exe` into the game directory, and place `cbt3-shell.ini` beside it.
 
-Run the replaced `AzurPromilia.exe` from the game directory. Keep the original `UnityPlayer.dll`, `GameAssembly.dll`, and `AzurPromilia_Data/` in place. In the account window, enter a local `open_id`, such as `114514`, and click **启动游戏** (Start Game). Reuse the same ID to access the same saved account; **记住账号，下次预填** remembers it in the INI for the next launch. To restore the original client entry point, replace the shell EXE with your backup.
+Run `LurukaPS.exe`. Keep the original `UnityPlayer.dll`, `GameAssembly.dll`, and `AzurPromilia_Data/` in place. In the account window, enter a local `open_id`, such as `114514`, and click **启动游戏** (Start Game). Reuse the same ID to access the same saved account; **记住账号，下次预填** remembers it in the INI for the next launch.
+
+File access beneath `%USERPROFILE%\AppData` in this process is redirected to `LuruksPSData/` beside `LurukaPS.exe`, preserving subdirectories such as `Local/`, `LocalLow/`, and `Roaming/`. The launcher's working directory does not affect this location. Existing AppData files are not migrated automatically. This does not redirect the registry or external helper processes.
+
+Build with `tools/shell/build.ps1`; use `-SelfTest` to create the separate `LurukaPS-selftest.exe`. The release EXE excludes self-test implementations.
 
 In the choose server window, select **Release**, **LurukaPS** and numbers like `2451868.2451868.2451868.2451868.2302423`. Then click **进入游戏** (Enter Game) to connect to the server. The game will create a new character if none exists.
 

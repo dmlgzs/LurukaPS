@@ -5,4 +5,4 @@ node_modules/
 *.cpuprofile
 
 /proto/lua/proto/*.pb
-/tools/shell/build/AzurPromilia-selftest.exe
+/tools/shell/build/*-selftest.exe

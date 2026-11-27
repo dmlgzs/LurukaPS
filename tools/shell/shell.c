@@ -14,6 +14,7 @@
 #endif
 #include <windows.h>
 #include <shellapi.h>
+#include <winternl.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -34,7 +35,7 @@ __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 1;
 typedef struct { HANDLE file, mapping; const BYTE *bytes; size_t size; } Image;
 typedef struct { BYTE *address, before[16], after[16]; size_t length; const char *name; } Patch;
 typedef void *(*StringNew)(const uint16_t *, int32_t);
-typedef int (WINAPI *UnityMainFn)(HINSTANCE, HINSTANCE, LPWSTR, int);
+typedef int (WINAPI *UnityMainFn)(HINSTANCE, LPCWSTR, LPWSTR, int);
 typedef void (*RequestFn)(void *,void *,void *,void *,void *,int32_t,int32_t,void *,void *);
 typedef void *(*GetJsonFn)(void *,void *,void *,void *);
 typedef void (*TriggerFn)(void *,int32_t,void *,void *);
@@ -184,6 +185,12 @@ static int show_account_dialog(HINSTANCE instance,const wchar_t *config) {
 static int join_path(wchar_t *out, size_t count, const wchar_t *dir, const wchar_t *name) {
     int n = _snwprintf(out, count, L"%ls\\%ls", dir, name);
     return n >= 0 && (size_t)n < count;
+}
+static int executable_directory(wchar_t *out,DWORD capacity) {
+    DWORD length=GetModuleFileNameW(NULL,out,capacity); wchar_t *slash;
+    if (!length || length>=capacity) return 0;
+    slash=wcsrchr(out,L'\\'); if (!slash) return 0;
+    *slash=0; return 1;
 }
 static void close_image(Image *image) {
     if (image->bytes) UnmapViewOfFile(image->bytes);
@@ -495,6 +502,7 @@ static int prepare_hook_at(BYTE *entry,const Site *site,const void *callback,siz
 static int prepare_hook(BYTE *base,size_t site,const void *callback,size_t index,Patch *patch) {
     (void)base; return prepare_hook_at(sites[site].address,&sites[site],callback,index,patch);
 }
+#include "portable_paths.h"
 #include "runtime_impl.h"
 static int install_patches(HMODULE game) {
     BYTE *base=(BYTE *)game,staged[SITE_COUNT]={0}; Patch patches[SITE_COUNT]; size_t n=0,i;
@@ -778,6 +786,7 @@ static int identity_self_test(void) {
 #include "runtime_tests.h"
 #include "local_sdk_tests.h"
 #include "transport_routing_tests.h"
+#include "portable_paths_tests.h"
 static int self_test(void) {
     BYTE *page=VirtualAlloc(NULL,4096,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE);
     Patch patches[2]; DWORD previous; MEMORY_BASIC_INFORMATION info; int ok;
@@ -832,21 +841,19 @@ static int self_test(void) {
 }
 #endif
 int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int show) {
-    wchar_t exe[32768], dir[32768], path[32768]; wchar_t **argv; int argc,i,rc=1;
+    wchar_t dir[32768], path[32768]; wchar_t **argv; int argc,i,rc=1;
     Image image={INVALID_HANDLE_VALUE,NULL,NULL,0}, metadata={INVALID_HANDLE_VALUE,NULL,NULL,0};
     HMODULE unity=NULL,game=NULL; FARPROC procedure;
     UnityMainFn unity_main=NULL; (void)previous;
     argv=CommandLineToArgvW(GetCommandLineW(),&argc);
     if (!argv) return error("Cannot parse arguments");
-    for (i=1;i<argc;++i) if (!wcscmp(argv[i],L"--check") || !wcscmp(argv[i],L"--self-test") || !wcscmp(argv[i],L"--help") || !wcscmp(argv[i],L"--ui-smoke-test") || !wcscmp(argv[i],L"--dpi-check")) check_mode=1;
+    for (i=1;i<argc;++i) if (!wcscmp(argv[i],L"--check") || !wcscmp(argv[i],L"--self-test") || !wcscmp(argv[i],L"--help") || !wcscmp(argv[i],L"--ui-smoke-test") || !wcscmp(argv[i],L"--portable-test") || !wcscmp(argv[i],L"--dpi-check")) check_mode=1;
     for (i=1;i<argc;++i) if (!wcscmp(argv[i],L"--console")) {
         if (AllocConsole() || AttachConsole(ATTACH_PARENT_PROCESS)) {
             FILE *stream; stream=_wfreopen(L"CONOUT$",L"w",stderr); (void)stream;
         }
     }
-    if (!GetModuleFileNameW(NULL,exe,32768) || wcslen(exe)>=32767) goto done;
-    wcscpy(dir,exe);
-    { wchar_t *slash=wcsrchr(dir,L'\\'); if (!slash) goto done; *slash=0; }
+    if (!executable_directory(dir,32768)) goto done;
     for (i=1;i<argc;++i) {
         if (!wcscmp(argv[i],L"--dpi-check")) { rc=report_dpi_awareness()?0:1; goto done; }
 #ifdef SHELL_SELF_TEST
@@ -857,15 +864,20 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int sho
             log_line("Native account dialog smoke test: %s",rc?"FAIL":"PASS"); goto done;
         }
         if (!wcscmp(argv[i],L"--self-test")) { rc=self_test(); goto done; }
+        if (!wcscmp(argv[i],L"--portable-test")) {
+            if (i+1<argc) { log_file=_wfopen(argv[i+1],L"wb"); if (!log_file) goto done; }
+            log_line("Portable test Sandboxie module: %s",GetModuleHandleW(L"SbieDll.dll")?"present":"absent");
+            rc=portable_paths_test()?0:1; goto done;
+        }
 #else
-        if (!wcscmp(argv[i],L"--self-test") || !wcscmp(argv[i],L"--ui-smoke-test")) {
+        if (!wcscmp(argv[i],L"--self-test") || !wcscmp(argv[i],L"--ui-smoke-test") || !wcscmp(argv[i],L"--portable-test")) {
             log_line("Self-tests are not included in this build; use build.ps1 -SelfTest"); goto done;
         }
 #endif
         if (!wcscmp(argv[i],L"--help")) {
-            log_line("Place AzurPromilia.exe and cbt3-shell.ini in the game directory.\n--check <game-directory>: validate without loading/executing DLLs\n--dpi-check: verify DPI awareness without loading Unity\n--console: show log console");
+            log_line("Place LurukaPS.exe and cbt3-shell.ini beside AzurPromilia_Data.\nAppData I/O is redirected into LuruksPSData in this directory.\n--check <game-directory>: validate without loading/executing DLLs\n--dpi-check: verify DPI awareness without loading Unity\n--console: show log console");
 #ifdef SHELL_SELF_TEST
-            log_line("--self-test: patch engine test\n--ui-smoke-test: native account dialog test, no Unity");
+            log_line("--self-test: patch engine test\n--ui-smoke-test: native account dialog test, no Unity\n--portable-test: isolated native filesystem redirection test, no Unity");
 #endif
             rc=0; goto done;
         }
@@ -906,6 +918,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int sho
         if (shown<=0) { if (shown<0) error("Cannot open account input dialog"); else rc=0; goto done; }
     }
     if (!SetCurrentDirectoryW(dir) || !SetDllDirectoryW(dir)) { error("Cannot set game directory"); goto done; }
+    if (!install_portable_paths()) { error("Cannot install process-local AppData redirection"); goto done; }
     if (!join_path(path,32768,dir,L"UnityPlayer.dll")) goto done;
     unity=LoadLibraryExW(path,NULL,LOAD_WITH_ALTERED_SEARCH_PATH);
     if (!unity) { error("Cannot load UnityPlayer.dll"); goto done; }
@@ -929,7 +942,8 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int sho
     runtime_module=game;
     if (!string_new || !bind_runtime_api(game) || !install_bootstrap(game)) { error("Native patch validation/installation failed; Unity will not start"); goto done; }
     log_line("Initialization hook installed; UnityMain will initialize metadata, then resolve/install semantic patches.");
-    rc=unity_main(instance,NULL,command,show);
+    if (!join_path(path,32768,dir,L"AzurPromilia_Data")) goto done;
+    rc=unity_main(instance,path,command,show);
     if (!InterlockedCompareExchange(&patches_ready,0,0)) { error("Unity returned without completing runtime patch initialization"); rc=1; }
     log_line("UnityMain returned %d",rc);
 done:
