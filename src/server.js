@@ -666,6 +666,11 @@ export async function startServer(config, logger = console) {
     // needed while idle, and timeout does not depend on another gameplay RPC.
     const teamChangeTimer = setInterval(() => {
         try {
+            for (const packet of game.teamV2.changes.maintenance(game.clock())) deliverTo(packet.recipient, packet)
+        } catch (error) {
+            logger.warn('TeamV2 proposal maintenance: ' + error.message)
+        }
+        try {
             for (const packet of game.legacyMatchTeams.changes.maintenance(game.clock()))
                 deliverTo(packet.recipient, packet)
         } catch (error) {

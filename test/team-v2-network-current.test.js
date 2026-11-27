@@ -9,7 +9,7 @@ import { ErrorCode } from '../src/error-codes.js'
 import { connectObtClient } from './helpers/obt-tcp-client.js'
 
 test(
-    'current TeamV2 TCP invite and presence follow actual entered socket owners through disconnect and reconnect',
+    'current TeamV2 TCP invite, target votes, idle expiry and presence follow entered socket owners through reconnect',
     { timeout: 60000 },
     async () => {
         const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'lurukaps-team-v2-network-')),
@@ -27,10 +27,11 @@ test(
                 strongEncryption: true,
                 entryWorldChatNoticeDelayMs: 3600000,
             }
-        let server
+        let server,
+            now = 1800000000
         try {
             server = await startServer(config, { warn: (line) => warnings.push(line), info: () => {} })
-            server.game.clock = () => 1800000000
+            server.game.clock = () => now
             assert.equal(server.tcp.address().address, '127.0.0.1')
             assert.equal(server.web.address().address, '127.0.0.1')
             const decode = (frame) => server.protocol.decode(server.protocol.byId.get(frame.id).rsp, frame.payload)
@@ -105,6 +106,36 @@ test(
             const joined = await next(peer, 11823, (value) => value.reason === 7)
             await next(captain, 11823, (value) => value.team.member_list.length === 2)
             assert.equal(joined.team.member_list.length, 2)
+            const beforeChange = captain.trace.length
+            captain.send('TeamV2StartChangeTarget', { team_id: teamId, target: { dungeon_system_id: 10201 } })
+            const proposed = await next(peer, 11823, (value) => value.reason === 11)
+            assert.equal(proposed.team.change_target.dungeon_system_id, 10201)
+            assert.equal(proposed.team.change_vote_time, String(now * 1000))
+            await next(captain, 11823, (value) => value.reason === 11)
+            peer.send('TeamV2VoteChangeTarget', { team_id: teamId, accept: true })
+            for (const client of [captain, peer]) {
+                const changed = await next(client, 11823, (value) => value.reason === 13)
+                assert.equal(changed.team.target.dungeon_system_id, 10201)
+                assert.deepEqual(changed.team.change_vote, [])
+            }
+            assert.equal(server.game.teamV2.roomFor(captain.id).target.dungeon_system_id, 10201)
+            captain.send('TeamV2StartChangeTarget', { team_id: teamId, target: { dungeon_system_id: 10301 } })
+            await next(peer, 11823, (value) => value.reason === 11)
+            await next(captain, 11823, (value) => value.reason === 11)
+            // Advance only the injected clock. The actual server timer must
+            // expire this proposal without any subsequent gameplay request.
+            now += 30
+            for (const client of [captain, peer]) {
+                const expired = await next(client, 11823, (value) => value.reason === 14)
+                assert.equal(expired.team.target.dungeon_system_id, 10201)
+                assert.equal(expired.team.change_target, undefined)
+            }
+            assert.equal(server.game.teamV2.changes.get(teamId).status, 'expired')
+            assert(
+                !captain.trace
+                    .slice(beforeChange)
+                    .some((frame) => [11839, 11841, 9536, 9510, 9567, 9103].includes(frame.id)),
+            )
             await peer.close()
             const offline = await next(
                 captain,
@@ -118,6 +149,7 @@ test(
             assert.equal(replacement.id, peer.id)
             const restored = await next(replacement, 11823, (value) => value.reason === 2)
             assert.equal(restored.team.team_id, teamId)
+            assert.equal(restored.team.target.dungeon_system_id, 10201)
             const online = await next(
                 captain,
                 11825,
@@ -142,6 +174,7 @@ test(
             assert.equal(server.game.teamV2.roomFor(captain.id), null)
             for (const client of clients) assert(!client.trace.some((frame) => frame.id === 11828))
             assert(!warnings.some((line) => line.includes('TeamV2 presence omitted')))
+            assert(!warnings.some((line) => line.includes('TeamV2 proposal maintenance')))
         } finally {
             for (const client of clients) await client.close()
             if (server) {

@@ -5,6 +5,7 @@ import { ensure } from './handlers/common.js'
 import { teamV2Target, requireTeamV2Target } from './team-v2-eligibility.js'
 import { teamV2MemberData } from './team-v2-member.js'
 import { legacyChatBans } from './chat-shields.js'
+import { TeamV2TargetChanges } from './team-v2-target-change.js'
 const uint = (n) => Number.isSafeInteger(n) && n >= 0 && n <= 0xffffffff
 const positive = (n) => uint(n) && n > 0
 const object = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
@@ -51,6 +52,7 @@ export class TeamV2Service {
    CREATE TABLE IF NOT EXISTS team_v2_invite_history(id INTEGER PRIMARY KEY,payload TEXT NOT NULL);
    CREATE TABLE IF NOT EXISTS team_v2_leave_receipts(team_id INTEGER NOT NULL,player_id INTEGER NOT NULL,reason INTEGER NOT NULL,PRIMARY KEY(team_id,player_id));
    CREATE TABLE IF NOT EXISTS team_v2_room_receipts(team_id INTEGER PRIMARY KEY,captain INTEGER NOT NULL,payload TEXT NOT NULL);`)
+        this.changes = new TeamV2TargetChanges(this)
     }
     requireTransaction() {
         ensure(this.db.inTransaction, 'TeamV2 mutation requires an atomic transaction', ErrorCode.GameConfig)
@@ -104,6 +106,19 @@ export class TeamV2Service {
                 room.ready.every((id) => ids.has(id)) &&
                 new Set(room.ready).size === room.ready.length,
             'Saved TeamV2 authority is malformed',
+            ErrorCode.GameConfig,
+        )
+        const changeFields = ['change_target', 'change_vote', 'change_vote_time']
+        ensure(
+            changeFields.every((key) => room[key] === undefined) ||
+                (room.state === 1 &&
+                    positive(room.change_target?.dungeon_system_id) &&
+                    Number.isSafeInteger(room.change_vote_time) &&
+                    room.change_vote_time >= 0 &&
+                    Array.isArray(room.change_vote) &&
+                    room.change_vote.every((id) => ids.has(id)) &&
+                    new Set(room.change_vote).size === room.change_vote.length),
+            'Saved TeamV2 target proposal projection is malformed',
             ErrorCode.GameConfig,
         )
         const index = this.db
@@ -167,6 +182,10 @@ export class TeamV2Service {
             target: clone(room.target),
             limit: clone(room.limit),
             prepare: [...room.ready],
+            change_vote: [...(room.change_vote ?? [])],
+            ...(room.change_target
+                ? { change_target: clone(room.change_target), change_vote_time: String(room.change_vote_time) }
+                : {}),
             ...(room.play ? { play: clone(room.play) } : {}),
             ...(room.pre_start_time ? { pre_start_time: String(room.pre_start_time) } : {}),
             ...(room.start_time ? { start_time: String(room.start_time) } : {}),
@@ -189,13 +208,14 @@ export class TeamV2Service {
         if (recipient === c.id) c.pushBefore(name, value)
         else c.pushTo(recipient, name, value)
     }
-    publish(c, room, reason, { states, recipientReasons, playerId = 0 } = {}) {
-        const team = this.snapshot(c, room, { states })
+    publish(c, room, reason, { states, recipientReasons, playerId = 0, checkList = [], onlineOverride } = {}) {
+        const team = this.snapshot(c, room, { states, onlineOverride })
         for (const m of room.members)
             this.notify(c, m.id, 'CSProtoTeamV2TeamUpdateNotify', {
                 reason: recipientReasons?.get(m.id) ?? reason,
                 team,
                 player_id: playerId,
+                ...(checkList.length ? { check_list: checkList } : {}),
             })
     }
     publishMember(c, room, id, reason, options = {}) {
@@ -229,8 +249,13 @@ export class TeamV2Service {
     legacyMember(id) {
         return !!this.db.prepare('SELECT room_id FROM legacy_match_members WHERE player_id=?').get(id)
     }
-    requireNormal(room) {
+    requireNormal(room, { allowTargetChange = false } = {}) {
         ensure(room.state === 1, 'TeamV2 is not in its normal lobby state', ErrorCode.TeamWaitStateSync)
+        ensure(
+            allowTargetChange || !room.change_target,
+            'A TeamV2 target proposal is pending',
+            ErrorCode.TeamWaitStateSync,
+        )
     }
     create(c, r) {
         this.requireTransaction()
@@ -509,8 +534,8 @@ export class TeamV2Service {
                 return current
             }
         }
-        const room = this.requireRoom(c, r.team_id, { captain: kick })
-        this.requireNormal(room)
+        let room = this.requireRoom(c, r.team_id, { captain: kick })
+        this.requireNormal(room, { allowTargetChange: true })
         const id = kick ? r.target_player : c.id
         if (kick)
             ensure(
@@ -524,6 +549,7 @@ export class TeamV2Service {
             ErrorCode.NotInMatchTeam,
         )
         ensure(id !== room.captain, 'Captain uses the current dismiss operation', ErrorCode.FunctionClosed)
+        room = this.changes.cancel(c, room, id)
         const reason = kick ? TeamV2LeaveReason.KICK : TeamV2LeaveReason.LEAVE
         this.db
             .prepare('INSERT OR REPLACE INTO team_v2_leave_receipts(team_id,player_id,reason)VALUES(?,?,?)')
@@ -556,8 +582,9 @@ export class TeamV2Service {
             })
             return
         }
-        const room = this.requireRoom(c, r.team_id, { captain: true })
-        this.requireNormal(room)
+        let room = this.requireRoom(c, r.team_id, { captain: true })
+        this.requireNormal(room, { allowTargetChange: true })
+        room = this.changes.cancel(c, room)
         this.db
             .prepare('INSERT INTO team_v2_room_receipts(team_id,captain,payload)VALUES(?,?,?)')
             .run(teamId(room.id), room.captain, JSON.stringify(room))
@@ -592,8 +619,9 @@ export class TeamV2Service {
         return packets
     }
     observe(c) {
-        const room = this.roomFor(c.id)
+        let room = this.roomFor(c.id)
         if (!room || room.state !== 1) return false
+        room = this.changes.reconcile(c, room)
         const next = signature(this.memberData(c.state, c.id))
         if (room.member_signatures?.[c.id] === next) return false
         ;(room.member_signatures ??= {})[c.id] = next
@@ -608,8 +636,8 @@ export class TeamV2Service {
             id,
             0,
             (state, transaction) => {
-                const room = this.roomFor(id),
-                    packets = []
+                let room = this.roomFor(id)
+                const packets = []
                 if (!room) return packets
                 const c = {
                     id,
@@ -620,6 +648,7 @@ export class TeamV2Service {
                     pushBefore: (name, value) => packets.push(this.encodeNotice(name, value, id)),
                     pushTo: (recipient, name, value) => packets.push(this.encodeNotice(name, value, recipient)),
                 }
+                room = this.changes.reconcile(c, room)
                 if (this.backend?.onPresence) this.backend.onPresence(c, room, online)
                 const current = this.roomFor(id)
                 if (!current) return packets
@@ -675,13 +704,17 @@ export function registerTeamV2(on, store, tables, options) {
     on('TeamV2Prepare', (c, r) => {
         teams.lifecycle(c, r, 'prepare')
     })
+    on('TeamV2StartChangeTarget', (c, r) => {
+        teams.changes.propose(c, r)
+    })
+    on('TeamV2VoteChangeTarget', (c, r) => {
+        teams.changes.vote(c, r)
+    })
     // These current entry points need the matching/change-target/shared-run
     // authority that is deliberately not faked by this executable lobby block.
     for (const name of [
         'TeamV2StartMatch',
         'TeamV2CancelMatch',
-        'TeamV2StartChangeTarget',
-        'TeamV2VoteChangeTarget',
         'TeamV2CancelChangeTarget',
         'TeamV2WorldInvite',
         'TeamV2CancelTeamMatch',

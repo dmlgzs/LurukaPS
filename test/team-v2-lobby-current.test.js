@@ -277,16 +277,22 @@ test('query is static current menu/row eligibility; online, existing team, busy,
             () => f.offer(0, 3),
             (e) => e.code === ErrorCode.TeamFull,
         )
-        for (const [name, request] of [
+        for (const [name, request, expected = ErrorCode.FunctionClosed] of [
             ['TeamV2StartMatch', { typ: 101, dungeon_system_id: 10101 }],
-            ['TeamV2StartChangeTarget', { team_id: team, target: { dungeon_system_id: 10102 } }],
+            // Now implemented: this particular current next-difficulty row
+            // still requires its prior clear; it is not a closed capability.
+            [
+                'TeamV2StartChangeTarget',
+                { team_id: team, target: { dungeon_system_id: 10102 } },
+                ErrorCode.EntrustUnlock,
+            ],
             ['TeamV2UpdateLimit', { team_id: team, team_limit: { level: 99 } }],
             ['TeamV2WorldInvite', { team_id: team }],
         ]) {
             const raw = same(f.dump())
             assert.throws(
                 () => f.call(0, name, request),
-                (e) => e.code === ErrorCode.FunctionClosed,
+                (e) => e.code === expected,
             )
             assert.equal(same(f.dump()), raw)
         }
