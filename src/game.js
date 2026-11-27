@@ -101,6 +101,12 @@ import { registerGrowup } from './handlers/growup.js'
 import { registerCultTrial } from './handlers/cult-trial.js'
 import { cultTrialSnapshot, ensureCultTrialScene, recordCultTrialResult } from './cult-trial.js'
 import { ensureCultFormation } from './cult-formation.js'
+import { registerCultTrialQuery } from './handlers/cult-trial-query.js'
+import {
+    reconcileCultTrialPreparation,
+    cultTrialPreparationAttributes,
+    cultTrialPreparationDue,
+} from './cult-trial-query.js'
 import { repairSavedPetPuzzleVisibility } from './pet-puzzles.js'
 import { repairSavedElevatorVisibility } from './handlers/world-elevator.js'
 import { hiddenTaskPetGuids } from './task-pet-presentation.js'
@@ -309,6 +315,7 @@ const unchangedReadQueries = new Set([
     'CSProtoShopInfoReq',
     'CSProtoListShopArrayItems',
     'CSProtoMallReddotSet',
+    'CSProtoGetTrialGroup',
 ])
 const deferredTaskProgress = new Set([
     'CSProtoTaskClientBefore',
@@ -696,6 +703,7 @@ export class Game {
         this.activities.commonTimeSources.push(() => this.gacha.commonTimes())
         registerGrowup(on, this.activities)
         registerCultTrial(on, tables, this.activities)
+        registerCultTrialQuery(on)
         registerKiboDuel(on, tables, protocol)
         registerEntrust(on, tables)
         registerStoryCampaign(on, tables)
@@ -1040,6 +1048,10 @@ export class Game {
                 if (state.abyssRun?.map_id === state.world.map_id) installAbyssFormation(state)
                 recordCultTrialResult(this.tables, state, now)
                 ensureCultFormation(this.tables, this.activities, state, session.id)
+                reconcileCultTrialPreparation(
+                    { state, tables: this.tables, activityCatalog: this.activities, id: session.id, now },
+                    { notify: false },
+                )
                 recoverInitialDungeonKills(this.tables, state)
                 refreshTaskProgress(this.tables, state)
                 beginSceneTransition(state, previousMapId, now, 256)
@@ -1613,6 +1625,7 @@ export class Game {
                     validateMedicineLedger(state)
                 reconcileMedicine(context)
                 const response = recoveredChoice ? {} : handler(context, r)
+                if (!battleReport) reconcileCultTrialPreparation(context)
                 this.teamV2.observe(context)
                 if (e.name === 'CSProtoHomeTechnologyLevelUp') reconcileRanchTechnology(this.tables, state)
                 // 9596 is the current client readiness report; 9509 is only
@@ -1992,6 +2005,7 @@ export class Game {
             simpleDue = simpleProductionDue(current, now),
             dormDue = dormDayDue(this.tables, current, now),
             activityDue = this.activities.due(current, now),
+            cultPreparationReady = cultTrialPreparationDue(this.tables, this.activities, current, now),
             dailyActiveDue = activePeriodDue(this.tables, current, now),
             weeklyReady = weeklyQuotaDue(this.tables, current, now),
             arenaDue = npcArenaTickDue(current, exact),
@@ -2008,6 +2022,7 @@ export class Game {
                 simpleDue ||
                 dormDue ||
                 activityDue ||
+                cultPreparationReady ||
                 dailyActiveDue ||
                 weeklyReady ||
                 !!abyssDue ||
@@ -2021,6 +2036,7 @@ export class Game {
             !simpleDue &&
             !dormDue &&
             !activityDue &&
+            !cultPreparationReady &&
             !dailyActiveDue &&
             !weeklyReady &&
             !arenaDue &&
@@ -2035,6 +2051,15 @@ export class Game {
                     eggRevision = state.eggRevision || 0,
                     petRevision = state.petRevision || 0,
                     handbookBonusesBefore = state.petHandbookBonuses
+                if (cultPreparationReady)
+                    reconcileCultTrialPreparation({
+                        id,
+                        state,
+                        tables: this.tables,
+                        activityCatalog: this.activities,
+                        now,
+                        pushBefore: (name, value) => packets.push(this.packet(name, value)),
+                    })
                 // An idle client opening the weekly page must see the new quota.
                 // This enters a durable transaction once per actual epoch only;
                 // ordinary ticks and every skill/movement stay outside it.
@@ -2296,13 +2321,23 @@ export class Game {
             ),
             this.packet('SCProtoWorldDifficultyInfo', worldDifficultySnapshot(this.tables, state)),
             this.packet('SCProtoShopGoodsTipSync', this.shopGoodsTips.snapshot(state)),
-            ...(state.trialGroup || state.cultTrial?.heroes?.length || state.npcArenaTrialTrainer
+            ...(state.trialGroup ||
+            state.cultTrial?.heroes?.length ||
+            state.cultTrialPreparation ||
+            state.npcArenaTrialTrainer
                 ? [this.packet('CSProtoTrialDatas', trialPayload(state))]
                 : []),
             ...(state.abyssRun?.map_id === state.world.map_id
                 ? [
                       this.packet('CSProtoAbyssHeroInfoSync', abyssActorInfo(state)),
                       this.packet('SCProtoAbyssDungeonInfoSync', abyssDungeonInfo(state)),
+                  ]
+                : []),
+            ...(state.cultTrialPreparation
+                ? [
+                      this.packet('CSProtoHeroAttrInfoSync', {
+                          heros: cultTrialPreparationAttributes(this.tables, state),
+                      }),
                   ]
                 : []),
             this.packet('CSProtoPetHandbookInfoSync', petHandbookSnapshot(state)),

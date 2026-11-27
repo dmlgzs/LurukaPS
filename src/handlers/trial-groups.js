@@ -11,8 +11,8 @@ import { mainHeroConfigId } from '../main-hero.js'
 import { currentTrialAdmission, currentTrialPetSlots } from '../current-trial-request-policy.js'
 export function trialPayload(state) {
     return {
-        trial_heros: temporaryHeroes(state).filter((x) => !x.abyss),
-        trial_pets: temporaryPets(state).filter((x) => !x.abyss),
+        trial_heros: [...temporaryHeroes(state), ...(state.cultTrialPreparation?.heroes ?? [])].filter((x) => !x.abyss),
+        trial_pets: [...temporaryPets(state), ...(state.cultTrialPreparation?.pets ?? [])].filter((x) => !x.abyss),
     }
 }
 export function refreshTrialPetBindings(state) {
