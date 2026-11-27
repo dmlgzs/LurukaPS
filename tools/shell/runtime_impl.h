@@ -198,6 +198,7 @@ static int resolve_site(size_t index) {
     return 1;
 }
 static int site_enabled(size_t i) {
+    if ((i==SITE_PersistentPath || i==SITE_RestartFullPath) && !restart_routing_enabled) return 0;
     if (i>=SITE_SdkFactory && i<=SITE_SdkRegion && !local_sdk_enabled) return 0;
     if (!tcp_only && (i==SITE_InfoTLS || i==SITE_InfoKcp || i==SITE_NetKcp || i==SITE_NetSsl)) return 0;
     if (!camera_fade && (i==SITE_CameraFade || i==SITE_NpcFade)) return 0;
@@ -241,6 +242,7 @@ static int resolve_runtime_contracts(void) {
         !resolve_enum_literal("MJUnionSDK","EMJSDKType","Login","MJUnionSDK.EMJSDKType",&login_event) ||
         !resolve_enum_literal("HybridCLR","LoadImageErrorCode","OK","HybridCLR.LoadImageErrorCode",&hybrid_load_ok)) return 0;
     if (!setup_local_sdk() || !setup_transport_routing()) return 0;
+    restart_routing_enabled=find_runtime_class("Azur.VersionCheck","WindowsGameRestart")!=NULL;
     log_line("Runtime enums resolved: Login=%d HybridCLR.OK=%d",login_event,hybrid_load_ok);
     return 1;
 }

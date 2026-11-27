@@ -149,8 +149,7 @@ static NTSTATUS NTAPI portable_set_information(HANDLE handle,PIO_STATUS_BLOCK io
     HeapFree(GetProcessHeap(),0,copy); HeapFree(GetProcessHeap(),0,target); return result;
 }
 
-typedef struct { const char *name; void *callback; void *original; PVOID *slot; PVOID previous; } PortableImport;
-static PortableImport portable_imports[]={
+static ImportHook portable_imports[]={
     {"NtCreateFile",(void *)portable_create,&portable_create_original,NULL,NULL},
     {"NtOpenFile",(void *)portable_open,&portable_open_original,NULL,NULL},
     {"NtQueryAttributesFile",(void *)portable_query_attributes,&portable_query_original,NULL,NULL},
@@ -158,56 +157,10 @@ static PortableImport portable_imports[]={
     {"NtSetInformationFile",(void *)portable_set_information,&portable_set_original,NULL,NULL}
 };
 static int portable_bind_imports(void) {
-    BYTE *base=(BYTE *)GetModuleHandleW(L"kernelbase.dll"); size_t i;
-    IMAGE_NT_HEADERS64 *nt; IMAGE_IMPORT_DESCRIPTOR *imports;
-    if (!base) { SetLastError(ERROR_MOD_NOT_FOUND); return 0; }
-    nt=(IMAGE_NT_HEADERS64 *)(base+((IMAGE_DOS_HEADER *)base)->e_lfanew);
-    if (!nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress) return 0;
-    imports=(IMAGE_IMPORT_DESCRIPTOR *)(base+nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
-    for (;imports->Name;++imports) {
-        IMAGE_THUNK_DATA64 *names,*slots;
-        if (_stricmp((const char *)(base+imports->Name),"ntdll.dll") || !imports->OriginalFirstThunk) continue;
-        names=(IMAGE_THUNK_DATA64 *)(base+imports->OriginalFirstThunk);
-        slots=(IMAGE_THUNK_DATA64 *)(base+imports->FirstThunk);
-        for (;names->u1.AddressOfData;++names,++slots) {
-            IMAGE_IMPORT_BY_NAME *name;
-            if (IMAGE_SNAP_BY_ORDINAL64(names->u1.Ordinal)) continue;
-            name=(IMAGE_IMPORT_BY_NAME *)(base+names->u1.AddressOfData);
-            for (i=0;i<sizeof(portable_imports)/sizeof(portable_imports[0]);++i) {
-                PortableImport *entry=&portable_imports[i];
-                if (strcmp((const char *)name->Name,entry->name)) continue;
-                entry->slot=(PVOID *)&slots->u1.Function; entry->previous=*entry->slot;
-                memcpy(entry->original,&entry->previous,sizeof(entry->previous));
-            }
-        }
-    }
-    for (i=0;i<sizeof(portable_imports)/sizeof(portable_imports[0]);++i) if (!portable_imports[i].slot) {
-        log_line("Missing KernelBase file import: %s",portable_imports[i].name);
-        SetLastError(ERROR_PROC_NOT_FOUND); return 0;
-    }
-    return 1;
+    return bind_import_hooks(GetModuleHandleW(L"kernelbase.dll"),"ntdll.dll",portable_imports,sizeof(portable_imports)/sizeof(portable_imports[0]));
 }
-static int portable_exchange_import(PortableImport *entry,int install) {
-    DWORD previous,ignored; PVOID expected=install?entry->previous:entry->callback;
-    PVOID replacement=install?entry->callback:entry->previous,found;
-    if (!VirtualProtect(entry->slot,sizeof(*entry->slot),PAGE_READWRITE,&previous)) return 0;
-    found=InterlockedCompareExchangePointer(entry->slot,replacement,expected);
-    if (!VirtualProtect(entry->slot,sizeof(*entry->slot),previous,&ignored)) return 0;
-    if (found!=expected) { SetLastError(ERROR_INVALID_FUNCTION); return 0; }
-    return 1;
-}
-/* Aligned pointer exchanges need neither instruction relocation nor thread suspension. */
 static int portable_update_imports(int install) {
-    size_t i,n; DWORD failure;
-    for (i=0;i<sizeof(portable_imports)/sizeof(portable_imports[0]);++i)
-        if (!portable_exchange_import(&portable_imports[i],install)) break;
-    if (i==sizeof(portable_imports)/sizeof(portable_imports[0])) return 1;
-    failure=GetLastError(); n=i+1;
-    while (n) {
-        PortableImport *entry=&portable_imports[--n];
-        if (*entry->slot==(install?entry->callback:entry->previous) && !portable_exchange_import(entry,!install)) ExitProcess(1);
-    }
-    SetLastError(failure); return 0;
+    return update_import_hooks(portable_imports,sizeof(portable_imports)/sizeof(portable_imports[0]),install);
 }
 static int portable_directory(const wchar_t *path) {
     DWORD attributes;

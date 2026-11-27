@@ -6,11 +6,12 @@ enum { SITE_Start,SITE_LaunchOptionStart,SITE_InfoEnableSdk,SITE_AppEnableSdk,
     SITE_SdkTrigger,SITE_LuaStart,SITE_LuaDoString,SITE_LoadOriginal,SITE_LoadDhao,SITE_LoadMeta,SITE_SdkFactory,SITE_SdkInitialize,SITE_SdkInit,SITE_SdkLogin,SITE_SdkLogout,
     SITE_SdkRegister,SITE_SdkGetData,SITE_SdkSetData,SITE_SdkRegion,
     SITE_UriCtor,SITE_UriAbsolute,SITE_UriIsAbsolute,SITE_BestGetUri,SITE_BestSetUri,SITE_BestSend,
-    SITE_HttpGetUri,SITE_HttpSetUri,SITE_HttpSend,SITE_UnityUrl,SITE_COUNT };
+    SITE_HttpGetUri,SITE_HttpSetUri,SITE_HttpSend,SITE_UnityUrl,SITE_PersistentPath,SITE_RestartFullPath,SITE_COUNT };
 static Site sites[SITE_COUNT];
 static BYTE site_installed[SITE_COUNT];
 static int32_t hybrid_load_ok;
 static int local_sdk_enabled;
+static int restart_routing_enabled;
 typedef struct {
     void *(*domain_get)(void);
     const void **(*assemblies)(void *,size_t *);
@@ -125,5 +126,7 @@ static const MethodSpec method_specs[SITE_COUNT]={
     {"HttpRequestMessage.RequestUri.set","System.Net.Http","HttpRequestMessage","set_RequestUri","System.Void",0,1,{"System.Uri"}},
     {"HttpClient.SendAsync","System.Net.Http","HttpClient","SendAsync","System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage>",0,3,
         {"System.Net.Http.HttpRequestMessage","System.Net.Http.HttpCompletionOption","System.Threading.CancellationToken"}},
-    {"UnityWebRequest.InternalSetUrl","UnityEngine.Networking","UnityWebRequest","InternalSetUrl","System.Void",0,1,{"System.String"}}
+    {"UnityWebRequest.InternalSetUrl","UnityEngine.Networking","UnityWebRequest","InternalSetUrl","System.Void",0,1,{"System.String"}},
+    {"Application.persistentDataPath","UnityEngine","Application","get_persistentDataPath","System.String",1,0,{0}},
+    {"Path.GetFullPath","System.IO","Path","GetFullPath","System.String",1,1,{"System.String"}}
 };

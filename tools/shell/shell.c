@@ -15,11 +15,15 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <winternl.h>
+#ifdef SHELL_SELF_TEST
+#include <shlobj.h>
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
 #include <wchar.h>
+#include <wctype.h>
 
 _Static_assert(sizeof(void *) == 8, "Build for Windows x64");
 _Static_assert(sizeof(wchar_t) == 2, "Windows UTF-16 required");
@@ -502,8 +506,11 @@ static int prepare_hook_at(BYTE *entry,const Site *site,const void *callback,siz
 static int prepare_hook(BYTE *base,size_t site,const void *callback,size_t index,Patch *patch) {
     (void)base; return prepare_hook_at(sites[site].address,&sites[site],callback,index,patch);
 }
+#include "import_hooks.h"
 #include "portable_paths.h"
+#include "unity_registry.h"
 #include "runtime_impl.h"
+#include "restart_routing.h"
 static int install_patches(HMODULE game) {
     BYTE *base=(BYTE *)game,staged[SITE_COUNT]={0}; Patch patches[SITE_COUNT]; size_t n=0,i;
     for (i=0;i<SITE_COUNT;++i) {
@@ -550,6 +557,10 @@ static int install_patches(HMODULE game) {
         case SITE_BestSend: hook=19; callback=(const void *)transport_best_send; original_slot=&transport_best_original; break;
         case SITE_HttpSend: hook=20; callback=(const void *)transport_http_send; original_slot=&transport_http_original; break;
         case SITE_UnityUrl: hook=21; callback=(const void *)transport_unity_url; original_slot=&transport_unity_original; break;
+        case SITE_PersistentPath:
+            if (!prepare_restart_paths()) return 0;
+            patches[n]=make_patch(base,i,3,(const void *)restart_persistent_path); break;
+        case SITE_RestartFullPath: hook=22; callback=(const void *)restart_full_path; original_slot=&restart_full_path_original; break;
         default: return 0;
         }
         if (hook>=0) {
@@ -787,6 +798,8 @@ static int identity_self_test(void) {
 #include "local_sdk_tests.h"
 #include "transport_routing_tests.h"
 #include "portable_paths_tests.h"
+#include "unity_registry_tests.h"
+#include "restart_routing_tests.h"
 static int self_test(void) {
     BYTE *page=VirtualAlloc(NULL,4096,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE);
     Patch patches[2]; DWORD previous; MEMORY_BASIC_INFORMATION info; int ok;
@@ -847,7 +860,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int sho
     UnityMainFn unity_main=NULL; (void)previous;
     argv=CommandLineToArgvW(GetCommandLineW(),&argc);
     if (!argv) return error("Cannot parse arguments");
-    for (i=1;i<argc;++i) if (!wcscmp(argv[i],L"--check") || !wcscmp(argv[i],L"--self-test") || !wcscmp(argv[i],L"--help") || !wcscmp(argv[i],L"--ui-smoke-test") || !wcscmp(argv[i],L"--portable-test") || !wcscmp(argv[i],L"--dpi-check")) check_mode=1;
+    for (i=1;i<argc;++i) if (!wcscmp(argv[i],L"--check") || !wcscmp(argv[i],L"--self-test") || !wcscmp(argv[i],L"--help") || !wcscmp(argv[i],L"--ui-smoke-test") || !wcscmp(argv[i],L"--portable-test") || !wcscmp(argv[i],L"--registry-test") || !wcscmp(argv[i],L"--dpi-check")) check_mode=1;
     for (i=1;i<argc;++i) if (!wcscmp(argv[i],L"--console")) {
         if (AllocConsole() || AttachConsole(ATTACH_PARENT_PROCESS)) {
             FILE *stream; stream=_wfreopen(L"CONOUT$",L"w",stderr); (void)stream;
@@ -857,6 +870,14 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int sho
     for (i=1;i<argc;++i) {
         if (!wcscmp(argv[i],L"--dpi-check")) { rc=report_dpi_awareness()?0:1; goto done; }
 #ifdef SHELL_SELF_TEST
+        if (!wcscmp(argv[i],L"--restart-test")) {
+            if (i+1<argc) { log_file=_wfopen(argv[i+1],L"wb"); if (!log_file) goto done; }
+            log_line("Restart test Sandboxie module: %s",GetModuleHandleW(L"SbieDll.dll")?"present":"absent");
+            rc=restart_routing_test()?0:1; goto done;
+        }
+        if (!wcscmp(argv[i],L"--restart-marker-check")) {
+            rc=i+1<argc && GetFileAttributesW(argv[i+1])!=INVALID_FILE_ATTRIBUTES?0:1; goto done;
+        }
         if (!wcscmp(argv[i],L"--ui-smoke-test")) {
             int shown; account_dialog_smoke=1;
             shown=show_account_dialog(instance,L"");
@@ -869,15 +890,20 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int sho
             log_line("Portable test Sandboxie module: %s",GetModuleHandleW(L"SbieDll.dll")?"present":"absent");
             rc=portable_paths_test()?0:1; goto done;
         }
+        if (!wcscmp(argv[i],L"--registry-test")) {
+            if (i+1<argc) { log_file=_wfopen(argv[i+1],L"wb"); if (!log_file) goto done; }
+            log_line("Registry test Sandboxie module: %s",GetModuleHandleW(L"SbieDll.dll")?"present":"absent");
+            rc=unity_registry_test()?0:1; goto done;
+        }
 #else
-        if (!wcscmp(argv[i],L"--self-test") || !wcscmp(argv[i],L"--ui-smoke-test") || !wcscmp(argv[i],L"--portable-test")) {
+        if (!wcscmp(argv[i],L"--self-test") || !wcscmp(argv[i],L"--ui-smoke-test") || !wcscmp(argv[i],L"--portable-test") || !wcscmp(argv[i],L"--registry-test") || !wcscmp(argv[i],L"--restart-test") || !wcscmp(argv[i],L"--restart-marker-check")) {
             log_line("Self-tests are not included in this build; use build.ps1 -SelfTest"); goto done;
         }
 #endif
         if (!wcscmp(argv[i],L"--help")) {
             log_line("Place LurukaPS.exe and cbt3-shell.ini beside AzurPromilia_Data.\nAppData I/O is redirected into LuruksPSData in this directory.\n--check <game-directory>: validate without loading/executing DLLs\n--dpi-check: verify DPI awareness without loading Unity\n--console: show log console");
 #ifdef SHELL_SELF_TEST
-            log_line("--self-test: patch engine test\n--ui-smoke-test: native account dialog test, no Unity\n--portable-test: isolated native filesystem redirection test, no Unity");
+            log_line("--self-test: patch engine test\n--ui-smoke-test: native account dialog test, no Unity\n--portable-test: isolated native filesystem redirection test, no Unity\n--registry-test: temporary registry redirection test, no Unity");
 #endif
             rc=0; goto done;
         }
@@ -922,6 +948,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int sho
     if (!join_path(path,32768,dir,L"UnityPlayer.dll")) goto done;
     unity=LoadLibraryExW(path,NULL,LOAD_WITH_ALTERED_SEARCH_PATH);
     if (!unity) { error("Cannot load UnityPlayer.dll"); goto done; }
+    if (!install_unity_registry(unity)) { error("Cannot redirect Unity registry imports"); goto done; }
     procedure=GetProcAddress(unity,"UnityMain");
     memcpy(&unity_main,&procedure,sizeof(unity_main));
     if (!unity_main) { error("UnityPlayer.dll has no UnityMain export"); goto done; }

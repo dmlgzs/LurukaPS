@@ -94,7 +94,7 @@ Configuration is read from process environment variables. `.env` files are not l
 
 Run `LurukaPS.exe`. Keep the original `UnityPlayer.dll`, `GameAssembly.dll`, and `AzurPromilia_Data/` in place. In the account window, enter a local `open_id`, such as `114514`, and click **启动游戏** (Start Game). Reuse the same ID to access the same saved account; **记住账号，下次预填** remembers it in the INI for the next launch.
 
-File access beneath `%USERPROFILE%\AppData` in this process is redirected to `LuruksPSData/` beside `LurukaPS.exe`, preserving subdirectories such as `Local/`, `LocalLow/`, and `Roaming/`. The launcher's working directory does not affect this location. Existing AppData files are not migrated automatically. This does not redirect the registry or external helper processes.
+File access beneath `%USERPROFILE%\AppData` in this process is redirected to `LuruksPSData/` beside `LurukaPS.exe`, preserving subdirectories such as `Local/`, `LocalLow/`, and `Roaming/`. The launcher's working directory does not affect this location. Unity's game preferences key is separately redirected from `HKCU\Software\manjuu\AzurPromilia` to `HKCU\Software\LurukaPS\AzurPromilia`. Existing files and preferences are not migrated automatically. External helper processes are not redirected.
 
 Build with `tools/shell/build.ps1`; use `-SelfTest` to create the separate `LurukaPS-selftest.exe`. The release EXE excludes self-test implementations.
 

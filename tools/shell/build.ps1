@@ -15,7 +15,7 @@ if ($LASTEXITCODE -ne 0) { throw "Resource compiler failed with exit code $LASTE
 $compilerArgs = @('-std=c11', '-Wall', '-Wextra', '-Werror', '-municode', '-mwindows', '-static-libgcc',
     (Join-Path $PSScriptRoot 'shell.c'), $manifestObject, '-o', (Join-Path $outputDirectory $outputName),
     '-lshell32', '-luser32')
-if ($SelfTest) { $compilerArgs += '-DSHELL_SELF_TEST' }
+if ($SelfTest) { $compilerArgs += @('-DSHELL_SELF_TEST', '-ladvapi32') }
 if ($Debug) { $compilerArgs += @('-O0', '-g') } else { $compilerArgs += @('-O2', '-s') }
 try {
     & $Compiler @compilerArgs
