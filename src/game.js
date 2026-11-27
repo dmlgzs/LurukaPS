@@ -301,6 +301,7 @@ import { registerAppearancePresets, clothesPresetsSnapshot } from './appearance-
 import { publishCombatEnemyActivations, replayCombatEnemyTerminals } from './handlers/world-combat.js'
 import { registerGiftCodes } from './gift-codes.js'
 const unchangedReadQueries = new Set([
+    'CSProtoPlayerInfo',
     'CSProtoGetMailboxSummary',
     'CSProtoListMails',
     'CSProtoSyncMailbox',

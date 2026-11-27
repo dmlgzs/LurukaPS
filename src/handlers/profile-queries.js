@@ -1,3 +1,4 @@
+import { queryPlayerInfo } from '../query-player-info.js'
 import { ErrorCode } from '../error-codes.js'
 import { ensure, syncPlayer } from './common.js'
 import { abyssGlobalView } from '../abyss-global-view.js'
@@ -12,6 +13,7 @@ function charInfo(id, records) {
     }
 }
 export function registerProfileQueries(on, tables, store) {
+    on('PlayerInfo', (c, r) => queryPlayerInfo(c, r, store))
     on('ChangeShowPet', (c, r) => {
         // pageSelectPetDisplay saves all selected pets in four one-based slots.
         const selection = r.pet ?? []

@@ -155,8 +155,4 @@ export function registerCore(on) {
         c.state.flags[`red:${r.id}:${r.sub_id || 0}`] = !!r.flag
         return {}
     })
-    on('PlayerInfo', (c, r) => {
-        const ids = r.player_ids?.length ? r.player_ids : [c.id]
-        return { player_infos: ids.filter((id) => id === c.id).map(() => c.state.player.basic_info) }
-    })
 }
