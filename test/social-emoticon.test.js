@@ -8,7 +8,7 @@ const writes = (f) => f.store.db.prepare('SELECT total_changes() AS n').get().n
 test('6582 emits real6580 local playback and6583 peer event by table ID, ACK precedes peer broadcast', () => {
     const f = setup()
     try {
-        for (const id of [1, 7, 12]) {
+        for (const id of [1, 37, 42]) {
             const out = f.call('SelectEmoticons', { u32: id })
             assert.deepEqual(
                 out.map((p) => p.id),
@@ -38,8 +38,8 @@ test('6582 transient read path makes zero SQLite writes and does not enqueue sav
         }
         try {
             for (let i = 0; i < 100; i++) {
-                const out = f.call('SelectEmoticons', { u32: i % 2 ? 1 : 7 })
-                assert.equal(f.sync(out).cur_emoticons_id, i % 2 ? 1 : 7)
+                const out = f.call('SelectEmoticons', { u32: i % 2 ? 1 : 37 })
+                assert.equal(f.sync(out).cur_emoticons_id, i % 2 ? 1 : 37)
             }
         } finally {
             f.store.transact = transact
@@ -68,8 +68,8 @@ test('6582 identical consecutive actions remain playback events, login never rep
 test('6582 malformed, unknown, locked or unavailable actions fail without SQL writes or account changes', () => {
     const f = setup()
     try {
-        const row = f.tables.find('social_wheel', 7)
-        for (const id of [0, 999]) {
+        const row = f.tables.find('social_wheel', 37)
+        for (const id of [0, 7, 12, 999]) {
             const before = f.state(),
                 count = writes(f)
             assert.throws(
@@ -79,13 +79,18 @@ test('6582 malformed, unknown, locked or unavailable actions fail without SQL wr
             assert.equal(writes(f), count)
             assert.deepEqual(f.state(), before)
         }
+        const oldLock = row.lock_type
         row.lock_type = 2
         let before = f.state(),
             count = writes(f)
-        assert.throws(
-            () => f.call('SelectEmoticons', { u32: 7 }),
-            (e) => e.code === ErrorCode.InvalidSocialWheelData,
-        )
+        try {
+            assert.throws(
+                () => f.call('SelectEmoticons', { u32: 37 }),
+                (e) => e.code === ErrorCode.InvalidSocialWheelData,
+            )
+        } finally {
+            row.lock_type = oldLock
+        }
         assert.deepEqual(f.state(), before)
         assert.equal(writes(f), count)
     } finally {

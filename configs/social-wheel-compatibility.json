@@ -1,0 +1,25 @@
+{
+    "schemaVersion": 1,
+    "scope": "saved-social-wheel-action-identities-only",
+    "source": {
+        "clientVersion": "CBT3",
+        "tableSha256": "fad71ad62cef0a7bcaf6ffb1214442339ac1bfb629f456e29bb493d9dcf795b2",
+        "indexSha256": "6439230b4f90bcceacaab602a392b1984cb35783c7acfb53872ed7de2b7001a1"
+    },
+    "target": {
+        "clientVersion": "1.0.0",
+        "packageVersion": "3217420",
+        "catalogVersion": "1.0.0/3217420",
+        "tableSha256": "e90e1516840a8f2fa3c216386faab6cef31f3b63db8c776470a4076a47b805ac",
+        "actionFingerprint": "849f9029fc63d59dfe46f0a58c2c19031065a6feaa1b5e4b51b06ca6bcdbd584"
+    },
+    "mappings": [
+        { "from": 7, "to": 37, "action": "Wave01" },
+        { "from": 8, "to": 38, "action": "Laugh01" },
+        { "from": 9, "to": 39, "action": "Love01" },
+        { "from": 10, "to": 40, "action": "Bow01" },
+        { "from": 11, "to": 41, "action": "Praise01" },
+        { "from": 12, "to": 42, "action": "Weep01" }
+    ],
+    "unresolved": []
+}

@@ -13,7 +13,7 @@ test('6581 login uses current social_wheel entries and native1..8 empty slots, n
         const s = f.sync(f.login)
         assert.deepEqual(
             s.infos.map((r) => r.id),
-            Array.from({ length: 12 }, (_, i) => i + 1),
+            [1, 2, 3, 4, 5, 6, 37, 38, 39, 40, 41, 42],
         )
         assert.deepEqual(s.social_wheel, slots([]))
         assert.equal(s.cur_emoticons_id, 0)
@@ -27,23 +27,23 @@ test('6581 saves exact slot order, duplicates are preserved, zero clears and del
     try {
         const out = f.call('UpdateEmoticonsWheel', {
             wheel_data: [
-                { index: 8, id: 12 },
+                { index: 8, id: 42 },
                 { index: 2, id: 1 },
                 { index: 1, id: 1 },
             ],
         })
         assert(out.findIndex((p) => p.id === 6580) < out.findIndex((p) => p.id === 6581))
-        assert.deepEqual(f.sync(out).social_wheel, slots([1, 1, 0, 0, 0, 0, 0, 12]))
+        assert.deepEqual(f.sync(out).social_wheel, slots([1, 1, 0, 0, 0, 0, 0, 42]))
         let before = f.state()
         f.call('UpdateEmoticonsWheel', {
             wheel_data: [
-                { index: 8, id: 12 },
+                { index: 8, id: 42 },
                 { index: 2, id: 1 },
                 { index: 1, id: 1 },
             ],
         })
         assert.deepEqual(f.state(), before)
-        const clear = f.call('UpdateEmoticonsWheel', { wheel_data: slots([1, 1, 0, 0, 0, 0, 0, 12]), del_all: true })
+        const clear = f.call('UpdateEmoticonsWheel', { wheel_data: slots([1, 1, 0, 0, 0, 0, 0, 42]), del_all: true })
         assert.deepEqual(f.sync(clear).social_wheel, slots([]))
         f.call('UpdateEmoticonsWheel', { wheel_data: [{ index: 3, id: 6 }] })
         assert.deepEqual(f.sync(f.call('UpdateEmoticonsWheel', {})).social_wheel, slots([]))
@@ -121,7 +121,7 @@ test('6581 codec failures on6580 and ACK roll back exact social state', () => {
                 if (name === type) throw Error('social codec')
                 return encode.call(this, name, ...args)
             }
-            assert.throws(() => f.call('UpdateEmoticonsWheel', { wheel_data: [{ index: 5, id: 7 }] }), /social codec/)
+            assert.throws(() => f.call('UpdateEmoticonsWheel', { wheel_data: [{ index: 5, id: 37 }] }), /social codec/)
             assert.deepEqual(f.state(), before)
             f.protocol.encode = encode
         }
@@ -137,13 +137,13 @@ test('6581 SQLite reconnect retains all eight slots and does not replay an actio
     try {
         f.call('UpdateEmoticonsWheel', {
             wheel_data: [
-                { index: 7, id: 10 },
+                { index: 7, id: 40 },
                 { index: 3, id: 6 },
             ],
         })
         f.close()
         f = setup(file)
-        assert.deepEqual(f.sync(f.login).social_wheel, slots([0, 0, 6, 0, 0, 0, 10]))
+        assert.deepEqual(f.sync(f.login).social_wheel, slots([0, 0, 6, 0, 0, 0, 40]))
         assert.equal(f.sync(f.login).cur_emoticons_id, 0)
     } finally {
         f.close()

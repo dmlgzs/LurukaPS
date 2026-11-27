@@ -1,6 +1,7 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { homeCondition } from './home-grid.js'
+import { projectSavedSocialWheel } from './social-wheel-compatibility.js'
 const uint = (v) => Number.isInteger(v) && v >= 0 && v <= 0xffffffff
 const slot = (v) => Number.isInteger(v) && v >= 1 && v <= 8
 const empty = () => Array.from({ length: 8 }, (_, i) => ({ index: i + 1, id: 0 }))
@@ -53,9 +54,10 @@ function wheel(state) {
 }
 export function socialWheelSnapshot(tables, state) {
     const ids = new Set(available(tables, state).map((r) => r.id))
+    const saved = projectSavedSocialWheel(tables, state.socialWheel, wheel(state))
     return {
         infos: [...ids].sort((a, b) => a - b).map((id) => ({ id })),
-        social_wheel: wheel(state)
+        social_wheel: saved.slots
             .map((r) => ({ index: r.index, id: ids.has(r.id) ? r.id : 0 }))
             .sort((a, b) => a.index - b.index),
         cur_emoticons_id: 0,
@@ -63,9 +65,15 @@ export function socialWheelSnapshot(tables, state) {
 }
 export function prepareSocialWheel(tables, state) {
     const open = opened(tables, state)
-    if (state.socialWheel?.open === open) return false
-    const slots = wheel(state).map((r) => ({ ...r }))
-    state.socialWheel = { ...state.socialWheel, slots, open }
+    const saved = projectSavedSocialWheel(tables, state.socialWheel, wheel(state))
+    if (state.socialWheel?.open === open && !saved.needsWrite) return false
+    state.socialWheel = {
+        ...state.socialWheel,
+        slots: saved.slots.map((r) => ({ ...r })),
+        open,
+        catalogVersion: saved.version,
+        ...(saved.legacyCatalog ? { legacyCatalog: saved.legacyCatalog } : {}),
+    }
     return true
 }
 export function notifySocialWheel(c) {
@@ -74,6 +82,7 @@ export function notifySocialWheel(c) {
 }
 export function updateSocialWheel(c, r) {
     ensure(opened(c.tables, c.state), 'Social wheel system is locked', ErrorCode.FunctionClosed)
+    prepareSocialWheel(c.tables, c.state)
     const rows = r.wheel_data ?? []
     ensure(Array.isArray(rows) && rows.length <= 8, 'Invalid social wheel data size', ErrorCode.InvalidSocialWheelData)
     const seen = new Set(),
