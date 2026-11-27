@@ -22,13 +22,22 @@ function fixture(name) {
         return { packets, result: protocol.decode(e.rsp, packets.find((p) => p.id === e.id).payload) }
     }
     call('EnterGame', { open_id: name })
+    call('GMCommands', {
+        cmds: [10044, 10066].map((id) => ({ command: Buffer.from(`give 9 ${id} 1`).toString('base64') })),
+    })
     const state = () => store.load(session.id).state
-    return { protocol, store, session, call, state }
+    const guid = (id) => state().player.soulessence_infos.soulessences.find((item) => item.id === id).guid
+    return { protocol, store, session, call, state, guid }
 }
-test('all current 54 decomposable templates match previews; 21 rarity-four templates are ineligible even with configured rewards', () => {
+test('all current decomposable templates match previews; rarity-four templates remain ineligible even with configured rewards', () => {
     const s = seedPlayer(tables, 1, 'decompose-catalog')
     let eligible = 0,
         excluded = 0
+    grantRewards(
+        tables,
+        s,
+        tables.get('soulessence').map((row) => ({ itemtype: 9, itemid: row.id, itemnum: 1 })),
+    )
     for (const item of s.player.soulessence_infos.soulessences) {
         item.lock = false
         const config = tables.find('soulessence', item.id)
@@ -43,8 +52,8 @@ test('all current 54 decomposable templates match previews; 21 rarity-four templ
             assert.deepEqual(soulDecomposePlan(tables, s, [item.guid]).rewards, parseRewards(config.decomposed))
         }
     }
-    assert.equal(eligible, 54)
-    assert.equal(excluded, 21)
+    assert.equal(eligible, tables.get('soulessence').filter((row) => row.rarity !== 4).length)
+    assert.equal(excluded, tables.get('soulessence').filter((row) => row.rarity === 4).length)
 })
 test('6051 aggregates table rewards, removes actual instances before ACK and never repeats after retry or relogin', () => {
     const f = fixture('decompose-batch')
@@ -108,11 +117,11 @@ test('a bad reward after valid rewards rolls back the entire batch including rem
         config = tables.find('soulessence', 10066),
         original = config.decomposed
     try {
-        f.call('SetLockSoulEssence', { guids: [10044, 10066], lock: false })
+        f.call('SetLockSoulEssence', { guids: [f.guid(10044), f.guid(10066)], lock: false })
         config.decomposed = '3#400000#2|3#4294967295#1'
         const before = structuredClone(f.state())
         assert.throws(
-            () => f.call('DecomposeSoulEssence', { guids: [10044, 10066] }),
+            () => f.call('DecomposeSoulEssence', { guids: [f.guid(10044), f.guid(10066)] }),
             (e) => e.code === ErrorCode.GameConfig,
         )
         assert.deepEqual(f.state(), before)
@@ -122,8 +131,9 @@ test('a bad reward after valid rewards rolls back the entire batch including rem
     }
 })
 test('decompose validates the actual 500-entry table limit and rejects duplicate or unknown instances', () => {
-    const s = seedPlayer(tables, 1, 'decompose-limit'),
-        sample = s.player.soulessence_infos.soulessences.find((i) => i.id === 10066)
+    const s = seedPlayer(tables, 1, 'decompose-limit')
+    grantRewards(tables, s, [{ itemtype: 9, itemid: 10066, itemnum: 1 }])
+    const sample = s.player.soulessence_infos.soulessences.find((i) => i.id === 10066)
     const copies = Array.from({ length: 500 }, (_, index) => ({ ...sample, guid: 100000 + index, lock: false }))
     s.player.soulessence_infos.soulessences.push(...copies)
     const plan = soulDecomposePlan(
@@ -163,14 +173,14 @@ test('locked, equipped, strengthened, refined and preview items are never silent
         ]) {
             f.store.transact(f.session.id, 0, (s) =>
                 Object.assign(
-                    s.player.soulessence_infos.soulessences.find((i) => i.guid === 10044),
+                    s.player.soulessence_infos.soulessences.find((i) => i.guid === f.guid(10044)),
                     { lock: false, wear_hero: '0', lv: 1, advance: 1, zombie: false },
                     patch,
                 ),
             )
             const before = structuredClone(f.state())
             assert.throws(
-                () => f.call('DecomposeSoulEssence', { guids: [10044] }),
+                () => f.call('DecomposeSoulEssence', { guids: [f.guid(10044)] }),
                 (e) => e.code === code,
             )
             assert.deepEqual(f.state(), before)

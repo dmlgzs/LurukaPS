@@ -31,7 +31,7 @@ test('ornament set skills activate at configured piece counts and disappear belo
     hero.oguid.pop()
     assert.ok(!ornamentSkills(t, state, hero).some((row) => row.skill_id === skill))
 })
-function fixture(name) {
+function fixture(name, { heroes = [], souls = [] } = {}) {
     const store = new Store(':memory:'),
         game = new Game(p, store, t),
         session = {}
@@ -41,10 +41,18 @@ function fixture(name) {
         return game.dispatch(session, { id: e.id, seq: seq++, payload: p.encode(e.req, r) })
     }
     call('EnterGame', { open_id: name })
-    return { store, session, call, state: () => store.load(session.id).state }
+    // Narrow trusted asset preparation through the current writer; keep the
+    // default normal factory and do not gift unrelated catalogue assets.
+    const commands = [...heroes.map((id) => `give 1 ${id} 1`), ...souls.map((id) => `give 9 ${id} 1`)]
+    if (commands.length)
+        call('GMCommands', { cmds: commands.map((command) => ({ command: Buffer.from(command).toString('base64') })) })
+    const known = new Map(
+        store.load(session.id).state.player.soulessence_infos.soulessences.map((item) => [item.id, item.guid]),
+    )
+    return { store, session, call, state: () => store.load(session.id).state, guid: (id) => known.get(id) }
 }
 test('actual four-slot rune request uses rank table costs, aggregates gold, synchronizes bonuses and is replay-safe', () => {
-    const f = fixture('rune-equip')
+    const f = fixture('rune-equip', { heroes: [108001] })
     try {
         let request
         f.store.transact(f.session.id, 0, (s) => {
@@ -92,7 +100,7 @@ test('actual four-slot rune request uses rank table costs, aggregates gold, sync
 })
 
 test('rune material compose validates table unlocks and leaf costs without granting free intermediate runes', () => {
-    const f = fixture('rune-material-compose')
+    const f = fixture('rune-material-compose', { heroes: [108001] })
     try {
         let request
         f.store.transact(f.session.id, 0, (state) => {
@@ -141,7 +149,7 @@ test('rune material compose validates table unlocks and leaf costs without grant
     }
 })
 test('QuickWear transfers five distinct equipment slots, rejects duplicate slots, and clears the former owner', () => {
-    const f = fixture('quick-wear')
+    const f = fixture('quick-wear', { heroes: [108001, 108002], souls: [10032] })
     try {
         let request, from
         f.store.transact(f.session.id, 0, (s) => {
@@ -187,7 +195,7 @@ test('QuickWear transfers five distinct equipment slots, rejects duplicate slots
 })
 
 test('a batch may equip one owned rune and craft the other from table materials without reusing reserved stock', () => {
-    const f = fixture('mixed-rune-compose')
+    const f = fixture('mixed-rune-compose', { heroes: [108001] })
     try {
         let request
         f.store.transact(f.session.id, 0, (state) => {
@@ -233,7 +241,7 @@ test('a batch may equip one owned rune and craft the other from table materials 
     }
 })
 test('logged soul XP item consumes the table XP and gold, rejects self/locked fodder, and updates before reward ACK', () => {
-    const f = fixture('soul-compose')
+    const f = fixture('soul-compose', { souls: [10044, 10001] })
     try {
         f.store.transact(f.session.id, 0, (s) =>
             grantRewards(t, s, [
@@ -241,10 +249,14 @@ test('logged soul XP item consumes the table XP and gold, rejects self/locked fo
                 { itemtype: 10, itemid: 2, itemnum: 1000 },
             ]),
         )
-        const target = f.state().player.soulessence_infos.soulessences.find((x) => x.guid === 10044),
+        const target = f.state().player.soulessence_infos.soulessences.find((x) => x.guid === f.guid(10044)),
             before = f.state().player.basic_info.gold
-        const packets = f.call('ComposeSoulEssence', { guid: 10044, costs: [], cost_items: [{ id: 400000, num: 1 }] })
-        const updated = f.state().player.soulessence_infos.soulessences.find((x) => x.guid === 10044)
+        const packets = f.call('ComposeSoulEssence', {
+            guid: f.guid(10044),
+            costs: [],
+            cost_items: [{ id: 400000, num: 1 }],
+        })
+        const updated = f.state().player.soulessence_infos.soulessences.find((x) => x.guid === f.guid(10044))
         assert.equal(f.state().dailyActive.day.counts[15001] ?? 0, updated.lv > target.lv ? 1 : 0)
         assert.equal(
             t
@@ -260,24 +272,24 @@ test('logged soul XP item consumes the table XP and gold, rejects self/locked fo
         assert.equal(f.state().player.basic_info.gold, before - 20)
         assert.equal(packets.at(-1).id, 6047)
         assert.ok(packets.slice(0, -1).some((x) => x.id === p.byName.get('CSProtoSyncPlayerData').id))
-        assert.throws(() => f.call('ComposeSoulEssence', { guid: 10044, costs: [10044] }), /self soul/)
+        assert.throws(() => f.call('ComposeSoulEssence', { guid: f.guid(10044), costs: [f.guid(10044)] }), /self soul/)
         assert.throws(
-            () => f.call('ComposeSoulEssence', { guid: 10044, costs: [10001] }),
+            () => f.call('ComposeSoulEssence', { guid: f.guid(10044), costs: [f.guid(10001)] }),
             (error) => error.code === ErrorCode.SoulEssenceCostLock,
         )
         f.store.transact(f.session.id, 0, (state) => {
-            state.player.soulessence_infos.soulessences.find((x) => x.guid === 10001).lock = false
+            state.player.soulessence_infos.soulessences.find((x) => x.guid === f.guid(10001)).lock = false
         })
-        const consumed = f.call('ComposeSoulEssence', { guid: 10044, costs: [10001] })
-        assert.ok(!f.state().player.soulessence_infos.soulessences.some((x) => x.guid === 10001))
+        const consumed = f.call('ComposeSoulEssence', { guid: f.guid(10044), costs: [f.guid(10001)] })
+        assert.ok(!f.state().player.soulessence_infos.soulessences.some((x) => x.guid === f.guid(10001)))
         assert.ok(
             consumed
                 .filter((x) => x.id === p.byName.get('CSProtoSyncPlayerData').id)
-                .some((x) => p.decode('PlayerData', x.payload).soulessence_infos?.del_pos?.includes(10001)),
+                .some((x) => p.decode('PlayerData', x.payload).soulessence_infos?.del_pos?.includes(f.guid(10001))),
         )
         const beforeBad = structuredClone(f.state().player)
         assert.throws(
-            () => f.call('ComposeSoulEssence', { guid: 10044, cost_items: [{ id: 306000, num: 1 }] }),
+            () => f.call('ComposeSoulEssence', { guid: f.guid(10044), cost_items: [{ id: 306000, num: 1 }] }),
             /experience item/,
         )
         assert.deepEqual(f.state().player, beforeBad)
@@ -287,7 +299,7 @@ test('logged soul XP item consumes the table XP and gold, rejects self/locked fo
 })
 
 test('equipment ownership, missing configuration, lock/wear and level cap have distinct native errors and roll back', () => {
-    const f = fixture('equipment-error-codes')
+    const f = fixture('equipment-error-codes', { heroes: [108001], souls: [10044, 10001] })
     const fail = (name, request, code) => {
         const before = structuredClone(f.state().player)
         assert.throws(
@@ -302,34 +314,38 @@ test('equipment ownership, missing configuration, lock/wear and level cap have d
         fail('QuickWear', { hero_guid: h.guid, ornament_guids: [0xffffffff] }, ErrorCode.OrnamentNotExist)
         fail('QuickWear', { hero_guid: h.guid, soulessence_guid: 0xffffffff }, ErrorCode.SoulEssenceNotExist)
         fail('HeroRuneEquip', { hero_id: h.guid, slot_ids: [99] }, ErrorCode.HeroSlotIdNotExist)
-        fail('ComposeSoulEssence', { guid: 0xffffffff, costs: [10001] }, ErrorCode.SoulEssenceNotExist)
-        fail('ComposeSoulEssence', { guid: 10044, costs: [0xffffffff] }, ErrorCode.SoulEssenceCostNotEnough)
-        fail('ComposeSoulEssence', { guid: 10044, costs: [10001] }, ErrorCode.SoulEssenceCostLock)
+        fail('ComposeSoulEssence', { guid: 0xffffffff, costs: [f.guid(10001)] }, ErrorCode.SoulEssenceNotExist)
+        fail('ComposeSoulEssence', { guid: f.guid(10044), costs: [0xffffffff] }, ErrorCode.SoulEssenceCostNotEnough)
+        fail('ComposeSoulEssence', { guid: f.guid(10044), costs: [f.guid(10001)] }, ErrorCode.SoulEssenceCostLock)
         f.store.transact(f.session.id, 0, (state) => {
-            const source = state.player.soulessence_infos.soulessences.find((x) => x.guid === 10001)
+            const source = state.player.soulessence_infos.soulessences.find((x) => x.guid === f.guid(10001))
             source.lock = false
             source.wear_hero = h.guid
         })
-        fail('ComposeSoulEssence', { guid: 10044, costs: [10001] }, ErrorCode.WearSoulEssence)
+        fail('ComposeSoulEssence', { guid: f.guid(10044), costs: [f.guid(10001)] }, ErrorCode.WearSoulEssence)
         f.store.transact(f.session.id, 0, (state) => {
-            const source = state.player.soulessence_infos.soulessences.find((x) => x.guid === 10001)
+            const source = state.player.soulessence_infos.soulessences.find((x) => x.guid === f.guid(10001))
             source.wear_hero = '0'
             source.id = 0xffffffff
         })
-        fail('ComposeSoulEssence', { guid: 10044, costs: [10001] }, ErrorCode.SoulEssenceCostConfNot)
+        fail('ComposeSoulEssence', { guid: f.guid(10044), costs: [f.guid(10001)] }, ErrorCode.SoulEssenceCostConfNot)
         f.store.transact(f.session.id, 0, (state) => {
-            const target = state.player.soulessence_infos.soulessences.find((x) => x.guid === 10044)
+            const target = state.player.soulessence_infos.soulessences.find((x) => x.guid === f.guid(10044))
             const rank = t.get('soulessence_rank').find((x) => x.relatedId === target.id && x.rank === target.rank)
             target.lv = rank.rankLevelLimit
         })
-        fail('ComposeSoulEssence', { guid: 10044, cost_items: [{ id: 400000, num: 1 }] }, ErrorCode.SoulEssenceNoConfig)
+        fail(
+            'ComposeSoulEssence',
+            { guid: f.guid(10044), cost_items: [{ id: 400000, num: 1 }] },
+            ErrorCode.SoulEssenceNoConfig,
+        )
     } finally {
         f.store.close()
     }
 })
 
 test('quick wear preserves native profession priority semantics without inventing a profession equip ban', () => {
-    const f = fixture('quick-wear-profession-priority')
+    const f = fixture('quick-wear-profession-priority', { heroes: [108002], souls: [10001] })
     try {
         const h = f.state().player.heros_info.heros.find((x) => x.conf_id === 108002)
         const profession = t.find('hero', h.conf_id).position

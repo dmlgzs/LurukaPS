@@ -2,15 +2,22 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
 import { Tables, seedPlayer } from '../src/player.js'
-import { nextSoulRank } from '../src/soul-rank.js'
+import { soulLevelLimit } from '../src/soul-level.js'
 import { ErrorCode } from '../src/error-codes.js'
 import { Protocol } from '../src/protocol.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
-import { grantRewards } from '../src/rewards.js'
 import { heroModules } from '../src/battle.js'
 const cfg = configuration(),
-    tables = new Tables(cfg.tables)
+    tables = new Tables(cfg.tables),
+    config = tables.find('soulessence', 10044)
+const curve = tables.get('soulessence_level').filter((row) => row.rarity === config.rarity)
+const material = Number(
+    String(tables.get('game').find((row) => row.title === 'SOULESSENCE_EXP_ITEM').value).split('|')[0],
+)
+const exp = Number(tables.find('common_item', material).useFunction),
+    ratio = Number(tables.get('game').find((row) => row.title === 'WEAPON_LEVELUP_GOLD').value) / 10000
+const cost = (quantity) => Math.floor(exp * ratio) * quantity
 function fixture(name) {
     const store = new Store(':memory:'),
         protocol = new Protocol(cfg.base),
@@ -22,153 +29,179 @@ function fixture(name) {
         return game.dispatch(who, { id: e.id, seq: seq++, payload: protocol.encode(e.req, data) })
     }
     call('EnterGame', { open_id: name })
-    store.transact(session.id, 0, (s) => {
-        const soul = s.player.soulessence_infos.soulessences.find((x) => x.guid === 10044)
-        soul.lv = 30
-        soul.exp = 500
-        s.player.basic_info.lv = 20
-        s.player.basic_info.gold = 20000
-    })
-    const state = () => store.load(session.id).state
+    const grant = (commands) =>
+        call('GMCommands', { cmds: commands.map((command) => ({ command: Buffer.from(command).toString('base64') })) })
+    grant(['give 9 10044 1', 'give 1 107002 1'])
+    const state = () => store.load(session.id).state,
+        guid = state().player.soulessence_infos.soulessences.find((item) => item.id === config.id).guid
     return {
         store,
+        protocol,
         session,
         call,
-        protocol,
+        grant,
         state,
-        soul: () => state().player.soulessence_infos.soulessences.find((x) => x.guid === 10044),
+        guid,
+        soul: () => state().player.soulessence_infos.soulessences.find((item) => item.guid === guid),
+        edit: (fn) => store.transact(session.id, 0, fn),
     }
 }
-test('75 actual soul templates have six table-defined rank transitions and a terminal seventh rank', () => {
-    const s = seedPlayer(tables, 1, 'soul-ranks')
-    s.player.basic_info.lv = 100
-    assert.equal(s.player.soulessence_infos.soulessences.length, 75)
-    for (const item of s.player.soulessence_infos.soulessences) {
-        for (let rank = 1; rank < 7; rank++) {
-            const row = tables.get('soulessence_rank').find((r) => r.relatedId === item.id && r.rank === rank)
-            item.rank = rank
-            item.lv = row.rankLevelLimit
-            const next = nextSoulRank(tables, s, item)
-            assert.equal(next.rank, rank + 1)
-            assert.equal(next.gold, row.rankUpCoin)
-            assert.equal(next.costs.size, 0) // All current rankUpItem lists are empty.
-        }
-        item.rank = 7
-        assert.throws(
-            () => nextSoulRank(tables, s, item),
-            (e) => e.code === ErrorCode.SoulEssenceMaxRank,
-        )
-    }
-})
-test('6049 checks current rank cap and player gate, preserves XP/identity/equipment and publishes before ACK', () => {
-    const f = fixture('soul-rank-equipped')
-    try {
-        let guid
-        f.store.transact(f.session.id, 0, (s) => {
-            const h = s.player.heros_info.heros.find((h) => h.conf_id === 107002),
-                soul = s.player.soulessence_infos.soulessences.find((x) => x.guid === 10044)
-            guid = h.guid
-            h.wguid = soul.guid
-            soul.wear_hero = guid
-            s.player.basic_info.lv = 19
-        })
-        const before = structuredClone(f.state())
-        assert.throws(
-            () => f.call('RankUpSoulEssence', { guid: 10044 }),
-            (e) => e.code === ErrorCode.SoulEssenceRankUpPLv,
-        )
-        assert.deepEqual(f.state(), before)
-        f.store.transact(f.session.id, 0, (s) => (s.player.basic_info.lv = 20))
-        const oldSoul = structuredClone(f.soul()),
-            heroBefore = f.state().player.heros_info.heros.find((h) => h.guid === guid),
-            attrs = heroModules(tables, f.state(), heroBefore)
-        const packets = f.call('RankUpSoulEssence', { guid: 10044 }),
-            ack = packets.findIndex((p) => p.id === 6049)
-        assert(ack >= 0)
-        assert.equal(f.soul().rank, 2)
-        assert.equal(f.state().player.basic_info.gold, 10000)
-        assert.deepEqual(f.soul(), { ...oldSoul, rank: 2 })
-        assert(packets.slice(0, ack).some((p) => p.id === f.protocol.byName.get('CSProtoSyncPlayerData').id))
-        // Current tables have no rankUpAttributeAll. No phantom stat gain or heal.
+function unchanged(f, fn, code) {
+    const old = f.store.load(f.session.id)
+    assert.throws(fn, (e) => e.code === code)
+    assert.deepEqual(f.store.load(f.session.id), old)
+}
+
+test('every actual soul has seven current level bands and the terminal100 cap without a6049 request', () => {
+    assert.equal(tables.get('soulessence').length, 77, 'current level-band matrix covers every target template')
+    let checked = 0
+    for (const row of tables.get('soulessence')) {
+        const ranks = tables
+            .get('soulessence_rank')
+            .filter((rank) => rank.relatedId === row.id)
+            .sort((a, b) => a.rank - b.rank)
         assert.deepEqual(
-            heroModules(
-                tables,
-                f.state(),
-                f.state().player.heros_info.heros.find((h) => h.guid === guid),
-            ),
-            attrs,
+            ranks.map((rank) => rank.rank),
+            [1, 2, 3, 4, 5, 6, 7],
         )
-        const saved = structuredClone(f.state())
-        assert.throws(
-            () => f.call('RankUpSoulEssence', { guid: 10044 }),
-            (e) => e.code === ErrorCode.SoulEssenceCantRankUp,
-        )
-        assert.deepEqual(f.state(), saved)
-        f.call('EnterGame', { open_id: 'soul-rank-equipped' }, {})
-        assert.equal(f.soul().rank, 2)
-        assert.equal(f.soul().exp, 500)
-        f.store.transact(f.session.id, 0, (s) =>
-            grantRewards(tables, s, [
-                { itemtype: 3, itemid: 400003, itemnum: 10 },
-                { itemtype: 10, itemid: 2, itemnum: 100000 },
-            ]),
-        )
-        f.call('ComposeSoulEssence', { guid: 10044, cost_items: [{ id: 400003, num: 10 }] })
-        assert(f.soul().lv > 30 && f.soul().lv <= 50)
-    } finally {
-        f.store.close()
-    }
-})
-test('rank material tuples aggregate and failed material/gold consumption rolls back atomically', () => {
-    const f = fixture('soul-rank-costs'),
-        row = tables.get('soulessence_rank').find((r) => r.relatedId === 10044 && r.rank === 1),
-        original = row.rankUpItem
-    try {
-        // Current lists are empty; use a temporary fixture for the client schema's id/count branch.
-        row.rankUpItem = '301000#2|301000#3'
-        const before = structuredClone(f.state())
-        assert.throws(
-            () => f.call('RankUpSoulEssence', { guid: 10044 }),
-            (e) => e.code === ErrorCode.ItemNotEnough,
-        )
-        assert.deepEqual(f.state(), before)
-        f.store.transact(f.session.id, 0, (s) => grantRewards(tables, s, [{ itemtype: 3, itemid: 301000, itemnum: 5 }]))
-        f.call('RankUpSoulEssence', { guid: 10044 })
-        assert.equal(f.state().player.sbag_infos.items.find((i) => i.itemid === 301000).itemnum, 0)
-        assert.equal(f.state().player.basic_info.gold, 10000)
-        assert.equal(f.soul().rank, 2)
-    } finally {
-        row.rankUpItem = original
-        f.store.close()
-    }
-})
-test('rank rejects unknown/preview souls, underlevel and maximum rank with distinct native errors', () => {
-    const f = fixture('soul-rank-errors')
-    try {
-        assert.throws(
-            () => f.call('RankUpSoulEssence', { guid: 999999 }),
-            (e) => e.code === ErrorCode.SoulEssenceNotExist,
-        )
-        for (const patch of [{ zombie: true }, { lv: 29 }]) {
-            f.store.transact(f.session.id, 0, (s) => {
-                const item = s.player.soulessence_infos.soulessences.find((x) => x.guid === 10044)
-                delete item.zombie
-                Object.assign(item, patch)
-            })
-            assert.throws(
-                () => f.call('RankUpSoulEssence', { guid: 10044 }),
-                (e) => e.code === ErrorCode.SoulEssenceCantRankUp,
-            )
+        const state = seedPlayer(tables, 1, 'soul-current-bands')
+        for (let index = 0; index < ranks.length; index++) {
+            const level = index === 0 ? 1 : Number(ranks[index - 1].condition.split('|')[1])
+            state.player.basic_info.lv = level
+            const item = { id: row.id, rank: 1 }
+            assert.equal(soulLevelLimit(tables, state, item).cap, ranks[index].rankLevelLimit)
+            assert.equal(item.rank, 1)
         }
-        f.store.transact(f.session.id, 0, (s) => {
-            const item = s.player.soulessence_infos.soulessences.find((x) => x.guid === 10044)
-            delete item.zombie
-            item.rank = 7
-            item.lv = 100
+        assert.equal(ranks.at(-1).rankLevelLimit, 100)
+        checked++
+    }
+    assert.equal(checked, tables.get('soulessence').length)
+})
+
+test('player gate replaces6049; unlocking the next band preserves XP/equipment before real6047 pays for growth', () => {
+    const name = 'soul-current-equipped-band',
+        f = fixture(name)
+    try {
+        f.edit((state) => {
+            Object.assign(
+                state.player.soulessence_infos.soulessences.find((item) => item.guid === f.guid),
+                { lv: 30, exp: 500 },
+            )
+            state.player.basic_info.lv = 19
         })
-        assert.throws(
-            () => f.call('RankUpSoulEssence', { guid: 10044 }),
-            (e) => e.code === ErrorCode.SoulEssenceMaxRank,
+        const hero = f.state().player.heros_info.heros.find((hero) => hero.conf_id === 107002)
+        f.call('MoveSoulEssence', { hero_id: hero.guid, guid: f.guid })
+        const quantity = Math.ceil(
+            (curve.find((row) => row.lv === 31).exp_all - curve.find((row) => row.lv === 30).exp_all) / exp,
+        )
+        f.grant([`give 3 ${material} ${quantity}`, `give 10 2 ${cost(quantity) + 19}`])
+        const request = { guid: f.guid, cost_items: [{ id: material, num: quantity }] }
+        unchanged(f, () => f.call('ComposeSoulEssence', request), ErrorCode.SoulEssenceNoConfig)
+        const oldSoul = structuredClone(f.soul()),
+            gold = f.state().player.basic_info.gold,
+            attrs = heroModules(tables, f.state(), hero)
+        f.edit((state) => {
+            state.player.basic_info.lv = 20
+        })
+        assert.equal(soulLevelLimit(tables, f.state(), f.soul()).cap, 50)
+        assert.deepEqual(f.soul(), oldSoul)
+        assert.equal(f.state().player.basic_info.gold, gold, 'band unlock has no retired-rank charge')
+        assert.deepEqual(heroModules(tables, f.state(), hero), attrs, 'band unlock alone does not grant stats or heal')
+        assert.equal(f.protocol.byName.has('CSProtoRankUpSoulEssence'), false)
+        const packets = f.call('ComposeSoulEssence', request),
+            ack = packets.findIndex((packet) => packet.id === 6047)
+        assert(
+            ack >= 0 &&
+                packets.slice(0, ack).some((packet) => packet.id === f.protocol.byName.get('CSProtoSyncPlayerData').id),
+        )
+        assert(f.soul().lv > 30 && f.soul().lv <= 50)
+        assert.equal(f.soul().rank, oldSoul.rank)
+        assert.equal(f.soul().guid, oldSoul.guid)
+        assert.equal(f.soul().wear_hero, hero.guid)
+        assert.equal(f.state().player.basic_info.gold, gold - cost(quantity))
+        assert.equal(
+            curve.find((row) => row.lv === f.soul().lv).exp_all + f.soul().exp,
+            curve.find((row) => row.lv === 30).exp_all + 500 + exp * quantity,
+        )
+        const saved = structuredClone(f.soul())
+        f.call('EnterGame', { open_id: name }, {})
+        assert.deepEqual(f.soul(), saved)
+    } finally {
+        f.store.close()
+    }
+})
+
+test('current6047 material entries aggregate and failed material or gold settlement rolls back the whole request', () => {
+    const f = fixture('soul-current-material-costs')
+    try {
+        const request = {
+            guid: f.guid,
+            cost_items: [
+                { id: material, num: 2 },
+                { id: material, num: 3 },
+            ],
+        }
+        unchanged(f, () => f.call('ComposeSoulEssence', request), ErrorCode.ItemNotEnough)
+        f.grant([`give 10 2 ${cost(5)}`])
+        unchanged(f, () => f.call('ComposeSoulEssence', request), ErrorCode.ItemNotEnough)
+        f.grant([`give 3 ${material} 5`])
+        const old = structuredClone(f.soul())
+        f.call('ComposeSoulEssence', request)
+        assert.equal(f.state().player.basic_info.gold, 0)
+        assert.equal(f.state().player.sbag_infos.items.find((item) => item.itemid === material).itemnum, 0)
+        assert.equal(f.soul().rank, old.rank)
+        assert.equal(curve.find((row) => row.lv === f.soul().lv).exp_all + f.soul().exp, exp * 5)
+    } finally {
+        f.store.close()
+    }
+})
+
+test('current ownership/preview and level limits reject atomically while legitimate pre-cap strengthening still works', () => {
+    const f = fixture('soul-current-band-errors')
+    try {
+        unchanged(
+            f,
+            () => f.call('ComposeSoulEssence', { guid: 0xffffffff, cost_items: [{ id: material, num: 1 }] }),
+            ErrorCode.SoulEssenceNotExist,
+        )
+        // getPreviewSoulEssenceItem0600f665 does not set guid or insert it in the
+        // owned map. Its zero GUID is not a consumable saved/zombie-owned instance.
+        unchanged(
+            f,
+            () => f.call('ComposeSoulEssence', { guid: 0, cost_items: [{ id: material, num: 1 }] }),
+            ErrorCode.SoulEssenceNotExist,
+        )
+        f.edit((state) => {
+            Object.assign(
+                state.player.soulessence_infos.soulessences.find((item) => item.guid === f.guid),
+                { lv: 29, exp: 0 },
+            )
+            state.player.basic_info.lv = 19
+        })
+        const quantity = Math.ceil(
+            (curve.find((row) => row.lv === 30).exp_all - curve.find((row) => row.lv === 29).exp_all) / exp,
+        )
+        f.grant([`give 3 ${material} ${quantity + 1}`, `give 10 2 ${cost(quantity + 1)}`])
+        f.call('ComposeSoulEssence', { guid: f.guid, cost_items: [{ id: material, num: quantity }] })
+        assert.equal(f.soul().lv, 30)
+        assert.equal(f.soul().rank, 1)
+        unchanged(
+            f,
+            () => f.call('ComposeSoulEssence', { guid: f.guid, cost_items: [{ id: material, num: 1 }] }),
+            ErrorCode.SoulEssenceNoConfig,
+        )
+        f.edit((state) => {
+            Object.assign(
+                state.player.soulessence_infos.soulessences.find((item) => item.guid === f.guid),
+                { lv: 100, rank: 7, exp: 0 },
+            )
+            state.player.basic_info.lv = 70
+        })
+        assert.equal(soulLevelLimit(tables, f.state(), f.soul()).cap, 100)
+        unchanged(
+            f,
+            () => f.call('ComposeSoulEssence', { guid: f.guid, cost_items: [{ id: material, num: 1 }] }),
+            ErrorCode.SoulEssenceNoConfig,
         )
     } finally {
         f.store.close()

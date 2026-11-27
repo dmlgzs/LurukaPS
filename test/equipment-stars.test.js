@@ -12,8 +12,19 @@ const config = configuration(),
     protocol = new Protocol(config.base),
     tables = new Tables(config.tables)
 test('all seeded and awarded soul essences have a valid nonnegative client star-list size', () => {
+    assert.equal(
+        tables.get('soulessence').length,
+        77,
+        'current acquisition matrix must exercise the full target catalogue',
+    )
     const state = seedPlayer(tables, 1, 'star-test')
-    assert.equal(state.player.soulessence_infos.soulessences.length, 75)
+    assert.equal(state.player.soulessence_infos.soulessences.length, 0, 'normal does not gift the catalogue')
+    grantRewards(
+        tables,
+        state,
+        tables.get('soulessence').map((row) => ({ itemtype: 9, itemid: row.id, itemnum: 1 })),
+    )
+    assert.equal(state.player.soulessence_infos.soulessences.length, tables.get('soulessence').length)
     for (const item of state.player.soulessence_infos.soulessences) {
         assert.equal(item.advance, 1)
         assert.equal(item.advance - 1, 0)
@@ -23,8 +34,9 @@ test('all seeded and awarded soul essences have a valid nonnegative client star-
         assert.equal(state.player.soulessence_infos.soulessences.find((i) => String(i.guid) === r.guid).advance, 1)
 })
 test('zero-star legacy state repairs without changing existing upgrades or equipment ownership', () => {
-    const state = seedPlayer(tables, 1, 'migration'),
-        items = state.player.soulessence_infos.soulessences
+    const state = seedPlayer(tables, 1, 'migration')
+    grantRewards(tables, state, [{ itemtype: 9, itemid: 10001, itemnum: 3 }])
+    const items = state.player.soulessence_infos.soulessences
     items[0].advance = 0
     delete items[1].advance
     items[2].advance = 4
@@ -42,8 +54,9 @@ test('zero-star legacy state repairs without changing existing upgrades or equip
     assert.equal(soulEssenceGrade(items[2]), 3)
 })
 test('one-based wire stars map to zero-based skill grades without a free skill upgrade', () => {
-    const state = seedPlayer(tables, 1, 'skills'),
-        hero = state.player.heros_info.heros[0],
+    const state = seedPlayer(tables, 1, 'skills')
+    grantRewards(tables, state, [{ itemtype: 9, itemid: 10001, itemnum: 1 }])
+    const hero = state.player.heros_info.heros[0],
         item = state.player.soulessence_infos.soulessences.find((i) => i.id === 10001)
     hero.wguid = item.guid
     item.wear_hero = hero.guid
@@ -68,6 +81,7 @@ test('login and giveall repair and synchronize legacy zero-star inventory before
     }
     try {
         call(session, 'EnterGame', { open_id: 'legacy-stars' })
+        call(session, 'GMCommand', { command: Buffer.from('give 9 10001 1').toString('base64') })
         store.transact(session.id, 0, (s) => {
             for (const item of s.player.soulessence_infos.soulessences) item.advance = 0
         })
