@@ -126,3 +126,40 @@ export function validateTaskTransfer(tables, state, r) {
     ensure(allowed.includes(r.point_id), 'Task transfer point is not configured')
     return taskBirthPoint(tables, r.point_id, r.map_id)
 }
+
+// Current ProxyManager.RequestTransfer060285ba drops task/node IDs on its
+// same-scene 9132 route. Authorize from pending server-owned task actions;
+// client_trans_data is only the loading presentation, not a permission token.
+export function currentTaskTransferPoint(tables, state, point) {
+    if (!point || point.cityId !== state.world.map_id) return null
+    for (const task of state.tasks ?? []) {
+        if (!task.nodes?.length) continue
+        const graph = catalog(tables).get(task.task_id)
+        for (const node of task.nodes) {
+            const config = graph.nodes.get(node.node_id)
+            ensure(config, 'Active task node configuration unavailable', ErrorCode.GameConfig)
+            let phase = 'before'
+            if (node.client_before) {
+                const data = config.__type_TaskConditionNodeData
+                // All current after-transfer declarations belong to ordinary
+                // condition nodes. Branch arbitration needs its own contract.
+                if (!data) continue
+                const ready = asList(data.conditionList).every((condition, index) => {
+                    const optional = condition.__type_TaskConditionBaseData?.unneedCompleted
+                    return optional === true || optional === 1 || node.client_cond_after?.[index] === true
+                })
+                if (!ready) continue
+                // CondAfter is a server-validated receipt. Rechecking a range
+                // here would break a later transfer in the same After queue.
+                phase = 'after'
+            }
+            if (
+                taskActions(config, phase).some(
+                    (action) => action.__type_TaskTransferBaseData?.transferPointId === point.id,
+                )
+            )
+                return point
+        }
+    }
+    return null
+}

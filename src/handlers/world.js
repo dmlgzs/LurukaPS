@@ -21,7 +21,7 @@ import { activeDormVisit } from '../home-dorm.js'
 import { repairSavedElevatorVisibility } from './world-elevator.js'
 import { recordWorldDiscovery } from '../world-discovery.js'
 import { expireTaskTrialGroup, trialPayload } from './trial-groups.js'
-import { validateTaskTransfer } from '../task-scenes.js'
+import { currentTaskTransferPoint, validateTaskTransfer } from '../task-scenes.js'
 import { heroBattleLimits, heroModules, syncBattle } from '../battle.js'
 import { ensure, group, pet, syncGroupControl } from './common.js'
 import { mountPayload, clearSceneMount, ownedMount } from '../mounts.js'
@@ -431,7 +431,10 @@ export function registerWorld(on) {
         }
         const p = c.tables.find('world_borthpos', r.point_id)
         ensure(
-            p && (c.state.world.points.includes(p.id) || currentDefaultTransferPoint(c.tables, c.state, p)),
+            p &&
+                (c.state.world.points.includes(p.id) ||
+                    currentDefaultTransferPoint(c.tables, c.state, p) ||
+                    currentTaskTransferPoint(c.tables, c.state, p)),
             'Point is not unlocked',
         )
         rememberMap(c, p.cityId)
