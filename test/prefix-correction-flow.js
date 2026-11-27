@@ -7,6 +7,7 @@ import { taskOverrideNodeIds } from '../src/task-action-data.js'
 import { temporaryHeroes } from '../src/trial-actors.js'
 import { WorldObjectCatalog } from '../src/world-objects.js'
 import { enemyDefinition } from '../src/enemy-state.js'
+import { walkCurrentScene } from './current-scene-portals.js'
 
 // Explicit local completion inputs around real RPCs. Unknown task actions and
 // unproved world-object mechanisms fail; this is not a Unity simulation.
@@ -21,6 +22,7 @@ export function normalSuccessorFlow(
         npcStoryCompletion,
         conditionAfterLifecycle,
         dungeonCompletion,
+        specialNpcCompletion,
     } = {},
 ) {
     const { graphs, call, move, playStory } = first
@@ -112,10 +114,15 @@ export function normalSuccessorFlow(
             call('ClientBehaviourRecord', { key: 2508, args: [taskId, 1] })
         } else if (condition.conditionId === 2519) {
             const active = base.__type_TaskCondActiveNPCTriggerData
+            const special = base.__type_TaskCondActiveSpecialNPCTriggerData
             const scene = base.__type_TaskCondInSceneData
             const download = base.__type_TaskCondPackageDownloadCompleteData
             let target
-            if (active) {
+            if (special) {
+                assert(specialNpcCompletion, 'Current special NPC producer model is required')
+                specialNpcCompletion(special, { f, call, move, taskId, node, index })
+                target = special.isNowCreate ? special.npcData.createNpcId : special.createNpcId
+            } else if (active) {
                 const sources = active.isNowCreate
                     ? [active.npcData]
                     : graphs
@@ -126,6 +133,7 @@ export function normalSuccessorFlow(
                           )
                 assert.equal(sources.length, 1, 'Unique scoped current NPC source')
                 const npc = sources[0]
+                if (npc.sceneId !== f.state().world.map_id) walkCurrentScene(f, first, npc.sceneId)
                 assert.equal(npc.sceneId, f.state().world.map_id)
                 move({ x: npc.posX, y: npc.posY, z: npc.posZ })
                 if (active.storyId > 0) {
@@ -145,29 +153,7 @@ export function normalSuccessorFlow(
                 }
                 target = active.isNowCreate ? npc.createNpcId : active.createNpcId
             } else if (scene) {
-                if (f.state().world.map_id !== scene.sceneId) {
-                    // This condition names the real current-world portal. Its
-                    // destination comes from that entity's action10 override,
-                    // never from an arbitrary birth row or a forged task action.
-                    const { row, spawner, pos } = world.object(f.state().world.map_id, base.mapData.targetId)
-                    assert.equal(spawner.objectType, 303)
-                    const options = String(row.interactOptions).split('|').map(Number)
-                    assert(options.some((id) => f.tables.find('world_interact', id)?.interactAction === 10))
-                    const params = String(row.interactOverrideParams)
-                        .split('|')
-                        .map((item) => item.split('#').map(Number))
-                    const destinations = params.filter(([action]) => action === 10)
-                    assert.equal(destinations.length, 1)
-                    assert.equal(destinations[0].length, 2)
-                    const point = f.tables.find('world_borthpos', destinations[0][1])
-                    assert.equal(point?.cityId, scene.sceneId)
-                    move(pos)
-                    call('EnterWorldMap', {
-                        map_id: point.cityId,
-                        point_id: point.id,
-                        creator_id: f.state().player.basic_info.id,
-                    })
-                }
+                if (f.state().world.map_id !== scene.sceneId) walkCurrentScene(f, first, scene.sceneId)
                 assert.equal(f.state().world.map_id, scene.sceneId)
                 target = scene.sceneId
             } else if (download)
