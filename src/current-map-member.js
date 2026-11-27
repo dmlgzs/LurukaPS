@@ -35,7 +35,7 @@ function boundPetDisplay(state, slot) {
 
 // Current MultiCampaignBaseInfo.player_list is scene.InitMapMember with a
 // TeamV2MemberData payload, rather than CBT3's flat member description.
-export function currentMapMember(state, accountId, options) {
+export function currentMapFormation(state, options) {
     let heroes, control, slots
     if (options !== undefined) {
         ensure(
@@ -95,6 +95,11 @@ export function currentMapMember(state, accountId, options) {
         control = heroes.find((hero) => String(hero.guid) === String(formation.control))
         ensure(control, 'Map member control is not an active formation hero', ErrorCode.GameConfig)
     }
+    return { heroes, control, slots }
+}
+
+export function currentMapMember(state, accountId, options) {
+    const { heroes, control, slots } = currentMapFormation(state, options)
     ensure(
         Number.isSafeInteger(accountId) && accountId > 0 && heroes.length > 0,
         'Map member formation is unavailable',

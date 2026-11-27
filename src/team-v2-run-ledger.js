@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { compileSharedTeamTarget } from './team-v2-run-target.js'
+import { currentMapMember } from './current-map-member.js'
+import { currentMapMemberAttribute } from './current-map-attributes.js'
 
 const uint = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff
 const positive = (value) => uint(value) && value > 0
@@ -328,41 +330,89 @@ export class TeamV2RunLedger {
         const ref = state.sharedTeamRun
         if (!ref) return null
         try {
-            ensure(
-                typeof ref === 'object' &&
-                    !Array.isArray(ref) &&
-                    typeof ref.id === 'string' &&
-                    /^team-v2-run:[1-9]\d*$/.test(ref.id) &&
-                    positive(ref.generation) &&
-                    positive(ref.lease) &&
-                    positive(ref.entry_instance_id),
-                'Saved shared scene reference is malformed',
-                ErrorCode.GameConfig,
-            )
             const { room, run, member } = this.requireCurrent({ id, combatSessionId: this.teams.connectionKey(id) })
             if (run.phase === 'closed' || room.state !== 4) return null
-            const entry = state.entrust?.run,
-                { definition } = compileSharedTeamTarget(this.teams.tables, room)
-            ensure(
-                ref.id === run.id &&
-                    ref.generation === run.generation &&
-                    ref.lease === member.lease &&
-                    ref.entry_instance_id === entry?.instance_id &&
-                    ['loading', 'playing', 'complete'].includes(run.phase) &&
-                    state.world.map_id === run.map_id &&
-                    entry?.map_id === run.map_id &&
-                    entry.entrust_id === definition.configId &&
-                    entry.dungeon_id === definition.dungeonId &&
-                    entry.kind === definition.kind &&
-                    [2, 3].includes(entry.status) &&
-                    this.teams.isOnline(id),
-                'Shared scene membership, entry or generation changed',
-                ErrorCode.TeamTargetChanged,
-            )
+            const { definition } = compileSharedTeamTarget(this.teams.tables, room)
+            this.#requireSceneBinding(state, run, member, definition)
+            ensure(this.teams.isOnline(id), 'Shared participant is offline', ErrorCode.PlayerNotOnline)
             return Object.freeze({ map: run.map_id, scope: `team-v2:${run.id}:${run.generation}:${run.map_id}` })
         } catch (error) {
             this.diagnoseRoute(id, ref, error)
             return null
+        }
+    }
+    #requireSceneBinding(state, run, member, definition) {
+        const ref = state.sharedTeamRun,
+            entry = state.entrust?.run
+        ensure(
+            ref &&
+                typeof ref === 'object' &&
+                !Array.isArray(ref) &&
+                typeof ref.id === 'string' &&
+                /^team-v2-run:[1-9]\d*$/.test(ref.id) &&
+                positive(ref.generation) &&
+                positive(ref.lease) &&
+                positive(ref.entry_instance_id),
+            'Saved shared scene reference is malformed',
+            ErrorCode.GameConfig,
+        )
+        ensure(
+            ref.id === run.id &&
+                ref.generation === run.generation &&
+                ref.lease === member.lease &&
+                ref.entry_instance_id === entry?.instance_id &&
+                ['loading', 'playing', 'complete'].includes(run.phase) &&
+                state.world.map_id === run.map_id &&
+                entry?.map_id === run.map_id &&
+                entry.entrust_id === definition.configId &&
+                entry.dungeon_id === definition.dungeonId &&
+                entry.kind === definition.kind &&
+                [2, 3].includes(entry.status),
+            'Shared scene membership, entry or generation changed',
+            ErrorCode.TeamTargetChanged,
+        )
+    }
+    baseInfo(c, { states } = {}) {
+        const { room, run } = this.requireCurrent(c)
+        ensure(
+            states === undefined || states instanceof Map,
+            'Shared snapshot draft map is malformed',
+            ErrorCode.GameConfig,
+        )
+        ensure(
+            room.state === 4 && ['loading', 'playing', 'complete'].includes(run.phase),
+            'Shared dungeon snapshot is not active',
+            ErrorCode.TeamWaitStateSync,
+        )
+        const { definition } = compileSharedTeamTarget(this.teams.tables, room),
+            players = [],
+            attrs = []
+        for (const member of run.members) {
+            const project = (state) => {
+                this.#requireSceneBinding(state, run, member, definition)
+                return {
+                    player: currentMapMember(state, member.id),
+                    attr: currentMapMemberAttribute(this.teams.tables, state, member.id),
+                }
+            }
+            const data =
+                member.id === c.id
+                    ? project(c.state)
+                    : states?.has(member.id)
+                      ? project(states.get(member.id))
+                      : this.store.read(member.id, project)
+            players.push(data.player)
+            attrs.push(data.attr)
+        }
+        // MCPS_READY preserves the existing campaign participation status.
+        // It does not mark TeamV2Member.play or the future loading barrier done.
+        return {
+            dungeon_id: definition.dungeonId,
+            dungeon_scene_id: run.map_id,
+            player_list: players,
+            player_attr_list: attrs,
+            team_option_list: run.members.map((member) => ({ player_id: member.id, stay: true })),
+            player_status_list: run.members.map((member) => ({ player_id: member.id, status: 1 })),
         }
     }
 }

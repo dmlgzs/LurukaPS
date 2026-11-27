@@ -369,7 +369,15 @@ export function syncEntrust(c, run) {
     const active = [2, 3].includes(run.status) && run.map_id === c.state.world.map_id
     if (isSingleEntrust(c)) c.pushBefore('CSProtoCampaignInfoSync', campaignSnapshot(run))
     else {
-        if (active) c.pushBefore('CSProtoMultiCampaignBaseInfoSync', entrustMultiBaseSnapshot(c.state, c.id))
+        if (active)
+            c.pushBefore(
+                'CSProtoMultiCampaignBaseInfoSync',
+                entrustMultiBaseSnapshot(c.tables, c.state, c.id, {
+                    sharedRuns: c.sharedTeamRuns,
+                    combatSessionId: c.combatSessionId,
+                    states: c.sharedTeamStates,
+                }),
+            )
         const record = run.kind === 'weekly' ? c.state.weeklyDungeonRecords?.[run.entrust_id] : null
         c.pushBefore('CSProtoMultiCampaignInfoSync', { camp: [{ ...multi, star: record?.star ?? multi.star }] })
         c.pushBefore('CSProtoCurMultiCampaignInfoSync', active ? multi : { ...multi, status: 1 })

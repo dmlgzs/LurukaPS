@@ -1589,6 +1589,7 @@ export class Game {
                     editPlayer: transaction?.editPlayer,
                     previousMapId: state.world.map_id,
                     combatSessionId: session.token,
+                    sharedTeamRuns: this.teamV2.runs,
                     requestKey: frame.seq ? session.token + ':' + frame.id + ':' + frame.seq : null,
                     activityCatalog: this.activities,
                     state,
@@ -2437,7 +2438,10 @@ export class Game {
                           : [
                                 this.packet(
                                     'CSProtoMultiCampaignBaseInfoSync',
-                                    entrustMultiBaseSnapshot(state, session.id),
+                                    entrustMultiBaseSnapshot(this.tables, state, session.id, {
+                                        sharedRuns: this.teamV2.runs,
+                                        combatSessionId: session.token,
+                                    }),
                                 ),
                                 this.packet('CSProtoMultiCampaignInfoSync', {
                                     camp: [

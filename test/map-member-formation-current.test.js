@@ -230,7 +230,7 @@ test('pure current material and weekly9567 neighbor snapshots preserve the norma
         state.world.map_id = route.scene.id
         state.entrust = { run: { kind, dungeon_id: route.dungeon.id, map_id: route.scene.id } }
         const before = structuredClone(state)
-        const payload = entrustMultiBaseSnapshot(state, accountId)
+        const payload = entrustMultiBaseSnapshot(tables, state, accountId)
         const decoded = protocol.decode(entry.rsp, protocol.encode(entry.rsp, payload))
         assert.equal(payload.dungeon_id, route.dungeon.id)
         assert.equal(payload.dungeon_scene_id, route.scene.id)

@@ -2,6 +2,7 @@ import { repeatDungeon, repeatEventTables, recordRepeatVictory } from './repeat-
 import { combatEntityStates } from './combat-enemy-lifecycle.js'
 import { activateSceneCombatGroup } from './scene-combat-group-lifecycle.js'
 import { currentMapMember } from './current-map-member.js'
+import { currentMapMemberAttribute } from './current-map-attributes.js'
 import { recordMainEntrustVictory } from './main-entrust-progress.js'
 import { recordRepeatClear } from './repeat-event-progress.js'
 import { recordBattlePassMainEntrustClear, recordBattlePassRepeatClear } from './battle-pass-tasks.js'
@@ -354,11 +355,19 @@ export function entrustMultiSnapshot(run) {
     }
 }
 
-export function entrustMultiBaseSnapshot(state, accountId) {
+export function entrustMultiBaseSnapshot(tables, state, accountId, options = {}) {
+    if (state.sharedTeamRun) {
+        ensure(options.sharedRuns, 'Shared dungeon snapshot authority unavailable', ErrorCode.GameConfig)
+        return options.sharedRuns.baseInfo(
+            { tables, state, id: accountId, combatSessionId: options.combatSessionId },
+            { states: options.states },
+        )
+    }
     return {
         dungeon_id: state.entrust.run.dungeon_id,
         dungeon_scene_id: state.entrust.run.map_id,
         player_list: [currentMapMember(state, accountId)],
+        player_attr_list: [currentMapMemberAttribute(tables, state, accountId)],
         team_option_list: [{ player_id: accountId, stay: true }],
         player_status_list: [{ player_id: accountId, status: 1 }],
     }
