@@ -9,6 +9,7 @@ import {
     replayCombatEnemyTerminals,
 } from './world-combat.js'
 import { ErrorCode } from '../error-codes.js'
+import { currentWorldPlayer } from '../current-world-player.js'
 import { currentDefaultTransferPoint } from '../world-point-access.js'
 import { checkpointSnapshot } from '../world-checkpoints.js'
 import { clearAbyssRuntime, publishAbyssExit } from '../abyss-flow.js'
@@ -55,26 +56,12 @@ import {
 
 export const WORLD_MAP_CMD_ENTER = 256
 
-function mapPlayer(c) {
-    const s = c.state,
-        w = s.world,
-        g = group(s, s.abyssRun?.map_id === s.world.map_id ? 7 : s.cultTrial?.map_id === s.world.map_id ? 8 : 1),
-        ids = g.heros.filter((h) => h.hero_id && h.hero_id !== '0').map((h) => h.hero_id)
-    const move = { pos: w.pos, angle: w.angle, area_id: w.area_id, move_status: 1, timestamp: String(c.now * 1000) }
-    return {
-        player_id: c.id,
-        move: [move],
-        status: w.status ?? 0,
-        host: true,
-        name: s.player.basic_info.name,
-        face: s.player.basic_info.wardrobe,
-        group: { heros: ids, hero_mid: ids, control: g.control },
-        mount: w.mount,
-        mount_status: w.mount_status ?? 0,
-        ...(w.mount && w.mount !== '0' ? { mount_move: move } : {}),
-        apparel_info: s.player.basic_info.apparel_info,
-        clothes_info: s.player.basic_info.clothes_info,
+export function mapCreator(c) {
+    if (c.state.sharedTeamRun && c.state.entrust?.run?.map_id === c.state.world.map_id) {
+        ensure(c.sharedTeamRuns, 'Shared scene authority is unavailable', ErrorCode.GameConfig)
+        return c.sharedTeamRuns.requireScene(c).run.captain
     }
+    return c.id
 }
 function playerStatusSync(c, cmd) {
     const w = c.state.world,
@@ -93,14 +80,15 @@ function playerStatusSync(c, cmd) {
         ...(moving ? { move: [move] } : {}),
         ...(moving && mount && mount !== '0' ? { mount_move: move } : {}),
     }
+    const creator = mapCreator(c)
     c.push('CSProtoWorldMapSync', {
         cmd,
-        creator_id: c.id,
+        creator_id: creator,
         map_id: w.map_id,
         player_id: c.id,
         notify_id: c.id,
         zone_id: 0,
-        map_info: { creator_id: c.id, map_id: w.map_id, exist: true, area_id: w.area_id, players: [player] },
+        map_info: { creator_id: creator, map_id: w.map_id, exist: true, area_id: w.area_id, players: [player] },
     })
 }
 function transientMarkGuid(state, requested) {
@@ -239,9 +227,22 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
     const cultivationExtra = cultActivityAttrExtra(s)
     c.push('CSProtoWorldMapPointSync', { u32s: w.points })
     if (includeMarks) c.push('CSProtoWorldMapMarkListSync', worldMarkPayload(s))
+    const shared =
+        s.sharedTeamRun && s.entrust?.run?.map_id === w.map_id
+            ? c.sharedTeamRuns?.worldActors(c, { states: c.sharedTeamStates })
+            : null
+    ensure(
+        !s.sharedTeamRun || s.entrust?.run?.map_id !== w.map_id || shared,
+        'Shared scene reconstruction authority is unavailable',
+        ErrorCode.GameConfig,
+    )
+    const creator = shared?.creator_id ?? c.id
+    // CheckHeroData06029d39 caches by actual GUID before map actors are built;
+    // it only updates the owned config map for this receiver's own player ID.
+    if (shared) c.push('CSProtoHeroAttrInfoSync', shared.attributes)
     c.push('CSProtoWorldMapSync', {
         cmd,
-        creator_id: c.id,
+        creator_id: creator,
         map_id: w.map_id,
         player_id: c.id,
         notify_id: c.id,
@@ -249,7 +250,7 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
         ...(cultivationExtra ? { extra_data: cultivationExtra } : {}),
         client_trans_data: r.client_trans_data || 0,
         map_info: {
-            creator_id: c.id,
+            creator_id: creator,
             map_id: w.map_id,
             exist: true,
             area_id: w.area_id,
@@ -261,9 +262,10 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
                     const { claims, ...obj } = record
                     return obj
                 }),
-            players: [mapPlayer(c)],
+            players: shared?.players ?? [currentWorldPlayer(c.tables, s, c.id, c.now)],
         },
     })
+    if (shared) c.push('CSProtoObjBattleInfoSync', shared.battle)
     if (!c.combatSnapshotsHandled) {
         pushSceneMode(c)
         // 9103 can discard the client's nonbattle EntitySyncBlock cache.

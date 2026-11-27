@@ -23,7 +23,7 @@ import { syncBattle } from '../battle.js'
 import { grantRewards, parseRewards } from '../rewards.js'
 import { spendCurrency, spend } from '../inventory.js'
 import { WorldObjectCatalog } from '../world-objects.js'
-import { worldSync } from './world.js'
+import { worldSync, mapCreator } from './world.js'
 import { enterStoryCampaignScene, endStoryCampaignScene, exitStoryCampaign } from './story-campaign.js'
 import { enterCultTrialScene, exitCultTrial, endCultTrialScene } from './cult-trial.js'
 import { startCultTrialBattle } from '../cult-trial.js'
@@ -190,12 +190,17 @@ export function syncEntrustStage(
     // WMCT_DYNAMIC_REFRESH updates objects inside the loaded dungeon without
     // running a second scene-entry flow.
     pushSceneMode(c, { multiplayer: !isSingleEntrust(c) })
+    const creator = mapCreator(c)
     syncEntrustEnemyBattle(c, previousEnemyObjectId, () =>
         c.push('CSProtoWorldMapSync', {
             cmd: 47,
-            creator_id: c.id,
+            creator_id: creator,
             map_id: c.state.world.map_id,
-            map_info: { creator_id: c.id, map_id: c.state.world.map_id, objs: c.state.entrust.run.scene_objects },
+            map_info: {
+                creator_id: creator,
+                map_id: c.state.world.map_id,
+                objs: c.state.entrust.run.scene_objects,
+            },
         }),
     )
 }
@@ -563,7 +568,7 @@ export function registerEntrust(on, tables) {
             'Entrust scene is not active',
             ErrorCode.EntrustMapInvalid,
         )
-        ensure(!r.creator_id || r.creator_id === c.id, 'Entrust creator mismatch')
+        ensure(!r.creator_id || r.creator_id === mapCreator(c), 'Entrust creator mismatch')
         ensureEntrustSceneObjects(tables, c.state, c.now)
         sync(c, run)
         worldSync({ ...c, push: c.pushBefore }, {}, 256, false)

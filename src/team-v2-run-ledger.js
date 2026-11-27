@@ -4,6 +4,7 @@ import { ensure } from './handlers/common.js'
 import { compileSharedTeamTarget } from './team-v2-run-target.js'
 import { currentMapMember } from './current-map-member.js'
 import { currentMapMemberAttribute } from './current-map-attributes.js'
+import { currentWorldPlayer, currentWorldActorInfo } from './current-world-player.js'
 
 const uint = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff
 const positive = (value) => uint(value) && value > 0
@@ -372,47 +373,75 @@ export class TeamV2RunLedger {
             ErrorCode.TeamTargetChanged,
         )
     }
-    baseInfo(c, { states } = {}) {
+    requireScene(c) {
         const { room, run } = this.requireCurrent(c)
-        ensure(
-            states === undefined || states instanceof Map,
-            'Shared snapshot draft map is malformed',
-            ErrorCode.GameConfig,
-        )
         ensure(
             room.state === 4 && ['loading', 'playing', 'complete'].includes(run.phase),
             'Shared dungeon snapshot is not active',
             ErrorCode.TeamWaitStateSync,
         )
         const { definition } = compileSharedTeamTarget(this.teams.tables, room),
-            players = [],
-            attrs = []
+            member = run.members.find((value) => value.id === c.id)
+        this.#requireSceneBinding(c.state, run, member, definition)
+        return { room, run, definition }
+    }
+    #sceneMembers(c, states, project) {
+        const { room, run, definition } = this.requireScene(c),
+            values = []
+        ensure(
+            states === undefined || states instanceof Map,
+            'Shared snapshot draft map is malformed',
+            ErrorCode.GameConfig,
+        )
         for (const member of run.members) {
-            const project = (state) => {
+            const build = (state) => {
                 this.#requireSceneBinding(state, run, member, definition)
-                return {
-                    player: currentMapMember(state, member.id),
-                    attr: currentMapMemberAttribute(this.teams.tables, state, member.id),
-                }
+                return project(state, member)
             }
             const data =
                 member.id === c.id
-                    ? project(c.state)
+                    ? build(c.state)
                     : states?.has(member.id)
-                      ? project(states.get(member.id))
-                      : this.store.read(member.id, project)
-            players.push(data.player)
-            attrs.push(data.attr)
+                      ? build(states.get(member.id))
+                      : this.store.read(member.id, build)
+            values.push(data)
         }
+        return { room, run, definition, values }
+    }
+    baseInfo(c, { states } = {}) {
+        const { run, definition, values } = this.#sceneMembers(c, states, (state, member) => ({
+            player: currentMapMember(state, member.id),
+            attr: currentMapMemberAttribute(this.teams.tables, state, member.id),
+        }))
         // MCPS_READY preserves the existing campaign participation status.
         // It does not mark TeamV2Member.play or the future loading barrier done.
         return {
             dungeon_id: definition.dungeonId,
             dungeon_scene_id: run.map_id,
-            player_list: players,
-            player_attr_list: attrs,
+            player_list: values.map((value) => value.player),
+            player_attr_list: values.map((value) => value.attr),
             team_option_list: run.members.map((member) => ({ player_id: member.id, stay: true })),
             player_status_list: run.members.map((member) => ({ player_id: member.id, status: 1 })),
+        }
+    }
+    worldActors(c, { states } = {}) {
+        const { run, values } = this.#sceneMembers(c, states, (state, member) => ({
+            player: currentWorldPlayer(this.teams.tables, state, member.id, c.now),
+            actors: currentWorldActorInfo(this.teams.tables, state),
+        }))
+        const heros = values.flatMap((value) => value.actors.attributes.heros)
+        ensure(
+            new Set(heros.map((value) => String(value.hero_guid))).size === heros.length,
+            'Shared world actor identities overlap',
+            ErrorCode.GameConfig,
+        )
+        return {
+            // LOCAL wire-owner policy: use the actual captain consistently.
+            // Neither this field nor WorldMapPlayer.host grants NPC control.
+            creator_id: run.captain,
+            players: values.map((value) => value.player),
+            attributes: { heros },
+            battle: { infos: values.flatMap((value) => value.actors.battle.infos) },
         }
     }
 }

@@ -3,9 +3,9 @@ import { ensure } from './handlers/common.js'
 import { activeFormationManager, temporaryHeroes, temporaryPets } from './trial-actors.js'
 
 const uint = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff
-function boundPetDisplay(state, slot) {
+export function currentMapPet(state, slot) {
     const id = String(slot?.pet_id ?? '0')
-    if (id === '0') return undefined
+    if (id === '0') return null
     const matches = [...state.pets, ...temporaryPets(state)].filter((pet) => String(pet.guid) === id)
     ensure(
         matches.length === 1,
@@ -24,6 +24,11 @@ function boundPetDisplay(state, slot) {
         'Map member bound pet display is malformed',
         ErrorCode.GameConfig,
     )
+    return pet
+}
+function boundPetDisplay(state, slot) {
+    const pet = currentMapPet(state, slot)
+    if (!pet) return undefined
     return {
         pet_id: pet.config_id,
         level: pet.lv,
