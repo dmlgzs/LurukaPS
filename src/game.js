@@ -1,4 +1,5 @@
 import { registerTeamV2 } from './team-v2.js'
+import { sceneAudienceMetadata } from './scene-routing.js'
 import { SystemUnlocks, systemUnlockPersistence, systemUnlockPlayerPacket } from './system-unlocks.js'
 import { bootstrapHomeWishlistIdentity } from './home-wishlist.js'
 import { currentMapMember } from './current-map-member.js'
@@ -1313,7 +1314,14 @@ export class Game {
                         state,
                         tables: this.tables,
                         pushBefore: (name, value) => before.push(this.packet(name, value)),
-                        broadcast: (audience, name, value) => after.push(this.packet(name, value, { audience })),
+                        broadcast: (audience, name, value) =>
+                            after.push(
+                                this.packet(
+                                    name,
+                                    value,
+                                    sceneAudienceMetadata(this.tables, state, session.id, audience),
+                                ),
+                            ),
                     },
                     r,
                 )
@@ -1410,7 +1418,14 @@ export class Game {
                         state,
                         tables: this.tables,
                         combatSessionId: session.token,
-                        broadcast: (audience, name, value) => packets.push(this.packet(name, value, { audience })),
+                        broadcast: (audience, name, value) =>
+                            packets.push(
+                                this.packet(
+                                    name,
+                                    value,
+                                    sceneAudienceMetadata(this.tables, state, session.id, audience),
+                                ),
+                            ),
                     },
                     r,
                 )
@@ -1440,7 +1455,14 @@ export class Game {
                             if (name === 'CSProtoWorldBuffSync') preparePersonalBuffPacket(state, this.tables, value)
                             after.push(this.packet(name, value, { pushSeq: frame.pushSeq }))
                         },
-                        broadcast: (audience, name, value) => after.push(this.packet(name, value, { audience })),
+                        broadcast: (audience, name, value) =>
+                            after.push(
+                                this.packet(
+                                    name,
+                                    value,
+                                    sceneAudienceMetadata(this.tables, state, session.id, audience),
+                                ),
+                            ),
                     }
                     reconcileMedicine(context)
                     const response = handler(context, r)
@@ -1578,7 +1600,10 @@ export class Game {
                               },
                           }
                         : {}),
-                    broadcast: (audience, name, value) => pushes.push(this.packet(name, value, { audience })),
+                    broadcast: (audience, name, value) =>
+                        pushes.push(
+                            this.packet(name, value, sceneAudienceMetadata(this.tables, state, session.id, audience)),
+                        ),
                     pushBefore: Object.assign((name, value) => emit(before, name, value), {
                         combatSnapshotStream: before,
                     }),

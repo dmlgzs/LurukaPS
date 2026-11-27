@@ -1,6 +1,7 @@
 import { ErrorCode } from './error-codes.js'
 import { GachaArtwork } from './gacha-artwork.js'
 import { chatRoutingInfo, audienceAllows } from './chat-shields.js'
+import { sceneRoutingInfo, sceneAudienceAllows } from './scene-routing.js'
 import { announcementHttpData, announcementBody } from './announcements.js'
 import { ProtocolDiagnostics } from './diagnostics.js'
 import { sourceRevision } from './build-info.js'
@@ -354,12 +355,14 @@ export async function startServer(config, logger = console) {
                         if (packet.audience) {
                             for (const [id, target] of owners) {
                                 if (id === session.id || !sessions.get(target)?.session.entered) continue
-                                const route = chatRoutingInfo(store, id)
-                                const matches = audienceAllows(
-                                    route,
-                                    packet.audience,
-                                    packet.id === protocol.byName.get('CSProtoChatInfoChange').id,
-                                )
+                                const isChat = packet.id === protocol.byName.get('CSProtoChatInfoChange').id
+                                const matches = isChat
+                                    ? audienceAllows(chatRoutingInfo(store, id), packet.audience, true)
+                                    : sceneAudienceAllows(
+                                          sceneRoutingInfo(store, tables, id),
+                                          packet.audience,
+                                          packet.sceneScope,
+                                      )
                                 if (matches) deliverTo(id, packet)
                             }
                             continue
