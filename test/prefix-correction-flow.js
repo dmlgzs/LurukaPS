@@ -20,6 +20,7 @@ export function normalSuccessorFlow(
         guidedCompletion,
         npcStoryCompletion,
         conditionAfterLifecycle,
+        dungeonCompletion,
     } = {},
 ) {
     const { graphs, call, move, playStory } = first
@@ -216,6 +217,10 @@ export function normalSuccessorFlow(
         } else if (condition.conditionId === 2518) {
             assert(guidedCompletion, 'Unmodelled actual guided condition input')
             guidedCompletion(condition, { f, call, move, world, taskId, node, index })
+        } else if (condition.conditionId === 12017) {
+            assert(dungeonCompletion, 'Current dungeon completion model is required')
+            dungeonCompletion(base.__type_TaskCondDungeonData, { f, call, move, taskId, node, index })
+            assert(conditionValue(condition, f.state(), { taskId, nodeId: node.id, index }) > 0)
         } else if (condition.conditionId === 2004) {
             assert(conditionValue(condition, f.state(), { taskId, nodeId: node.id, index }) > 0)
         } else assert.fail('Unmodelled current condition ' + condition.conditionId)

@@ -297,16 +297,14 @@ export function storyCampaignSnapshot(state) {
         real_start_time: run.start_time,
         end_time: run.end_time ?? 0,
         star: run.status === 3 ? 1 : 0,
-        // CBT3 CheckIsLastPlaying/GetCurrentPlayingIndex read the complete ordered
-        // scene list. Sending only visited scenes falsely makes each first scene final.
-        scene_datas: [...new Set(run.stage_conditions ? run.scenes : [...run.completed_scenes, run.map_id])].map(
-            (id) => ({
-                scene_id: id,
-                scene_status: run.completed_scenes.includes(id) ? 1 : 0,
-                cur_step: id === run.map_id ? (run.stage_index ?? 0) : 0,
-                objs: id === run.map_id ? (run.scene_objects ?? []).map(({ claims, ...object }) => object) : [],
-            }),
-        ),
+        // Current DungeonPlayingManager0602c049/4a and the continuous-story
+        // transfer0603034f consume the full ordered route, including future scenes.
+        scene_datas: [...new Set(run.scenes ?? [...run.completed_scenes, run.map_id])].map((id) => ({
+            scene_id: id,
+            scene_status: run.completed_scenes.includes(id) ? 1 : 0,
+            cur_step: id === run.map_id ? (run.stage_index ?? 0) : 0,
+            objs: id === run.map_id ? (run.scene_objects ?? []).map(({ claims, ...object }) => object) : [],
+        })),
     }
 }
 

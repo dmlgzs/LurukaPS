@@ -357,27 +357,26 @@ export function recoverStoryCampaignClear(c) {
     if (c.state.storyCampaignClears?.[10010]) return false
     const task = c.state.tasks?.find((entry) => entry.task_id === 106014)
     if (!task?.nodes.some((node) => node.node_id === 11)) return false
-    const scene = c.tables.find('dungeon_scene', 6200)
-    const [kind, spawner, , , count] = String(scene?.victoryCondition).split('#').map(Number)
-    const groups = c.tables.get('worldmap_6200').filter((row) => row.spawnerId === spawner)
+    const run = c.state.storyCampaign
+    if (run?.dungeon_id !== 10010 || ![2, 3].includes(run.status)) return false
+    const dungeon = c.tables.find('dungeon', run.dungeon_id)
+    const expected = storyCampaignConfig(c.tables, dungeon.groupId, dungeon.dungeonGroupOrder).scenes.map(
+        ({ scene }) => scene.id,
+    )
+    // Persistent world-object deaths may belong to an exited or older attempt.
+    // Never turn those raw records into a clear. An active complete current
+    // route and its final-scene battle proof must still agree on recovery.
     if (
-        kind !== 2500 ||
-        groups.length !== count ||
-        !groups.every((row) => {
-            const saved = c.state.worldObjects?.[`6200:${row.id}`]
-            const expected = String(c.tables.find('world_enemy_group', row.expandId)?.enemyList ?? '')
-                .split('|')
-                .filter(Boolean).length
-            return (
-                saved?.complete &&
-                saved.state_data?.step === 1 &&
-                saved.expand_data?.battle_group?.monsters?.length === expected &&
-                saved.expand_data.battle_group.monsters.every((monster) => monster.hp === 0)
-            )
-        })
+        JSON.stringify(run.scenes) !== JSON.stringify(expected) ||
+        !completedCampaignRoute(run) ||
+        !storySceneDefeated(c.tables, c.state)
     )
         return false
     return creditStoryCampaign(c, 10010)
+}
+
+function completedCampaignRoute(run) {
+    return run.map_id === run.scenes.at(-1) && run.scenes.every((id) => run.completed_scenes.includes(id))
 }
 
 export function endStoryCampaignScene(c, r) {
@@ -403,7 +402,7 @@ export function endStoryCampaignScene(c, r) {
             run.task_ids?.length ? storySceneDefeated(c.tables, c.state) : run.completed_scenes.includes(run.map_id),
             'Story dungeon enemies are not defeated',
         )
-        if ((!run.stage_conditions && !run.teaching_id) || run.map_id === run.scenes.at(-1)) {
+        if (run.task_ids?.length || completedCampaignRoute(run)) {
             run.status = 3
             run.end_time = c.now
             creditStoryCampaign(c, run.dungeon_id)
@@ -419,12 +418,7 @@ export function endStoryCampaignScene(c, r) {
 export function exitStoryCampaign(c) {
     const run = c.state.storyCampaign
     ensure(run, 'No active story dungeon', ErrorCode.EntrustNotInEntrust)
-    if (
-        run.status === 2 &&
-        ((!run.stage_conditions && !run.teaching_id) || run.map_id === run.scenes.at(-1)) &&
-        run.completed_scenes.includes(run.map_id) &&
-        storySceneDefeated(c.tables, c.state)
-    ) {
+    if (run.status === 2 && completedCampaignRoute(run) && storySceneDefeated(c.tables, c.state)) {
         run.status = 3
         run.end_time = c.now
         creditStoryCampaign(c, run.dungeon_id)
