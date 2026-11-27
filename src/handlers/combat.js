@@ -12,6 +12,7 @@ import { recordArenaControlEvent } from '../npc-kibo-controls.js'
 import { recordArenaDamageElement, arenaDamageRecord, arenaDamageElement } from '../npc-kibo-damage-inputs.js'
 import { arenaNumericalConfig } from '../npc-kibo-damage-amounts.js'
 import { arenaHurtIsDuplicate } from '../npc-kibo-hurt-receipts.js'
+import { combatHurtIsDuplicate } from '../combat-hurt-receipts.js'
 import { recordArenaSkillOrigin, recordArenaBulletOrigin, recordArenaElementOrigin } from '../npc-kibo-origins.js'
 import {
     recordArenaSkillStart,
@@ -514,7 +515,7 @@ export function registerCombat(on) {
             if (actors.some((id) => id && isRetiredTrialActor(c.state, id))) continue
             if (row.hurt_info) {
                 const h = row.hurt_info
-                prepareEnemy(h.tar_id)
+                const targetDefinition = prepareEnemy(h.tar_id)
                 prepareEnemy(h.from_id)
                 const eventTime = h.verify_info?.op_time ?? r.base_time ?? '0'
                 if (
@@ -525,8 +526,19 @@ export function registerCombat(on) {
                 if (c.state.petCaptureResults?.[h.from_id] || c.state.petCaptureResults?.[h.tar_id]) continue
                 if (h.tar_id !== '0') actor(c, h.tar_id)
                 if (h.from_id !== '0') actor(c, h.from_id)
-                if (arenaHurtIsDuplicate(c, h)) {
-                    const hp = battle.entities[h.tar_id]?.hp
+                const targetHero = c.state.player.heros_info.battle_infos.find((value) => value.hero_id === h.tar_id),
+                    intro = c.state.entrust?.run,
+                    introBarrier =
+                        materialStoryPending(intro) &&
+                        Number(BigInt(h.tar_id) & 0xffffffffn) === intro.materialStory.boss_id,
+                    duplicate = battle.npcDuel
+                        ? arenaHurtIsDuplicate(c, h)
+                        : h.hp_change !== undefined &&
+                          !introBarrier &&
+                          (targetHero || targetDefinition) &&
+                          combatHurtIsDuplicate(c, h)
+                if (duplicate) {
+                    const hp = targetHero?.hp ?? battle.entities[h.tar_id]?.hp
                     // The client removes its pending DamageIndex on the hurt
                     // ACK. A retry still needs authoritative HP, without a
                     // second HP/statistics/SP application.
