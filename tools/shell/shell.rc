@@ -1,2 +1,4 @@
 // Process manifest: CREATEPROCESS_MANIFEST_RESOURCE_ID=1, RT_MANIFEST=24.
 1 24 "shell.manifest"
+// Application icon, including 16 through 256 pixel PNG-compressed images.
+1 ICON "shell.ico"

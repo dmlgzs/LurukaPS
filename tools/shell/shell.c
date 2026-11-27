@@ -129,6 +129,10 @@ static INT_PTR CALLBACK account_dialog_proc(HWND dialog,UINT message,WPARAM wpar
     if (message==WM_INITDIALOG) {
         HWND edit; context=(AccountDialog *)lparam;
         SetWindowLongPtrW(dialog,DWLP_USER,(LONG_PTR)context);
+        SendMessageW(dialog,WM_SETICON,ICON_BIG,(LPARAM)LoadImageW(GetModuleHandleW(NULL),
+            MAKEINTRESOURCEW(1),IMAGE_ICON,GetSystemMetrics(SM_CXICON),GetSystemMetrics(SM_CYICON),LR_SHARED));
+        SendMessageW(dialog,WM_SETICON,ICON_SMALL,(LPARAM)LoadImageW(GetModuleHandleW(NULL),
+            MAKEINTRESOURCEW(1),IMAGE_ICON,GetSystemMetrics(SM_CXSMICON),GetSystemMetrics(SM_CYSMICON),LR_SHARED));
         context->font=(HFONT)GetStockObject(DEFAULT_GUI_FONT);
         dialog_control(dialog,L"STATIC",L"请输入本地账号 open_id",0,100,12,12,276,14,context->font);
         edit=dialog_control(dialog,L"EDIT",selected_open_id,WS_TABSTOP|ES_AUTOHSCROLL,101,12,31,276,22,context->font);

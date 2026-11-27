@@ -6,7 +6,7 @@ $watermarkSource = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'watermark.lu
 $watermarkWords = foreach ($character in $watermarkSource.ToCharArray()) { '0x{0:x4}' -f [int]$character }
 $watermarkHeader = 'static const uint16_t watermark_script[] = {' + ($watermarkWords -join ',') + ',0};'
 [IO.File]::WriteAllText((Join-Path $outputDirectory 'watermark_script.h'), $watermarkHeader, [Text.Encoding]::ASCII)
-# Embed the original Unity host's DPI policy before Windows creates any windows.
+# Embed the application icon and original Unity host's DPI policy.
 $manifestObject = Join-Path $outputDirectory 'shell.res.o'
 & $ResourceCompiler '--include-dir' $PSScriptRoot '--input' (Join-Path $PSScriptRoot 'shell.rc') `
     '--output' $manifestObject '--output-format=coff' '--target=pe-x86-64'
