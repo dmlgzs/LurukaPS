@@ -237,25 +237,29 @@ export function makeNode(graph, id, state) {
         client_cond_after: conditions.map(() => false),
     }
 }
+export function petChoiceBranchTarget(graph, config, state, taskId) {
+    const conditions = nodeConditions(config),
+        next = asList(config.nextNodeIdList)
+    if (
+        config.nodeType !== 34 ||
+        !conditions.length ||
+        next.length !== conditions.length ||
+        !conditions.every((condition) => condition.conditionId === 2523)
+    )
+        return null
+    const matches = conditions.flatMap((condition, index) =>
+        conditionValue(condition, state, { taskId, nodeId: config.id, index }) > 0 ? [index] : [],
+    )
+    if (matches.length !== 1) return null
+    const chosen = next[matches[0]]
+    ensure(graph.nodes.has(chosen), 'Invalid pet-choice branch', ErrorCode.InvalidLogic)
+    return chosen
+}
 export function advancePetChoiceBranch(graph, task, state) {
     let changed = false
     for (const node of [...task.nodes]) {
-        const config = graph.nodes.get(node.node_id),
-            conditions = nodeConditions(config),
-            next = asList(config.nextNodeIdList)
-        if (
-            config.nodeType !== 34 ||
-            !conditions.length ||
-            next.length !== conditions.length ||
-            !conditions.every((c) => c.conditionId === 2523)
-        )
-            continue
-        const values = conditions.map((c, index) =>
-            conditionValue(c, state, { taskId: task.task_id, nodeId: node.node_id, index }),
-        )
-        const matches = values.flatMap((value, index) => (value > 0 ? [index] : []))
-        if (matches.length !== 1) continue
-        const chosen = next[matches[0]]
+        const chosen = petChoiceBranchTarget(graph, graph.nodes.get(node.node_id), state, task.task_id)
+        if (chosen === null) continue
         ensure(
             graph.nodes.has(chosen) && !task.finish_nodes.includes(chosen),
             'Invalid pet-choice branch',

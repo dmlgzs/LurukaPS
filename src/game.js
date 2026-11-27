@@ -1,4 +1,5 @@
 import { registerTeamV2 } from './team-v2.js'
+import { reconcilePetChoiceReceiptGroup } from './pet-choice-receipt-group.js'
 import { sceneAudienceMetadata } from './scene-routing.js'
 import { SystemUnlocks, systemUnlockPersistence, systemUnlockPlayerPacket } from './system-unlocks.js'
 import { bootstrapHomeWishlistIdentity } from './home-wishlist.js'
@@ -160,6 +161,8 @@ import {
     taskVisibleAtLevel,
     refreshTaskProgress,
     repairMainTaskTrace,
+    petChoiceBranchTarget,
+    nodeConditions,
 } from './tasks.js'
 import { recoverMissingTaskItems, taskItemSnapshot } from './task-items.js'
 import { deliveryKey } from './task-delivery.js'
@@ -769,6 +772,7 @@ export class Game {
         registerRelease(on, tables)
     }
     recoverFailedPetChoice(state, accountId, now) {
+        reconcilePetChoiceReceiptGroup(this.tables, state)
         const task = state.tasks.find((t) => t.task_id === 106010),
             node = task?.nodes.find((n) => n.node_id === 151),
             run = state.playableRuns?.[60001]
@@ -807,9 +811,16 @@ export class Game {
         return true
     }
     recoverClosedPetPageAfterChoice(state, accountId) {
+        reconcilePetChoiceReceiptGroup(this.tables, state)
         const task = state.tasks.find((t) => t.task_id === 106010),
-            group = state.taskPetChoices?.[106010],
-            expected = { 52: 181, 55: 182, 56: 183 }[group]
+            group = state.taskPetChoices?.[106010]
+        if (!task || !Number.isSafeInteger(group) || group <= 0) return false
+        const graph = (this.petChoiceRecoveryGraphs ??= new TaskGraphs(this.tables)).get(106010),
+            expected = petChoiceBranchTarget(graph, graph.nodes.get(148), state, 106010)
+        if (expected === null) return false
+        const page = nodeConditions(graph.nodes.get(expected))[0]?.__type_TaskConditionBaseData
+            ?.__type_TaskCondOpenPageData
+        if (page?.openPageName !== 'pageGetPet' || !page.isCloseOver) return false
         const node = task?.nodes.find((n) => n.node_id === expected),
             run = state.playableRuns?.[60001],
             finish = state.playableFinishes?.[60001]

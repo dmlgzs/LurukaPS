@@ -7,6 +7,9 @@ import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { TaskGraphs, makeNode, conditionValue, nodeConditions } from '../src/tasks.js'
 import { grantRewards } from '../src/rewards.js'
+import { ErrorCode } from '../src/error-codes.js'
+// Explicit isolated node-entry/recovery fixtures,not normal earned task progression.
+// Current106010/148 checks pet groups1/4/7;CBT3 groups52/55/56 are not used.
 const c = configuration(),
     p = new Protocol(c.base),
     t = new Tables(c.tables)
@@ -58,7 +61,7 @@ test('actual playable11028 starts, saves stages, resumes on login and cancels wi
 })
 test('task-created playable60001 starts only for its active quest node in scene100', () => {
     const store = new Store(':memory:'),
-        game = new Game(p, store, t),
+        game = new Game(p, store, t, { clock: () => 1800000000 }),
         session = {}
     let seq = 1
     const call = (name, r = {}) => {
@@ -87,6 +90,10 @@ test('task-created playable60001 starts only for its active quest node in scene1
                 },
             ]
         })
+        // The fixture installed already completed prerequisites after login.
+        // Deliver their real durable system-unlock transition before measuring
+        // the separate deferred playable metadata write.
+        call('WorldTimeSync', { world_time: 0 })
         const revision = store.playerById.get(session.id).revision
         const packets = call('PlayableStart', { u32: 60001 }),
             run = store.load(session.id).state.playableRuns[60001]
@@ -119,7 +126,7 @@ test('task-created playable60001 starts only for its active quest node in scene1
 })
 test('pet choice playable grants only the selected customized pet and completes task condition2525', () => {
     const store = new Store(':memory:'),
-        game = new Game(p, store, t),
+        game = new Game(p, store, t, { clock: () => 1800000000 }),
         session = {}
     let seq = 1
     const call = (name, r = {}) => {
@@ -171,7 +178,7 @@ test('pet choice playable grants only the selected customized pet and completes 
         const finish = call('PlayableFinish', { playId: 60001, score: 0, pos: {} })
         const saved = store.load(session.id).state
         assert.equal(saved.tasks[0].nodes[0].node_values[0], 1)
-        assert.equal(saved.playableFinishes[60001].selected_pet_group, 52)
+        assert.equal(saved.playableFinishes[60001].selected_pet_group, 1)
         assert.equal(saved.pets.length, before + 1)
         const finishSync = p.decode('PlayableSync', finish.find((x) => x.id === 9400).payload)
         assert.deepEqual(finishSync.finish_plays, [60001])
@@ -189,12 +196,12 @@ test('pet choice playable grants only the selected customized pet and completes 
     }
 })
 for (const [step, customized, group, next] of [
-    [2, 5002441, 55, 182],
-    [3, 5002611, 56, 183],
+    [2, 5002441, 4, 182],
+    [3, 5002611, 7, 183],
 ])
     test(`pet choice ${step} follows only configured branch ${next}`, () => {
         const store = new Store(':memory:'),
-            game = new Game(p, store, t),
+            game = new Game(p, store, t, { clock: () => 1800000000 }),
             session = {}
         let seq = 1
         const call = (name, r = {}) => {
@@ -238,7 +245,7 @@ for (const [step, customized, group, next] of [
     })
 test('canceling and restarting the choice does not create a second pet', () => {
     const store = new Store(':memory:'),
-        game = new Game(p, store, t),
+        game = new Game(p, store, t, { clock: () => 1800000000 }),
         session = {}
     let seq = 1
     const call = (name, r = {}) => {
@@ -284,7 +291,7 @@ test('canceling and restarting the choice does not create a second pet', () => {
 })
 test('mount challenge62102 requires a real same-scene finish before main quest advances', () => {
     const store = new Store(':memory:'),
-        game = new Game(p, store, t),
+        game = new Game(p, store, t, { clock: () => 1800000000 }),
         session = {}
     let seq = 1
     const call = (name, r = {}) => {
@@ -382,21 +389,21 @@ test('login repairs only the logged failed finish after chosen pet and final ste
                     status: 2,
                     time: 1799999900,
                     selected_step: 1,
-                    selected_pet_group: 52,
+                    selected_pet_group: 1,
                     selected_pet_guid: pet.guid,
                 },
             }
             s.playableChoiceReceipts = {
-                '106010:1:60001': { step: 1, drop_id: 16005, pet_guid: pet.guid, pet_group: 52 },
+                '106010:1:60001': { step: 1, drop_id: 16005, pet_guid: pet.guid, pet_group: 1 },
             }
-            s.taskPetChoices = { 106010: 52 }
+            s.taskPetChoices = { 106010: 1 }
         })
         const before = store.load(first.id).state,
             petCount = before.pets.length
         const unchanged = {}
         enter(unchanged)
         assert.equal(store.load(first.id).state.tasks[0].nodes[0].node_id, 151)
-        store.log.run(first.id, 9404, 'error:1024', 1799999901000)
+        store.log.run(first.id, 9404, 'error:' + ErrorCode.InvalidArgument, 1799999901000)
         const recovered = {},
             packets = enter(recovered),
             state = store.load(first.id).state
@@ -456,16 +463,17 @@ test('repeated Start repairs a previously failed pet choice without reopening it
                     status: 2,
                     time: 1799999900,
                     selected_step: 1,
-                    selected_pet_group: 52,
+                    selected_pet_group: 1,
                     selected_pet_guid: pet.guid,
                 },
             }
             s.playableChoiceReceipts = {
-                '106010:1:60001': { step: 1, drop_id: 16005, pet_guid: pet.guid, pet_group: 52 },
+                '106010:1:60001': { step: 1, drop_id: 16005, pet_guid: pet.guid, pet_group: 1 },
             }
-            s.taskPetChoices = { 106010: 52 }
+            s.taskPetChoices = { 106010: 1 }
         })
-        store.log.run(session.id, 9404, 'error:1024', 1799999901000)
+        call('WorldTimeSync', { world_time: 0 })
+        store.log.run(session.id, 9404, 'error:' + ErrorCode.InvalidArgument, 1799999901000)
         const revision = store.playerById.get(session.id).revision,
             petCount = store.load(session.id).state.pets.length
         const first = call('PlayableStart', { u32: 60001 })
@@ -529,7 +537,7 @@ test('login restores the missed pet-page close condition but leaves story callba
                     status: 3,
                     time: 1799999900,
                     selected_step: 1,
-                    selected_pet_group: 52,
+                    selected_pet_group: 1,
                     selected_pet_guid: pet.guid,
                 },
             }
@@ -539,15 +547,15 @@ test('login restores the missed pet-page close condition but leaves story callba
                     map_id: 100,
                     score: 0,
                     reward_info: 0,
-                    selected_pet_group: 52,
+                    selected_pet_group: 1,
                     selected_pet_guid: pet.guid,
                     finished_at: 1799999999,
                 },
             }
             s.playableChoiceReceipts = {
-                '106010:1:60001': { step: 1, drop_id: 16005, pet_guid: pet.guid, pet_group: 52 },
+                '106010:1:60001': { step: 1, drop_id: 16005, pet_guid: pet.guid, pet_group: 1 },
             }
-            s.taskPetChoices = { 106010: 52 }
+            s.taskPetChoices = { 106010: 1 }
         })
         const notYet = {},
             unchanged = call(notYet, 'EnterGame', { open_id: 'missed-pet-page' }),
@@ -557,7 +565,7 @@ test('login restores the missed pet-page close condition but leaves story callba
             p.decode('SCTaskSync', unchanged.find((x) => x.id === 9853).payload).tasks[0].nodes[0].node_values[0],
             0,
         )
-        store.log.run(first.id, 9404, 'error:1024', 1799999901000)
+        store.log.run(first.id, 9404, 'error:' + ErrorCode.InvalidArgument, 1799999901000)
         const resumed = {},
             packets = call(resumed, 'EnterGame', { open_id: 'missed-pet-page' }),
             state = store.load(first.id).state,
