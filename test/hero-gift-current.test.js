@@ -1,3 +1,4 @@
+import { giveCurrentHero } from './hero-growth-current-fixture.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
@@ -27,7 +28,7 @@ const totalFavor = (actor) =>
 const inventory = (state, id) =>
     state.player.sbag_infos.items.filter((row) => row.itemid === id).reduce((n, row) => n + row.itemnum, 0)
 
-function fixture(name) {
+function fixture(name, quota = false) {
     const protocol = new Protocol(config.base),
         store = new Store(':memory:'),
         game = new Game(protocol, store, tables, { clock: () => now })
@@ -39,6 +40,28 @@ function fixture(name) {
         return game.dispatch(session, { id: entry.id, seq: seq++, payload: protocol.encode(entry.req, data) })
     }
     call('EnterGame', { open_id: name })
+    // Only the current actors this case needs, through real resource1 grants.
+    const needed = quota
+        ? Math.ceil(gameInt('HERO_FAVORABILITY_ALL_GIFT_NUM') / gameInt('HERO_FAVORABILITY_GIFT_NUM')) + 1
+        : 2
+    const candidates = [
+        heroId,
+        ...tables
+            .get('hero')
+            .filter((r) => r.favor === 1 && r.id !== heroId)
+            .map((r) => r.id),
+    ]
+    for (const id of candidates) {
+        const roster = store.load(session.id).state.player.heros_info.heros
+        if (!roster.some((h) => h.conf_id === id && !h.trail)) giveCurrentHero(call, id)
+        const current = store.load(session.id).state.player.heros_info.heros
+        if (
+            current.some((h) => h.conf_id === heroId && !h.trail) &&
+            current.filter((h) => tables.find('hero', h.conf_id)?.favor === 1).length >= needed
+        )
+            break
+    }
+
     const state = () => store.load(session.id).state,
         edit = (fn) => store.transact(session.id, 0, fn),
         actor = (id = heroId) => state().player.heros_info.heros.find((row) => row.conf_id === id && !row.trail)
@@ -183,7 +206,7 @@ test('current6610 favorite quantity updates the exact owned hero before ACK, ear
 })
 
 test('current gift quotas count consumed units per hero and across heroes, resetting only at the configured next day', () => {
-    const f = fixture('current-hero-gift-day')
+    const f = fixture('current-hero-gift-day', true)
     try {
         const item = tables.get('hero_favorability_gift')[0],
             perHero = gameInt('HERO_FAVORABILITY_GIFT_NUM'),

@@ -1,3 +1,4 @@
+import { giveCurrentHero } from './hero-growth-current-fixture.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
@@ -31,6 +32,7 @@ test('6019 bulk rank rewards use the level bitmap, preserve uint64 high bits and
     const bit = 1n << 60n
     try {
         call('EnterGame', { open_id: 'rank-reward' })
+        giveCurrentHero(call, 108001)
         guid = state().player.heros_info.heros.find((row) => row.conf_id === 108001).guid
         store.transact(session.id, 0, (s) => {
             const h = s.player.heros_info.heros.find((row) => row.guid === guid)

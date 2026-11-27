@@ -1,3 +1,4 @@
+import { giveCurrentHero } from './hero-growth-current-fixture.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
@@ -20,13 +21,9 @@ function setup() {
         return game.dispatch(session, { id: e.id, seq: seq++, pushSeq: 0, payload: protocol.encode(e.req, r) })
     }
     call('EnterGame', { open_id: 'level' })
-    store.transact(session.id, 0, (s) => {
-        s.player.basic_info.gold = 100
-        s.player.sbag_infos.items = [
-            { itemid: 400000, itemnum: 3 },
-            { itemid: 402000, itemnum: 2 },
-        ]
-    })
+    // Explicit current resources; normal provides no default pet/materials.
+    for (const command of ['gold 100', 'item 400000 3', 'item 402000 2', 'give 5 500001 1'])
+        call('GMCommand', { command: Buffer.from(command).toString('base64') })
     return { store, game, session, call }
 }
 test('hero and pet upgrades consume their own materials and refresh attributes', () => {

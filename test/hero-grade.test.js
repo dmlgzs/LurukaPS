@@ -1,7 +1,8 @@
+import { giveCurrentHero, heroCatalogState } from './hero-growth-current-fixture.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
-import { Tables, seedPlayer } from '../src/player.js'
+import { Tables } from '../src/player.js'
 import { nextHeroGrade, heroGradeEffects, heroGradeRows } from '../src/hero-grade.js'
 import { heroModules } from '../src/battle.js'
 import { Protocol } from '../src/protocol.js'
@@ -12,7 +13,7 @@ const cfg = configuration(),
     tables = new Tables(cfg.tables)
 
 test('all 23 usable heroes have six current grade costs and rewards; fresh heroes start at grade zero', () => {
-    const s = seedPlayer(tables, 1, 'hero-grade')
+    const s = heroCatalogState(tables, 1, 'hero-grade')
     assert.equal(s.player.heros_info.heros.length, 23)
     for (const hero of s.player.heros_info.heros) {
         assert.equal(hero.hero_grade, 0)
@@ -31,7 +32,7 @@ test('all 23 usable heroes have six current grade costs and rewards; fresh heroe
     }
 })
 test('grade module 10 uses current attributes and never mistakes effect keys for skill IDs', () => {
-    const s = seedPlayer(tables, 1, 'hero-grade'),
+    const s = heroCatalogState(tables, 1, 'hero-grade'),
         hero = s.player.heros_info.heros.find((h) => h.conf_id === 107002)
     hero.hero_grade = 5
     const effect = heroGradeEffects(hero)
@@ -72,6 +73,7 @@ test('6055 spends the next grade cost, synchronizes battle/ownership before ACK,
     const claim = () => call('GradeUpHero', { u64: guid })
     try {
         call('EnterGame', { open_id: 'hero-grade' })
+        giveCurrentHero(call, 107002)
         guid = state().player.heros_info.heros.find((h) => h.conf_id === 107002).guid
         const initial = structuredClone(state())
         assert.throws(claim, (e) => e.code === ErrorCode.ItemNotEnough)
@@ -138,7 +140,7 @@ test('6055 spends the next grade cost, synchronizes battle/ownership before ACK,
     }
 })
 test('grade and cost corruption use named configuration failures', () => {
-    const hero = seedPlayer(tables, 1, 'grade-invalid').player.heros_info.heros.find((h) => h.conf_id === 107002)
+    const hero = heroCatalogState(tables, 1, 'grade-invalid').player.heros_info.heros.find((h) => h.conf_id === 107002)
     hero.hero_grade = -1
     assert.throws(
         () => nextHeroGrade(tables, hero),
@@ -159,7 +161,7 @@ test('grade and cost corruption use named configuration failures', () => {
 })
 
 test('grade effect replacement retains the replaced skill level and distinguishes elements from skills', () => {
-    const s = seedPlayer(tables, 1, 'hero-grade-switch'),
+    const s = heroCatalogState(tables, 1, 'hero-grade-switch'),
         hero = s.player.heros_info.heros.find((h) => h.conf_id === 101003)
     hero.hero_grade = 2
     hero.system_skill_levels[1] = 9

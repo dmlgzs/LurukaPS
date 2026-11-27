@@ -1,3 +1,4 @@
+import { giveCurrentHero } from './hero-growth-current-fixture.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
@@ -26,7 +27,10 @@ test('6007 upgrades the zero-based system slot using current-row cost and update
     const hero = () => state().player.heros_info.heros.find((row) => row.guid === guid)
     try {
         call('EnterGame', { open_id: 'hero-skill-upgrade' })
+        giveCurrentHero(call, 101010)
         guid = state().player.heros_info.heros.find((row) => row.conf_id === 101010).guid
+        // This nondefault current skin is an explicit fixture asset, never a defaultnormal grant.
+        call('GMCommand', { command: Buffer.from('give 39 1010101 1').toString('base64') })
         call('HeroUpdateSkin', { hero_guid: guid, skin_id: 1010101 })
         store.transact(session.id, 0, (state) =>
             grantRewards(tables, state, [{ itemtype: 10, itemid: 2, itemnum: 20000 }]),

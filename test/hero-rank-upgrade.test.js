@@ -1,7 +1,8 @@
+import { giveCurrentHero, heroCatalogState } from './hero-growth-current-fixture.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
-import { Tables, seedPlayer } from '../src/player.js'
+import { Tables } from '../src/player.js'
 import { nextHeroRank, taskWorldLevel } from '../src/hero-rank.js'
 import { runeBonuses } from '../src/hero-equipment.js'
 import { pairs } from '../src/battle.js'
@@ -26,6 +27,7 @@ function fixture(name) {
         return { packets, result: protocol.decode(e.rsp, ack.payload) }
     }
     call('EnterGame', { open_id: name })
+    giveCurrentHero(call, 107002)
     const state = () => store.load(session.id).state
     const guid = state().player.heros_info.heros.find((h) => h.conf_id === 107002).guid
     return {
@@ -40,7 +42,8 @@ function fixture(name) {
 }
 
 test('all 23 owned heroes advance through all eleven table transitions, including repeated rune IDs in separate slots', () => {
-    const s = seedPlayer(tables, 1, 'rank-catalog')
+    const s = heroCatalogState(tables, 1, 'rank-catalog')
+    assert.equal(s.player.heros_info.heros.length, tables.get('hero').filter((r) => r.isUsable === 1).length)
     for (const h of s.player.heros_info.heros) {
         h.hero_lv = 100
         for (let rank = 1; rank < 12; rank++) {
@@ -60,7 +63,7 @@ test('all 23 owned heroes advance through all eleven table transitions, includin
     }
 })
 test('rank unlock 2009 follows task-unlocked world difficulty rather than selected difficulty', () => {
-    const s = seedPlayer(tables, 1, 'rank-world')
+    const s = heroCatalogState(tables, 1, 'rank-world')
     assert.equal(taskWorldLevel(tables, s), 2)
     s.taskRecords = [{ task_id: 991030, count: 1 }]
     assert.equal(taskWorldLevel(tables, s), 3)
@@ -144,11 +147,16 @@ test('6017 follows real rune equip, spends current-tier gold, preserves complete
 test('higher rank checks next-tier level and atomically rolls back gold if the table also requires an absent item', () => {
     const f = fixture('rank-item-rollback')
     try {
-        const row = tables.get('talent_rank').find((r) => r.heroId === 107002 && r.rank === 6)
+        const row = tables.get('talent_rank').find((r) => r.heroId === 107002 && r.rank === 6),
+            nextLevel = tables
+                .get('talent_rank')
+                .find((r) => r.heroId === row.heroId && r.rank === row.rank + 1).rankLevelLimit,
+            requiredItems = parseRewards(row.rankBreakthroughCoin).filter((r) => r.itemtype === 3)
+        assert(requiredItems.length > 0)
         f.store.transact(f.session.id, 0, (s) => {
             const h = s.player.heros_info.heros.find((h) => h.guid === f.guid)
             h.hero_rank = 6
-            h.hero_lv = 79
+            h.hero_lv = nextLevel - 1
             h.rune_ids = ids(row)
             s.player.basic_info.gold = 100000
         })
@@ -159,7 +167,7 @@ test('higher rank checks next-tier level and atomically rolls back gold if the t
         f.store.transact(
             f.session.id,
             0,
-            (s) => (s.player.heros_info.heros.find((h) => h.guid === f.guid).hero_lv = 80),
+            (s) => (s.player.heros_info.heros.find((h) => h.guid === f.guid).hero_lv = nextLevel),
         )
         const before = structuredClone(f.state())
         assert.throws(
@@ -167,13 +175,12 @@ test('higher rank checks next-tier level and atomically rolls back gold if the t
             (e) => e.code === ErrorCode.ItemNotEnough,
         )
         assert.deepEqual(f.state(), before)
-        f.store.transact(f.session.id, 0, (s) =>
-            grantRewards(tables, s, [{ itemtype: 3, itemid: 1505001, itemnum: 1 }]),
-        )
+        f.store.transact(f.session.id, 0, (s) => grantRewards(tables, s, requiredItems))
         f.call('HeroRuneLevelUp', { hero_id: f.guid })
         assert.equal(f.hero().hero_rank, 7)
         assert.equal(f.state().player.basic_info.gold, 80000)
-        assert.equal(f.state().player.sbag_infos.items.find((i) => i.itemid === 1505001).itemnum, 0)
+        for (const item of requiredItems)
+            assert.equal(f.state().player.sbag_infos.items.find((i) => i.itemid === item.itemid).itemnum, 0)
     } finally {
         f.store.close()
     }

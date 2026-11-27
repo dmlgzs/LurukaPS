@@ -1,3 +1,4 @@
+import { giveCurrentHero } from './hero-growth-current-fixture.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
@@ -177,6 +178,7 @@ test('personal favor refuses damaged saved progress and foreign, future or dupli
 })
 test('caller-controlled Game transaction publishes the personal HeroItemInfo and owns codec rollback', () => {
     const f = achievementFixture('personal-favor-transaction')
+    giveCurrentHero(f.call, 101003)
     const recipient = f.state().player.heros_info.heros.find((h) => h.conf_id === 101003).guid
     const e = f.protocol.byName.get('CSProtoGMCommand'),
         originalHandler = f.game.handlers.get(e.id),
