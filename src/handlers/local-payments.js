@@ -6,7 +6,7 @@ import { monthlyPayload, purchaseMonthly } from '../monthly-card.js'
 // Client callback sentinel closes the order mask without opening the SDK.
 export const LOCAL_CALLBACK_NOTICE = LocalErrorCode.OfflinePaymentCallback
 import { ensure, syncPlayer } from './common.js'
-import { grantRewards, parseRewards } from '../rewards.js'
+import { grantRewards } from '../rewards.js'
 import { MallCatalog } from '../mall.js'
 import { payGoodsPlan } from '../mall-pay-goods.js'
 import { notifyRechargePopup } from '../mall-popup.js'
@@ -158,34 +158,27 @@ export function registerLocalPayments(on, tables, store, { enabled = true } = {}
                 : tables.get('mall_pay_goods').filter((x) => x.purchaseSdkID === sdk.id)
             ensure(matches.length === 1, 'Offline entitlement product is not implemented', ErrorCode.FunctionClosed)
             const goods = matches[0],
-                wire = mallPlan?.wire ?? catalog.goods(true, goods.goodsId, c.state, c.now),
-                shop =
-                    mallPlan?.shop ??
-                    tables
-                        .get('mall_shop')
-                        .find(
-                            (s) =>
-                                (!isMall || s.shopId === r.pay_shop_id) &&
-                                String(s.goodsListPurchase).split('|').map(Number).includes(goods.goodsId),
-                        )
-            if (!mallPlan) {
-                ensure(
-                    shop &&
-                        wire.is_all_cond_done &&
-                        (!Number(wire.begin_time) || c.now >= Number(wire.begin_time)) &&
-                        (!Number(wire.end_time) || c.now < Number(wire.end_time)),
-                    'Offline gift is unavailable',
-                )
-                ensure(
-                    !goods.goodsNum || wire.curr_purchase_num + count <= goods.goodsNum,
-                    'Offline gift purchase limit',
-                )
-            }
-            const rewards = grantRewards(
-                c.tables,
-                c.state,
-                mallPlan?.output ?? parseRewards(goods.item).map((x) => ({ ...x, itemnum: x.itemnum * count })),
+                shops = mallPlan
+                    ? [mallPlan.shop]
+                    : tables
+                          .get('mall_shop')
+                          .filter((shop) =>
+                              String(shop.goodsListPurchase).split('|').map(Number).includes(goods.goodsId),
+                          )
+            ensure(
+                shops.length === 1,
+                'Offline gift shop configuration is unavailable or ambiguous',
+                ErrorCode.MallConfigError,
             )
+            const plan =
+                    mallPlan ??
+                    payGoodsPlan(
+                        c,
+                        { pay_shop_id: shops[0].shopId, pay_goods_id: goods.goodsId, buy_count: count },
+                        catalog,
+                    ),
+                { shop, wire } = plan,
+                rewards = grantRewards(c.tables, c.state, plan.output)
             mall.purchases ??= {}
             mall.purchases[`pay:${goods.goodsId}`] = {
                 period: catalog.window(goods, c.now).start,
