@@ -187,6 +187,10 @@ export function syncEntrustStage(
     // next wave only after that reply so the client cannot apply the old
     // marker state after the new world-object snapshot.
     syncEntrust({ ...c, pushBefore: c.push }, c.state.entrust.run)
+    if (c.state.sharedTeamRun) {
+        c.sharedTeamRuns.publishPersonalScene(c)
+        return
+    }
     // WMCT_DYNAMIC_REFRESH updates objects inside the loaded dungeon without
     // running a second scene-entry flow.
     pushSceneMode(c, { multiplayer: !isSingleEntrust(c) })
@@ -286,6 +290,10 @@ export function completeEntrustObject(c, objectId, completing) {
     const position = stages.findIndex((entry) => entry.row.id === objectId)
     if (position < 0) return []
     if (c.state.sharedTeamRun) {
+        if (stages[position].type === 30) {
+            c.sharedTeamRuns.requirePersonalVictory(c)
+            return claimEntrustChest(c)
+        }
         c.sharedTeamRuns.completeStageMarker(c, objectId)
         return []
     }
@@ -587,6 +595,7 @@ export function registerEntrust(on, tables) {
         if (c.state.cultTrial) return enterCultTrialScene(c, r)
         if (c.state.storyCampaign) return enterStoryCampaignScene(c, r)
         const run = c.state.entrust?.run
+        if (c.state.sharedTeamRun) c.sharedTeamRuns.recoverPersonalVictory(c)
         ensure(
             run && [2, 3].includes(run.status) && (!r.scene_id || r.scene_id === run.map_id),
             'Entrust scene is not active',
@@ -603,6 +612,7 @@ export function registerEntrust(on, tables) {
             ensure(c.sharedTeamRuns, 'Shared loading authority is unavailable', ErrorCode.GameConfig)
             c.sharedTeamRuns.requireScene(c)
             c.sharedTeamRuns.ensureEncounter(c, { states: c.sharedTeamStates })
+            c.sharedTeamRuns.recoverPersonalVictory(c)
             const appearances = c.sharedTeamRuns.playerAppearances(c, { states: c.sharedTeamStates })
             c.sharedTeamRuns.noteProxyReport(c)
             c.state.entrust.run.loading_complete_at ??= c.now
@@ -615,6 +625,7 @@ export function registerEntrust(on, tables) {
             // Do not run the private syncEntrustEnemyBattle path for every
             // participant. Replay only an already issued canonical grant.
             c.sharedTeamRuns.replayEncounterControl(c)
+            c.sharedTeamRuns.replayPersonalChest(c)
             return
         }
         if (c.state.combat?.npcDuel && c.state.multiCampaign?.map_id === c.state.world.map_id) {
@@ -653,6 +664,16 @@ export function registerEntrust(on, tables) {
         const entrust = c.state.entrust,
             run = entrust?.run
         ensure(run && [2, 3].includes(run.status), 'No active entrust', ErrorCode.EntrustNotInEntrust)
+        if (c.state.sharedTeamRun) {
+            ensure(
+                r.result === 3 || run.battle_complete,
+                'Shared failure settlement is not implemented',
+                ErrorCode.FunctionClosed,
+            )
+            c.sharedTeamRuns.recoverPersonalVictory(c)
+            c.sharedTeamRuns.requirePersonalVictory(c)
+            return {}
+        }
         if (run.status === 3) {
             claimRepeatFirstPass(c)
             return {}
@@ -672,11 +693,20 @@ export function registerEntrust(on, tables) {
         sync(c, run)
         return {}
     })
-    on('CampaignQuit', (c) =>
-        c.state.cultTrial ? exitCultTrial(c) : c.state.storyCampaign ? exitStoryCampaign(c) : exitEntrust(c),
-    )
+    on('CampaignQuit', (c) => {
+        ensure(
+            !c.state.sharedTeamRun,
+            'Shared exit requires its participant lifecycle adapter',
+            ErrorCode.FunctionClosed,
+        )
+        return c.state.cultTrial ? exitCultTrial(c) : c.state.storyCampaign ? exitStoryCampaign(c) : exitEntrust(c)
+    })
     on('StaminaBoxGet', (c, r) => {
         const run = c.state.entrust?.run
+        if (c.state.sharedTeamRun) {
+            c.sharedTeamRuns.recoverPersonalVictory(c)
+            c.sharedTeamRuns.requirePersonalVictory(c)
+        }
         if (run?.kind === 'weekly') {
             const rewards = claimWeeklyChest(c, r)
             syncPlayer({ ...c, push: c.pushBefore })
@@ -691,6 +721,10 @@ export function registerEntrust(on, tables) {
         }
     })
     on('StaminaBoxGiveUp', (c, r) => {
+        if (c.state.sharedTeamRun) {
+            c.sharedTeamRuns.recoverPersonalVictory(c)
+            c.sharedTeamRuns.requirePersonalVictory(c)
+        }
         ensure(
             Number.isInteger(r.box_id) && r.box_id > 0 && r.box_id <= 0xffffffff,
             'Invalid stamina chest identity',

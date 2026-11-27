@@ -5,30 +5,35 @@ import { tables, catalog, entrustProgressFixture } from './entrust-star-progress
 import { ErrorCode } from '../src/error-codes.js'
 import { achievementCatalogue } from '../src/achievements.js'
 
-test('normal commission source fallback covers only explicit zero groups and preserves all27 existing scene goal lists', () => {
-    const fallback = []
-    for (const row of tables.get('dungeon_entrust')) {
-        const { scene, dungeon } = catalog.get(row.id)
-        const prior = tables
-            .get('common_challenge')
-            .filter((r) => r.group === scene.challengeGroup && r.type === 1)
-            .sort((a, b) => a.id - b.id)
-        const goals = entrustChallengeGoals(tables, { entrust_id: row.id }, scene, dungeon)
-        if (scene.challengeGroup === 0) {
-            fallback.push(row.id)
+test('current standard challenge sources use declared dungeon lists across all142 configurations without scene-group substitution', () => {
+    let count = 0
+    for (const [kind, table] of [
+        ['entrust', 'dungeon_entrust'],
+        ['material', 'dungeon_material'],
+        ['weekly', 'dungeon_weekly'],
+    ])
+        for (const row of tables.get(table)) {
+            const { scene, dungeon } = catalog.get(row.id, kind),
+                goals = entrustChallengeGoals(tables, { entrust_id: row.id, kind }, scene, dungeon)
             assert.deepEqual(
-                goals.map((r) => r.challengeCondition),
+                goals.map((goal) => goal.challengeCondition),
                 dungeon.challenge.split('|'),
             )
-        } else assert.deepEqual(goals, prior)
-    }
-    assert.deepEqual(fallback, [23, 24, 25, 27, 29])
+            count++
+        }
+    assert.equal(count, 142)
     const { scene, dungeon } = catalog.get(23)
-    for (const kind of ['material', 'weekly', 'repeat'])
-        assert.deepEqual(entrustChallengeGoals(tables, { entrust_id: 23, kind }, scene, dungeon), [])
-    assert.throws(
-        () => entrustChallengeGoals(tables, { entrust_id: 23 }, { ...scene, challengeGroup: 999999 }, dungeon),
-        (e) => e.code === ErrorCode.GameConfig,
+    assert.deepEqual(entrustChallengeGoals(tables, { entrust_id: 23, kind: 'repeat' }, scene, dungeon), [])
+    for (const kind of ['material', 'weekly'])
+        assert.throws(
+            () => entrustChallengeGoals(tables, { entrust_id: 23, kind }, scene, dungeon),
+            (e) => e.code === ErrorCode.GameConfig,
+        )
+    assert.deepEqual(
+        entrustChallengeGoals(tables, { entrust_id: 23 }, { ...scene, challengeGroup: 999999 }, dungeon).map(
+            (goal) => goal.challengeCondition,
+        ),
+        dungeon.challenge.split('|'),
     )
     assert.throws(
         () => entrustChallengeGoals(tables, { entrust_id: 23 }, scene, { ...dungeon, challenge: '' }),

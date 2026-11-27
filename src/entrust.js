@@ -16,7 +16,7 @@ import { enemyDefinition } from './enemy-state.js'
 import { recordMaterialVictory } from './material-dungeons.js'
 import { materialBlueprintStages } from './material-blueprint-stages.js'
 import { recordWeeklyVictory } from './weekly-dungeons.js'
-import { entrustChallengeGoals } from './entrust-challenge-goals.js'
+import { entrustChallengeGoals, disabledFormationHeroCount } from './entrust-challenge-goals.js'
 
 const catalogs = new WeakMap()
 export function getEntrustCatalog(tables) {
@@ -162,16 +162,28 @@ export function settleEntrustVictory(
         freshMainVictory = false,
         freshRepeatVictory = false,
         freshActiveDungeonVictory = false,
+        sharedVictory = null,
     } = {},
 ) {
     const run = state.entrust?.run
     if (!run || run.battle_complete || !run.end_time || !run.battle_start_time) return false
     const catalog = getEntrustCatalog(tables)
-    if (!entrustVictoryComplete(catalog, state, run.entrust_id)) return false
+    if (!entrustVictoryComplete(catalog, state, run.entrust_id, sharedVictory)) return false
     const config = catalog.get(run.entrust_id, run.kind)
     const { scene, entrust, dungeon } = config
     const goals = entrustChallengeGoals(tables, run, scene, dungeon)
     const elapsed = run.end_time - run.battle_start_time
+    const fresh = freshMaterialVictory || freshMainVictory || freshRepeatVictory || freshActiveDungeonVictory
+    // Current parser retains the condition ID. SquadAlive.OnInit reads index1
+    // of that full list:60010#0#1 allows zero disabled heroes,not one.
+    if (fresh && goals.some((goal) => String(goal.challengeCondition).startsWith('60010#')))
+        run.squad_disabled_count = disabledFormationHeroCount(state)
+    if (run.squad_disabled_count !== undefined)
+        ensure(
+            Number.isSafeInteger(run.squad_disabled_count) && run.squad_disabled_count >= 0,
+            'Saved settlement formation snapshot is malformed',
+            ErrorCode.GameConfig,
+        )
     let mask = 0
     goals.forEach((goal, index) => {
         const [type, a, b] = String(goal.challengeCondition).split('#').map(Number)
@@ -181,7 +193,9 @@ export function settleEntrustVictory(
                 ? elapsed <= a
                 : type === 60007 && a === 0
                   ? run.hero_deaths !== undefined && run.hero_deaths < b
-                  : false
+                  : type === 60010
+                    ? run.squad_disabled_count !== undefined && run.squad_disabled_count <= a
+                    : false
         if (met) mask |= 1 << index
     })
     run.battle_complete = true
@@ -392,6 +406,7 @@ export function ensureEntrustSceneObjects(
 ) {
     const run = state.entrust?.run
     if (!run || state.world.map_id !== run.map_id) return false
+    if (state.sharedTeamRun) return refreshSharedEntrustChest(tables, state)
     const config = getEntrustCatalog(tables).get(run.entrust_id, run.kind)
     if (run.map_id !== config.scene.id) {
         run.migrated_from_map = run.map_id
@@ -561,15 +576,54 @@ export function ensureEntrustSceneObjects(
     return changed
 }
 
-export function entrustVictoryComplete(catalog, state, id) {
+export function refreshSharedEntrustChest(tables, state) {
+    const run = state.entrust?.run
+    if (!state.sharedTeamRun || !run?.battle_complete || state.world.map_id !== run.map_id) return false
+    const last = getEntrustCatalog(tables).stages(run.entrust_id, run.kind).at(-1)
+    ensure(last?.type === 30, 'Shared personal chest stage is unavailable', ErrorCode.GameConfig)
+    const record = state.worldObjects?.[`${run.map_id}:${last.row.id}`],
+        givenUp = entrustChestGivenUp(tables, run),
+        finished = !!run.chest_claimed || givenUp
+    ensure(record, 'Shared personal chest object is unavailable', ErrorCode.GameConfig)
+    const changed = record.active !== !givenUp || record.complete !== finished
+    record.active = !givenUp
+    record.complete = finished
+    record.state_data = { ...record.state_data, step: finished ? 1 : 0, complete: finished }
+    run.stage_index = last.index + (finished ? 1 : 0)
+    run.scene_objects = Object.entries(state.worldObjects)
+        .filter(([key]) => key.startsWith(`${run.map_id}:`))
+        .map(([, value]) => {
+            const { claims, ...object } = value
+            return object
+        })
+    return changed
+}
+
+export function entrustVictoryComplete(catalog, state, id, sharedVictory = null) {
     const kind = state.entrust?.run?.entrust_id === id ? state.entrust.run.kind : undefined
     const { scene } = catalog.get(id, kind)
     if (state.world.map_id !== scene.id || state.combat?.map_id !== scene.id) return false
+    if (state.sharedTeamRun) {
+        const ref = state.sharedTeamRun,
+            run = state.entrust.run
+        if (
+            !sharedVictory ||
+            sharedVictory.id !== ref.id ||
+            sharedVictory.generation !== ref.generation ||
+            sharedVictory.map_id !== scene.id ||
+            sharedVictory.phase !== 'complete' ||
+            run.instance_id !== ref.entry_instance_id ||
+            run.end_time !== sharedVictory.encounter?.combat_end_time ||
+            run.battle_start_time !== sharedVictory.encounter?.battle_start_time
+        )
+            return false
+    }
+    const enemies = state.sharedTeamRun ? sharedVictory.encounter.entities : state.combat.entities
     return catalog
         .victoryObjects(id, kind)
         .every(({ objectId, count }) =>
             Array.from({ length: count }, (_, slot) =>
                 ((3n << 56n) | (BigInt(slot) << 32n) | BigInt(objectId)).toString(),
-            ).every((uuid) => state.combat.entities[uuid]?.hp === 0),
+            ).every((uuid) => enemies[uuid]?.hp === 0),
         )
 }

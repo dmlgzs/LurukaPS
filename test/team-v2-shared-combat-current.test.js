@@ -262,11 +262,8 @@ test('current remote damage effect reaches only the target controller and shared
         assert.equal(finished.encounter.control, null)
         assert(Object.values(finished.encounter.entities).every((value) => value.hp === 0))
         for (const who of [0, 1]) {
-            assert.equal(
-                f.state(who).entrust.run.battle_complete,
-                undefined,
-                'Combat witness is not a fabricated personal reward receipt',
-            )
+            assert.equal(f.state(who).entrust.run.battle_complete, true)
+            assert.equal(f.state(who).entrust.run.shared_victory.id, finished.id)
             assert.deepEqual(f.state(who).combat.entities, privateNpcs[who])
         }
         assert.equal(f.teams.backend, null)

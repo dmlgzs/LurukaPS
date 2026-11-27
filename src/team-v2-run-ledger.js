@@ -5,7 +5,13 @@ import { compileSharedTeamTarget } from './team-v2-run-target.js'
 import { currentMapMember, currentMapFormation, currentMapPet } from './current-map-member.js'
 import { currentMapMemberAttribute } from './current-map-attributes.js'
 import { currentWorldPlayer, currentWorldActorInfo, currentOtherPlayerInfo } from './current-world-player.js'
-import { entrustMultiSnapshot } from './entrust.js'
+import {
+    entrustMultiSnapshot,
+    settleEntrustVictory,
+    refreshSharedEntrustChest,
+    entrustChestSnapshot,
+} from './entrust.js'
+import { materialDungeonSnapshot } from './material-dungeons.js'
 import { materialStoryPlan } from './multiple-material-story.js'
 import { reduceSharedCombatReport } from './team-v2-combat-report.js'
 import { finishEnemyGroupRelations } from './handlers/world-combat.js'
@@ -24,7 +30,7 @@ const digest = (value) => createHash('sha256').update(value).digest('hex')
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 
 // Internal shared-run authority, not a public Start backend. Preparation,
-// entry packets, skill/summon propagation and personal settlement/rejoin still
+// entry packets, skill/summon propagation and failure/exit/rejoin still
 // need their lifecycle adapter before TeamV2Service.backend may be connected.
 export class TeamV2RunLedger {
     constructor(teams) {
@@ -580,9 +586,13 @@ export class TeamV2RunLedger {
             position = blueprint.stages.findIndex((stage) => stage.object_id === objectId),
             stage = blueprint.stages[position]
         ensure(encounter, 'Shared encounter has not been initialized', ErrorCode.FunctionClosed)
+        if (stage?.type === 30) {
+            this.requirePersonalVictory(c)
+            return { room, run, compiled, blueprint, position, stage }
+        }
         ensure(
             stage?.type === 13,
-            'Shared enemy completion and chest claims require their own adapter',
+            'Shared enemy completion requires its canonical damage writer',
             ErrorCode.FunctionClosed,
         )
         const source = compiled.stages[position].row
@@ -642,9 +652,17 @@ export class TeamV2RunLedger {
         this.#publishStage(c, run, encounter, blueprint)
         return true
     }
-    #publishStage(c, run, encounter, blueprint, previousControl = null) {
-        const { values } = this.#sceneMembers(c, undefined, (state, member) => ({ member, entry: state.entrust.run }))
-        for (const { member, entry } of values) {
+    #publishStage(c, run, encounter, blueprint, previousControl = null, states) {
+        const { values } = this.#sceneMembers(c, states, (state, member) => ({
+            member,
+            entry: state.entrust.run,
+            material:
+                state.entrust.run.battle_complete && state.entrust.run.kind === 'material'
+                    ? materialDungeonSnapshot(state)
+                    : null,
+            boxes: state.entrust.run.battle_complete ? entrustChestSnapshot(this.teams.tables, state) : null,
+        }))
+        for (const { member, entry, material, boxes } of values) {
             if (previousControl) {
                 const agent_uid = ((3n << 56n) | BigInt(previousControl.object_id)).toString()
                 if (member.id === previousControl.player_id)
@@ -652,6 +670,8 @@ export class TeamV2RunLedger {
                 c.pushTo(member.id, 'SCProtoObjDisappearNtf', { agent_uid })
             }
             const multi = this.multiSnapshot(c, entry)
+            if (material) c.pushTo(member.id, 'SCProtoDungeonMaterialInfoSync', material)
+            if (boxes) c.pushTo(member.id, 'CSProtoStaminaBoxSync', boxes)
             c.pushTo(member.id, 'CSProtoMultiCampaignInfoSync', { camp: [multi] })
             c.pushTo(member.id, 'CSProtoCurMultiCampaignInfoSync', multi)
             c.pushTo(member.id, 'CSProtoObjBattleInfoSync', this.encounterBattleInfo(c))
@@ -665,6 +685,7 @@ export class TeamV2RunLedger {
                     objs: sharedEncounterObjects(entry.scene_objects, encounter, blueprint),
                 },
             })
+            this.#publishPersonalChest(c, member.id, boxes, blueprint)
             this.#publishControl(c, member.id, encounter, blueprint)
         }
     }
@@ -778,6 +799,141 @@ export class TeamV2RunLedger {
             })),
         }
     }
+    #settlePersonalVictories(c, sharedRun, fresh) {
+        ensure(
+            this.db.inTransaction && typeof c.editPlayer === 'function',
+            'Shared victory requires atomic participant drafts',
+            ErrorCode.GameConfig,
+        )
+        const states = new Map([[c.id, c.state]]),
+            definition = compileSharedTeamTarget(this.teams.tables, {
+                typ: sharedRun.typ,
+                target: sharedRun.target,
+            }).definition
+        for (const member of sharedRun.members) {
+            const alreadyWon = (state) => {
+                this.#requireSceneBinding(state, sharedRun, member, definition)
+                if (!state.entrust.run.battle_complete) return false
+                this.#validatePersonalVictory(state, sharedRun)
+                return true
+            }
+            if (member.id === c.id ? alreadyWon(c.state) : this.store.read(member.id, alreadyWon)) continue
+            const state = member.id === c.id ? c.state : c.editPlayer(member.id),
+                own = state.entrust.run,
+                encounter = sharedRun.encounter
+            own.battle_start_time = encounter.battle_start_time
+            own.real_start_time = encounter.battle_start_time
+            own.end_time = encounter.combat_end_time
+            own.stage_index = encounter.stage_index
+            own.damage_total = encounter.damage_by_player?.[member.id] ?? '0'
+            ensure(
+                settleEntrustVictory(this.teams.tables, state, c.now, {
+                    sharedVictory: sharedRun,
+                    freshMaterialVictory: fresh && own.kind === 'material',
+                    freshActiveDungeonVictory: fresh && own.kind === 'weekly',
+                }),
+                'Canonical shared victory did not settle its participant',
+                ErrorCode.GameConfig,
+            )
+            own.shared_victory = {
+                id: sharedRun.id,
+                generation: sharedRun.generation,
+                entry_instance_id: own.instance_id,
+                end_time: encounter.combat_end_time,
+                star_mask: own.star_mask,
+                squad_disabled_count: own.squad_disabled_count,
+            }
+            refreshSharedEntrustChest(this.teams.tables, state)
+            states.set(member.id, state)
+        }
+        return states
+    }
+    #validatePersonalVictory(state, run) {
+        const own = state.entrust?.run,
+            receipt = own?.shared_victory
+        ensure(
+            own?.battle_complete === true &&
+                own.status === 3 &&
+                receipt &&
+                receipt.id === run.id &&
+                receipt.generation === run.generation &&
+                receipt.entry_instance_id === own.instance_id &&
+                receipt.end_time === run.encounter.combat_end_time &&
+                receipt.star_mask === own.star_mask &&
+                receipt.squad_disabled_count === own.squad_disabled_count &&
+                own.end_time === receipt.end_time &&
+                own.battle_start_time === run.encounter.battle_start_time,
+            'Shared personal victory receipt is malformed or detached',
+            ErrorCode.GameConfig,
+        )
+    }
+    requirePersonalVictory(c) {
+        const { run } = this.requireScene(c)
+        ensure(run.phase === 'complete' && run.encounter?.combat_end_time, 'Shared dungeon enemies are not defeated')
+        this.#validatePersonalVictory(c.state, run)
+        return run
+    }
+    recoverPersonalVictory(c) {
+        const { room, run } = this.requireScene(c)
+        if (run.phase !== 'complete') return false
+        if (c.state.entrust.run.battle_complete) {
+            this.#validatePersonalVictory(c.state, run)
+            return false
+        }
+        // A prior completed internal run has a real terminal witness,but no
+        // fresh period witness or historical formation-life snapshot to invent.
+        const states = this.#settlePersonalVictories(c, run, false),
+            blueprint = sharedEncounterBlueprint(
+                this.teams.tables,
+                compileSharedTeamTarget(this.teams.tables, room),
+                run.members.length,
+            )
+        this.#publishStage(c, run, run.encounter, blueprint, null, states)
+        return true
+    }
+    publishPersonalScene(c) {
+        const { room, run } = this.requireScene(c)
+        const blueprint = sharedEncounterBlueprint(
+            this.teams.tables,
+            compileSharedTeamTarget(this.teams.tables, room),
+            run.members.length,
+        )
+        c.push('CSProtoWorldMapSync', {
+            cmd: 47,
+            creator_id: run.captain,
+            map_id: run.map_id,
+            map_info: {
+                creator_id: run.captain,
+                map_id: run.map_id,
+                objs: sharedEncounterObjects(c.state.entrust.run.scene_objects, run.encounter, blueprint),
+            },
+        })
+    }
+    #publishPersonalChest(c, recipient, boxes, blueprint) {
+        if (!boxes?.boxes.some((box) => box.finish_time > 0)) return
+        const last = blueprint.stages.at(-1)
+        ensure(last.type === 30, 'Shared stamina chest stage is unavailable', ErrorCode.GameConfig)
+        c.pushTo(recipient, 'SCProtoObjAppearNtf', {
+            agent_uid: ((8n << 56n) | BigInt(last.object_id)).toString(),
+            agent_type: 9,
+            obj: { obj_id: last.object_id, obj_type: 0 },
+        })
+    }
+    replayPersonalChest(c) {
+        const { room, run } = this.requireScene(c)
+        if (!c.state.entrust.run.battle_complete) return
+        this.#validatePersonalVictory(c.state, run)
+        this.#publishPersonalChest(
+            c,
+            c.id,
+            entrustChestSnapshot(this.teams.tables, c.state),
+            sharedEncounterBlueprint(
+                this.teams.tables,
+                compileSharedTeamTarget(this.teams.tables, room),
+                run.members.length,
+            ),
+        )
+    }
     reduceBattle(c, request, reduce) {
         const { room, run } = this.requireScene(c)
         ensure(this.db.inTransaction, 'Shared battle requires an atomic transaction', ErrorCode.GameConfig)
@@ -842,7 +998,8 @@ export class TeamV2RunLedger {
             advanced = true
         }
         validateSharedEncounter({ ...run, encounter }, blueprint)
-        if (phase !== run.phase || !same(encounter, run.encounter)) this.#save(run, { ...run, phase, encounter })
+        const saved =
+            phase !== run.phase || !same(encounter, run.encounter) ? this.#save(run, { ...run, phase, encounter }) : run
         for (const member of run.members) {
             for (const frame of result.frames) c.pushTo(member.id, frame.name, frame.value)
             const packet = result.report(member.id)
@@ -852,7 +1009,8 @@ export class TeamV2RunLedger {
         }
         if (advanced) {
             this.#finishSharedRelations(c, run, group)
-            this.#publishStage(c, run, encounter, blueprint, previousControl)
+            const states = phase === 'complete' ? this.#settlePersonalVictories(c, saved, true) : undefined
+            this.#publishStage(c, run, encounter, blueprint, previousControl, states)
         }
     }
     #publishControl(c, recipient, encounter, blueprint) {
