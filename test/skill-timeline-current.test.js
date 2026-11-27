@@ -12,6 +12,7 @@ import { startServer } from '../src/server.js'
 import { ErrorCode } from '../src/error-codes.js'
 import { enemyDefinition } from '../src/enemy-state.js'
 import { connectObtGcmClient } from './helpers/obt-gcm-client.js'
+import { fundCurrentCombatActors, qualifyCurrentCombatWorld } from './combat-normal-current-fixture.js'
 
 const cfg = configuration(),
     tables = new Tables(cfg.tables)
@@ -34,6 +35,13 @@ function fixture(name) {
         return game.dispatch(session, { id: entry.id, seq: sequence++, payload: protocol.encode(entry.req, value) })
     }
     call('EnterGame', { open_id: name })
+    store.transact(session.id, 0, (state) => {
+        assert.equal(state.starterProfile.mode, 'normal')
+        assert.equal(state.player.heros_info.heros.length, 1)
+        // Explicit current-factory qualification for the configured Abby
+        // timeline, not an assumption that every new account owns all heroes.
+        fundCurrentCombatActors(tables, state, { heroes: [107003] })
+    })
     return { protocol, store, session, game, call, state: () => store.load(session.id).state }
 }
 function sql(f) {
@@ -213,7 +221,16 @@ test('real GCM peers receive the current camera pose only in the map; the owner 
             entries.push({ client, id: logged.playerId })
         }
         const [owner, peer, other] = entries
+        // Explicit public-world qualification for a peer-delivery scenario.
+        // Equal private maps cannot authorize a broadcast after scene isolation.
+        for (const entry of entries)
+            server.store.transact(entry.id, 0, (state) => {
+                assert.equal(state.starterProfile.mode, 'normal')
+                qualifyCurrentCombatWorld(tables, state)
+                if (entry === owner) fundCurrentCombatActors(tables, state, { heroes: [107003] })
+            })
         const state = server.store.load(owner.id).state
+        assert.equal(tables.find('world_city', state.world.map_id).type, 1)
         server.store.transact(peer.id, 0, (s) => {
             s.world.map_id = state.world.map_id
         })

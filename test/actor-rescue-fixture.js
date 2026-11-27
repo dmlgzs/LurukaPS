@@ -4,6 +4,8 @@ import { Protocol } from '../src/protocol.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { populateParty } from './party-fixture.js'
+import assert from 'node:assert/strict'
+import { fundCurrentCombatActors } from './combat-normal-current-fixture.js'
 
 export function rescueFixture(name, filename = ':memory:') {
     const cfg = configuration(),
@@ -23,6 +25,10 @@ export function rescueFixture(name, filename = ':memory:') {
     }
     const entryPackets = call('EnterGame', { open_id: name })
     store.transact(session.id, 0, (s) => {
+        assert.equal(s.starterProfile.mode, 'normal')
+        // Explicit owned-party qualification for rescue scenarios. The normal
+        // starter is kept; no hero/vitals record is fabricated by the fixture.
+        fundCurrentCombatActors(tables, s, { heroes: [107002, 108002] })
         populateParty(s)
         s.world.map_id = 100
         s.world.pos = { x: 100, y: 100, z: 100 }
@@ -32,7 +38,9 @@ export function rescueFixture(name, filename = ':memory:') {
     const heroes = state()
         .player.heros_info.heros.slice(0, 3)
         .map((h) => h.guid)
+    assert.equal(heroes.length, 3)
     const saved = (id) => state().player.heros_info.battle_infos.find((h) => h.hero_id === id)
+    assert(heroes.every((id) => saved(id)))
     const overHurt = (id, value = 0) =>
         store.transact(session.id, 0, (s) => {
             Object.assign(
