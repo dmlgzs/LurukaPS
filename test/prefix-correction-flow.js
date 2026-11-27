@@ -25,6 +25,7 @@ export function normalSuccessorFlow(
         specialNpcCompletion,
         timeCompletion,
         submitCompletion,
+        signalCompletion,
     } = {},
 ) {
     const { graphs, call, move, playStory } = first
@@ -119,6 +120,7 @@ export function normalSuccessorFlow(
             const special = base.__type_TaskCondActiveSpecialNPCTriggerData
             const scene = base.__type_TaskCondInSceneData
             const download = base.__type_TaskCondPackageDownloadCompleteData
+            const signal = base.__type_TaskCondSignalReceiverData
             let target
             if (special) {
                 assert(specialNpcCompletion, 'Current special NPC producer model is required')
@@ -158,6 +160,10 @@ export function normalSuccessorFlow(
                 if (f.state().world.map_id !== scene.sceneId) walkCurrentScene(f, first, scene.sceneId)
                 assert.equal(f.state().world.map_id, scene.sceneId)
                 target = scene.sceneId
+            } else if (signal) {
+                assert(signalCompletion, 'Current task signal producer model is required')
+                signalCompletion(signal, { f, call, move, taskId, node, index })
+                target = signal.signalType
             } else if (download)
                 target = 0xffffffff // explicit local current package-ready input
             else assert.fail('Unmodelled typed2519: ' + JSON.stringify(base))
