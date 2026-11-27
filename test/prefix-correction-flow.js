@@ -27,6 +27,7 @@ export function normalSuccessorFlow(
         submitCompletion,
         signalCompletion,
         existingEnemiesCompletion,
+        playableIsFinishCompletion,
     } = {},
 ) {
     const { graphs, call, move, playStory } = first
@@ -123,6 +124,7 @@ export function normalSuccessorFlow(
             const download = base.__type_TaskCondPackageDownloadCompleteData
             const signal = base.__type_TaskCondSignalReceiverData
             const enemies = base.__type_TaskCondEnemiesGroupData
+            const playableIsFinish = base.__type_TaskCondPlayableIsFinishData
             let target
             if (special) {
                 assert(specialNpcCompletion, 'Current special NPC producer model is required')
@@ -166,6 +168,10 @@ export function normalSuccessorFlow(
                 assert(signalCompletion, 'Current task signal producer model is required')
                 signalCompletion(signal, { f, call, move, taskId, node, index })
                 target = signal.signalType
+            } else if (playableIsFinish) {
+                assert(playableIsFinishCompletion, 'Current playable-state producer model is required')
+                playableIsFinishCompletion(playableIsFinish, { f, call, move, taskId, node, index })
+                target = playableIsFinish.playableID
             } else if (enemies) {
                 assert(enemies.useExistEnemy, 'Only a current scoped existing task group is qualified')
                 assert(existingEnemiesCompletion, 'Current existing enemy group producer model is required')
