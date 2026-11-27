@@ -84,23 +84,27 @@ npm start
 
 Configuration is read from process environment variables. `.env` files are not loaded automatically.
 
-### Using the Bundled CBT3 Client Shell
+### Using the Bundled Client Shell
 
-`tools/shell/build/LurukaPS.exe` is the Windows x64 client host. Place it beside the game's `AzurPromilia_Data/`, `UnityPlayer.dll`, and `GameAssembly.dll`. The host explicitly selects `AzurPromilia_Data/`, so the original EXE and data directory do not need renaming. `tools/shell/build/cbt3-shell.ini` is its optional configuration.
+`tools/shell/build/LurukaPS.exe` is the Windows x64 client host. Place it beside the game's `AzurPromilia_Data/`, `UnityPlayer.dll`, and `GameAssembly.dll`. The host explicitly selects `AzurPromilia_Data/`, so the original EXE and data directory do not need renaming. `tools/shell/build/LurukaPS-client.ini` is its optional configuration.
 
 1. Start LurukaPS with `npm start` and leave the server running.
 2. Close the game.
-3. Copy `tools/shell/build/LurukaPS.exe` into the game directory, and place `cbt3-shell.ini` beside it.
+3. Copy `tools/shell/build/LurukaPS.exe` into the game directory, and place `LurukaPS-client.ini` beside it.
 
-Run `LurukaPS.exe`. Keep the original `UnityPlayer.dll`, `GameAssembly.dll`, and `AzurPromilia_Data/` in place. In the account window, enter a local `open_id`, such as `114514`, and click **启动游戏** (Start Game). Reuse the same ID to access the same saved account; **记住账号，下次预填** remembers it in the INI for the next launch.
+Run `LurukaPS.exe`. Keep the original `UnityPlayer.dll`, `GameAssembly.dll`, and `AzurPromilia_Data/` in place. The Chinese settings window provides API replacement and URL, local account, data/registry redirection, camera fading, and an expandable TCP-only option. Enabling the local account disables the client SDK and uses the entered `open_id`; disabling it leaves the client's SDK path intact. Click **启动游戏** (Start Game) to save the settings to `LurukaPS-client.ini` automatically and launch. Reuse the same local ID to access the same saved account.
 
-File access beneath `%USERPROFILE%\AppData` in this process is redirected to `LuruksPSData/` beside `LurukaPS.exe`, preserving subdirectories such as `Local/`, `LocalLow/`, and `Roaming/`. The launcher's working directory does not affect this location. Unity's game preferences key is separately redirected from `HKCU\Software\manjuu\AzurPromilia` to `HKCU\Software\LurukaPS\AzurPromilia`. Existing files and preferences are not migrated automatically. External helper processes are not redirected.
+When enabled, file access beneath `%USERPROFILE%\AppData` in this process is redirected to `LuruksPSData/` beside `LurukaPS.exe`, preserving subdirectories such as `Local/`, `LocalLow/`, and `Roaming/`. The launcher's working directory does not affect this location. The independent registry option redirects Unity's game preferences from `HKCU\Software\manjuu\AzurPromilia` to `HKCU\Software\LurukaPS\AzurPromilia`. Existing files and preferences are not migrated automatically. External helper processes are not redirected.
+
+The INI switches are `redirect_api`, `local_account`, `redirect_appdata`, `redirect_registry`, `disable_camera_fade`, and `tcp_only` (`1`/`0`). Missing switches default to enabled to preserve existing behavior. `api_url` and `open_id` retain their existing names; `log_url` is preserved separately. There is no URL history or separate save/delete button.
+
+The client log is `LurukaPS-client.log`. Each newly written line has a local-time prefix such as `[2026-11-28T04:49:32.742]`, including every line of a multiline message. If `LurukaPS-client.ini` is absent, the launcher reads the legacy `cbt3-shell.ini`; clicking Start Game copies it to the new filename before saving, preserving extra settings and the original file. The new INI takes priority when both exist. The shell does not add its former in-game notice; existing watermark-hiding behavior remains.
 
 Build with `tools/shell/build.ps1`; use `-SelfTest` to create the separate `LurukaPS-selftest.exe`. The release EXE excludes self-test implementations.
 
-In the choose server window, select **Release**, **LurukaPS** and numbers like `2451868.2451868.2451868.2451868.2302423`. Then click **进入游戏** (Enter Game) to connect to the server. The game will create a new character if none exists.
+In the game's choose-server window, select the local server and matching resource version, then enter the game. The game will create a new character if none exists.
 
-The default `api_url=http://127.0.0.1:20001` is suitable when the server and game run on the same machine. For LAN use, edit `api_url` in the game's `cbt3-shell.ini` to match the server's reachable HTTP address, for example `http://192.168.1.100:20001`, and configure `LURUKAPS_PUBLIC_HOST` as shown above. Camera fading is disabled by default; set `disable_camera_fade=0` to restore it.
+The default `api_url=http://127.0.0.1:20001` is suitable when the server and game run on the same machine. For LAN use, edit `api_url` in the game's `LurukaPS-client.ini` to match the server's reachable HTTP address, for example `http://192.168.1.100:20001`, and configure `LURUKAPS_PUBLIC_HOST` as shown above. Camera fading is disabled by default; set `disable_camera_fade=0` to restore it.
 
 ## Configuration
 

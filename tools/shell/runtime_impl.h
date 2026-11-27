@@ -198,6 +198,11 @@ static int resolve_site(size_t index) {
     return 1;
 }
 static int site_enabled(size_t i) {
+    if (!redirect_api && (i==SITE_RequestUrl || i==SITE_RequestUrlTT2 || i==SITE_HttpGetJson ||
+        (i>=SITE_UriCtor && i<=SITE_UnityUrl))) return 0;
+    if (!local_account && (i==SITE_InfoEnableSdk || i==SITE_AppEnableSdk || i==SITE_SdkTrigger ||
+        (i>=SITE_SdkFactory && i<=SITE_SdkRegion))) return 0;
+    if (!redirect_appdata && i==SITE_PersistentPath) return 0;
     if ((i==SITE_PersistentPath || i==SITE_RestartFullPath) && !restart_routing_enabled) return 0;
     if (i>=SITE_SdkFactory && i<=SITE_SdkRegion && !local_sdk_enabled) return 0;
     if (!tcp_only && (i==SITE_InfoTLS || i==SITE_InfoKcp || i==SITE_NetKcp || i==SITE_NetSsl)) return 0;

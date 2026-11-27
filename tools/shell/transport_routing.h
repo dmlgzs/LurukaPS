@@ -21,7 +21,9 @@ static int setup_transport_routing(void) {
     if (!bind_export(runtime_module,"il2cpp_object_new",&rt.object_new,sizeof(rt.object_new)) ||
         !bind_export(runtime_module,"il2cpp_gchandle_new",&rt.gc_new,sizeof(rt.gc_new)) ||
         !bind_export(runtime_module,"il2cpp_gchandle_get_target",&rt.gc_target,sizeof(rt.gc_target)) ||
-        !bind_export(runtime_module,"il2cpp_gchandle_free",&rt.gc_free,sizeof(rt.gc_free)) ||
+        !bind_export(runtime_module,"il2cpp_gchandle_free",&rt.gc_free,sizeof(rt.gc_free))) return 0;
+    if (!redirect_api) return 1;
+    if (
         !bind_export(runtime_module,"il2cpp_class_value_size",&value_size,sizeof(value_size)) ||
         !bind_export(runtime_module,"il2cpp_class_is_valuetype",&is_value,sizeof(is_value))) return 0;
     transport_uri_class=find_runtime_class("System","Uri");

@@ -44,6 +44,7 @@ static int local_field_type(void *klass,const char *name,const char *type) {
 static int setup_local_sdk(void) {
     size_t i;
     local_sdk_enabled=0;
+    if (!local_account) { log_line("SDK policy: original client SDK; local account disabled"); return 1; }
     if (find_runtime_class("MJUnionSDK","EditorStrategy")) {
         log_line("SDK policy: retained client EditorStrategy"); return 1;
     }

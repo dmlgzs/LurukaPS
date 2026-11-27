@@ -14,7 +14,7 @@ $manifestObject = Join-Path $outputDirectory 'shell.res.o'
 if ($LASTEXITCODE -ne 0) { throw "Resource compiler failed with exit code $LASTEXITCODE" }
 $compilerArgs = @('-std=c11', '-Wall', '-Wextra', '-Werror', '-municode', '-mwindows', '-static-libgcc',
     (Join-Path $PSScriptRoot 'shell.c'), $manifestObject, '-o', (Join-Path $outputDirectory $outputName),
-    '-lshell32', '-luser32')
+    '-lshell32', '-luser32', '-lgdi32', '-lmsimg32', '-lcomctl32', '-luxtheme', '-lole32', '-lwindowscodecs', '-luuid')
 if ($SelfTest) { $compilerArgs += @('-DSHELL_SELF_TEST', '-ladvapi32') }
 if ($Debug) { $compilerArgs += @('-O0', '-g') } else { $compilerArgs += @('-O2', '-s') }
 try {
@@ -23,5 +23,5 @@ try {
 } finally {
     Remove-Item -LiteralPath $manifestObject -Force -ErrorAction SilentlyContinue
 }
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'cbt3-shell.ini') -Destination $outputDirectory
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'LurukaPS-client.ini') -Destination $outputDirectory
 Write-Output (Join-Path $outputDirectory $outputName)

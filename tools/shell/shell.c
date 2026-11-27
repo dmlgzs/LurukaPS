@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later
- * CBT3 native host, inspired by Evergreen's pre-Unity patch architecture.
+ * LurukaPS native Unity host, inspired by Evergreen's pre-Unity patch architecture.
  * No C++, injected DLL, Frida, or disk patches. Windows x64 only.
  */
 #ifndef UNICODE
@@ -8,6 +8,7 @@
 #ifndef _UNICODE
 #define _UNICODE
 #endif
+#define COBJMACROS
 #define WIN32_LEAN_AND_MEAN
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0601
@@ -15,6 +16,9 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <winternl.h>
+#include <commctrl.h>
+#include <uxtheme.h>
+#include <wincodec.h>
 #ifdef SHELL_SELF_TEST
 #include <shlobj.h>
 #endif
@@ -28,7 +32,7 @@
 _Static_assert(sizeof(void *) == 8, "Build for Windows x64");
 _Static_assert(sizeof(wchar_t) == 2, "Windows UTF-16 required");
 
-/* Restore the original CBT3 EXE's hybrid-GPU selection exports. These must
+/* Restore the original Unity host's hybrid-GPU selection exports. These must
  * reside in the process EXE, not merely in a loaded Unity/plugin DLL. */
 __declspec(dllexport) DWORD NvOptimusEnablement = 1;
 __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 1;
@@ -67,23 +71,48 @@ static FILE *log_file;
 static wchar_t api_url[1024] = L"http://127.0.0.1:20001";
 static wchar_t log_url[1024] = L"";
 static int tcp_only = 1, camera_fade = 1, check_mode = 0;
+static int redirect_api=1,local_account=1,redirect_appdata=1,redirect_registry=1;
+static SRWLOCK log_lock=SRWLOCK_INIT;
 
 static void log_line(const char *fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    if (log_file) { vfprintf(log_file, fmt, args); fputc('\n', log_file); fflush(log_file); }
-    va_end(args);
-    va_start(args, fmt);
-    vfprintf(stderr, fmt, args); fputc('\n', stderr);
-    va_end(args);
+    char stack[4096],*text=stack; va_list args; int length; DWORD previous_error=GetLastError();
+    va_start(args,fmt); length=vsnprintf(stack,sizeof(stack),fmt,args); va_end(args);
+    stack[sizeof(stack)-1]=0;
+    if (length<0) { /* The Windows CRT can return -1 for a truncated buffer. */
+        va_start(args,fmt); length=_vscprintf(fmt,args); va_end(args);
+    }
+    if (length<0) { SetLastError(previous_error); return; }
+    if ((size_t)length>=sizeof(stack)) {
+        text=malloc((size_t)length+1);
+        if (text) { va_start(args,fmt); vsnprintf(text,(size_t)length+1,fmt,args); va_end(args); }
+        else text=stack;
+    }
+    AcquireSRWLockExclusive(&log_lock);
+    if (log_file) {
+        SYSTEMTIME now; char stamp[32]; const char *line=text,*end;
+        GetLocalTime(&now);
+        snprintf(stamp,sizeof(stamp),"[%04u-%02u-%02uT%02u:%02u:%02u.%03u] ",
+            now.wYear,now.wMonth,now.wDay,now.wHour,now.wMinute,now.wSecond,now.wMilliseconds);
+        do {
+            size_t count; end=strchr(line,'\n'); count=end?(size_t)(end-line):strlen(line);
+            if (end && count && line[count-1]=='\r') --count;
+            fputs(stamp,log_file); fwrite(line,1,count,log_file); fputc('\n',log_file);
+            if (end) line=end+1;
+        } while (end);
+        fflush(log_file);
+    }
+    fputs(text,stderr); fputc('\n',stderr);
+    ReleaseSRWLockExclusive(&log_lock);
+    if (text!=stack) free(text);
+    SetLastError(previous_error);
 }
 static int error(const char *message) {
     DWORD code = GetLastError();
     log_line("ERROR: %s (Win32=%lu)", message, (unsigned long)code);
     if (!check_mode) {
         char text[1024];
-        snprintf(text, sizeof(text), "%s\nWin32 error: %lu\nSee cbt3-shell.log.", message, (unsigned long)code);
-        MessageBoxA(NULL, text, "CBT3 shell", MB_OK | MB_ICONERROR);
+        snprintf(text, sizeof(text), "%s\nWin32 error: %lu\nSee LurukaPS-client.log.", message, (unsigned long)code);
+        MessageBoxA(NULL, text, "LurukaPS", MB_OK | MB_ICONERROR);
     }
     return 1;
 }
@@ -116,75 +145,6 @@ static int valid_open_id(const wchar_t *text) {
     if (!length || length>128 || blank_character(text[0]) || blank_character(text[length-1])) return 0;
     bytes=WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,text,(int)length,NULL,0,NULL,NULL);
     return bytes>0 && bytes<=128;
-}
-typedef struct { const wchar_t *config; HFONT font; } AccountDialog;
-#ifdef SHELL_SELF_TEST
-static int account_dialog_smoke;
-#endif
-static HWND dialog_control(HWND dialog,const wchar_t *klass,const wchar_t *text,DWORD style,
-    int id,int x,int y,int width,int height,HFONT font) {
-    RECT rect={x,y,x+width,y+height}; HWND control;
-    MapDialogRect(dialog,&rect);
-    control=CreateWindowExW(!wcscmp(klass,L"EDIT")?WS_EX_CLIENTEDGE:0,klass,text,
-        WS_CHILD|WS_VISIBLE|style,rect.left,rect.top,rect.right-rect.left,rect.bottom-rect.top,
-        dialog,(HMENU)(INT_PTR)id,GetModuleHandleW(NULL),NULL);
-    if (control) SendMessageW(control,WM_SETFONT,(WPARAM)font,TRUE);
-    return control;
-}
-static INT_PTR CALLBACK account_dialog_proc(HWND dialog,UINT message,WPARAM wparam,LPARAM lparam) {
-    AccountDialog *context=(AccountDialog *)GetWindowLongPtrW(dialog,DWLP_USER);
-    if (message==WM_INITDIALOG) {
-        HWND edit; context=(AccountDialog *)lparam;
-        SetWindowLongPtrW(dialog,DWLP_USER,(LONG_PTR)context);
-        SendMessageW(dialog,WM_SETICON,ICON_BIG,(LPARAM)LoadImageW(GetModuleHandleW(NULL),
-            MAKEINTRESOURCEW(1),IMAGE_ICON,GetSystemMetrics(SM_CXICON),GetSystemMetrics(SM_CYICON),LR_SHARED));
-        SendMessageW(dialog,WM_SETICON,ICON_SMALL,(LPARAM)LoadImageW(GetModuleHandleW(NULL),
-            MAKEINTRESOURCEW(1),IMAGE_ICON,GetSystemMetrics(SM_CXSMICON),GetSystemMetrics(SM_CYSMICON),LR_SHARED));
-        context->font=(HFONT)GetStockObject(DEFAULT_GUI_FONT);
-        dialog_control(dialog,L"STATIC",L"请输入本地账号 open_id",0,100,12,12,276,14,context->font);
-        edit=dialog_control(dialog,L"EDIT",selected_open_id,WS_TABSTOP|ES_AUTOHSCROLL,101,12,31,276,22,context->font);
-        dialog_control(dialog,L"STATIC",L"同一账号对应同一份服务器存档。\n1～128 个 UTF-8 字节，首尾不要空白。",0,102,12,60,276,28,context->font);
-        dialog_control(dialog,L"BUTTON",L"记住账号，下次预填",WS_TABSTOP|BS_AUTOCHECKBOX,103,12,94,180,16,context->font);
-        dialog_control(dialog,L"BUTTON",L"启动游戏",WS_TABSTOP|BS_DEFPUSHBUTTON,IDOK,144,119,69,24,context->font);
-        dialog_control(dialog,L"BUTTON",L"取消",WS_TABSTOP|BS_PUSHBUTTON,IDCANCEL,220,119,68,24,context->font);
-        if (!edit) { EndDialog(dialog,-1); return TRUE; }
-        SendMessageW(edit,EM_SETLIMITTEXT,128,0);
-        SetFocus(edit); SendMessageW(edit,EM_SETSEL,0,-1);
-#ifdef SHELL_SELF_TEST
-        if (account_dialog_smoke) { SetWindowTextW(edit,L"ui-smoke-account"); SetTimer(dialog,1,250,NULL); }
-#endif
-        return FALSE;
-    }
-#ifdef SHELL_SELF_TEST
-    if (message==WM_TIMER && context && account_dialog_smoke) { KillTimer(dialog,1); SendMessageW(dialog,WM_COMMAND,IDOK,0); return TRUE; }
-#endif
-    if (message==WM_COMMAND && LOWORD(wparam)==IDOK) {
-        wchar_t value[129]; GetDlgItemTextW(dialog,101,value,129);
-        if (!valid_open_id(value)) {
-            MessageBoxW(dialog,L"账号不能为空，UTF-8 长度不能超过 128 字节，首尾不要空白。",L"账号格式不正确",MB_OK|MB_ICONINFORMATION);
-            SetFocus(GetDlgItem(dialog,101)); return TRUE;
-        }
-        if (IsDlgButtonChecked(dialog,103)==BST_CHECKED &&
-            !WritePrivateProfileStringW(L"shell",L"open_id",value,context->config)) {
-            MessageBoxW(dialog,L"无法保存账号。请检查 INI 所在目录的写入权限。",L"保存失败",MB_OK|MB_ICONERROR); return TRUE;
-        }
-        wcscpy(selected_open_id,value); EndDialog(dialog,IDOK); return TRUE;
-    }
-    if ((message==WM_COMMAND && LOWORD(wparam)==IDCANCEL) || message==WM_CLOSE) { EndDialog(dialog,IDCANCEL); return TRUE; }
-    return FALSE;
-}
-static int show_account_dialog(HINSTANCE instance,const wchar_t *config) {
-    /* DLGTEMPLATE variable fields are UTF-16 and word aligned. */
-    union { DWORD align; BYTE bytes[256]; } buffer;
-    DLGTEMPLATE *template=(DLGTEMPLATE *)buffer.bytes; WORD *tail;
-    const wchar_t title[]=L"CBT3 本地账号"; INT_PTR result; AccountDialog context={config,NULL};
-    memset(&buffer,0,sizeof(buffer));
-    template->style=WS_POPUP|WS_CAPTION|WS_SYSMENU|DS_MODALFRAME|DS_CENTER;
-    template->cx=300; template->cy=155;
-    tail=(WORD *)(buffer.bytes+sizeof(DLGTEMPLATE));
-    *tail++=0; *tail++=0; memcpy(tail,title,sizeof(title));
-    result=DialogBoxIndirectParamW(instance,template,NULL,account_dialog_proc,(LPARAM)&context);
-    return result==IDOK ? 1 : result==IDCANCEL ? 0 : -1;
 }
 static int join_path(wchar_t *out, size_t count, const wchar_t *dir, const wchar_t *name) {
     int n = _snwprintf(out, count, L"%ls\\%ls", dir, name);
@@ -278,6 +238,7 @@ static int rewrite_discovery(const wchar_t *url,size_t length,wchar_t *out,size_
         L"/version/client/v1_0/patch",L"/version/client/v1_0/getcdn",
         L"/version/client/v1_0/predownloadconf",L"/version/client/v1_0/getaccount"};
     size_t start,i,path,path_end,endpoint,base_length=wcslen(api_url);
+    if (!redirect_api) return 0;
     if (length>=7 && !wmemcmp(url,L"http://",7)) start=7;
     else if (length>=8 && !wmemcmp(url,L"https://",8)) start=8;
     else return 0;
@@ -383,7 +344,7 @@ static void lua_start_replacement(void *self,void *main,BYTE debug,void *method_
     script=string_new(watermark_script,(int32_t)(sizeof(watermark_script)/sizeof(watermark_script[0])-1));
     if (!script) { log_line("Watermark script allocation failed"); return; }
     lua_do_string(script,(void *)sites[SITE_LuaDoString].method);
-    log_line("Watermark policy submitted after Lua startup; check Player.log for installation/readback");
+    log_line("Watermark hiding policy submitted after Lua startup");
 }
 static int write_code(BYTE *address, const BYTE *bytes, size_t count) {
     DWORD previous, ignored;
@@ -558,9 +519,10 @@ static int install_patches(HMODULE game) {
         case SITE_HttpSend: hook=20; callback=(const void *)transport_http_send; original_slot=&transport_http_original; break;
         case SITE_UnityUrl: hook=21; callback=(const void *)transport_unity_url; original_slot=&transport_unity_original; break;
         case SITE_PersistentPath:
-            if (!prepare_restart_paths()) return 0;
             patches[n]=make_patch(base,i,3,(const void *)restart_persistent_path); break;
-        case SITE_RestartFullPath: hook=22; callback=(const void *)restart_full_path; original_slot=&restart_full_path_original; break;
+        case SITE_RestartFullPath:
+            if (!prepare_restart_paths()) return 0;
+            hook=22; callback=(const void *)restart_full_path; original_slot=&restart_full_path_original; break;
         default: return 0;
         }
         if (hook>=0) {
@@ -647,13 +609,34 @@ static int read_boolean(const wchar_t *path, const wchar_t *key, int fallback) {
     if (!wcscmp(value,L"1")) return 1;
     return -1;
 }
-static int read_config(const wchar_t *path) {
-    DWORD n; size_t i; wchar_t prefill[130];
-    n=GetPrivateProfileStringW(L"shell",L"api_url",L"http://127.0.0.1:20001",api_url,1024,path);
-    if (n==1023 || !n || (wcsncmp(api_url,L"http://",7) && wcsncmp(api_url,L"https://",8))) return 0;
-    for (i=0; api_url[i]; ++i) if (api_url[i]<=32) return 0;
+static int normalize_api_url(void) {
+    size_t i;
+    if (wcsncmp(api_url,L"http://",7) && wcsncmp(api_url,L"https://",8)) return 0;
+    for (i=0;api_url[i];++i) if (api_url[i]<=32) return 0;
     while (i && api_url[i-1]==L'/') api_url[--i]=0;
-    if (i <= (!wcsncmp(api_url,L"https://",8) ? 8u : 7u)) return 0;
+    return i>(!wcsncmp(api_url,L"https://",8)?8u:7u);
+}
+/* Old INI is a read-only fallback. Only Start Game creates the new filename. */
+static int legacy_config_path(const wchar_t *path,wchar_t *legacy,size_t capacity) {
+    const wchar_t *name=wcsrchr(path,L'\\'); size_t prefix;
+    if (!name || _wcsicmp(name+1,L"LurukaPS-client.ini")) return 0;
+    prefix=(size_t)(name-path)+1;
+    if (prefix+sizeof(L"cbt3-shell.ini")/sizeof(wchar_t)>capacity) return 0;
+    memcpy(legacy,path,prefix*sizeof(wchar_t)); wcscpy(legacy+prefix,L"cbt3-shell.ini");
+    return 1;
+}
+static int read_config(const wchar_t *path) {
+    DWORD n; size_t i; wchar_t prefill[130],legacy[32768];
+    if (GetFileAttributesW(path)==INVALID_FILE_ATTRIBUTES && legacy_config_path(path,legacy,32768) &&
+        GetFileAttributesW(legacy)!=INVALID_FILE_ATTRIBUTES) {
+        path=legacy; log_line("Using legacy client configuration; Start Game will save LurukaPS-client.ini");
+    }
+    redirect_api=read_boolean(path,L"redirect_api",1);
+    local_account=read_boolean(path,L"local_account",1);
+    redirect_appdata=read_boolean(path,L"redirect_appdata",1);
+    redirect_registry=read_boolean(path,L"redirect_registry",1);
+    n=GetPrivateProfileStringW(L"shell",L"api_url",L"http://127.0.0.1:20001",api_url,1024,path);
+    if (n==1023 || (redirect_api && !normalize_api_url())) return 0;
     n=GetPrivateProfileStringW(L"shell",L"log_url",L"",log_url,1024,path);
     if (n==1023 || (n && wcsncmp(log_url,L"http://",7) && wcsncmp(log_url,L"https://",8))) return 0;
     for (i=0; log_url[i]; ++i) if (log_url[i]<=32) return 0;
@@ -666,9 +649,76 @@ static int read_config(const wchar_t *path) {
     if (n>=129 || (n && !valid_open_id(prefill)))
         log_line("Ignoring invalid prefilled open_id; enter an account in the dialog (value not logged)");
     else wcscpy(selected_open_id,prefill);
-    return tcp_only>=0 && camera_fade>=0;
+    return tcp_only>=0 && camera_fade>=0 && redirect_api>=0 && local_account>=0 && redirect_appdata>=0 && redirect_registry>=0;
 }
+static int save_config(const wchar_t *path) {
+    wchar_t legacy[32768];
+    if (GetFileAttributesW(path)==INVALID_FILE_ATTRIBUTES && legacy_config_path(path,legacy,32768) &&
+        GetFileAttributesW(legacy)!=INVALID_FILE_ATTRIBUTES && !CopyFileW(legacy,path,TRUE)) return 0;
+    struct { const wchar_t *key; int value; } flags[]={
+        {L"redirect_api",redirect_api},{L"local_account",local_account},
+        {L"redirect_appdata",redirect_appdata},{L"redirect_registry",redirect_registry},
+        {L"disable_camera_fade",camera_fade},{L"tcp_only",tcp_only}};
+    size_t i;
+    if (!WritePrivateProfileStringW(L"shell",L"api_url",api_url,path) ||
+        !WritePrivateProfileStringW(L"shell",L"open_id",selected_open_id,path)) return 0;
+    for (i=0;i<sizeof(flags)/sizeof(flags[0]);++i)
+        if (!WritePrivateProfileStringW(L"shell",flags[i].key,flags[i].value?L"1":L"0",path)) return 0;
+    return 1;
+}
+#include "launcher_ui.h"
 #ifdef SHELL_SELF_TEST
+static DWORD WINAPI log_test_worker(void *value) {
+    int i; DWORD expected=0x1234+(DWORD)(uintptr_t)value;
+    for (i=0;i<16;++i) {
+        SetLastError(expected);
+        log_line("worker%u-%d\ncontinued",(unsigned)(uintptr_t)value,i);
+        if (GetLastError()!=expected) return 1;
+    }
+    return 0;
+}
+static int log_timestamp_test(void) {
+    char long_message[5001]; HANDLE threads[2]; DWORD first=1,second=1;
+    log_line("first\nsecond\r\n\nlast");
+    memset(long_message,'A',5000); long_message[5000]=0; log_line("%s",long_message);
+    log_line("tail\n"); log_line("");
+    threads[0]=CreateThread(NULL,0,log_test_worker,(void *)1,0,NULL);
+    threads[1]=CreateThread(NULL,0,log_test_worker,(void *)2,0,NULL);
+    if (!threads[0] || !threads[1] || WaitForMultipleObjects(2,threads,TRUE,5000)!=WAIT_OBJECT_0) ExitProcess(1);
+    GetExitCodeThread(threads[0],&first); GetExitCodeThread(threads[1],&second);
+    CloseHandle(threads[0]); CloseHandle(threads[1]);
+    return !first && !second;
+}
+static int client_config_name_test(void) {
+    wchar_t directory[MAX_PATH],root[MAX_PATH],current[MAX_PATH],legacy[MAX_PATH],value[128];
+    wchar_t saved_api[1024],saved_log[1024],saved_account[129];
+    int flags[]={redirect_api,local_account,redirect_appdata,redirect_registry,camera_fade,tcp_only};
+    DWORD n; int ok=0;
+    wcscpy(saved_api,api_url); wcscpy(saved_log,log_url); wcscpy(saved_account,selected_open_id);
+    n=GetTempPathW(MAX_PATH,directory);
+    if (!n || n>=MAX_PATH || !GetTempFileNameW(directory,L"lps",0,root) || !DeleteFileW(root) || !CreateDirectoryW(root,NULL)) return 0;
+    join_path(current,MAX_PATH,root,L"LurukaPS-client.ini"); join_path(legacy,MAX_PATH,root,L"cbt3-shell.ini");
+    if (!WritePrivateProfileStringW(L"shell",L"api_url",L"http://127.0.0.1:20123",legacy) ||
+        !WritePrivateProfileStringW(L"shell",L"open_id",L"legacy-account",legacy) ||
+        !WritePrivateProfileStringW(L"shell",L"log_url",L"https://log.test/client",legacy) ||
+        !WritePrivateProfileStringW(L"shell",L"custom_key",L"preserve-me",legacy)) goto done;
+    if (!read_config(current) || wcscmp(api_url,L"http://127.0.0.1:20123") || wcscmp(selected_open_id,L"legacy-account") ||
+        GetFileAttributesW(current)!=INVALID_FILE_ATTRIBUTES || !save_config(current)) goto done;
+    GetPrivateProfileStringW(L"shell",L"custom_key",L"",value,128,current);
+    if (wcscmp(value,L"preserve-me")) goto done;
+    GetPrivateProfileStringW(L"shell",L"log_url",L"",value,128,current);
+    if (wcscmp(value,L"https://log.test/client")) goto done;
+    if (!WritePrivateProfileStringW(L"shell",L"api_url",L"http://127.0.0.1:20124",current) ||
+        !read_config(current) || wcscmp(api_url,L"http://127.0.0.1:20124")) goto done;
+    GetPrivateProfileStringW(L"shell",L"api_url",L"",value,128,legacy);
+    ok=!wcscmp(value,L"http://127.0.0.1:20123");
+done:
+    DeleteFileW(current); DeleteFileW(legacy); RemoveDirectoryW(root);
+    wcscpy(api_url,saved_api); wcscpy(log_url,saved_log); wcscpy(selected_open_id,saved_account);
+    redirect_api=flags[0]; local_account=flags[1]; redirect_appdata=flags[2]; redirect_registry=flags[3]; camera_fade=flags[4]; tcp_only=flags[5];
+    log_line("Client config names: legacy read-only fallback, new-file priority and lossless migration: %s",ok?"PASS":"FAIL");
+    return ok;
+}
 static int prefill_config_self_test(void) {
     wchar_t directory[MAX_PATH],path[MAX_PATH],value[130],saved[130]; size_t i; int ok;
     DWORD length=GetTempPathW(MAX_PATH,directory);
@@ -843,7 +893,7 @@ static int self_test(void) {
             VirtualFree(hook_pages[0],0,MEM_RELEASE); hook_pages[0]=NULL;
         }
     }
-    ok=ok && prefill_config_self_test() && routing_self_test() && identity_self_test() && assembly_manifest_test() && runtime_resolution_test(page) && staged_loading_test(page+512) && local_sdk_self_test() && transport_routing_test(page) && bootstrap_trampoline_test(page+128);
+    ok=ok && client_config_name_test() && launch_switches_test() && prefill_config_self_test() && routing_self_test() && identity_self_test() && assembly_manifest_test() && runtime_resolution_test(page) && staged_loading_test(page+512) && local_sdk_self_test() && transport_routing_test(page) && bootstrap_trampoline_test(page+128);
     VirtualFree(page,0,MEM_RELEASE);
     log_line("Patch transaction, executable code and page protection: %s",ok?"PASS":"FAIL");
     log_line("Selective discovery routing and 9-argument Win64 trampoline: %s",ok?"PASS":"FAIL");
@@ -870,6 +920,10 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int sho
     for (i=1;i<argc;++i) {
         if (!wcscmp(argv[i],L"--dpi-check")) { rc=report_dpi_awareness()?0:1; goto done; }
 #ifdef SHELL_SELF_TEST
+        if (!wcscmp(argv[i],L"--log-test")) {
+            if (i+1>=argc || !(log_file=_wfopen(argv[i+1],L"wb"))) goto done;
+            rc=log_timestamp_test()?0:1; goto done;
+        }
         if (!wcscmp(argv[i],L"--restart-test")) {
             if (i+1<argc) { log_file=_wfopen(argv[i+1],L"wb"); if (!log_file) goto done; }
             log_line("Restart test Sandboxie module: %s",GetModuleHandleW(L"SbieDll.dll")?"present":"absent");
@@ -879,10 +933,21 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int sho
             rc=i+1<argc && GetFileAttributesW(argv[i+1])!=INVALID_FILE_ATTRIBUTES?0:1; goto done;
         }
         if (!wcscmp(argv[i],L"--ui-smoke-test")) {
-            int shown; account_dialog_smoke=1;
-            shown=show_account_dialog(instance,L"");
+            wchar_t temporary[MAX_PATH],fixture[MAX_PATH],saved[129]; int shown;
+            DWORD n=GetTempPathW(MAX_PATH,temporary);
+            if (!n || n>=MAX_PATH || !GetTempFileNameW(temporary,L"lps",0,fixture)) goto done;
+            account_dialog_smoke=1;
+            shown=show_settings_dialog(instance,fixture);
+            GetPrivateProfileStringW(L"shell",L"open_id",L"",saved,129,fixture);
             rc=shown==1 && !wcscmp(selected_open_id,L"ui-smoke-account")?0:1;
+            if (wcscmp(saved,L"ui-smoke-account") || !read_config(fixture) || redirect_api || local_account ||
+                redirect_appdata || redirect_registry || camera_fade || tcp_only) rc=1;
+            DeleteFileW(fixture);
             log_line("Native account dialog smoke test: %s",rc?"FAIL":"PASS"); goto done;
+        }
+        if (!wcscmp(argv[i],L"--ui-preview")) {
+            if (i+1>=argc || !read_config(argv[i+1])) { error("UI preview requires a valid fixture INI"); goto done; }
+            rc=show_settings_dialog(instance,argv[i+1])>=0?0:1; goto done;
         }
         if (!wcscmp(argv[i],L"--self-test")) { rc=self_test(); goto done; }
         if (!wcscmp(argv[i],L"--portable-test")) {
@@ -896,12 +961,12 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int sho
             rc=unity_registry_test()?0:1; goto done;
         }
 #else
-        if (!wcscmp(argv[i],L"--self-test") || !wcscmp(argv[i],L"--ui-smoke-test") || !wcscmp(argv[i],L"--portable-test") || !wcscmp(argv[i],L"--registry-test") || !wcscmp(argv[i],L"--restart-test") || !wcscmp(argv[i],L"--restart-marker-check")) {
+        if (!wcscmp(argv[i],L"--self-test") || !wcscmp(argv[i],L"--ui-smoke-test") || !wcscmp(argv[i],L"--ui-preview") || !wcscmp(argv[i],L"--portable-test") || !wcscmp(argv[i],L"--registry-test") || !wcscmp(argv[i],L"--restart-test") || !wcscmp(argv[i],L"--restart-marker-check") || !wcscmp(argv[i],L"--log-test")) {
             log_line("Self-tests are not included in this build; use build.ps1 -SelfTest"); goto done;
         }
 #endif
         if (!wcscmp(argv[i],L"--help")) {
-            log_line("Place LurukaPS.exe and cbt3-shell.ini beside AzurPromilia_Data.\nAppData I/O is redirected into LuruksPSData in this directory.\n--check <game-directory>: validate without loading/executing DLLs\n--dpi-check: verify DPI awareness without loading Unity\n--console: show log console");
+            log_line("Place LurukaPS.exe and LurukaPS-client.ini beside AzurPromilia_Data.\nAppData I/O is redirected into LuruksPSData in this directory.\n--check <game-directory>: validate without loading/executing DLLs\n--dpi-check: verify DPI awareness without loading Unity\n--console: show log console");
 #ifdef SHELL_SELF_TEST
             log_line("--self-test: patch engine test\n--ui-smoke-test: native account dialog test, no Unity\n--portable-test: isolated native filesystem redirection test, no Unity\n--registry-test: temporary registry redirection test, no Unity");
 #endif
@@ -914,13 +979,13 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int sho
             if (!length || length>=32768) { error("Invalid/overlong game directory"); goto done; }
         }
     }
-    if (!join_path(path,32768,dir,L"cbt3-shell.log")) goto done;
+    if (!join_path(path,32768,dir,L"LurukaPS-client.log")) goto done;
     /* --check is read-only, including the supplied client directory. */
     if (!check_mode) log_file=_wfopen(path,L"ab");
-    log_line("CBT3 C shell; mode=%s",check_mode?"check":"Unity host");
+    log_line("LurukaPS Client");
     (void)report_dpi_awareness();
     log_line("Hybrid-GPU high-performance hints: NVIDIA=1 AMD=1; actual adapter is reported in Player.log");
-    if (!join_path(path,32768,dir,L"cbt3-shell.ini") || !read_config(path)) { error("Invalid cbt3-shell.ini"); goto done; }
+    if (!join_path(path,32768,dir,L"LurukaPS-client.ini") || !read_config(path)) { error("Invalid LurukaPS-client.ini"); goto done; }
     if (!join_path(path,32768,dir,L"GameAssembly.dll") || !open_image(&image,path)) { error("Cannot open GameAssembly.dll"); goto done; }
     if (!verify_il2cpp_image(&image)) { error("Unsupported IL2CPP PE/exports; no patches applied"); goto done; }
     if (!join_path(path,32768,dir,L"AzurPromilia_Data\\ScriptingAssemblies.json") || !read_assembly_manifest(path)) {
@@ -938,17 +1003,17 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int sho
         if (!valid) { error("Missing/invalid Windows x64 UnityPlayer.dll"); goto done; }
     }
     if (check_mode) { log_line("CHECK PASS; no DLL loaded, no game started"); rc=0; goto done; }
-    if (!join_path(path,32768,dir,L"cbt3-shell.ini")) goto done;
+    if (!join_path(path,32768,dir,L"LurukaPS-client.ini")) goto done;
     {
-        int shown=show_account_dialog(instance,path);
+        int shown=show_settings_dialog(instance,path);
         if (shown<=0) { if (shown<0) error("Cannot open account input dialog"); else rc=0; goto done; }
     }
     if (!SetCurrentDirectoryW(dir) || !SetDllDirectoryW(dir)) { error("Cannot set game directory"); goto done; }
-    if (!install_portable_paths()) { error("Cannot install process-local AppData redirection"); goto done; }
+    if (redirect_appdata && !install_portable_paths()) { error("Cannot install process-local AppData redirection"); goto done; }
     if (!join_path(path,32768,dir,L"UnityPlayer.dll")) goto done;
     unity=LoadLibraryExW(path,NULL,LOAD_WITH_ALTERED_SEARCH_PATH);
     if (!unity) { error("Cannot load UnityPlayer.dll"); goto done; }
-    if (!install_unity_registry(unity)) { error("Cannot redirect Unity registry imports"); goto done; }
+    if (redirect_registry && !install_unity_registry(unity)) { error("Cannot redirect Unity registry imports"); goto done; }
     procedure=GetProcAddress(unity,"UnityMain");
     memcpy(&unity_main,&procedure,sizeof(unity_main));
     if (!unity_main) { error("UnityPlayer.dll has no UnityMain export"); goto done; }

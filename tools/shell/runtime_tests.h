@@ -1,4 +1,20 @@
-/* Synthetic metadata changes addresses/layouts without using CBT3 RVAs. */
+/* Synthetic metadata changes addresses/layouts without using fixed client RVAs. */
+static int launch_switches_test(void) {
+    int api=redirect_api,account=local_account,data=redirect_appdata,tcp=tcp_only,fade=camera_fade;
+    int sdk=local_sdk_enabled,restart=restart_routing_enabled,ok;
+    redirect_api=local_account=redirect_appdata=tcp_only=camera_fade=0;
+    local_sdk_enabled=restart_routing_enabled=1;
+    ok=!site_enabled(SITE_RequestUrl) && !site_enabled(SITE_RequestUrlTT2) && !site_enabled(SITE_HttpGetJson) &&
+        !site_enabled(SITE_UriCtor) && !site_enabled(SITE_BestSend) && !site_enabled(SITE_HttpSend) && !site_enabled(SITE_UnityUrl) &&
+        !site_enabled(SITE_InfoEnableSdk) && !site_enabled(SITE_AppEnableSdk) && !site_enabled(SITE_SdkTrigger) &&
+        !site_enabled(SITE_SdkFactory) && !site_enabled(SITE_SdkRegion) && !site_enabled(SITE_PersistentPath) &&
+        site_enabled(SITE_RestartFullPath) && !site_enabled(SITE_NetKcp) && !site_enabled(SITE_CameraFade);
+    ok=ok && setup_local_sdk() && !local_sdk_enabled;
+    redirect_api=api; local_account=account; redirect_appdata=data; tcp_only=tcp; camera_fade=fade;
+    local_sdk_enabled=sdk; restart_routing_enabled=restart;
+    log_line("Launcher switches: routing, original SDK, data path, camera and TCP hook gates: %s",ok?"PASS":"FAIL");
+    return ok;
+}
 typedef struct { void *native_slots[4]; const char *name,*result; uint32_t count,flags; const char *parameters[8]; } FakeMethod;
 static FakeMethod fake_methods[2];
 static int fake_method_count,fake_image_count;

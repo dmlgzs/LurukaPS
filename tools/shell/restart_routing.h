@@ -10,7 +10,7 @@ static int prepare_restart_paths(void) {
     DWORD n=GetModuleFileNameW(NULL,restart_current_exe,32768); wchar_t *slash;
     if (!n || n>=32768 || !(slash=wcsrchr(restart_current_exe,L'\\'))) return 0;
     restart_directory_length=(size_t)(slash-restart_current_exe);
-    if (!join_path(restart_persistent_directory,32768,portable_target,L"LocalLow\\manjuu\\AzurPromilia")) return 0;
+    if (redirect_appdata && !join_path(restart_persistent_directory,32768,portable_target,L"LocalLow\\manjuu\\AzurPromilia")) return 0;
     log_line("Restart handoff paths prepared from EXE directory; no Unity getter called");
     return 1;
 }
