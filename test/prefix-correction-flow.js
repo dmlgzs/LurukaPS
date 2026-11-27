@@ -245,7 +245,21 @@ export function normalSuccessorFlow(
         const required = conditions
             .map((condition, index) => ({ condition, index }))
             .filter(({ condition }) => !condition.__type_TaskConditionBaseData?.unneedCompleted)
-        for (const { condition, index } of required) complete(taskId, node, condition, index)
+        for (const { condition, index } of required) {
+            complete(taskId, node, condition, index)
+            if (condition.conditionId === 12017) {
+                const current = f.state().tasks.find((row) => row.task_id === taskId)
+                if (current?.finish_nodes.includes(node.id) && !current.nodes.some((row) => row.node_id === node.id)) {
+                    // Current server task sync can finish a no-after-action
+                    // parent while its dungeon coroutine returns. The old
+                    // client node is disposed;do not emit stale phase calls.
+                    assert.equal(taskActions(node, 'after').length, 0)
+                    assert.equal(deferredGuides.size, 0)
+                    visits.at(-1).serverAdvanced = true
+                    return
+                }
+            }
+        }
         for (const id of deferredGuides) call('GuideUpdate', { id, sub_id: 0 })
         deferredGuides.clear()
         const phaseHandled =
