@@ -14,7 +14,6 @@
 #endif
 #include <windows.h>
 #include <shellapi.h>
-#include <bcrypt.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -113,7 +112,10 @@ static int valid_open_id(const wchar_t *text) {
     bytes=WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,text,(int)length,NULL,0,NULL,NULL);
     return bytes>0 && bytes<=128;
 }
-typedef struct { const wchar_t *config; int smoke; HFONT font; } AccountDialog;
+typedef struct { const wchar_t *config; HFONT font; } AccountDialog;
+#ifdef SHELL_SELF_TEST
+static int account_dialog_smoke;
+#endif
 static HWND dialog_control(HWND dialog,const wchar_t *klass,const wchar_t *text,DWORD style,
     int id,int x,int y,int width,int height,HFONT font) {
     RECT rect={x,y,x+width,y+height}; HWND control;
@@ -143,10 +145,14 @@ static INT_PTR CALLBACK account_dialog_proc(HWND dialog,UINT message,WPARAM wpar
         if (!edit) { EndDialog(dialog,-1); return TRUE; }
         SendMessageW(edit,EM_SETLIMITTEXT,128,0);
         SetFocus(edit); SendMessageW(edit,EM_SETSEL,0,-1);
-        if (context->smoke) { SetWindowTextW(edit,L"ui-smoke-account"); SetTimer(dialog,1,250,NULL); }
+#ifdef SHELL_SELF_TEST
+        if (account_dialog_smoke) { SetWindowTextW(edit,L"ui-smoke-account"); SetTimer(dialog,1,250,NULL); }
+#endif
         return FALSE;
     }
-    if (message==WM_TIMER && context && context->smoke) { KillTimer(dialog,1); SendMessageW(dialog,WM_COMMAND,IDOK,0); return TRUE; }
+#ifdef SHELL_SELF_TEST
+    if (message==WM_TIMER && context && account_dialog_smoke) { KillTimer(dialog,1); SendMessageW(dialog,WM_COMMAND,IDOK,0); return TRUE; }
+#endif
     if (message==WM_COMMAND && LOWORD(wparam)==IDOK) {
         wchar_t value[129]; GetDlgItemTextW(dialog,101,value,129);
         if (!valid_open_id(value)) {
@@ -162,11 +168,11 @@ static INT_PTR CALLBACK account_dialog_proc(HWND dialog,UINT message,WPARAM wpar
     if ((message==WM_COMMAND && LOWORD(wparam)==IDCANCEL) || message==WM_CLOSE) { EndDialog(dialog,IDCANCEL); return TRUE; }
     return FALSE;
 }
-static int show_account_dialog(HINSTANCE instance,const wchar_t *config,int smoke) {
+static int show_account_dialog(HINSTANCE instance,const wchar_t *config) {
     /* DLGTEMPLATE variable fields are UTF-16 and word aligned. */
     union { DWORD align; BYTE bytes[256]; } buffer;
     DLGTEMPLATE *template=(DLGTEMPLATE *)buffer.bytes; WORD *tail;
-    const wchar_t title[]=L"CBT3 本地账号"; INT_PTR result; AccountDialog context={config,smoke,NULL};
+    const wchar_t title[]=L"CBT3 本地账号"; INT_PTR result; AccountDialog context={config,NULL};
     memset(&buffer,0,sizeof(buffer));
     template->style=WS_POPUP|WS_CAPTION|WS_SYSMENU|DS_MODALFRAME|DS_CENTER;
     template->cx=300; template->cy=155;
@@ -196,26 +202,6 @@ static int open_image(Image *image, const wchar_t *path) {
     if (!image->mapping) return 0;
     image->bytes = MapViewOfFile(image->mapping, FILE_MAP_READ, 0, 0, 0);
     return image->bytes != NULL;
-}
-static int verify_hash(const Image *image, const char *expected) {
-    BCRYPT_ALG_HANDLE alg = NULL;
-    BCRYPT_HASH_HANDLE hash = NULL;
-    BYTE result[32]; char hex[65]; size_t pos; int ok = 0;
-    if (BCryptOpenAlgorithmProvider(&alg, BCRYPT_SHA256_ALGORITHM, NULL, 0) < 0) goto done;
-    if (BCryptCreateHash(alg, &hash, NULL, 0, NULL, 0, 0) < 0) goto done;
-    for (pos = 0; pos < image->size;) {
-        ULONG chunk = (ULONG)((image->size-pos > 1048576) ? 1048576 : image->size-pos);
-        if (BCryptHashData(hash, (PUCHAR)(image->bytes+pos), chunk, 0) < 0) goto done;
-        pos += chunk;
-    }
-    if (BCryptFinishHash(hash, result, sizeof(result), 0) < 0) goto done;
-    for (pos = 0; pos < 32; ++pos) snprintf(hex+pos*2, 3, "%02x", result[pos]);
-    ok = !expected || strcmp(hex, expected) == 0;
-    log_line("SHA256 %s: %s", expected?(ok?"OK":"MISMATCH"):"fingerprint", hex);
-done:
-    if (hash) BCryptDestroyHash(hash);
-    if (alg) BCryptCloseAlgorithmProvider(alg, 0);
-    return ok;
 }
 static const IMAGE_NT_HEADERS64 *pe_header(const Image *image) {
     const IMAGE_DOS_HEADER *dos;
@@ -271,7 +257,6 @@ static int verify_il2cpp_image(const Image *image) {
     for (i=0;i<sizeof(required_exports)/sizeof(required_exports[0]);++i) {
         if (!has_export(image,required_exports[i])) { log_line("Missing export: %s",required_exports[i]); return 0; }
     }
-    if (!verify_hash(image,NULL)) return 0; /* diagnostic fingerprint, no build whitelist */
     log_line("Windows x64 IL2CPP exports verified; method resolution requires runtime initialization");
     return 1;
 }
@@ -644,7 +629,7 @@ static int read_boolean(const wchar_t *path, const wchar_t *key, int fallback) {
     return -1;
 }
 static int read_config(const wchar_t *path) {
-    DWORD n; size_t i;
+    DWORD n; size_t i; wchar_t prefill[130];
     n=GetPrivateProfileStringW(L"shell",L"api_url",L"http://127.0.0.1:20001",api_url,1024,path);
     if (n==1023 || !n || (wcsncmp(api_url,L"http://",7) && wcsncmp(api_url,L"https://",8))) return 0;
     for (i=0; api_url[i]; ++i) if (api_url[i]<=32) return 0;
@@ -655,13 +640,33 @@ static int read_config(const wchar_t *path) {
     for (i=0; log_url[i]; ++i) if (log_url[i]<=32) return 0;
     tcp_only=read_boolean(path,L"tcp_only",1);
     camera_fade=read_boolean(path,L"disable_camera_fade",1);
-    n=GetPrivateProfileStringW(L"shell",L"open_id",L"",selected_open_id,129,path);
-    if (n==128 && selected_open_id[127]) {
-        wchar_t full[512]; DWORD full_length=GetPrivateProfileStringW(L"shell",L"open_id",L"",full,512,path);
-        if (full_length>128) return 0;
-    }
-    if (n && !valid_open_id(selected_open_id)) return 0;
+    /* One extra character distinguishes a valid 128-character identity from
+     * truncated input. A bad prefill must not prevent correcting it in the UI. */
+    n=GetPrivateProfileStringW(L"shell",L"open_id",L"",prefill,130,path);
+    selected_open_id[0]=0;
+    if (n>=129 || (n && !valid_open_id(prefill)))
+        log_line("Ignoring invalid prefilled open_id; enter an account in the dialog (value not logged)");
+    else wcscpy(selected_open_id,prefill);
     return tcp_only>=0 && camera_fade>=0;
+}
+#ifdef SHELL_SELF_TEST
+static int prefill_config_self_test(void) {
+    wchar_t directory[MAX_PATH],path[MAX_PATH],value[130],saved[130]; size_t i; int ok;
+    DWORD length=GetTempPathW(MAX_PATH,directory);
+    if (!length || length>=MAX_PATH || !GetTempFileNameW(directory,L"lps",0,path)) return 0;
+    for (i=0;i<129;++i) value[i]=L'a';
+    value[129]=0;
+    ok=WritePrivateProfileStringW(L"shell",L"open_id",value,path) && read_config(path) && !selected_open_id[0];
+    GetPrivateProfileStringW(L"shell",L"open_id",L"",saved,130,path);
+    ok=ok && !wcscmp(saved,value); /* Reading must not rewrite the user's INI. */
+    value[128]=0;
+    ok=ok && WritePrivateProfileStringW(L"shell",L"open_id",value,path) && read_config(path) && !wcscmp(selected_open_id,value);
+    for (i=0;i<43;++i) value[i]=0x4e2d;
+    value[43]=0; /* 129 UTF-8 bytes, despite fitting the UTF-16 buffer. */
+    ok=ok && WritePrivateProfileStringW(L"shell",L"open_id",value,path) && read_config(path) && !selected_open_id[0];
+    DeleteFileW(path);
+    log_line("Account prefill: invalid input cleared, valid boundary retained and INI unchanged: %s",ok?"PASS":"FAIL");
+    return ok;
 }
 typedef uintptr_t (*TestNineFn)(void *,void *,void *,void *,void *,int32_t,int32_t,void *,void *);
 static TestNineFn test_nine_original;
@@ -816,7 +821,7 @@ static int self_test(void) {
             VirtualFree(hook_pages[0],0,MEM_RELEASE); hook_pages[0]=NULL;
         }
     }
-    ok=ok && routing_self_test() && identity_self_test() && assembly_manifest_test() && runtime_resolution_test(page) && staged_loading_test(page+512) && local_sdk_self_test() && transport_routing_test(page) && bootstrap_trampoline_test(page+128);
+    ok=ok && prefill_config_self_test() && routing_self_test() && identity_self_test() && assembly_manifest_test() && runtime_resolution_test(page) && staged_loading_test(page+512) && local_sdk_self_test() && transport_routing_test(page) && bootstrap_trampoline_test(page+128);
     VirtualFree(page,0,MEM_RELEASE);
     log_line("Patch transaction, executable code and page protection: %s",ok?"PASS":"FAIL");
     log_line("Selective discovery routing and 9-argument Win64 trampoline: %s",ok?"PASS":"FAIL");
@@ -825,6 +830,7 @@ static int self_test(void) {
     log_line("Deferred scripting assembly lookup and manifest validation: %s",ok?"PASS":"FAIL");
     return ok?0:1;
 }
+#endif
 int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int show) {
     wchar_t exe[32768], dir[32768], path[32768]; wchar_t **argv; int argc,i,rc=1;
     Image image={INVALID_HANDLE_VALUE,NULL,NULL,0}, metadata={INVALID_HANDLE_VALUE,NULL,NULL,0};
@@ -843,14 +849,24 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int sho
     { wchar_t *slash=wcsrchr(dir,L'\\'); if (!slash) goto done; *slash=0; }
     for (i=1;i<argc;++i) {
         if (!wcscmp(argv[i],L"--dpi-check")) { rc=report_dpi_awareness()?0:1; goto done; }
+#ifdef SHELL_SELF_TEST
         if (!wcscmp(argv[i],L"--ui-smoke-test")) {
-            int shown=show_account_dialog(instance,L"",1);
+            int shown; account_dialog_smoke=1;
+            shown=show_account_dialog(instance,L"");
             rc=shown==1 && !wcscmp(selected_open_id,L"ui-smoke-account")?0:1;
             log_line("Native account dialog smoke test: %s",rc?"FAIL":"PASS"); goto done;
         }
         if (!wcscmp(argv[i],L"--self-test")) { rc=self_test(); goto done; }
+#else
+        if (!wcscmp(argv[i],L"--self-test") || !wcscmp(argv[i],L"--ui-smoke-test")) {
+            log_line("Self-tests are not included in this build; use build.ps1 -SelfTest"); goto done;
+        }
+#endif
         if (!wcscmp(argv[i],L"--help")) {
-            log_line("Place AzurPromilia.exe and cbt3-shell.ini in the game directory.\n--check <game-directory>: validate without loading/executing DLLs\n--self-test: patch engine test\n--dpi-check: verify DPI awareness without loading Unity\n--ui-smoke-test: native account dialog test, no Unity\n--console: show log console");
+            log_line("Place AzurPromilia.exe and cbt3-shell.ini in the game directory.\n--check <game-directory>: validate without loading/executing DLLs\n--dpi-check: verify DPI awareness without loading Unity\n--console: show log console");
+#ifdef SHELL_SELF_TEST
+            log_line("--self-test: patch engine test\n--ui-smoke-test: native account dialog test, no Unity");
+#endif
             rc=0; goto done;
         }
         if (!wcscmp(argv[i],L"--check")) {
@@ -886,7 +902,7 @@ int WINAPI wWinMain(HINSTANCE instance,HINSTANCE previous,LPWSTR command,int sho
     if (check_mode) { log_line("CHECK PASS; no DLL loaded, no game started"); rc=0; goto done; }
     if (!join_path(path,32768,dir,L"cbt3-shell.ini")) goto done;
     {
-        int shown=show_account_dialog(instance,path,0);
+        int shown=show_account_dialog(instance,path);
         if (shown<=0) { if (shown<0) error("Cannot open account input dialog"); else rc=0; goto done; }
     }
     if (!SetCurrentDirectoryW(dir) || !SetDllDirectoryW(dir)) { error("Cannot set game directory"); goto done; }

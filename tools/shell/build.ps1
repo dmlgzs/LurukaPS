@@ -1,6 +1,7 @@
-param([string]$Compiler = 'gcc', [switch]$Debug, [string]$ResourceCompiler = 'windres')
+param([string]$Compiler = 'gcc', [switch]$Debug, [string]$ResourceCompiler = 'windres', [switch]$SelfTest)
 $ErrorActionPreference = 'Stop'
 $outputDirectory = Join-Path $PSScriptRoot 'build'
+$outputName = if ($SelfTest) { 'AzurPromilia-selftest.exe' } else { 'AzurPromilia.exe' }
 New-Item -ItemType Directory -Force -Path $outputDirectory | Out-Null
 $watermarkSource = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'watermark.lua'), [Text.Encoding]::UTF8)
 $watermarkWords = foreach ($character in $watermarkSource.ToCharArray()) { '0x{0:x4}' -f [int]$character }
@@ -12,8 +13,9 @@ $manifestObject = Join-Path $outputDirectory 'shell.res.o'
     '--output' $manifestObject '--output-format=coff' '--target=pe-x86-64'
 if ($LASTEXITCODE -ne 0) { throw "Resource compiler failed with exit code $LASTEXITCODE" }
 $compilerArgs = @('-std=c11', '-Wall', '-Wextra', '-Werror', '-municode', '-mwindows', '-static-libgcc',
-    (Join-Path $PSScriptRoot 'shell.c'), $manifestObject, '-o', (Join-Path $outputDirectory 'AzurPromilia.exe'),
-    '-lbcrypt', '-lshell32', '-luser32')
+    (Join-Path $PSScriptRoot 'shell.c'), $manifestObject, '-o', (Join-Path $outputDirectory $outputName),
+    '-lshell32', '-luser32')
+if ($SelfTest) { $compilerArgs += '-DSHELL_SELF_TEST' }
 if ($Debug) { $compilerArgs += @('-O0', '-g') } else { $compilerArgs += @('-O2', '-s') }
 try {
     & $Compiler @compilerArgs
@@ -22,4 +24,4 @@ try {
     Remove-Item -LiteralPath $manifestObject -Force -ErrorAction SilentlyContinue
 }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'cbt3-shell.ini') -Destination $outputDirectory
-Write-Output (Join-Path $outputDirectory 'AzurPromilia.exe')
+Write-Output (Join-Path $outputDirectory $outputName)
