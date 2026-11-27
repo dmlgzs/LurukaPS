@@ -1,11 +1,42 @@
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
-import { activeFormationManager, temporaryHeroes } from './trial-actors.js'
+import { activeFormationManager, temporaryHeroes, temporaryPets } from './trial-actors.js'
+
+const uint = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff
+function boundPetDisplay(state, slot) {
+    const id = String(slot?.pet_id ?? '0')
+    if (id === '0') return undefined
+    const matches = [...state.pets, ...temporaryPets(state)].filter((pet) => String(pet.guid) === id)
+    ensure(
+        matches.length === 1,
+        'Map member bound pet identity is unavailable',
+        matches.length ? ErrorCode.GameConfig : ErrorCode.PetNotExist,
+    )
+    const pet = matches[0]
+    ensure(
+        uint(pet.config_id) &&
+            pet.config_id > 0 &&
+            uint(pet.lv) &&
+            pet.lv > 0 &&
+            uint(pet.color === undefined ? 0 : pet.color) &&
+            uint(pet.special === undefined ? 0 : pet.special) &&
+            uint(pet.colorful === undefined ? 0 : pet.colorful),
+        'Map member bound pet display is malformed',
+        ErrorCode.GameConfig,
+    )
+    return {
+        pet_id: pet.config_id,
+        level: pet.lv,
+        color: pet.color === undefined ? 0 : pet.color,
+        special: pet.special === undefined ? 0 : pet.special,
+        colorful: pet.colorful === undefined ? 0 : pet.colorful,
+    }
+}
 
 // Current MultiCampaignBaseInfo.player_list is scene.InitMapMember with a
 // TeamV2MemberData payload, rather than CBT3's flat member description.
 export function currentMapMember(state, accountId, options) {
-    let heroes, control
+    let heroes, control, slots
     if (options !== undefined) {
         ensure(
             options &&
@@ -48,6 +79,7 @@ export function currentMapMember(state, accountId, options) {
         const available = [...state.player.heros_info.heros, ...temporaryHeroes(state)],
             selected = formation.heros.filter((slot) => slot.hero_id && String(slot.hero_id) !== '0'),
             ids = new Set()
+        slots = selected
         heroes = selected.map((slot) => {
             const id = String(slot.hero_id),
                 matches = available.filter((hero) => String(hero.guid) === id)
@@ -81,11 +113,18 @@ export function currentMapMember(state, accountId, options) {
                 : {}),
             group: {
                 control_hero: control.conf_id,
-                hero_list: heroes.map((hero) => ({
-                    hero_id: hero.conf_id,
-                    hero_level: hero.hero_lv,
-                    hero_skin_id: hero.hero_skin || hero.conf_id,
-                })),
+                hero_list: heroes.map((hero, index) => {
+                    // SetTeamData060015bd explicitly resets petId to zero when
+                    // TeamV2Hero.pet is absent. Use the actual slot binding;
+                    // arena hero overrides have no formation pet binding.
+                    const pet = boundPetDisplay(state, slots?.[index])
+                    return {
+                        hero_id: hero.conf_id,
+                        hero_level: hero.hero_lv,
+                        hero_skin_id: hero.hero_skin || hero.conf_id,
+                        ...(pet ? { pet } : {}),
+                    }
+                }),
             },
         },
     }
