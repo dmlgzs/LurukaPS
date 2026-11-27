@@ -150,11 +150,11 @@ test('actual6136 signature accepts40 ASCII/20Han/40fullwidth Latin and clears; u
         f.store.close()
     }
 })
-test('rename nonzero legacy modes remain unsupported, same-name bypass cannot change cooldown, malformed time stays config failure', () => {
+test('rename unknown flag modes remain unsupported, same-name bypass cannot change cooldown, malformed time stays config failure', () => {
     const f = fixture('mode')
     try {
         const before = f.raw()
-        for (const extra of [{ check: 1 }, { cr: 1 }])
+        for (const extra of [{ check: 2 }, { cr: 1 }])
             assert.throws(
                 () => f.call('ChangeName', { name: b64('新风'), ...extra }),
                 (e) => e.code === ErrorCode.FunctionClosed,

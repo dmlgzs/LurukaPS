@@ -90,6 +90,7 @@ export function registerCore(on) {
     })
     on('ChangeName', (c, r) => {
         const plan = planPlayerRename(c.tables, c.state, r, c.now)
+        if (plan === null) return {}
         Object.assign(c.state.player.basic_info, plan)
         syncPlayer({ ...c, push: c.pushBefore }, { basic_info: c.state.player.basic_info })
         return {}

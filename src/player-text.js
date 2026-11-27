@@ -142,10 +142,17 @@ export function validatePlayerSignBytes(tables, value) {
 }
 export function planPlayerRename(tables, state, request, now) {
     ensure(
-        (request.cr ?? 0) === 0 && (request.check ?? 0) === 0,
-        'Nonzero rename mode has no current sender contract',
+        (request.cr ?? 0) === 0 && [0, 1].includes(request.check ?? 0),
+        'Rename flag combination has no current sender contract',
         ErrorCode.FunctionClosed,
     )
+    // Current PageCreatePlayer.OnClickBtnConfirm06015a16 sends check1 first.
+    // Its success callback continues the creation timeline;5010 commits the
+    // actual persona/name later. Preflight must not rename or start the CD.
+    if (request.check === 1) {
+        validatePlayerNameBytes(tables, request.name, { initial: true })
+        return null
+    }
     const name = validatePlayerNameBytes(tables, request.name),
         rules = directory(tables),
         last = state.player.basic_info.last_change_name_time ?? 0
