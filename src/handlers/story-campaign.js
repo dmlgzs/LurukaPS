@@ -5,7 +5,7 @@ import {
     storyCampaignStoryProof,
 } from '../story-campaign-story-receipts.js'
 import { pushSceneMode } from '../scene-mode.js'
-import { resetCampaignPlayableEntry } from '../campaign-playable-ledger.js'
+import { resetCampaignPlayableEntry, resetPlayableEntries } from '../campaign-playable-ledger.js'
 import { combatEntityStates } from '../combat-enemy-lifecycle.js'
 import { activateSceneCombatGroup } from '../scene-combat-group-lifecycle.js'
 import { enemyDefinition } from '../enemy-state.js'
@@ -555,16 +555,19 @@ export function registerStoryCampaign(on, tables) {
             // and rewards remain independent from these dungeon-only tasks.
             c.state.tasks = c.state.tasks.filter((task) => !config.taskIds.includes(task.task_id))
             c.state.taskRecords = (c.state.taskRecords ?? []).filter((task) => !config.taskIds.includes(task.task_id))
+            const taskPlayables = new Set()
             for (const taskId of config.taskIds)
                 for (const node of graphs.get(taskId).nodes.values())
                     for (const condition of nodeConditions(node)) {
-                        const playableId =
-                            condition.__type_TaskConditionBaseData?.__type_TaskCondPlayableIsFinishData?.playableID
-                        if (playableId) {
-                            delete c.state.playableFinishes?.[playableId]
-                            delete c.state.playableRuns?.[playableId]
-                        }
+                        const base = condition.__type_TaskConditionBaseData
+                        for (const id of [
+                            base?.__type_TaskCondCompletePlayableData?.playableId,
+                            base?.__type_TaskCondPlayableIsFinishData?.playableID,
+                            base?.__type_TaskCondPlayableStepData?.playableID,
+                        ])
+                            if (id) taskPlayables.add(id)
                     }
+            resetPlayableEntries(c.state, taskPlayables)
             acceptTask(graphs.get(config.taskIds[0]), c.state, c.now).client_trace = true
             c.push('CSProtoTaskSync', { ...taskSnapshot(tables, c.state), new_task_ids: [config.taskIds[0]] })
         }

@@ -28,6 +28,16 @@ function preserveClaims(state, id, finish) {
         )
 }
 
+// A new task/campaign attempt replays its ephemeral playable state. Reward
+// claims are permanent facts and must survive removing the previous finish.
+export function resetPlayableEntries(state, ids) {
+    for (const id of ids) {
+        preserveClaims(state, id, state.playableFinishes?.[id])
+        if (state.playableRuns) delete state.playableRuns[id]
+        if (state.playableFinishes) delete state.playableFinishes[id]
+    }
+}
+
 export function prepareCampaignPlayableStart(state, playId) {
     const campaign = campaignPlayableContext(state, playId)
     if (!campaign) return null
@@ -110,11 +120,7 @@ export function clearCampaignPlayables(state, campaign) {
 
 export function resetCampaignPlayableEntry(state, campaign) {
     if (!campaign?.local_playable_condition) return
-    for (const id of campaign.playable_ids ?? []) {
-        preserveClaims(state, id, state.playableFinishes?.[id])
-        if (state.playableRuns) delete state.playableRuns[id]
-        if (state.playableFinishes) delete state.playableFinishes[id]
-    }
+    resetPlayableEntries(state, campaign.playable_ids ?? [])
 }
 
 export function playableWire(run) {
