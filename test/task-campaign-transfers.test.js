@@ -112,7 +112,7 @@ for (const scenario of [
         transfers: [
             [6, 6234001],
             [7, 6228005],
-            [8, 622403],
+            [8, 6224009],
         ],
     },
     {
@@ -284,9 +284,10 @@ test('successful campaign auto-exit reconciles a cached entry Before reset and a
         const xp = f.state().player.basic_info.exp
         assert.equal(
             f.state().tasks.find((task) => task.task_id === 107016).nodes[0].node_id,
-            32,
-            'advance the completed node without requiring lost client callbacks',
+            26,
+            'the current black-screen after-action still needs its normal client completion callback',
         )
+        assert.equal(f.state().tasks.find((task) => task.task_id === 107016).nodes[0].client_before, true)
         f.call('TaskClientCondAfter', { task_id: 107016, node_id: 26, indexes: [0] })
         f.call('TaskClientAfter', { task_id: 107016, node_id: 26 })
         assert.equal(f.state().tasks.find((task) => task.task_id === 107016).nodes[0].node_id, 32)
@@ -309,9 +310,10 @@ test('login repairs the completed legacy entry acknowledgment using all table-de
         f.relogin()
         assert.equal(
             f.state().tasks.find((task) => task.task_id === 107016).nodes[0].node_id,
-            32,
-            'advance the completed node without requiring lost client callbacks',
+            26,
+            'a historical clear recovers Before without skipping the current after-action',
         )
+        assert.equal(f.state().tasks.find((task) => task.task_id === 107016).nodes[0].client_before, true)
         f.call('TaskClientCondAfter', { task_id: 107016, node_id: 26, indexes: [0] })
         f.call('TaskClientAfter', { task_id: 107016, node_id: 26 })
         assert.equal(f.state().tasks.find((task) => task.task_id === 107016).nodes[0].node_id, 32)
@@ -355,6 +357,10 @@ test('a cleared entry recovers after reentry erased mutable records, using durab
         })
         const xp = f.state().player.basic_info.exp
         f.relogin()
+        assert.equal(f.state().tasks.find((task) => task.task_id === 107016).nodes[0].node_id, 26)
+        assert.equal(f.state().tasks.find((task) => task.task_id === 107016).nodes[0].client_before, true)
+        f.call('TaskClientCondAfter', { task_id: 107016, node_id: 26, indexes: [0] })
+        f.call('TaskClientAfter', { task_id: 107016, node_id: 26 })
         assert.equal(f.state().tasks.find((task) => task.task_id === 107016).nodes[0].node_id, 32)
         assert.deepEqual(f.state().tasks.find((task) => task.task_id === 107016).reward_nodes, [24])
         assert.equal(f.state().player.basic_info.exp, xp)

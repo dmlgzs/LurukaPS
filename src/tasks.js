@@ -1,3 +1,4 @@
+import { currentEmptyVictoryTaskChain } from './task-chain-completion.js'
 import { verifiedStoryCampaignStoryClear } from './story-campaign-story-receipts.js'
 import { hasHistoricalParentDungeonClear } from './story-clear-proof-migration.js'
 import { ErrorCode } from './error-codes.js'
@@ -571,10 +572,13 @@ export function hasVerifiedTaskDungeonClear(tables, state, dungeonId) {
         .split('#')
         .map(Number)
     if (kind === 2506) return verifiedStoryCampaignStoryClear(tables, state, dungeonId)
-    if (kind !== 2007 || !ids.length || ids.at(-1) !== victoryTask) return false
+    const currentChain = currentEmptyVictoryTaskChain(tables, dungeonId)
+    if ((!currentChain && kind !== 2007) || !ids.length) return false
+    const terminalTask = currentChain ? currentChain.at(-1) : victoryTask
+    if (ids.at(-1) !== terminalTask) return false
     const proof = clear.task_proof
     if (
-        proof?.victory_task_id === victoryTask &&
+        proof?.victory_task_id === terminalTask &&
         Array.isArray(proof.task_ids) &&
         proof.task_ids.length === ids.length &&
         ids.every((id, index) => proof.task_ids[index] === id)

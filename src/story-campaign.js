@@ -1,3 +1,4 @@
+import { currentTaskChainFinished } from './task-chain-completion.js'
 import { storyCampaignStorySatisfied } from './story-campaign-story-receipts.js'
 import { localPlayableCampaignRoute, localCampaignSatisfied } from './campaign-playable-route.js'
 import { combatEntityStates } from './combat-enemy-lifecycle.js'
@@ -452,6 +453,7 @@ export function storySceneDefeated(tables, state) {
     const run = state.storyCampaign
     if (run?.task_ids?.length) {
         const dungeon = tables.find('dungeon', run.dungeon_id)
+        if (dungeon?.victoryCondition === '') return currentTaskChainFinished(tables, state, run)
         const [kind, taskId] = String(dungeon.victoryCondition).split('#').map(Number)
         if (kind === 2506) return storyCampaignStorySatisfied(tables, state)
         return (

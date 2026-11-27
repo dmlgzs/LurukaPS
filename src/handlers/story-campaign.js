@@ -1,3 +1,4 @@
+import { currentEmptyVictoryTaskChain, currentTaskChainFinished } from '../task-chain-completion.js'
 import {
     storyCampaignStoryRule,
     storyCampaignStorySatisfied,
@@ -310,6 +311,9 @@ function creditStoryCampaign(c, dungeonId) {
     const [kind, victoryTask] = String(c.tables.find('dungeon', dungeonId)?.victoryCondition ?? '')
         .split('#')
         .map(Number)
+    const currentChain = currentEmptyVictoryTaskChain(c.tables, dungeonId)
+    if (!clear.task_proof && currentChain && currentTaskChainFinished(c.tables, c.state, c.state.storyCampaign))
+        clear.task_proof = { victory_task_id: currentChain.at(-1), task_ids: [...currentChain] }
     if (
         !clear.task_proof &&
         kind === 2007 &&
