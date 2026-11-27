@@ -19,6 +19,14 @@ test('a failed managed login cannot bypass the missing model through an ordinary
         f = productionWorkGameFixture(name, { file, satiety: 60 })
         f.start(3)
         f.advance(1)
+        // A real current production observer returns configured technology data
+        // under the enabled model. It must not advance a typed queue after a
+        // failed login when that same model is unavailable.
+        const observer = f.protocol.byName.get('CSProtoHomeTechnologyTypeInfo'),
+            observed = f.call('HomeTechnologyTypeInfo', { type: 2 }),
+            observedPacket = observed.find((packet) => packet.id === observer.id)
+        assert(observedPacket)
+        assert(f.protocol.decode(observer.rsp, observedPacket.payload).info.list.length > 0)
         const id = f.session.id,
             protocol = f.protocol,
             tables = f.tables,
@@ -48,7 +56,7 @@ test('a failed managed login cannot bypass the missing model through an ordinary
         assert.deepEqual(row(), before)
         let rejected, packets
         try {
-            packets = call('ActivityGet')
+            packets = call('HomeTechnologyTypeInfo', { type: 2 })
         } catch (error) {
             rejected = error
         }

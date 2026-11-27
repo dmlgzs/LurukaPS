@@ -52,7 +52,7 @@ function fixture({ balance = 60, count = 3, worker = true, builds = 1 } = {}) {
     }
     return state
 }
-function food(state, count = 1, id = 9000101) {
+function food(state, count = 1, id = 9004104) {
     const score = tables.find('food', id).satietyScore
     const old = state.home.builds.find((build) => build.guid === 90)
     const build = {
@@ -207,15 +207,24 @@ test('insufficient food is not partially eaten, whole-food overflow is waste and
     state.home.productionJobs[1] = []
     reconcileProductionWork(tables, state, T, policy)
     assert.equal(state.pets[0].work_pause, false)
-    const overflow = fixture({ balance: 0, count: 1 })
+    const overflow = fixture({ balance: 21, count: 2 })
     const large = tables
         .get('food')
-        .find((row) => row.satietyScore === 120 && tables.find('common_item', row.id)?.type === 355)
-    food(overflow, 1, large.id)
+        .find((row) => row.satietyScore === 100 && tables.find('common_item', row.id)?.type === 355)
+    assert(large, 'Current whole dish recovers100 against99 headroom, preserving the overflow contract')
+    // Earn the remaining balance1 by completing one current budget20 unit.
     settleProductionWork(tables, overflow, T, policy)
+    settleProductionWork(tables, overflow, T + 1000, policy)
+    assert.equal(job(overflow).workCompleted, 1)
+    assert.equal(job(overflow).workPaused, true)
+    eq(balance(overflow), 1)
+    eq(overflow.home.productionWork.stats.spent, 20)
+    food(overflow, 1, large.id)
+    reconcileProductionWork(tables, overflow, T + 1000, policy)
     eq(balance(overflow), 100)
-    eq(overflow.home.productionWork.stats.recovery, 100)
-    eq(overflow.home.productionWork.stats.waste, 20)
+    eq(overflow.home.productionWork.stats.recovery, 99)
+    eq(overflow.home.productionWork.stats.waste, 1)
+    assert.deepEqual(overflow.home.builds.find((build) => build.guid === 90).pet_canteen.foods, [])
 })
 
 test('completed projections stay sealed; job GUID reuse gets a new epoch, no old unit is manufactured', () => {

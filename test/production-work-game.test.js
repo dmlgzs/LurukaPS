@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { productionWorkGameFixture } from './production-work-game-fixture.js'
+import { productionWorkGameFixture, giveProductionWorker } from './production-work-game-fixture.js'
 import { completed } from '../src/production.js'
 import { workCompare } from '../src/production-work-fractions.js'
 import { petModelEligibility } from '../src/pet-model-eligibility.js'
@@ -11,6 +11,7 @@ import os from 'node:os'
 function otherWorker(f, buildId, satiety) {
     let guid
     f.edit((state) => {
+        giveProductionWorker(f.tables, state, buildId)
         const station = f.tables.find('home_building_production', buildId),
             types = String(station.laborType).split('|').map(Number),
             sizes = String(station.petSize).split('|').map(Number),

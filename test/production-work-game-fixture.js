@@ -5,8 +5,28 @@ import { Protocol } from '../src/protocol.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { productionTables } from '../src/production-tables.js'
+import { createPets } from '../src/pets.js'
 import { petModelEligibility } from '../src/pet-model-eligibility.js'
 import reviewPolicy from '../configs/production-work-policy-review.json' with { type: 'json' }
+
+// Grant only the current instance required by a station-specific fixture.
+// Normal production startup and unrelated owned assets remain unchanged.
+export function giveProductionWorker(tables, state, buildId) {
+    const station = tables.find('home_building_production', buildId)
+    assert(station)
+    const types = String(station.laborType).split('|').map(Number),
+        sizes = String(station.petSize).split('|').map(Number)
+    const definition = tables.get('pet_home_talent').find(
+        (row) =>
+            sizes.includes(row.sizeType) &&
+            String(row.laborType)
+                .split('|')
+                .some((id) => types.includes(Number(id))) &&
+            petModelEligibility(tables, row.id).eligible,
+    )
+    assert(definition, 'Current station has a real eligible pet definition')
+    return createPets(tables, state, definition.id, 1)[0]
+}
 
 export function productionWorkGameFixture(name, { satiety = 2, file = ':memory:', laborGrade = 1 } = {}) {
     const config = configuration(),
@@ -26,6 +46,7 @@ export function productionWorkGameFixture(name, { satiety = 2, file = ':memory:'
     }
     const state = () => store.load(session.id).state
     call('EnterGame', { open_id: name })
+    assert.equal(state().starterProfile.mode, 'normal')
     let worker
     store.transact(session.id, 0, (draft) => {
         draft.world.map_id = homeMap
@@ -38,6 +59,7 @@ export function productionWorkGameFixture(name, { satiety = 2, file = ':memory:'
             station = tables.find('home_building_production', build.build_id),
             laborTypes = String(station.laborType).split('|').map(Number),
             sizes = String(station.petSize).split('|').map(Number)
+        giveProductionWorker(tables, draft, build.build_id)
         worker = draft.pets.find(
             (pet) =>
                 (!pet.hero_id || pet.hero_id === '0') &&
@@ -46,7 +68,7 @@ export function productionWorkGameFixture(name, { satiety = 2, file = ':memory:'
                 sizes.includes(tables.find('pet_home_talent', pet.config_id)?.sizeType) &&
                 pet.labor_infos?.some((entry) => laborTypes.includes(entry.labor_id)),
         )
-        assert(worker, 'Current seeded roster includes a legal unbound worker for the real workbench')
+        assert(worker, 'Explicit current grant supplies a legal unbound worker for the real workbench')
         Object.assign(worker, { satiety_val: satiety, talent_id: [] })
         worker.labor_infos = worker.labor_infos.map((entry) =>
             laborTypes.includes(entry.labor_id) ? { ...entry, labor_grade: laborGrade } : entry,

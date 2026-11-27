@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { productionWorkGameFixture } from './production-work-game-fixture.js'
+import { productionWorkGameFixture, giveProductionWorker } from './production-work-game-fixture.js'
+import { Game } from '../src/game.js'
 import { cookingRecipe } from '../src/cooking.js'
 import { accessoryProductionPlan } from '../src/accessory-production.js'
 import { grantRewards, parseRewards } from '../src/rewards.js'
@@ -15,6 +16,7 @@ function station(f, { guid, buildId, type, satiety }) {
     let selected
     f.edit((s) => {
         s.player.basic_info.lv = 45
+        giveProductionWorker(f.tables, s, buildId)
         const config = f.tables.find('home_building_production', buildId),
             labor = String(config.laborType).split('|').map(Number),
             sizes = String(config.petSize).split('|').map(Number)
@@ -45,6 +47,38 @@ function station(f, { guid, buildId, type, satiety }) {
     f.call('PetStationed', { pet_guid: selected, build_guid: guid, build_type: 1 })
     return selected
 }
+function coldBootstrap(f, name) {
+    const game = new Game(f.protocol, f.store, f.tables, { clock: f.now, productionWorkPolicy: f.policy }),
+        session = {}
+    let seq = 1
+    const call = (name, request = {}) => {
+        const entry = f.protocol.byName.get('CSProto' + name)
+        return game.dispatch(session, {
+            id: entry.id,
+            seq: seq++,
+            payload: entry.req ? f.protocol.encode(entry.req, request) : Buffer.alloc(0),
+        })
+    }
+    const bootstrap = call('EnterGame', { open_id: name })
+    return {
+        ...f,
+        game,
+        session,
+        call,
+        bootstrap,
+        advance: (seconds, tick = true) => {
+            f.advance(seconds, false)
+            return tick ? game.tick(session.id, session) : []
+        },
+        tick: () => game.tick(session.id, session),
+        addFood: (count = 1) =>
+            call('AddPetFood', {
+                build_guid: 992951,
+                operate_type: 1,
+                items: [{ itemtype: 3, itemid: 9002901, itemnum: count }],
+            }),
+    }
+}
 function forgeFixture(name, satiety) {
     const f = productionWorkGameFixture(name)
     const worker = station(f, { guid: 20, buildId: 20241, type: 8, satiety })
@@ -73,8 +107,27 @@ function forgeFixture(name, satiety) {
             })),
         )
     })
-    f.call('ActivityGet', { u32: 10001 })
-    return { f, worker }
+    // Current1.0 has no ActivityGet C2S. Full activity/material initialization
+    // is carried by EnterGame; the forge gate itself is the saved material
+    // record above, not the retired/ignored u32 argument10001.
+    const records = Object.values(f.state().materialDungeonRecords),
+        active = coldBootstrap(f, name),
+        bootstrap = active.bootstrap,
+        activity = f.protocol.byName.get('CSProtoActivitySync'),
+        material = f.protocol.byName.get('SCProtoDungeonMaterialInfoSync'),
+        activityPacket = bootstrap.find((packet) => packet.id === activity.id),
+        materialPacket = bootstrap.find((packet) => packet.id === material.id)
+    assert(activityPacket && materialPacket)
+    const confs = f.protocol.decode(activity.rsp, activityPacket.payload).confs,
+        infos = f.protocol.decode(material.rsp, materialPacket.payload).infos
+    assert(confs.length > 0)
+    assert.deepEqual(
+        infos.map((row) => row.material_id).sort((a, b) => a - b),
+        records.map((row) => row.material_id).sort((a, b) => a - b),
+    )
+    assert(infos.every((row) => row.success_count === 1))
+    assert.deepEqual(Object.values(f.state().materialDungeonRecords), records)
+    return { f: active, worker }
 }
 function assertDebit(before, after, costs, count) {
     for (const row of costs) {
@@ -88,7 +141,7 @@ function assertDebit(before, after, costs, count) {
 test('real CookRequest consumes per-serving ingredients once, pauses after two units and resumes only future work before partial/final claims', () => {
     const f = productionWorkGameFixture('work-specialized-cook')
     try {
-        const recipe = cookingRecipe(f.tables, 9000301),
+        const recipe = cookingRecipe(f.tables, 1003),
             budget = recipe.product.satietyScore
         const worker = station(f, { guid: 18, buildId: 100011, type: 10, satiety: budget * 2 })
         const materials = recipe.requirements.map((row) => ({ item_id: row.choices[0], item_num: row.count }))
@@ -102,7 +155,7 @@ test('real CookRequest consumes per-serving ingredients once, pauses after two u
             )
         })
         const before = structuredClone(f.state())
-        f.call('CookRequest', { build_guid: 18, cook_id: 9000301, cook_count: 3, cook_material: materials })
+        f.call('CookRequest', { build_guid: 18, cook_id: recipe.id, cook_count: 3, cook_material: materials })
         let job = f.state().home.productionJobs[18][0]
         assert.equal(job.kind, 'cook')
         assert.equal(job.productId, recipe.product.id)
