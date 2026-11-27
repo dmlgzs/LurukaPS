@@ -1455,6 +1455,9 @@ export class Game {
                     const context = {
                         id: session.id,
                         connectionKey: session.token,
+                        ...(state.sharedTeamRun
+                            ? { combatSessionId: session.token, sharedTeamRuns: this.teamV2.runs }
+                            : {}),
                         requestKey: frame.seq ? session.token + ':' + frame.id + ':' + frame.seq : null,
                         state,
                         now,
@@ -1960,7 +1963,9 @@ export class Game {
                 return delivered
             },
             systemUnlockPersistence({
-                defer: deferredMessages.has(e.name),
+                defer:
+                    deferredMessages.has(e.name) &&
+                    !(e.name === 'CSProtoBattleInfoReduce' && this.teamV2.runs.routingVersion.get(session.id)?.run_id),
                 skipUnchanged: unchangedReadQueries.has(e.name),
                 // Pure phase/trace acknowledgments do not require a disk commit.
                 // Item actions and newly granted After rewards remain durable.
@@ -2486,7 +2491,17 @@ export class Game {
                                 }),
                                 this.packet('CSProtoCurMultiCampaignInfoSync', dungeonSnapshot()),
                             ]),
-                      this.packet('SCProtoMultiCampaignPlayerDmgInfoSync', entrustDamageSnapshot(state, session.id)),
+                      this.packet(
+                          'SCProtoMultiCampaignPlayerDmgInfoSync',
+                          state.sharedTeamRun
+                              ? this.teamV2.runs.damageSnapshot({
+                                    id: session.id,
+                                    state,
+                                    now,
+                                    combatSessionId: session.token,
+                                })
+                              : entrustDamageSnapshot(state, session.id),
+                      ),
                       this.packet('CSProtoStaminaBoxSync', entrustChestSnapshot(this.tables, state)),
                   ]
                 : []),

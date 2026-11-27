@@ -3,6 +3,7 @@ import { enemyDefinition, enemyBaseHpValue } from './enemy-state.js'
 import { dungeonEnemyScales, scaledEnemyHp } from './dungeon-enemy-scale.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
+import { validateDamageReceipt } from './combat-hurt-receipts.js'
 
 const caches = new WeakMap(),
     uint = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff
@@ -196,6 +197,64 @@ export function validateSharedEncounter(run, blueprint) {
         ensure(
             uint(value.control_epoch) && value.control_epoch > 0,
             'Shared control epoch is malformed',
+            ErrorCode.GameConfig,
+        )
+    const object = (v) => v && typeof v === 'object' && !Array.isArray(v),
+        member = (id) => run.members.some((entry) => String(entry.id) === String(id)),
+        guid = (id) => typeof id === 'string' && /^[1-9]\d*$/.test(id) && BigInt(id) < 1n << 64n
+    for (const name of ['elements', 'hurt_receipts', 'remote_relays', 'damage_by_player'])
+        ensure(
+            value[name] === undefined || object(value[name]),
+            'Shared combat records are malformed',
+            ErrorCode.GameConfig,
+        )
+    for (const [id, receipt] of Object.entries(value.hurt_receipts ?? {})) {
+        ensure(member(id), 'Shared damage receipt owner is not a participant', ErrorCode.GameConfig)
+        validateDamageReceipt(receipt)
+    }
+    for (const [id, amount] of Object.entries(value.damage_by_player ?? {}))
+        ensure(
+            member(id) && typeof amount === 'string' && /^(0|[1-9]\d*)$/.test(amount) && BigInt(amount) < 1n << 64n,
+            'Shared damage statistic is malformed',
+            ErrorCode.GameConfig,
+        )
+    for (const [id, element] of Object.entries(value.elements ?? {}))
+        ensure(
+            guid(id) &&
+                element?.uniqueId === id &&
+                Object.hasOwn(blueprint.entities, element.tar_id) &&
+                Number.isInteger(element.op) &&
+                element.op >= 1 &&
+                element.op <= 9 &&
+                object(element.buff),
+            'Shared NPC element record is malformed',
+            ErrorCode.GameConfig,
+        )
+    for (const [id, relay] of Object.entries(value.remote_relays ?? {}))
+        ensure(
+            /^[1-9]\d*:[1-9]\d*:[1-9]\d*:[1-9]\d*:\d+:\d+$/.test(id) &&
+                relay &&
+                id.split(':')[0] === String(relay.player_id) &&
+                id.split(':')[1] === relay.attacker &&
+                id.split(':')[2] === relay.target &&
+                guid(relay.attacker) &&
+                member(relay.player_id) &&
+                member(relay.controller) &&
+                guid(relay.target) &&
+                /^[0-9a-f]{64}$/.test(relay.fingerprint),
+            'Shared remote damage relay receipt is malformed',
+            ErrorCode.GameConfig,
+        )
+    if (value.combat_end_time !== undefined)
+        ensure(
+            uint(value.combat_end_time) &&
+                value.combat_end_time > 0 &&
+                !value.control &&
+                blueprint.stages.find((stage) => stage.index === value.stage_index)?.type === 30 &&
+                blueprint.stages
+                    .filter((stage) => stage.type === 50)
+                    .every((stage) => blueprint.groups[stage.object_id].ids.every((id) => value.entities[id].hp === 0)),
+            'Shared combat completion witness is malformed',
             ErrorCode.GameConfig,
         )
     return value

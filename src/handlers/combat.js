@@ -45,6 +45,7 @@ import {
     rememberCombatEnemyPresentation,
 } from '../combat-enemy-lifecycle.js'
 export function actor(c, value) {
+    if (c.sharedBattle) return c.sharedBattle.actor(value)
     const id = u64(value)
     ensure(id !== '0', 'Missing combat actor')
     const kind = Number(BigInt(id) >> 56n)
@@ -336,12 +337,7 @@ export function registerCombat(on) {
             reported_damage: u64(r.combo_damage),
         }
     })
-    on('BattleInfoReduce', (c, r) => {
-        ensure(
-            !(c.state.sharedTeamRun && c.state.entrust?.run?.map_id === c.state.world.map_id),
-            'Shared battle reports require the canonical combat adapter',
-            ErrorCode.FunctionClosed,
-        )
+    const reduceBattleInfo = (c, r) => {
         // The configured boss intro is a cinematic barrier, not a kill report.
         // Ignore stale HP reports until the issued story's 11468 callback.
         if (c.state.abyssRun?.map_id === c.state.world.map_id && c.state.abyssRun.phase === 'intro') return {}
@@ -356,9 +352,11 @@ export function registerCombat(on) {
                 ? c.state.entrust.run
                 : null
         let entrustDamageChanged = false
+        const entity = (id) => c.sharedBattle?.enemy(id) ?? battle.entities[id]
         const reportSp = advanceEnergy(c, battle, changed)
         const preparedGroups = new Set()
         const prepareEnemy = (id) => {
+            if (c.sharedBattle) return c.sharedBattle.definition(id)
             let definition = enemyDefinition(c.tables, c.state, id)
             const root = combatEnemyRoot(id)
             if (!definition || definition.npc_duel || !root || preparedGroups.has(root)) return definition
@@ -453,6 +451,11 @@ export function registerCombat(on) {
                 changed.set(id, { uuid: id, hp: saved.hp, sp: saved.sp, alive_state: saved.alive_state, reason: 0 })
             } else {
                 const definition = prepareEnemy(id)
+                if (c.sharedBattle && definition) {
+                    const info = c.sharedBattle.updateEnemy(id, values, source)
+                    if (info) changed.set(id, info)
+                    return
+                }
                 const previous = battle.entities[id] ?? { uuid: id }
                 if (definition?.npc_duel && !battle.npcDuel.in_fight[id]) return
                 const introRun = c.state.entrust?.run
@@ -519,8 +522,10 @@ export function registerCombat(on) {
                 prepareEnemy(h.from_id)
                 const eventTime = h.verify_info?.op_time ?? r.base_time ?? '0'
                 if (
-                    !combatEnemyReportIsCurrent(c.state, h.tar_id, eventTime) ||
-                    !combatEnemyReportIsCurrent(c.state, h.from_id, eventTime)
+                    !(c.sharedBattle
+                        ? c.sharedBattle.isCurrent(h, eventTime)
+                        : combatEnemyReportIsCurrent(c.state, h.tar_id, eventTime) &&
+                          combatEnemyReportIsCurrent(c.state, h.from_id, eventTime))
                 )
                     continue
                 if (c.state.petCaptureResults?.[h.from_id] || c.state.petCaptureResults?.[h.tar_id]) continue
@@ -531,18 +536,23 @@ export function registerCombat(on) {
                     introBarrier =
                         materialStoryPending(intro) &&
                         Number(BigInt(h.tar_id) & 0xffffffffn) === intro.materialStory.boss_id,
-                    duplicate = battle.npcDuel
-                        ? arenaHurtIsDuplicate(c, h)
-                        : h.hp_change !== undefined &&
-                          !introBarrier &&
+                    duplicate = c.sharedBattle
+                        ? h.hp_change !== undefined &&
                           (targetHero || targetDefinition) &&
-                          combatHurtIsDuplicate(c, h)
+                          c.sharedBattle.duplicate(h, rows.indexOf(row))
+                        : battle.npcDuel
+                          ? arenaHurtIsDuplicate(c, h)
+                          : h.hp_change !== undefined &&
+                            !introBarrier &&
+                            (targetHero || targetDefinition) &&
+                            combatHurtIsDuplicate(c, h)
                 if (duplicate) {
-                    const hp = targetHero?.hp ?? battle.entities[h.tar_id]?.hp
+                    const hp = targetHero?.hp ?? entity(h.tar_id)?.hp
                     // The client removes its pending DamageIndex on the hurt
                     // ACK. A retry still needs authoritative HP, without a
                     // second HP/statistics/SP application.
                     if (hp !== undefined) enemyHurts.push({ source: rows.indexOf(row), hp })
+                    c.sharedBattle?.noteHurt(rows.indexOf(row), h)
                     continue
                 }
                 if (h.from_sp !== undefined || h.tar_sp !== undefined || h.delta_sp !== undefined) {
@@ -564,8 +574,8 @@ export function registerCombat(on) {
                 const heroBefore = storyBattle
                         ? c.state.player.heros_info.battle_infos.find((x) => x.hero_id === h.tar_id)?.hp
                         : undefined,
-                    boss = battle.entities[h.from_id],
-                    prior = battle.entities[h.tar_id]?.hp
+                    boss = entity(h.from_id),
+                    prior = entity(h.tar_id)?.hp
                 const damageRecord = arenaDamageRecord(c, h)
                 const dummy =
                     damageRecord &&
@@ -601,7 +611,7 @@ export function registerCombat(on) {
                     })
                     if (trace.length > 32) trace.splice(0, trace.length - 32)
                 }
-                const enemy = battle.entities[h.tar_id]
+                const enemy = entity(h.tar_id)
                 if (enemy?.max_hp && enemy.hp <= Math.max(200, enemy.max_hp / 10)) {
                     const trace = (battle.nearDeathReports ??= [])
                     trace.push({
@@ -620,12 +630,17 @@ export function registerCombat(on) {
                     if (trace.length > 48) trace.splice(0, trace.length - 48)
                 }
                 if (enemy?.hp !== undefined) enemyHurts.push({ source: rows.indexOf(row), hp: enemy.hp })
+                c.sharedBattle?.noteHurt(rows.indexOf(row), h)
             }
             if (row.attr_change) {
                 const a = row.attr_change
                 if (c.state.petCaptureResults?.[a.uuid]) continue
                 actor(c, a.uuid)
                 ensure((a.attrButeInfos ?? []).length <= 256, 'Too many attribute changes')
+                if (c.sharedBattle?.definition(a.uuid)) {
+                    c.sharedBattle.attributes(a)
+                    continue
+                }
                 recordArenaPropertyChange(c, a)
                 boundedSet(
                     battle.entities,
@@ -695,6 +710,7 @@ export function registerCombat(on) {
                     hurt_info: { ...r.battle_info[source].hurt_info, cur_hp: hp },
                 })),
             })
+        if (c.sharedBattle) return
         recordNpcArenaDeaths(c)
         publishArenaStatistics(c)
         publishArenaSp(c)
@@ -710,7 +726,12 @@ export function registerCombat(on) {
                 info: [{ player_id: c.id, sum_dmg: entrustRun.damage_total }],
             })
         }
-    })
+    }
+    on('BattleInfoReduce', (c, r) =>
+        c.state.sharedTeamRun && c.state.entrust?.run?.map_id === c.state.world.map_id
+            ? c.sharedTeamRuns.reduceBattle(c, r, reduceBattleInfo)
+            : reduceBattleInfo(c, r),
+    )
     on('RequestHeroElement', (c, r) => {
         const ids = r.u64s ?? []
         ensure(ids.length <= 256, 'Too many element targets')

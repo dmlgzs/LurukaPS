@@ -144,7 +144,7 @@ test('current two-player table scaling and one encounter source survive per-memb
         assert.equal(f.state(1).entrust.run.battle_complete, undefined)
         assert.throws(
             () => f.call(0, 'BattleInfoReduce', { base_time: String(f.now() * 1000), battle_info: [], uint64_dic: [] }),
-            (error) => error.code === ErrorCode.FunctionClosed,
+            (error) => error.code === ErrorCode.TeamWaitStateSync,
         )
         assert.equal(teams.backend, null)
     } finally {

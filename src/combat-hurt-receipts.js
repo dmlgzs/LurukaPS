@@ -4,17 +4,12 @@ import { ErrorCode } from './error-codes.js'
 
 const validIndex = (value) => Number.isInteger(value) && value > 0 && value <= 2147483647
 
-// Current DamageService.AddDamageData allocates one counter for the entire
-// client process. Keep all accepted ranges; the bounded recent payloads only
-// diagnose conflicts and must never become the duplicate-retention window.
-// Call after actor/activation admission, and only for an HP event being applied.
-export function damageReceipt(previous, hurt) {
-    const index = hurt.dmg_inc_id ?? 0
-    if (index === 0) return { duplicate: false, receipt: previous }
-    ensure(validIndex(index), 'Invalid combat damage index')
-    const prior = previous ?? { ranges: [], recent: {}, order: [] }
+export function validateDamageReceipt(prior) {
     ensure(
-        Array.isArray(prior.ranges) &&
+        prior &&
+            typeof prior === 'object' &&
+            !Array.isArray(prior) &&
+            Array.isArray(prior.ranges) &&
             Array.isArray(prior.order) &&
             prior.order.length <= 512 &&
             prior.recent &&
@@ -32,6 +27,19 @@ export function damageReceipt(previous, hurt) {
         'Stored combat damage receipts are malformed',
         ErrorCode.GameConfig,
     )
+    return prior
+}
+
+// Current DamageService.AddDamageData allocates one counter for the entire
+// client process. Keep all accepted ranges; the bounded recent payloads only
+// diagnose conflicts and must never become the duplicate-retention window.
+// Call after actor/activation admission, and only for an HP event being applied.
+export function damageReceipt(previous, hurt) {
+    const index = hurt.dmg_inc_id ?? 0
+    if (index === 0) return { duplicate: false, receipt: previous }
+    ensure(validIndex(index), 'Invalid combat damage index')
+    const prior = previous ?? { ranges: [], recent: {}, order: [] }
+    validateDamageReceipt(prior)
     const fingerprint = JSON.stringify([
         hurt.from_id,
         hurt.tar_id,

@@ -406,7 +406,12 @@ export function syncEntrust(c, run) {
         c.pushBefore('CSProtoMultiCampaignInfoSync', { camp: [{ ...multi, star: record?.star ?? multi.star }] })
         c.pushBefore('CSProtoCurMultiCampaignInfoSync', active ? multi : { ...multi, status: 1 })
     }
-    c.pushBefore('SCProtoMultiCampaignPlayerDmgInfoSync', entrustDamageSnapshot(c.state, c.id))
+    c.pushBefore(
+        'SCProtoMultiCampaignPlayerDmgInfoSync',
+        c.state.sharedTeamRun && run.map_id === c.state.world.map_id
+            ? c.sharedTeamRuns.damageSnapshot(c)
+            : entrustDamageSnapshot(c.state, c.id),
+    )
     if (run.battle_complete) {
         if (run.kind === 'material') c.pushBefore('SCProtoDungeonMaterialInfoSync', materialDungeonSnapshot(c.state))
         else if (run.kind === 'repeat')

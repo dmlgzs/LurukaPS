@@ -2,11 +2,13 @@ import { createHash } from 'node:crypto'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { compileSharedTeamTarget } from './team-v2-run-target.js'
-import { currentMapMember } from './current-map-member.js'
+import { currentMapMember, currentMapFormation, currentMapPet } from './current-map-member.js'
 import { currentMapMemberAttribute } from './current-map-attributes.js'
 import { currentWorldPlayer, currentWorldActorInfo, currentOtherPlayerInfo } from './current-world-player.js'
 import { entrustMultiSnapshot } from './entrust.js'
 import { materialStoryPlan } from './multiple-material-story.js'
+import { reduceSharedCombatReport } from './team-v2-combat-report.js'
+import { finishEnemyGroupRelations } from './handlers/world-combat.js'
 import {
     sharedEncounterBlueprint,
     newSharedEncounter,
@@ -22,7 +24,7 @@ const digest = (value) => createHash('sha256').update(value).digest('hex')
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 
 // Internal shared-run authority, not a public Start backend. Preparation,
-// entry packets, loading/controller, shared HP and personal settlement still
+// entry packets, skill/summon propagation and personal settlement/rejoin still
 // need their lifecycle adapter before TeamV2Service.backend may be connected.
 export class TeamV2RunLedger {
     constructor(teams) {
@@ -619,8 +621,7 @@ export class TeamV2RunLedger {
         // NPC group. A member clicking the marker does not become its owner.
         const controller = run.members.find((member) => member.id === run.captain),
             next = blueprint.stages[position + 1],
-            epoch = (run.encounter.control_epoch ?? 0) + 1,
-            { values } = this.#sceneMembers(c, undefined, (state, member) => ({ member, entry: state.entrust.run }))
+            epoch = (run.encounter.control_epoch ?? 0) + 1
         ensure(positive(epoch), 'Shared control epoch exhausted', ErrorCode.GameConfig)
         const encounter = {
             ...run.encounter,
@@ -638,7 +639,18 @@ export class TeamV2RunLedger {
             },
         }
         this.#save(run, { ...run, phase: 'playing', encounter })
+        this.#publishStage(c, run, encounter, blueprint)
+        return true
+    }
+    #publishStage(c, run, encounter, blueprint, previousControl = null) {
+        const { values } = this.#sceneMembers(c, undefined, (state, member) => ({ member, entry: state.entrust.run }))
         for (const { member, entry } of values) {
+            if (previousControl) {
+                const agent_uid = ((3n << 56n) | BigInt(previousControl.object_id)).toString()
+                if (member.id === previousControl.player_id)
+                    c.pushTo(member.id, 'SCProtoControlChangeByDelNtf', { agent_uid })
+                c.pushTo(member.id, 'SCProtoObjDisappearNtf', { agent_uid })
+            }
             const multi = this.multiSnapshot(c, entry)
             c.pushTo(member.id, 'CSProtoMultiCampaignInfoSync', { camp: [multi] })
             c.pushTo(member.id, 'CSProtoCurMultiCampaignInfoSync', multi)
@@ -655,7 +667,193 @@ export class TeamV2RunLedger {
             })
             this.#publishControl(c, member.id, encounter, blueprint)
         }
-        return true
+    }
+    #combatActors(c, blueprint) {
+        const actors = new Map()
+        this.#sceneMembers(c, undefined, (state, member) => {
+            const { heroes, slots } = currentMapFormation(state),
+                add = (guid, kind) => {
+                    ensure(
+                        !actors.has(guid) && !Object.hasOwn(blueprint.entities, guid),
+                        'Shared actor identity is duplicated',
+                        ErrorCode.GameConfig,
+                    )
+                    actors.set(guid, { id: member.id, kind })
+                }
+            for (const hero of heroes) add(String(hero.guid), 'hero')
+            for (const slot of slots ?? []) {
+                const pet = currentMapPet(state, slot)
+                if (!pet) continue
+                ensure(
+                    String(pet.hero_id) === String(slot.hero_id),
+                    'Shared pet binding is malformed',
+                    ErrorCode.GameConfig,
+                )
+                add(String(pet.guid), 'pet')
+            }
+            return null
+        })
+        return actors
+    }
+    relationActors(c) {
+        const { room, run } = this.requireScene(c),
+            blueprint = sharedEncounterBlueprint(
+                this.teams.tables,
+                compileSharedTeamTarget(this.teams.tables, room),
+                run.members.length,
+            )
+        return new Set([
+            ...this.#combatActors(c, blueprint).keys(),
+            ...Object.keys(blueprint.entities),
+            ...run.members.map((member) => String(member.id)),
+        ])
+    }
+    inactiveEnemyGroup(c, id) {
+        if (BigInt(id) >> 56n !== 3n) return null
+        const { room, run } = this.requireScene(c),
+            blueprint = sharedEncounterBlueprint(
+                this.teams.tables,
+                compileSharedTeamTarget(this.teams.tables, room),
+                run.members.length,
+            ),
+            definition = blueprint.entities[id]
+        ensure(definition, 'Battle relation enemy is not in the current shared encounter')
+        const group = blueprint.groups[definition.object_id]
+        return group.stage_index !== run.encounter.stage_index ||
+            group.ids.every((id) => run.encounter.entities[id].hp === 0)
+            ? { root: group.ids[0], members: group.ids }
+            : null
+    }
+    #finishSharedRelations(c, run, group) {
+        const ids = new Set(group.ids),
+            hasRelations = (state) => {
+                const graph = state.combat?.hatred
+                if (!graph) return false
+                ensure(
+                    graph.objects &&
+                        graph.players &&
+                        typeof graph.objects === 'object' &&
+                        typeof graph.players === 'object',
+                    'Shared participant battle relations are malformed',
+                    ErrorCode.GameConfig,
+                )
+                return Object.values(graph).some((entries) =>
+                    Object.entries(entries).some(([id, value]) => {
+                        ensure(
+                            Array.isArray(value.target_obj_ids) && Array.isArray(value.player_obj_ids),
+                            'Shared participant battle relation edges are malformed',
+                            ErrorCode.GameConfig,
+                        )
+                        return ids.has(id) || value.target_obj_ids.some((target) => ids.has(target))
+                    }),
+                )
+            }
+        for (const member of run.members) {
+            const affected = member.id === c.id ? hasRelations(c.state) : this.store.read(member.id, hasRelations)
+            if (affected) {
+                ensure(
+                    typeof c.editPlayer === 'function',
+                    'Shared relation cleanup requires an atomic participant draft',
+                    ErrorCode.GameConfig,
+                )
+                finishEnemyGroupRelations(
+                    {
+                        ...c,
+                        id: member.id,
+                        state: member.id === c.id ? c.state : c.editPlayer(member.id),
+                        push: (name, value) => c.pushTo(member.id, name, value),
+                    },
+                    group.ids[0],
+                    { root: group.ids[0], members: group.ids },
+                )
+            } else c.pushTo(member.id, 'CSProtoHatredResetSync', { is_player: false, obj_id: group.ids[0] })
+        }
+    }
+    damageSnapshot(c) {
+        const { run } = this.requireScene(c)
+        return {
+            info: run.members.map((member) => ({
+                player_id: member.id,
+                sum_dmg: run.encounter?.damage_by_player?.[member.id] ?? '0',
+            })),
+        }
+    }
+    reduceBattle(c, request, reduce) {
+        const { room, run } = this.requireScene(c)
+        ensure(this.db.inTransaction, 'Shared battle requires an atomic transaction', ErrorCode.GameConfig)
+        ensure(
+            ['playing', 'complete'].includes(run.phase) && run.encounter,
+            'Shared combat has not been started by its challenge marker',
+            ErrorCode.TeamWaitStateSync,
+        )
+        const control = run.encounter.control
+        if (control)
+            ensure(
+                this.teams.isOnline(control.player_id) &&
+                    digest(this.teams.connectionKey(control.player_id) ?? '') === control.connection_hash,
+                'Shared NPC controller connection changed',
+                ErrorCode.TeamTargetChanged,
+            )
+        const blueprint = sharedEncounterBlueprint(
+                this.teams.tables,
+                compileSharedTeamTarget(this.teams.tables, room),
+                run.members.length,
+            ),
+            actors = this.#combatActors(c, blueprint)
+        const result = reduceSharedCombatReport(c, request, { run, blueprint, actors, reduce }),
+            encounter = result.encounter,
+            previousControl = encounter.control,
+            group = blueprint.groups[previousControl?.object_id]
+        let advanced = false,
+            phase = run.phase
+        if (
+            group &&
+            group.ids.some((id) => result.dead.has(id)) &&
+            group.ids.every((id) => encounter.entities[id].hp === 0)
+        ) {
+            const position = blueprint.stages.findIndex((stage) => stage.index === encounter.stage_index),
+                next = blueprint.stages[position + 1]
+            ensure(
+                next && [13, 30, 50].includes(next.type),
+                'Shared wave has no configured continuation',
+                ErrorCode.GameConfig,
+            )
+            encounter.stage_index = next.index
+            encounter.control = null
+            if (next.type === 50) {
+                const nextGroup = blueprint.groups[next.object_id]
+                ensure(
+                    nextGroup?.ids.every((id) => encounter.entities[id].hp === encounter.entities[id].max_hp),
+                    'Shared next wave is not a fresh canonical roster',
+                    ErrorCode.GameConfig,
+                )
+                ensure(positive(encounter.control_epoch + 1), 'Shared control epoch exhausted', ErrorCode.GameConfig)
+                encounter.control_epoch++
+                encounter.control = {
+                    ...previousControl,
+                    object_id: next.object_id,
+                    epoch: encounter.control_epoch,
+                    granted_at: c.now,
+                }
+            } else if (next.type === 30) {
+                phase = 'complete'
+                encounter.combat_end_time = c.now
+            }
+            advanced = true
+        }
+        validateSharedEncounter({ ...run, encounter }, blueprint)
+        if (phase !== run.phase || !same(encounter, run.encounter)) this.#save(run, { ...run, phase, encounter })
+        for (const member of run.members) {
+            for (const frame of result.frames) c.pushTo(member.id, frame.name, frame.value)
+            const packet = result.report(member.id)
+            if (packet.battle_info.length) c.pushTo(member.id, 'SCProtoBattleInfoReduceNtf', packet)
+            if (!same(encounter.damage_by_player, run.encounter.damage_by_player))
+                c.pushTo(member.id, 'SCProtoMultiCampaignPlayerDmgInfoSync', this.damageSnapshot(c))
+        }
+        if (advanced) {
+            this.#finishSharedRelations(c, run, group)
+            this.#publishStage(c, run, encounter, blueprint, previousControl)
+        }
     }
     #publishControl(c, recipient, encounter, blueprint) {
         const control = encounter.control

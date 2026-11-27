@@ -115,7 +115,9 @@ export function pruneInactiveCampaignRelations(c, ids = []) {
         ...Object.values(battle.hatred.players).flatMap((info) => info.target_obj_ids),
     ]
     for (const id of candidates) {
-        const group = inactiveCampaignEnemyGroup(c.tables, c.state, id)
+        const group = c.state.sharedTeamRun
+            ? c.sharedTeamRuns.inactiveEnemyGroup(c, id)
+            : inactiveCampaignEnemyGroup(c.tables, c.state, id)
         if (group) groups.set(group.root, group)
     }
     if (!groups.size) return false
@@ -131,12 +133,14 @@ export function pruneInactiveCampaignRelations(c, ids = []) {
     }
     return true
 }
-export function finishEnemyGroupRelations(c, id) {
-    const group = completedEnemyGroup(c.tables, c.state, id)
+export function finishEnemyGroupRelations(c, id, authoritativeGroup = null) {
+    // Only the shared ledger supplies authoritativeGroup after its canonical
+    // roster is dead. Ordinary scenes retain their existing completion proof.
+    const group = authoritativeGroup ?? completedEnemyGroup(c.tables, c.state, id)
     if (!group) return false
     const battle = runtime(c)
     if (battle.completedRelationGroups?.[group.root]) {
-        recordBossFirstClear(c, id)
+        if (!authoritativeGroup) recordBossFirstClear(c, id)
         return false
     }
     battle.completedRelationGroups = { ...battle.completedRelationGroups, [group.root]: true }
@@ -148,7 +152,7 @@ export function finishEnemyGroupRelations(c, id) {
     )
     for (const member of group.members) clearHatred(battle, member)
     c.push('CSProtoHatredResetSync', { is_player: false, obj_id: group.root })
-    recordBossFirstClear(c, id)
+    if (!authoritativeGroup) recordBossFirstClear(c, id)
     return true
 }
 // Public scene-ready/rebuild hook. EntityService caches10009 even before an
@@ -261,30 +265,41 @@ export function registerWorldCombat(on) {
     ])
         on(name, (c, r) => {
             ensure(r.info, 'Missing hatred data')
-            const id = actor(c, r.info.id),
+            const sharedActors = c.state.sharedTeamRun ? c.sharedTeamRuns.relationActors(c) : null,
+                relationActor = (value) => {
+                    if (!sharedActors) return actor(c, value)
+                    const id = u64(value)
+                    ensure(sharedActors.has(id), 'Battle relation actor is not in this shared encounter')
+                    return id
+                },
+                inactive = (id) =>
+                    c.state.sharedTeamRun
+                        ? c.sharedTeamRuns.inactiveEnemyGroup(c, id)
+                        : inactiveCampaignEnemyGroup(c.tables, c.state, id),
+                id = relationActor(r.info.id),
                 targets = r.info.target_obj_ids ?? [],
                 players = r.info.player_obj_ids ?? []
             ensure(targets.length <= 256 && players.length <= 64, 'Hatred list too large')
             if (c.state.petCaptureResults?.[id])
                 return { inc: !!r.inc, info: { id, target_obj_ids: [], player_obj_ids: [] } }
-            const targetIds = [...new Set(targets.map((id) => actor(c, id)))].filter(
+            const targetIds = [...new Set(targets.map((id) => relationActor(id)))].filter(
                     (id) => !c.state.petCaptureResults?.[id],
                 ),
                 playerIds = [...new Set(players)]
             ensure(
-                playerIds.every((n) => Number.isInteger(n) && n > 0),
+                playerIds.every((n) => Number.isInteger(n) && n > 0 && (!sharedActors || sharedActors.has(String(n)))),
                 'Invalid hatred player',
             )
             const battle = runtime(c)
             const root = (BigInt(id) & ~(0xffffffn << 32n)).toString()
-            if (inactiveCampaignEnemyGroup(c.tables, c.state, id)) {
+            if (inactive(id)) {
                 pruneInactiveCampaignRelations({ ...c, push: c.pushBefore }, [id])
                 return { inc: false, info: { id, target_obj_ids: targetIds, player_obj_ids: playerIds } }
             }
             if (battle.completedRelationGroups?.[root])
                 return { inc: false, info: { id, target_obj_ids: targetIds, player_obj_ids: playerIds } }
             if (r.inc) {
-                const dormant = targetIds.filter((target) => inactiveCampaignEnemyGroup(c.tables, c.state, target))
+                const dormant = targetIds.filter((target) => inactive(target))
                 if (dormant.length) pruneInactiveCampaignRelations({ ...c, push: c.pushBefore }, dormant)
                 const retired = targetIds.filter(
                     (target) =>
