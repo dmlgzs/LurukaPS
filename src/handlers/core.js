@@ -19,7 +19,9 @@ export function registerCore(on) {
         const index = presets.findIndex((preset) => preset.sex === r.sex && preset.present === r.present)
         if (index < 0) presets.push(r)
         else presets[index] = r
-        c.push('SCProtoPresetWardrobeSync', { info_list: presets })
+        // Current SaveAsPreset success immediately refreshes the per-sex
+        // ModStore dictionary and thumbnail keys before returning from ACK.
+        c.pushBefore('SCProtoPresetWardrobeSync', { info_list: presets })
         return {}
     })
     on('HeroUpdateSkin', (c, r) => {

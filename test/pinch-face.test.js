@@ -14,9 +14,9 @@ const cfg = configuration(),
     tables = new Tables(cfg.tables),
     protocol = new Protocol(cfg.base)
 const upload = JSON.parse(fs.readFileSync(new URL('./fixtures/pinch-face-request.json', import.meta.url), 'utf8'))
-function fixture(file = ':memory:') {
+function fixture(file = ':memory:', { starterProfile = 'normal' } = {}) {
     const store = new Store(file),
-        game = new Game(protocol, store, tables),
+        game = new Game(protocol, store, tables, { starterProfile }),
         session = {}
     let seq = 1
     const call = (name, request) => {
@@ -84,7 +84,9 @@ test('invalid appearance sex or duplicate channels fail atomically', () => {
 test('appearance persists through SQLite restart and is included in login data', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lurukaps-appearance-')),
         file = path.join(dir, 'state.sqlite')
-    let f = fixture(file)
+    // This persistence case starts with owned cosmetics; the next cold login
+    // uses the normal default and must retain the existing account's assets.
+    let f = fixture(file, { starterProfile: 'sandbox' })
     try {
         f.call('PinchFaceDataUp', upload)
         f.call('PresetWardrobeReq', { ...upload, present: 1 })
@@ -114,8 +116,8 @@ test('appearance persists through SQLite restart and is included in login data',
     }
 })
 
-test('login sends separate usable protagonist clothes and hero skin ownership catalogs', () => {
-    const f = fixture()
+test('explicit sandbox login sends separate owned clothes and hero skins and retains legacy ownership', () => {
+    const f = fixture(undefined, { starterProfile: 'sandbox' })
     try {
         const packet = (name) => {
             const entry = protocol.byName.get(name)
@@ -178,7 +180,7 @@ test('preset upload saves three independent slots per sex, replaces a slot and n
 })
 
 test('equips configured skins and clothes, resets hero default and rejects wrong hero/slot atomically', () => {
-    const f = fixture()
+    const f = fixture(undefined, { starterProfile: 'sandbox' })
     try {
         const hero = f.state().player.heros_info.heros.find((hero) => hero.conf_id === 101010)
         const before = f.state()
@@ -213,7 +215,7 @@ test('equips configured skins and clothes, resets hero default and rejects wrong
 })
 
 test('legacy empty main clothes are repaired from table defaults without losing selected costume colors', () => {
-    const f = fixture()
+    const f = fixture(undefined, { starterProfile: 'sandbox' })
     try {
         assert.deepEqual(f.state().player.basic_info.clothes_info.parts, appearanceCatalog(tables).defaults)
         const entry = protocol.byName.get('CSProtoEnterGame')
