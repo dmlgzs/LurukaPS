@@ -257,6 +257,45 @@ export class TeamV2Service {
             ErrorCode.TeamWaitStateSync,
         )
     }
+    updateLimit(c, r) {
+        this.requireTransaction()
+        const room = this.requireRoom(c, r.team_id, { captain: true })
+        this.requireLobby(c)
+        this.requireNormal(room)
+        const limit = r.team_limit
+        ensure(
+            object(limit) && Object.keys(limit).every((key) => key === 'level') && uint(limit.level),
+            'Malformed TeamV2 level setting',
+            ErrorCode.ReqParamsError,
+        )
+        // Current PageMultipleTeamSetting06018cc1 builds its choices from
+        // this table;it does not clamp them to the captain's own level.
+        const rows = this.tables.get('game').filter((row) => row.title === 'MULTI_TEAM_SET_LEVEL')
+        ensure(
+            rows.length === 1 && rows[0].type === 'list<int>' && /^[1-9]\d*(\|[1-9]\d*)*$/.test(rows[0].value),
+            'TeamV2 level choices are unavailable',
+            ErrorCode.GameConfig,
+        )
+        const levels = rows[0].value.split('|').map(Number)
+        ensure(
+            levels.every(positive) && new Set(levels).size === levels.length,
+            'Invalid TeamV2 level choices',
+            ErrorCode.GameConfig,
+        )
+        ensure(levels.includes(limit.level), 'TeamV2 level is not a current setting choice', ErrorCode.ReqParamsError)
+        if (room.limit.level === limit.level) {
+            this.notify(c, c.id, 'CSProtoTeamV2TeamUpdateNotify', {
+                reason: 10,
+                team: this.snapshot(c, room),
+                player_id: c.id,
+            })
+            return room
+        }
+        room.limit = { level: limit.level }
+        // This changes later admission,not the current roster or target.
+        // Existing invite acceptance already rechecks room.limit.level.
+        return this.commitRoom(c, room, 10, { playerId: c.id })
+    }
     create(c, r) {
         this.requireTransaction()
         ensure(r.player_id === c.id, 'TeamV2 creator identity differs from the request actor', ErrorCode.ReqParamsError)
@@ -704,6 +743,9 @@ export function registerTeamV2(on, store, tables, options) {
     on('TeamV2Prepare', (c, r) => {
         teams.lifecycle(c, r, 'prepare')
     })
+    on('TeamV2UpdateLimit', (c, r) => {
+        teams.updateLimit(c, r)
+    })
     on('TeamV2StartChangeTarget', (c, r) => {
         teams.changes.propose(c, r)
     })
@@ -719,7 +761,6 @@ export function registerTeamV2(on, store, tables, options) {
         'TeamV2WorldInvite',
         'TeamV2CancelTeamMatch',
         'TeamV2StartTeamMatch',
-        'TeamV2UpdateLimit',
         'TeamV2Invite',
         'TeamV2CancelInvite',
         'TeamV2ReplyInvite',
