@@ -13,6 +13,7 @@ import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { startServer } from '../src/server.js'
 import { FrameReader, encodeFrame } from '../src/wire.js'
+import { fundCurrentCombatActors, qualifyCurrentCombatWorld } from './combat-normal-current-fixture.js'
 const config = configuration(),
     protocol = new Protocol(config.base),
     tables = new Tables(config.tables),
@@ -22,6 +23,13 @@ function call(game, session, name, r = {}) {
     return game
         .dispatch(session, { id: e.id, seq: 1, payload: protocol.encode(e.req, r) })
         .map((p) => ({ ...p, data: protocol.decode(protocol.byId.get(p.id).rsp, p.payload) }))
+}
+function conversation(game, session, peer) {
+    const entry = protocol.byName.get('CSProtoChatSyncNew')
+    const response = call(game, session, 'ChatSyncNew', { pids: [peer] }).find((packet) => packet.id === entry.id).data
+    assert.equal(response.chat_infos.length, 1)
+    assert.equal(response.chat_infos[0].id, peer)
+    return response.chat_infos[0]
 }
 test('private chat persists across restart, preserves read markers and separates conversations', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'azur-chat-'))
@@ -49,8 +57,8 @@ test('private chat persists across restart, preserves read markers and separates
         assert(delivery.data.chat.time > 1)
         assert.equal(delivery.data.chat.basic_info.account, undefined)
         assert.equal(delivery.data.chat.basic_info.gold, undefined)
-        assert.equal(call(game, c, 'ChatInfoSync', { id: b.id })[0].data.chats.length, 0)
-        const history = call(game, b, 'ChatInfoSync', { id: a.id })[0].data
+        assert.equal(conversation(game, c, b.id).chats.length, 0)
+        const history = conversation(game, b, a.id)
         assert.equal(history.chats.length, 1)
         assert.equal(history.chats[0].msg, bytes('你好'))
         call(game, b, 'ReadFriendChat', { id: a.id, order: history.chats[0].order })
@@ -63,7 +71,7 @@ test('private chat persists across restart, preserves read markers and separates
         const login = call(game, b, 'EnterGame', { open_id: 'chat-b' })
         assert.equal(login.find((p) => p.id === 9930).data.info[0].chats.length, 1)
         assert.equal(login.find((p) => p.id === 9929).data.msg_list[0].cnt, 0)
-        assert.equal(call(game, b, 'ChatInfoSync', { id: aid })[0].data.read_order, history.chats[0].order)
+        assert.equal(conversation(game, b, aid).read_order, history.chats[0].order)
     } finally {
         store.close()
         assert(dir.startsWith(path.join(os.tmpdir(), 'azur-chat-')))
@@ -97,8 +105,17 @@ test('invalid, blocked, and unauthorized group messages roll back without insert
 })
 test('TCP routes private/encrypted and scoped public pushes, exact retry does not redeliver', async () => {
     const server = await startServer(
-            { ...config, gamePort: 0, httpPort: 0, database: ':memory:', strongEncryption: true },
-            { warn: () => {} },
+            {
+                ...config,
+                host: '127.0.0.1',
+                publicHost: '127.0.0.1',
+                gamePort: 0,
+                httpPort: 0,
+                database: ':memory:',
+                strongEncryption: true,
+                entryWorldChatNoticeDelayMs: 3600000,
+            },
+            { warn: () => {}, info: () => {} },
         ),
         clients = []
     function client() {
@@ -163,6 +180,14 @@ test('TCP routes private/encrypted and scoped public pushes, exact retry does no
             client.send('EnterGame', { open_id: name })
             client.pid = server.protocol.decode('SCEnterGame', (await client.response(5001)).payload).player_id
         }
+        // Explicit public-world/owned-pet qualification for the non-chat
+        // broadcast positive control; normal new accounts retain one hero.
+        for (const client of clients)
+            server.store.transact(client.pid, 0, (state) => {
+                assert.equal(state.starterProfile.mode, 'normal')
+                qualifyCurrentCombatWorld(server.game.tables, state)
+                if (client === a) fundCurrentCombatActors(server.game.tables, state, { heroes: [], pet: true })
+            })
         const original = a.send('AddChat', {
             target: { tid: String(b.pid), chat_type: 0 },
             msg: bytes('private'),

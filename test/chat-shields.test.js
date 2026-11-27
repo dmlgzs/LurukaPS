@@ -50,8 +50,11 @@ test('mute suppresses private/group delivery, counts and visible history without
         const list = chatSnapshots(f.store, f.state(f.a), f.a.id)
         assert.equal(list.counts.msg_list.find((r) => r.id === f.b.id).cnt, 0)
         assert.deepEqual(list.list.info.find((r) => r.id === f.b.id).chats, [])
-        const history = f.call(f.a, 'ChatInfoSync', { id: f.b.id })
-        assert.deepEqual(f.reply(history, f.protocol.byName.get('CSProtoChatInfoSync').id).chats, [])
+        const history = f.call(f.a, 'ChatSyncNew', { pids: [f.b.id] }),
+            conversations = f.reply(history, f.protocol.byName.get('CSProtoChatSyncNew').id).chat_infos
+        assert.equal(conversations.length, 1)
+        assert.equal(conversations[0].id, f.b.id)
+        assert.deepEqual(conversations[0].chats, [])
         f.store.transact(f.b.id, 0, (s) => {
             s.chatGroups = { 77: [f.a.id, f.b.id, f.c.id] }
         })
