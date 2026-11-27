@@ -8,6 +8,22 @@ import {
 } from '../src/medicine-state.js'
 export function medicineFixture(name, filename) {
     const f = rescueFixture(name, filename)
+    // This three-person medicine fixture explicitly acquires only two current
+    // roles; production normal starters still own only their protagonist.
+    for (const id of [107002, 108002]) {
+        if (!f.state().player.heros_info.heros.some((hero) => hero.conf_id === id))
+            f.call('GMCommand', { command: Buffer.from(`give 1 ${id} 1`).toString('base64') })
+    }
+    f.heroes.splice(
+        0,
+        f.heroes.length,
+        ...f
+            .state()
+            .player.heros_info.heros.slice(0, 3)
+            .map((hero) => hero.guid),
+    )
+    if (f.heroes.length !== 3) throw Error('Medicine fixture requires three current owned roles')
+    f.call('QuickChangeGroupInfo', { type: 1, id: 1, infos: f.heroes.map((hero_guid) => ({ hero_guid })) })
     let now = 1800000000
     f.game.clock = () => now
     f.time = (value) => {

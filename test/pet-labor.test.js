@@ -124,7 +124,7 @@ test('Xunlang petData and createPets share the approved local labor initializati
         },
     }
     const direct = petData(source, 500001, '1', 101, 1001, rng)
-    const state = { pets: [], petBoxes: [], petCatalogVersion: 2 }
+    const state = { player: { basic_info: { id: 101 } }, pets: [], petBoxes: [], petCatalogVersion: 2 }
     const [created] = createPets(source, state, 500001, 1, 1001, rng)
     assert.deepEqual(created.labor_infos, direct.labor_infos)
     assert.deepEqual(created.labor_infos, [{ labor_id: 3, labor_grade: 20, upper_labor_grade: 20, labor_exp: 0 }])
@@ -179,7 +179,7 @@ test('all current actual evolution routes keep shared saved labor and initialize
         assert.deepEqual(pet, before)
         count++
     }
-    assert(count > 0)
+    assert.equal(count, 116)
 })
 
 test('all explicit customized labor definitions use current score rows', () => {

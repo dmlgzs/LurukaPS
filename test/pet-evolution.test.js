@@ -34,11 +34,22 @@ function fixture(name, id, level, options = {}) {
     const state = () => store.load(session.id).state
     return { store, protocol, session, call, guid, state, pet: () => state().pets.find((p) => p.guid === guid) }
 }
-test('all 112 current routes plan valid successor abilities and use real gates; terminal forms do not evolve', () => {
+test('all 116 current routes plan valid successor abilities and use real gates; terminal forms do not evolve', () => {
     let routes = 0,
         paid = 0,
         terminal = 0
-    for (const row of rows) {
+    const present = rows.filter((row) => tables.find('pet', row.petId))
+    const unavailable = rows.filter((row) => !tables.find('pet', row.petId))
+    assert.deepEqual(
+        unavailable.map((row) => [row.petId, row.nextPetId]),
+        [[500639, 0]],
+    )
+    assert.throws(
+        () => petData(tables, 500639, '1', 101),
+        (error) => error.code === ErrorCode.PetConfNotExist,
+    )
+    assert.equal(present.length, 216)
+    for (const row of present) {
         const p = petData(tables, row.petId, '1', 101)
         p.lv = Math.max(1, row.levelNeed)
         if (!row.nextPetId) {
@@ -65,9 +76,9 @@ test('all 112 current routes plan valid successor abilities and use real gates; 
         assert(!Object.hasOwn(plan.update, 'comprehension'))
         assert(!Object.hasOwn(plan.update, 'gene_infos'))
     }
-    assert.equal(routes, 112)
+    assert.equal(routes, 116)
     assert.equal(paid, 11)
-    assert.equal(terminal, 93)
+    assert.equal(terminal, 100)
 })
 test('6510 keeps the uint64 identity, aptitudes, DNA and formation while publishing changed skills before the timeline ACK', () => {
     const f = fixture('evolve-formation', 500002, 19)
@@ -75,7 +86,7 @@ test('6510 keeps the uint64 identity, aptitudes, DNA and formation while publish
         let heroGuid
         f.store.transact(f.session.id, 0, (s) => {
             const p = s.pets.find((p) => p.guid === f.guid),
-                hero = s.player.heros_info.heros.find((h) => h.conf_id === 107002)
+                hero = s.player.heros_info.heros.find((h) => h.conf_id === 199001)
             heroGuid = hero.guid
             p.hero_id = heroGuid
             hero.pet_id = p.guid
