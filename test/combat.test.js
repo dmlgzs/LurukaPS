@@ -1,3 +1,10 @@
+import {
+    fundCurrentCombatActors,
+    qualifyCurrentCombatWorld,
+    currentFixedGroup,
+    currentCombatSeasonNow,
+    qualifyCurrentEntrust,
+} from './combat-normal-current-fixture.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
@@ -23,21 +30,31 @@ function fixture(options = {}) {
             .map((p) => ({ id: p.id, data: protocol.decode(protocol.byId.get(p.id).rsp, p.payload) }))
     }
     call('EnterGame', { open_id: 'combat-test' })
-    return { store, game, session, call, state: () => store.load(session.id).state }
+    store.transact(session.id, 0, (s) => {
+        qualifyCurrentCombatWorld(tables, s)
+        fundCurrentCombatActors(tables, s)
+    })
+    call('DayWeatherSync', { weather: store.load(session.id).state.world.weather })
+    const initialElements = call('RequestHeroElement', {
+        u64s: [store.load(session.id).state.player.heros_info.heros[0].guid],
+    })
+    assert.deepEqual(initialElements.find((p) => p.id === 11113).data.info, [])
+    const fixed = currentFixedGroup(tables, store.load(session.id).state, { minHp: 100 })
+    return { store, game, session, call, fixed, state: () => store.load(session.id).state }
 }
-test('actual logged enemy4500001 receives cumulative authoritative HP and death through native hurt notification', () => {
+test('actual current fixed-world enemy receives cumulative authoritative HP and death through native hurt notification', () => {
     const f = fixture()
     try {
         f.call('EnterWorldMap', { map_id: 100, point_id: 10045 })
-        const id = '216172782118283809',
+        const id = f.fixed.ids[0],
             source = f.state().player.heros_info.heros[0].guid
         const definition = enemyDefinition(tables, f.state(), id)
-        assert.equal(definition.config_id, 300071)
+        assert.equal(definition.pack_id, f.fixed.packs[0])
         assert(definition.max_hp > 0)
         assert(definition.level > 1)
         const hit = (delta) =>
             f.call('BattleInfoReduce', {
-                base_time: '1000',
+                base_time: String(f.game.clock() * 1000 + 100),
                 uint64_dic: [source, id],
                 battle_info: [{ hurt_info: { from_id: '1', tar_id: '2', hp_change: delta } }],
             })
@@ -77,7 +94,7 @@ test('actual logged enemy4500001 receives cumulative authoritative HP and death 
         f.store.close()
     }
 })
-test('CBT3 report indexes and request-relative timestamps expand without rounding uint64', () => {
+test('current report indexes and request-relative timestamps expand without rounding uint64', () => {
     const input = {
         base_time: '9007199254742000',
         uint64_dic: ['9007199254740993', '20011', '9007199254740995'],
@@ -142,7 +159,7 @@ test('reported damage changes owned HP/SP, clamps healing, persists on relog and
             original = h.hp,
             source = f.state().player.heros_info.battle_infos[1]
         const packets = f.call('BattleInfoReduce', {
-            base_time: '1000',
+            base_time: String(f.game.clock() * 1000 + 100),
             uint64_dic: [source.hero_id, h.hero_id],
             battle_info: [
                 { hurt_info: { from_id: '1', tar_id: '2', hp_change: -100, cur_hp: 0, from_sp: 2500, tar_sp: 3300 } },
@@ -224,8 +241,12 @@ test('element add/query/change/delete and direct attribute reports retain per-wo
     try {
         const id = f.state().player.heros_info.heros[0].guid
         f.call('BattleInfoReduce', {
-            base_time: '1000',
-            uint64_dic: [id, '9999999999999999', '20011'],
+            base_time: String(f.game.clock() * 1000 + 100),
+            uint64_dic: [
+                id,
+                '9999999999999999',
+                String(tables.get('skillsub_ele_value').find((r) => r.elementId > 0).elementId),
+            ],
             battle_info: [
                 {
                     element_info: {
@@ -243,7 +264,7 @@ test('element add/query/change/delete and direct attribute reports retain per-wo
             [11113],
         )
         assert.equal(packets[0].id, 11113)
-        assert.equal(packets[0].data.info[0].buff.begin_time, '975')
+        assert.equal(packets[0].data.info[0].buff.begin_time, String(f.game.clock() * 1000 + 100 - 25))
         assert.equal(packets[0].data.info[0].uniqueId, '9999999999999999')
         f.call('BattleInfoReduce', {
             uint64_dic: [id, '9999999999999999'],

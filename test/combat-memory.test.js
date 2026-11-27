@@ -1,3 +1,10 @@
+import {
+    fundCurrentCombatActors,
+    qualifyCurrentCombatWorld,
+    currentFixedGroup,
+    currentCombatSeasonNow,
+    qualifyCurrentEntrust,
+} from './combat-normal-current-fixture.js'
 import { populateParty } from './party-fixture.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -18,7 +25,7 @@ test('high-frequency combat reports stay in memory until a critical request or s
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lurukaps-combat-memory-')),
         file = path.join(dir, 'state.sqlite')
     let store = new Store(file, { flushIntervalMs: 60000 })
-    const game = new Game(protocol, store, tables),
+    const game = new Game(protocol, store, tables, { clock: () => 1800000000 }),
         session = {}
     let seq = 1
     const call = (name, value = {}) => {
@@ -28,15 +35,19 @@ test('high-frequency combat reports stay in memory until a critical request or s
     const database = () => store.db.prepare('select state,revision from players where account_id=?').get(session.id)
     try {
         call('EnterGame', { open_id: 'combat-memory' })
-        store.transact(session.id, 0, populateParty)
+        store.transact(session.id, 0, (s) => {
+            qualifyCurrentCombatWorld(tables, s)
+            fundCurrentCombatActors(tables, s)
+            populateParty(s)
+        })
         call('EnterWorldMap', { map_id: 100, point_id: 10045 })
-        const id = '216172782118283809',
+        const id = currentFixedGroup(tables, store.load(session.id).state, { minHp: 100 }).ids[0],
             hero = store.load(session.id).state.player.heros_info.heros[0].guid
         const before = database(),
             count = store.db.prepare('select count(*) n from request_log').get().n
         for (let i = 0; i < 40; i++)
             call('BattleInfoReduce', {
-                base_time: '1000',
+                base_time: String(1800000000000 + seq),
                 uint64_dic: [hero, id],
                 battle_info: [{ hurt_info: { from_id: '1', tar_id: '2', hp_change: -1 } }],
             })
@@ -61,7 +72,7 @@ test('high-frequency combat reports stay in memory until a critical request or s
         )
         assert.deepEqual(JSON.parse(database().state).world.pos, { x: 12345, y: 6789, z: 22222 })
         call('BattleInfoReduce', {
-            base_time: '1000',
+            base_time: String(1800000000000 + seq),
             uint64_dic: [hero, id],
             battle_info: [{ hurt_info: { from_id: '1', tar_id: '2', hp_change: -1 } }],
         })

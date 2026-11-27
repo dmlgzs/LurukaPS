@@ -1,3 +1,10 @@
+import {
+    fundCurrentCombatActors,
+    qualifyCurrentCombatWorld,
+    currentFixedGroup,
+    currentCombatSeasonNow,
+    qualifyCurrentEntrust,
+} from './combat-normal-current-fixture.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
@@ -19,6 +26,7 @@ test('empty10737 is a read-only no-op; nonempty monster telemetry stays in memor
     }
     try {
         call('EnterGame', { open_id: 'monster-scenes' })
+        store.transact(session.id, 0, (s) => qualifyCurrentCombatWorld(tables, s))
         call('EnterWorldMap', { map_id: 100, point_id: 10045 })
         const saved = () => store.db.prepare('select state,revision from players where account_id=?').get(session.id)
         const before = structuredClone(store.load(session.id).state),
@@ -29,7 +37,7 @@ test('empty10737 is a read-only no-op; nonempty monster telemetry stays in memor
         assert.deepEqual(call('MonsterSceneChange'), [])
         assert.deepEqual(store.load(session.id).state, before)
         assert.deepEqual(saved(), db)
-        const id = '216172782118283809'
+        const id = currentFixedGroup(tables, store.load(session.id).state).ids[0]
         for (let i = 0; i < 20; i++)
             assert.deepEqual(call('MonsterSceneChange', { infos: [{ tar_id: id, scene: i % 4 }] }), [])
         assert.equal(store.load(session.id).state.combat.monsterScenes[id].scene, 3)

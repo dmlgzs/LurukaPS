@@ -1,3 +1,10 @@
+import {
+    fundCurrentCombatActors,
+    qualifyCurrentCombatWorld,
+    currentFixedGroup,
+    currentCombatSeasonNow,
+    qualifyCurrentEntrust,
+} from './combat-normal-current-fixture.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
@@ -5,19 +12,20 @@ import { Protocol } from '../src/protocol.js'
 import { Tables } from '../src/player.js'
 import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
-import { afterBattlePassBeforePush, fixtureNow } from './battle-pass-packet-fixture.js'
+import { afterBattlePassBeforePush } from './battle-pass-packet-fixture.js'
 const config = configuration(),
     protocol = new Protocol(config.base),
-    tables = new Tables(config.tables)
+    tables = new Tables(config.tables),
+    fixtureNow = currentCombatSeasonNow(tables)
 // Stay within a known season and reset period. The first ordinary request
 // publishes the complete battle-pass task state before its own reply/relay.
 const gameOptions = { clock: () => fixtureNow }
 function initialSummonReply(f, packets, battle_index) {
     assert.deepEqual(
         packets.map((p) => p.id),
-        [18006, 11148],
+        [11148],
     )
-    const replies = afterBattlePassBeforePush(packets, tables, f.state())
+    const replies = afterBattlePassBeforePush(packets, tables, f.state(), fixtureNow)
     assert.deepEqual(
         replies.map((p) => p.id),
         [11148],
@@ -37,7 +45,19 @@ function fixture() {
             .map((p) => ({ id: p.id, data: protocol.decode(protocol.byId.get(p.id).rsp, p.payload) }))
     }
     call('EnterGame', { open_id: 'world-combat' })
-    return { store, session, call, state: () => store.load(session.id).state }
+    store.transact(session.id, 0, (s) => {
+        qualifyCurrentCombatWorld(tables, s)
+        fundCurrentCombatActors(tables, s, { heroes: [107002, 108002], pet: true })
+    })
+    const initialization = call('DayWeatherSync', { weather: store.load(session.id).state.world.weather })
+    const bp = initialization.filter((r) => r.id === 18006)
+    assert.equal(bp.length, 1, 'current season initialization produces its complete task cache')
+    assert.equal(bp[0].audience, undefined)
+    assert.equal(bp[0].recipient, undefined)
+    assert(initialization.indexOf(bp[0]) < initialization.findIndex((r) => r.id === 10784))
+    assert.deepEqual(afterBattlePassBeforePush(bp, tables, store.load(session.id).state, fixtureNow), [])
+    const fixed = currentFixedGroup(tables, store.load(session.id).state, { minHp: 100 })
+    return { store, session, call, fixed, state: () => store.load(session.id).state }
 }
 test('hatred deltas merge/remove edges and node resets remove incoming references', () => {
     const f = fixture()
@@ -193,9 +213,9 @@ test('logged independent skill summons allow zero config and retain owner and re
     const f = fixture()
     try {
         const request = {
-            unit_id: '72521459095830529',
+            unit_id: f.state().player.heros_info.heros.find((h) => h.conf_id === 108002 && !h.trail).guid,
             summon_info: {
-                unit_id: '1224979102939742209',
+                unit_id: ((17n << 56n) | (1n << 32n) | BigInt(f.session.id)).toString(),
                 config_id: 0,
                 summon_type: 3,
                 skill_id: 10800203,
@@ -265,12 +285,9 @@ test('pet presentation relays only to map peers without echo or ownership change
             })
             assert.deepEqual(
                 packets.map((p) => p.id),
-                type === 1 ? [18006, 11062] : [11062],
+                [11062],
             )
-            if (type === 1) {
-                assert.equal(packets[0].audience, undefined)
-                assert.equal(packets[0].recipient, undefined)
-            }
+
             const relays = afterBattlePassBeforePush(
                 packets.map((p) => ({ id: p.id, data: protocol.decode(protocol.byId.get(p.id).rsp, p.payload) })),
                 tables,

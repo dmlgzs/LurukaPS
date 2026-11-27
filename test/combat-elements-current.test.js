@@ -1,3 +1,10 @@
+import {
+    fundCurrentCombatActors,
+    qualifyCurrentCombatWorld,
+    currentFixedGroup,
+    currentCombatSeasonNow,
+    qualifyCurrentEntrust,
+} from './combat-normal-current-fixture.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
@@ -30,7 +37,10 @@ function fixture(name) {
         })
     }
     call('EnterGame', { open_id: name })
-    store.transact(session.id, 0, (s) => (s.tasks = []))
+    store.transact(session.id, 0, (s) => {
+        s.tasks = []
+        fundCurrentCombatActors(tables, s)
+    })
     const state = () => store.load(session.id).state,
         heroes = state().player.heros_info.heros
     assert(heroes.length >= 2)

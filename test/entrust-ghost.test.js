@@ -1,3 +1,10 @@
+import {
+    fundCurrentCombatActors,
+    qualifyCurrentCombatWorld,
+    currentFixedGroup,
+    currentCombatSeasonNow,
+    qualifyCurrentEntrust,
+} from './combat-normal-current-fixture.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { configuration } from '../src/config.js'
@@ -46,15 +53,7 @@ for (const entrustId of [1, 6])
         try {
             call('EnterGame', { open_id: `ghost-entrust-${entrustId}` })
             store.transact(session.id, 0, (state) => {
-                state.world.map_id = 100
-                state.player.basic_info.lv = Math.max(...tables.get('player_level').map((row) => row.id))
-                state.taskRecords = tables
-                    .get('task')
-                    .filter((row) => row.type === 1)
-                    .map((row) => ({ task_id: row.id, count: 1, time: 1 }))
-                ;(state.entrust ??= {}).records = Object.fromEntries(
-                    tables.get('dungeon_entrust').map((row) => [row.id, { entrust_id: row.id, entrust_star: 3 }]),
-                )
+                qualifyCurrentEntrust(tables, state, entrustId)
             })
             const entry = call('EnterEntrust', { entrust_id: entrustId })
             let state = store.load(session.id).state
@@ -72,7 +71,7 @@ for (const entrustId of [1, 6])
                     battle_info: enemies.map((e, index) => ({
                         hurt_info: { from_id: '1', tar_id: String(index + 2), hp_change: -e.hp },
                     })),
-                    base_time: '0',
+                    base_time: String(1800000000000 + seq),
                 })
             for (const stage of stages.filter((x) => x.type === 50)) {
                 state = store.load(session.id).state
