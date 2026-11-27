@@ -22,7 +22,9 @@ export async function runCurrentFoodApproach({ outputDirectory, afterApproach } 
                 ...driver,
                 call(name, value = {}) {
                     const packets = driver.call(name, value)
-                    if (name === 'BattleInfoReduce') {
+                    // This proof belongs to the approach ending at node26.
+                    // Later continuations can fight after106016 has finished.
+                    if (name === 'BattleInfoReduce' && proof.final === null) {
                         const target = value.uint64_dic[1]
                         const hp = f.state().combat.entities[target]?.hp
                         assert(Number.isFinite(hp) && hp >= 0)
