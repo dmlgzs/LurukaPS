@@ -14,6 +14,7 @@ import {
 } from '../multiple-material-story.js'
 import { ErrorCode } from '../error-codes.js'
 import { rewardSource } from '../reward-source.js'
+import { staminaChestExperience } from '../stamina-chest-experience.js'
 import { materialDungeonSnapshot, materialDungeonUnlocked } from '../material-dungeons.js'
 import { weeklyDungeonUnlocked, prepareWeeklyQuota, requireWeeklySystem } from '../weekly-dungeons.js'
 import { claimWeeklyChest } from '../weekly-chest.js'
@@ -85,6 +86,12 @@ function claimEntrustChest(c, times = 1) {
     const costs = parseRewards(chest.need).map((cost) => ({ ...cost, itemnum: cost.itemnum * times }))
     for (const cost of costs)
         ensure(Number.isSafeInteger(cost.itemnum) && cost.itemnum <= 0xffffffff, 'Invalid chest cost')
+    const experience = staminaChestExperience(
+        c.tables,
+        catalog.get(run.entrust_id, run.kind).entrust.rewardShow,
+        costs,
+        times,
+    )
     const mutationSource = c.mutationSourceRuntime?.prepare(c, {
         kind: run.kind === 'material' ? 'material' : 'entrust',
         run,
@@ -132,10 +139,16 @@ function claimEntrustChest(c, times = 1) {
             }
         }
     }
-    const rewards = [...merged.values()],
-        exp = catalog.get(run.entrust_id, run.kind).dungeon.userExp
-    // Material chest pools already include player XP through nested drops.
-    if (run.kind !== 'material' && exp > 0) rewards.push({ itemtype: 10, itemid: 10, itemnum: exp * times })
+    const rewards = [...merged.values()]
+    // All current124 commission/material base pools and material challenge
+    // pools omit player XP. The current preview/cost quote is separate from
+    // dungeon.userExp (generic scene-clear metadata). Never count both.
+    ensure(
+        !rewards.some((reward) => reward.itemtype === 10 && reward.itemid === 10),
+        'Stamina chest player experience is also present in the drop pool',
+        ErrorCode.GameConfig,
+    )
+    rewards.push(experience)
     run.rewards = grantRewards(c.tables, c.state, rewards, 0, { personalFavor })
     run.chest_claimed = true
     run.claim_times = times
