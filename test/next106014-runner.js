@@ -38,7 +38,7 @@ const profiles = new Map([
     [101103, [2, 0, 0]],
 ])
 
-export async function runCurrentWingsMilestone({ outputDirectory, afterChapter } = {}) {
+export async function runCurrentWingsMilestone({ outputDirectory, afterChapter, dungeonLifecycle } = {}) {
     const directory = outputDirectory ?? fs.mkdtempSync(path.join(os.tmpdir(), 'lurukaps-wings106014-'))
     fs.mkdirSync(directory, { recursive: true })
     const proof = {
@@ -84,6 +84,7 @@ export async function runCurrentWingsMilestone({ outputDirectory, afterChapter }
                 rejected.push({ name, value })
             }
             const defeat = (objectId) => {
+                let packets
                 const map = f.state().world.map_id
                 const group = f.state().worldObjects[map + ':' + objectId]
                 assert.equal(group.active, true)
@@ -96,7 +97,7 @@ export async function runCurrentWingsMilestone({ outputDirectory, afterChapter }
                     assert(hp > 1)
                     for (const delta of [-1, -(hp - 1)]) {
                         f.advanceMs(2)
-                        call('BattleInfoReduce', {
+                        packets = call('BattleInfoReduce', {
                             base_time: String(f.nowMs()),
                             uint64_dic: [f.currentGroup().control, target],
                             battle_info: [{ hurt_info: { from_id: '1', tar_id: '2', hp_change: delta } }],
@@ -110,6 +111,7 @@ export async function runCurrentWingsMilestone({ outputDirectory, afterChapter }
                     [],
                 )
                 waves.push({ map, objectId, targets })
+                return packets
             }
             const enter = () => {
                 const info = snapshot(call('CampaignCreate', { group_id: 200, difficulty: 1 }))
@@ -120,6 +122,7 @@ export async function runCurrentWingsMilestone({ outputDirectory, afterChapter }
                 assert.equal(info.cur_scene_id, 6200)
                 assert.equal(info.status, 2)
                 call('StartDungeonClientOk')
+                return info
             }
             const flow = normalSuccessorFlow(f, current, {
                 dungeonCompletion(data) {
@@ -132,6 +135,11 @@ export async function runCurrentWingsMilestone({ outputDirectory, afterChapter }
                         ['10010,task_interact_dungeon_14'],
                     )
                     current.move({ x: entry.posX, y: entry.posY, z: entry.posZ })
+                    if (dungeonLifecycle) {
+                        const result = dungeonLifecycle({ f, current, call, snapshot, defeat, enter, reject, sceneIds })
+                        assert(!result?.then, 'Dungeon lifecycle continuation must run synchronously')
+                        return
+                    }
                     const entrance = f.state().world,
                         experience = f.state().player.basic_info.exp
                     enter()
