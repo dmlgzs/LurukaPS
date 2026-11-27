@@ -1,4 +1,5 @@
 import { ordinaryGoodsPricing } from './shop-pricing.js'
+import { completedGrowupEndingCount } from './shop-conditions.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { configTime, staticTimeRow } from './time-definitions.js'
@@ -66,15 +67,26 @@ function conditionProgress(text, state) {
     const values = [],
         checks = []
     for (const entry of String(text).split('|')) {
-        const [id, target] = entry.split('#').map(Number)
+        const parts = entry.split('#').map(Number),
+            [id, target, required] = parts
         let value = 0,
             known = true
-        if (id === 2004) value = state.player.basic_info.lv
-        else if (id === 2007)
+        if (id === 2004 && parts.length === 2 && Number.isSafeInteger(target) && target > 0)
+            value = state.player.basic_info.lv
+        else if (id === 2007 && parts.length === 2 && Number.isSafeInteger(target) && target > 0)
             value = (state.taskRecords || []).some((t) => t.task_id === target && t.count > 0) ? target : 0
+        else if (
+            id === 80003 &&
+            parts.length === 3 &&
+            Number.isSafeInteger(target) &&
+            target > 0 &&
+            Number.isSafeInteger(required) &&
+            required > 0
+        )
+            value = completedGrowupEndingCount(state, target)
         else known = false
         values.push(value)
-        checks.push(known && value >= target)
+        checks.push(known && value >= (id === 80003 ? required : target))
     }
     return { open: checks.every(Boolean), values }
 }
