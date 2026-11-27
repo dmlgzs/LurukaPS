@@ -942,7 +942,7 @@ export class Game {
                 bootstrapHomeWishlistIdentity(this.tables, state)
                 reconcileTaskPackageScope(this.tables, state, now)
                 resetWorldObjectAoiSession(state, session.token)
-                suspendUnavailableTasks(this.tables, state)
+                suspendUnavailableTasks(this.tables, state, new TaskGraphs(this.tables))
                 this.legacyMatchTeams.onLogin(session.id)
                 const previousMapId = state.world.map_id
                 delete state.world.mountActionLifecycle // A login never inherits prior-session exit authorization.
