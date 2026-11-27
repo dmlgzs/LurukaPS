@@ -6,6 +6,7 @@ import { teamV2Target, requireTeamV2Target } from './team-v2-eligibility.js'
 import { teamV2MemberData } from './team-v2-member.js'
 import { legacyChatBans } from './chat-shields.js'
 import { TeamV2TargetChanges } from './team-v2-target-change.js'
+import { TeamV2RunLedger } from './team-v2-run-ledger.js'
 const uint = (n) => Number.isSafeInteger(n) && n >= 0 && n <= 0xffffffff
 const positive = (n) => uint(n) && n > 0
 const object = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
@@ -53,6 +54,7 @@ export class TeamV2Service {
    CREATE TABLE IF NOT EXISTS team_v2_leave_receipts(team_id INTEGER NOT NULL,player_id INTEGER NOT NULL,reason INTEGER NOT NULL,PRIMARY KEY(team_id,player_id));
    CREATE TABLE IF NOT EXISTS team_v2_room_receipts(team_id INTEGER PRIMARY KEY,captain INTEGER NOT NULL,payload TEXT NOT NULL);`)
         this.changes = new TeamV2TargetChanges(this)
+        this.runs = new TeamV2RunLedger(this)
     }
     requireTransaction() {
         ensure(this.db.inTransaction, 'TeamV2 mutation requires an atomic transaction', ErrorCode.GameConfig)

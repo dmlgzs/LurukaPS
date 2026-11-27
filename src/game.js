@@ -1613,7 +1613,11 @@ export class Game {
                         : {}),
                     broadcast: (audience, name, value) =>
                         pushes.push(
-                            this.packet(name, value, sceneAudienceMetadata(this.tables, state, session.id, audience)),
+                            this.packet(
+                                name,
+                                value,
+                                sceneAudienceMetadata(this.tables, state, session.id, audience, this.teamV2.runs),
+                            ),
                         ),
                     pushBefore: Object.assign((name, value) => emit(before, name, value), {
                         combatSnapshotStream: before,

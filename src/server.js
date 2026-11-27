@@ -359,7 +359,7 @@ export async function startServer(config, logger = console) {
                                 const matches = isChat
                                     ? audienceAllows(chatRoutingInfo(store, id), packet.audience, true)
                                     : sceneAudienceAllows(
-                                          sceneRoutingInfo(store, tables, id),
+                                          sceneRoutingInfo(store, tables, id, game.teamV2.runs),
                                           packet.audience,
                                           packet.sceneScope,
                                       )
