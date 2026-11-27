@@ -5,6 +5,7 @@ import { grantRewards, parseRewards } from './rewards.js'
 import { rewardSource } from './reward-source.js'
 import policy from '../configs/pami-mail-policy.json' with { type: 'json' }
 import { activityValid } from './activity-access.js'
+import { preparedSystemAccess } from './system-access.js'
 const catalogs = new WeakMap()
 const warned = new Set()
 function warnRejected(row, reasons) {
@@ -99,10 +100,14 @@ function stateData(state) {
 function permanentHero(state, id) {
     return state.player.heros_info.heros.find((h) => h.conf_id === id && !h.trail)
 }
-function unlocked(data, state, row) {
-    const system = data.systems.get(row.category.systemId)
+function categoryUnlocked(data, state, category) {
+    const system = data.systems.get(category.systemId)
     ensure(system, 'Pami category system configuration missing', ErrorCode.GameConfig)
-    return homeCondition(system.unlockCondi, state)
+    const prepared = preparedSystemAccess(data.tables, state, system.id)
+    return prepared === undefined ? homeCondition(system.unlockCondi, state) : prepared
+}
+function unlocked(data, state, row) {
+    return categoryUnlocked(data, state, row.category)
 }
 function eligible(data, state, row, now, completionPolicy) {
     if (!unlocked(data, state, row)) return false
@@ -129,9 +134,7 @@ function eligible(data, state, row, now, completionPolicy) {
 }
 function signature(data, state, now) {
     const heroes = new Map(state.player.heros_info.heros.filter((h) => !h.trail).map((h) => [h.conf_id, h]))
-    const gates = [...data.categories.values()].map((c) =>
-        homeCondition(data.systems.get(c.systemId)?.unlockCondi, state) ? 1 : 0,
-    )
+    const gates = [...data.categories.values()].map((c) => (categoryUnlocked(data, state, c) ? 1 : 0))
     const favor = [...data.groups.values()]
         .filter((g) => g.heroId > 0)
         .map((g) => heroes.get(g.heroId)?.favorability_lv ?? 0)
@@ -293,6 +296,19 @@ export function notifyPamiMail(c, name) {
     if (!/(?:Task|Hero|PamiMail|GMCommand|ActivityConditionOpen)/.test(name)) return
     if (preparePamiMail(c.tables, c.state, c.now))
         c.pushBefore('CSProtoPamiMailSync', pamiMailSnapshot(c.tables, c.state, c.now))
+}
+// Call only AFTER the system delivery plan projects the final public bitmap.
+// Battle reports may borrow pamiMail from a pending/base state, so install a
+// fresh ledger before any observer can change delivery records or signatures.
+export function notifyPamiSystemUnlock(c, ids) {
+    ensure(Array.isArray(ids), 'Pami system notification IDs are invalid', ErrorCode.GameConfig)
+    if (!ids.length) return false
+    const systems = new Set([...catalog(c.tables).categories.values()].map((row) => row.systemId))
+    if (!ids.some((id) => systems.has(id))) return false
+    if (c.state.pamiMail !== undefined) c.state.pamiMail = structuredClone(c.state.pamiMail)
+    const changed = preparePamiMail(c.tables, c.state, c.now)
+    if (changed) c.push('CSProtoPamiMailSync', pamiMailSnapshot(c.tables, c.state, c.now))
+    return changed
 }
 export function registerPamiMail(on) {
     on('PamiMailRead', (c, r) => {

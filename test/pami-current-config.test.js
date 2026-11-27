@@ -7,6 +7,7 @@ import { Store } from '../src/store.js'
 import { Game } from '../src/game.js'
 import { pamiCoverage } from '../src/pami-mail.js'
 import { ErrorCode } from '../src/error-codes.js'
+import { grantRewards } from '../src/rewards.js'
 
 const config = configuration(),
     tables = new Tables(config.tables),
@@ -111,6 +112,9 @@ test('actual current128 chain reads and replies through9971/9972, remains native
             args: [],
         }
         store.transact(session.id, 0, (state) => {
+            // Explicit current permanent ownership fixture. Normal starters do
+            // not receive every hero; this is not a default-gift assumption.
+            grantRewards(tables, state, [{ itemtype: 1, itemid: 112002, itemnum: 1 }])
             const hero = state.player.heros_info.heros.find((hero) => hero.conf_id === 112002 && !hero.trail)
             assert(hero)
             hero.favorability_lv = 9

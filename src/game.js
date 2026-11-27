@@ -215,7 +215,13 @@ import { retireCapturedEnemy } from './handlers/world-combat.js'
 import { registerEcology } from './handlers/ecology.js'
 import { registerMall } from './handlers/mall.js'
 import { registerNovicePack, prepareNovicePack, notifyNovicePack } from './novice-pack.js'
-import { registerPamiMail, preparePamiMail, pamiMailSnapshot, notifyPamiMail } from './pami-mail.js'
+import {
+    registerPamiMail,
+    preparePamiMail,
+    pamiMailSnapshot,
+    notifyPamiMail,
+    notifyPamiSystemUnlock,
+} from './pami-mail.js'
 import { registerCombat } from './handlers/combat.js'
 import { registerPresentation } from './handlers/presentation.js'
 import { registerClientState } from './handlers/client-state.js'
@@ -1862,9 +1868,14 @@ export class Game {
                     ...packets,
                     ...pushes,
                 ]
-                return this.systemUnlocks.deliver(state, systemPackets, systemPlan, (name, value) =>
+                const delivered = this.systemUnlocks.deliver(state, systemPackets, systemPlan, (name, value) =>
                     this.packet(name, value),
                 )
+                notifyPamiSystemUnlock(
+                    { ...context, push: (name, value) => delivered.push(this.packet(name, value)) },
+                    systemPlan?.ids ?? [],
+                )
+                return delivered
             },
             systemUnlockPersistence({
                 defer: deferredMessages.has(e.name),
@@ -2196,7 +2207,19 @@ export class Game {
                     )
                 }
                 const systemPlan = state.systemUnlockProgress === undefined ? null : this.systemUnlocks.observe(state)
-                return this.systemUnlocks.deliver(state, packets, systemPlan, (name, value) => this.packet(name, value))
+                const delivered = this.systemUnlocks.deliver(state, packets, systemPlan, (name, value) =>
+                    this.packet(name, value),
+                )
+                notifyPamiSystemUnlock(
+                    {
+                        state,
+                        tables: this.tables,
+                        now,
+                        push: (name, value) => delivered.push(this.packet(name, value)),
+                    },
+                    systemPlan?.ids ?? [],
+                )
+                return delivered
             },
             systemUnlockPersistence({
                 defer: !durable,
@@ -2230,10 +2253,10 @@ export class Game {
         pruneItemShortcuts(state, now)
         observeJourney(this.tables, state)
         const novice = prepareNovicePack(this.tables, state, now).payload
+        this.systemUnlocks.prepare(state)
         preparePamiMail(this.tables, state, now)
         prepareSocialWheel(this.tables, state)
         prepareEscBackground(this.tables, state)
-        this.systemUnlocks.prepare(state)
         return [
             this.packet('CSProtoEnterGameCallbackStart', {
                 reconnect: !!r.reconnect,
