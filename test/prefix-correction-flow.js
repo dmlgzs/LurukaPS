@@ -23,6 +23,8 @@ export function normalSuccessorFlow(
         conditionAfterLifecycle,
         dungeonCompletion,
         specialNpcCompletion,
+        timeCompletion,
+        submitCompletion,
     } = {},
 ) {
     const { graphs, call, move, playStory } = first
@@ -163,6 +165,8 @@ export function normalSuccessorFlow(
         } else if (condition.conditionId === 1001) {
             const data = base.__type_TaskCondNPCTriggerData
             assert(data)
+            if (base.mapData?.sceneId > 0 && base.mapData.sceneId !== f.state().world.map_id)
+                walkCurrentScene(f, first, base.mapData.sceneId)
             const { pos } = world.object(f.state().world.map_id, data.npcId)
             move(pos)
             if (data.storyId > 0) {
@@ -203,6 +207,14 @@ export function normalSuccessorFlow(
         } else if (condition.conditionId === 2518) {
             assert(guidedCompletion, 'Unmodelled actual guided condition input')
             guidedCompletion(condition, { f, call, move, world, taskId, node, index })
+        } else if (condition.conditionId === 2501) {
+            assert(submitCompletion, 'Current fixed submission producer model is required')
+            submitCompletion(base.__type_TaskCondSubItemData, { f, call, taskId, node, index })
+            assert(conditionValue(condition, f.state(), { taskId, nodeId: node.id, index }) > 0)
+        } else if (condition.conditionId === 1100) {
+            assert(timeCompletion, 'Current task time producer model is required')
+            timeCompletion(base.__type_TaskCondTimeTriggerData, { f, call, taskId, node, index })
+            assert(conditionValue(condition, f.state(), { taskId, nodeId: node.id, index }) > 0)
         } else if (condition.conditionId === 12017) {
             assert(dungeonCompletion, 'Current dungeon completion model is required')
             dungeonCompletion(base.__type_TaskCondDungeonData, { f, call, move, taskId, node, index })

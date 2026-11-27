@@ -87,7 +87,85 @@ function timeReportMatches(data, hour) {
     )
 }
 
+function recordIndexedTimeEvent(c, r, graphs) {
+    const args = r.args
+    ensure(
+        args.length === 4 &&
+            args.every((value) => Number.isInteger(value) && value >= 0 && value <= 0xffffffff) &&
+            args[0] > 0 &&
+            args[1] > 0 &&
+            args[3] === 1,
+        'Invalid indexed task time event arguments',
+        ErrorCode.InvalidArgument,
+    )
+    const [taskId, nodeId, index] = args
+    const task = c.state.tasks?.find((entry) => entry.task_id === taskId)
+    const completed = c.state.taskRecords?.some((entry) => entry.task_id === taskId && entry.count > 0)
+    ensure(task || completed, 'Task is not owned', ErrorCode.PlayerTaskNotFound)
+    ensure(c.tables.find('task', taskId), 'Task time definition is missing', ErrorCode.TaskConfFail)
+    const graph = graphs.get(taskId),
+        config = graph.nodes.get(nodeId)
+    ensure(config, 'Task time node does not exist', ErrorCode.TaskNoNodeId)
+    const conditions = nodeConditions(config)
+    ensure(index < conditions.length, 'Task time condition index is outside limits', ErrorCode.TaskNodeIndexLimit)
+    const condition = conditions[index]
+    ensure(
+        condition.conditionId === 1100,
+        'Indexed time report targets another condition type',
+        ErrorCode.InvalidArgument,
+    )
+    const data = condition.__type_TaskConditionBaseData?.__type_TaskCondTimeTriggerData
+    ensure(data, 'Task time configuration is missing', ErrorCode.GameConfig)
+    ensure([0, 1, 2, 3].includes(data.checkNameType), 'Unsupported task time condition', ErrorCode.FunctionClosed)
+    if (data.checkNameType === 3)
+        ensure(
+            Number.isFinite(data.delayTime) && data.delayTime >= 0,
+            'Task delay configuration is invalid',
+            ErrorCode.GameConfig,
+        )
+    else {
+        const start = data.checkNameType === 1 ? 0 : data.startTime
+        const end = data.checkNameType === 0 ? 48 : data.endTime
+        ensure(
+            Number.isInteger(start) && Number.isInteger(end) && start >= 0 && end <= 48 && end > start,
+            'Task time range configuration is invalid',
+            ErrorCode.GameConfig,
+        )
+    }
+    if (data.isJumpDay)
+        ensure(
+            Number.isInteger(data.jumpDay) && data.jumpDay >= 0,
+            'Task day configuration is invalid',
+            ErrorCode.GameConfig,
+        )
+    // Late callbacks only acknowledge already-owned completion; they never
+    // recreate progress or rewards for a different active node/attempt.
+    if (completed || task.finish_nodes?.includes(nodeId)) return true
+    const node = task.nodes.find((entry) => entry.node_id === nodeId)
+    ensure(node, 'Task time node is not active', ErrorCode.InvalidArgument)
+    ensure(node.client_before, 'Task time pre-action is not acknowledged', ErrorCode.InvalidArgument)
+    const key = deliveryKey(c.state, taskId, nodeId, index)
+    if (c.state.taskEvents?.[key]) return true
+    // Current TimeTrigger0602e7c6 checks local days/hour/delay before sending
+    // TaskStore0601c6ad [task,node,index,1]. No hour or day is present on wire;
+    // do not infer either from WorldTimeSync or guess a unique active timer.
+    ;(c.state.taskEvents ??= {})[key] = 1
+    ;(c.state.taskTimeReports ??= {})[key] = {
+        format: 'indexed',
+        task_id: taskId,
+        node_id: nodeId,
+        index,
+        count: 1,
+        time: c.now,
+    }
+    node.node_values[index] = conditionValue(condition, c.state, { taskId, nodeId, index })
+    if (taskVisibleAtLevel(c.tables, c.state, task)) c.push('CSProtoTaskSync', { tasks: [task] })
+    return true
+}
+
 function recordTimeEvent(c, r, graphs) {
+    if (r.args?.length === 4) return recordIndexedTimeEvent(c, r, graphs)
+    // Retained CBT3 hour-only compatibility and its historical cache recovery.
     const [hour, count, ...extra] = r.args ?? []
     ensure(
         !extra.length && Number.isInteger(hour) && hour >= 0 && hour < 24 && count === 1,
@@ -138,7 +216,13 @@ export function recoverCachedTaskTimeEvent(c) {
         return false
     const event = [...(c.state.clientBehaviour ?? [])]
         .reverse()
-        .find((record) => record.key === 1100 && record.time >= (task.start_time ?? Infinity) && record.time <= c.now)
+        .find(
+            (record) =>
+                record.key === 1100 &&
+                record.args?.length === 2 &&
+                record.time >= (task.start_time ?? Infinity) &&
+                record.time <= c.now,
+        )
     if (!event) return false
     // An already completed timer quest after this cached report makes its
     // original owner uncertain. Do not credit the active task in that case.

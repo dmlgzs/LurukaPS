@@ -41,7 +41,7 @@ function fixture() {
     })
     return { store, session, call, state: () => store.load(session.id).state }
 }
-test('next-day daytime node17 accepts the actual native1100 report and advances via ordinary task acknowledgments', () => {
+test('legacy hour-only1100 remains compatible and advances via ordinary task acknowledgments', () => {
     const f = fixture()
     try {
         for (const time of [2300, 800, 1002]) f.call('WorldTimeSync', { world_time: time })
