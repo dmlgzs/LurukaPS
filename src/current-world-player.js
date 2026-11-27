@@ -113,3 +113,45 @@ export function currentWorldActorInfo(tables, original) {
         throw new GameError(`World player actor attributes unavailable: ${error.message}`, ErrorCode.GameConfig)
     }
 }
+
+// Current MultiPlayerService0602991a consumes the concrete hero base and the
+// PetAttrInfo overload. Its legacy pet_attr field is not a substitute.
+export function currentOtherPlayerInfo(tables, state, playerId, now) {
+    ensure(
+        (state.world.status ?? 0) !== 1,
+        'Shared mounted-player appearance is not implemented',
+        ErrorCode.FunctionClosed,
+    )
+    const selected = formation(tables, state),
+        index = selected.heroes.findIndex((hero) => String(hero.guid) === String(selected.control.guid)),
+        pet = selected.pets[index],
+        data = currentWorldActorInfo(tables, state),
+        attrs = new Map(data.attributes.heros.map((info) => [String(info.hero_guid), info])),
+        battle = new Map(data.battle.infos.map((info) => [String(info.uuid), info])),
+        id = guid(selected.control.guid)
+    const result = {
+        player_id: playerId,
+        player_info: currentWorldPlayer(tables, state, playerId, now),
+        hero: structuredClone(selected.control),
+        hero_attr: attrs.get(id),
+        hero_battle_info: battle.get(id),
+    }
+    if (pet) {
+        ensure(uint(pet.type) && pet.type > 0, 'Appearance pet type is malformed', ErrorCode.GameConfig)
+        const petId = guid(pet.guid),
+            info = attrs.get(petId)
+        ensure(info, 'Appearance pet attributes are unavailable', ErrorCode.GameConfig)
+        result.pet_full_attr = {
+            guid: petId,
+            conf_id: pet.config_id,
+            type: pet.type,
+            level: pet.lv,
+            color: pet.color ?? 0,
+            special: pet.special ?? 0,
+            modules: info.modules,
+        }
+        result.pet_base_info = structuredClone(pet)
+        result.pet_battle_info = battle.get(petId)
+    }
+    return result
+}

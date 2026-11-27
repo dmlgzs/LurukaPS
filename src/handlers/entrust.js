@@ -575,6 +575,18 @@ export function registerEntrust(on, tables) {
         return {}
     })
     on('MultiCampaignPlayerLoadFinish', (c) => {
+        if (c.state.sharedTeamRun && c.state.entrust?.run?.map_id === c.state.world.map_id) {
+            ensure(c.sharedTeamRuns, 'Shared loading authority is unavailable', ErrorCode.GameConfig)
+            c.sharedTeamRuns.requireScene(c)
+            const appearances = c.sharedTeamRuns.playerAppearances(c, { states: c.sharedTeamStates })
+            c.state.entrust.run.loading_complete_at ??= c.now
+            pushSceneMode({ ...c, push: c.pushBefore }, { multiplayer: true })
+            for (const appearance of appearances) c.pushBefore('SCProtoObjAppearNtf', appearance)
+            c.pushBefore('CSProtoMultiCampaignPlayerLoadingPageCompleteNtf', { u32: c.id })
+            // Do not run the private syncEntrustEnemyBattle path for every
+            // participant. Canonical loading/controller authority is next.
+            return
+        }
         if (c.state.combat?.npcDuel && c.state.multiCampaign?.map_id === c.state.world.map_id) {
             reportNpcArenaLoadFinish(c)
             c.pushBefore('CSProtoMultiCampaignPlayerLoadingPageCompleteNtf', { u32: c.id })

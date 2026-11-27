@@ -4,7 +4,7 @@ import { ensure } from './handlers/common.js'
 import { compileSharedTeamTarget } from './team-v2-run-target.js'
 import { currentMapMember } from './current-map-member.js'
 import { currentMapMemberAttribute } from './current-map-attributes.js'
-import { currentWorldPlayer, currentWorldActorInfo } from './current-world-player.js'
+import { currentWorldPlayer, currentWorldActorInfo, currentOtherPlayerInfo } from './current-world-player.js'
 
 const uint = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff
 const positive = (value) => uint(value) && value > 0
@@ -83,6 +83,24 @@ export class TeamV2RunLedger {
             'Corrupt shared run roster',
             ErrorCode.GameConfig,
         )
+        if (run.player_agents !== undefined) {
+            const agents = run.player_agents
+            ensure(
+                agents &&
+                    typeof agents === 'object' &&
+                    !Array.isArray(agents) &&
+                    Object.keys(agents).length === run.members.length &&
+                    run.members.every(
+                        (member) =>
+                            typeof agents[member.id] === 'string' &&
+                            /^[1-9]\d*$/.test(agents[member.id]) &&
+                            BigInt(agents[member.id]) <= 0xffffffffn,
+                    ) &&
+                    new Set(Object.values(agents)).size === run.members.length,
+                'Saved shared player-agent identities are malformed',
+                ErrorCode.GameConfig,
+            )
+        }
         const compiled = compileSharedTeamTarget(this.teams.tables, { typ: run.typ, target: run.target })
         ensure(
             compiled.fingerprint === run.source_fingerprint && compiled.route.scene.id === run.map_id,
@@ -223,6 +241,22 @@ export class TeamV2RunLedger {
         ensure(result.changes === 1, 'Shared run revision changed', ErrorCode.TeamWaitStateSync)
         return saved
     }
+    #allocatePlayerAgents(run) {
+        ensure(this.db.inTransaction, 'Shared player-agent allocation requires a transaction', ErrorCode.GameConfig)
+        try {
+            // LOCAL opaque positive-u32 namespace. Current admitted world
+            // object GUIDs carry a nonzero fight type in their upper bits.
+            // Allocate once per run/player,never from a changing control hero.
+            return Object.fromEntries(
+                run.members.map((member) => [
+                    member.id,
+                    String(this.store.nextSequence('team-v2-player-agent', 0xffffffff)),
+                ]),
+            )
+        } catch (error) {
+            ensure(false, `Shared player-agent allocation failed: ${error.message}`, ErrorCode.GameConfig)
+        }
+    }
     // Called only after the real entry adapter has prepared every participant's
     // current material/weekly scene in this same Store transaction. It does not
     // create a scene, emit PLAY, share NPCs or mark a participant loaded.
@@ -282,7 +316,11 @@ export class TeamV2RunLedger {
                 entry_instance_id: state.entrust.run.instance_id,
             }
         }
-        return { run: this.#save(run, { ...run, phase: 'loading' }), room, states }
+        return {
+            run: this.#save(run, { ...run, phase: 'loading', player_agents: this.#allocatePlayerAgents(run) }),
+            room,
+            states,
+        }
     }
     close(c) {
         const { run } = this.requireCurrent(c)
@@ -443,5 +481,25 @@ export class TeamV2RunLedger {
             attributes: { heros },
             battle: { infos: values.flatMap((value) => value.actors.battle.infos) },
         }
+    }
+    playerAppearances(c, { states } = {}) {
+        const { run, values } = this.#sceneMembers(c, states, (state, member) =>
+            member.id === c.id
+                ? null
+                : {
+                      id: member.id,
+                      player: currentOtherPlayerInfo(this.teams.tables, state, member.id, c.now),
+                  },
+        )
+        // Older internal v1 runs have no player_agents. Initialize only in
+        // this explicit authenticated transaction,not as a read-side repair.
+        const current = run.player_agents
+            ? run
+            : this.#save(run, { ...run, player_agents: this.#allocatePlayerAgents(run) })
+        return values.filter(Boolean).map((value) => ({
+            agent_uid: current.player_agents[value.id],
+            agent_type: 1, // Current1.0 AgentType.Player;not FightObjType.Hero.
+            player: value.player,
+        }))
     }
 }

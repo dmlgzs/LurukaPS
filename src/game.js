@@ -320,6 +320,9 @@ const unchangedReadQueries = new Set([
     'CSProtoListShopArrayItems',
     'CSProtoMallReddotSet',
     'CSProtoGetTrialGroup',
+    // Real first-load changes still persist; an unchanged loading ACK/retry
+    // must not rewrite the whole profile merely to resend appearance data.
+    'CSProtoMultiCampaignPlayerLoadFinish',
 ])
 const deferredTaskProgress = new Set([
     'CSProtoTaskClientBefore',
