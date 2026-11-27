@@ -1,3 +1,4 @@
+import { registerTeamV2 } from './team-v2.js'
 import { SystemUnlocks, systemUnlockPersistence, systemUnlockPlayerPacket } from './system-unlocks.js'
 import { bootstrapHomeWishlistIdentity } from './home-wishlist.js'
 import { currentMapMember } from './current-map-member.js'
@@ -699,6 +700,9 @@ export class Game {
         registerEntrust(on, tables)
         registerStoryCampaign(on, tables)
         registerProfileQueries(on, tables, store)
+        this.teamV2 = registerTeamV2(on, store, tables, {
+            encodeNotice: (name, value, recipient) => this.packet(name, value, { recipient }),
+        })
         registerPlayerCard(on, tables)
         registerSceneShowcase(on, tables)
         registerWorldObjects(on, tables)
@@ -1609,6 +1613,7 @@ export class Game {
                     validateMedicineLedger(state)
                 reconcileMedicine(context)
                 const response = recoveredChoice ? {} : handler(context, r)
+                this.teamV2.observe(context)
                 if (e.name === 'CSProtoHomeTechnologyLevelUp') reconcileRanchTechnology(this.tables, state)
                 // 9596 is the current client readiness report; 9509 is only
                 // reached after its existing dungeon-domain validation.
@@ -2442,6 +2447,9 @@ export class Game {
             this.packet('CSProtoChatRoomSync', { chat_type: 2, sysId: String(state.chatWorldRoom ?? 1) }),
             this.packet('CSProtoChatListSync', chatSnapshots(this.store, state, session.id).list),
             this.packet('CSProtoChatMsgCntSync', chatSnapshots(this.store, state, session.id).counts),
+            ...this.teamV2
+                .loginSnapshots({ id: session.id, state, now, tables: this.tables })
+                .map(({ name, value }) => this.packet(name, value)),
         ]
     }
 }

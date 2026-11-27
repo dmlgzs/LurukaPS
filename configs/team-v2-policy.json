@@ -1,0 +1,18 @@
+{
+    "schema_version": 1,
+    "origin": "LOCAL",
+    "target_version": "1.0.0",
+    "package_version": "3217420",
+    "room_id_namespace": "team_v2_room",
+    "member_limit": 3,
+    "invitation_ttl_seconds": 30,
+    "invitation_ttl_basis": "LOCAL_reference_UI_TEAM_INVITATION_PLAYTIME_not_official_backend_duration",
+    "offline_members": "retain_and_publish_observed_boolean",
+    "captain_exit": "dismiss_as_current_Exit_sender",
+    "invitation_permission": "normal_lobby_members",
+    "TODO": [
+        "Official backend expiration and offline room cleanup were not recovered. No fake last-seen timestamps are emitted.",
+        "Ready/Start remain closed until a real authoritative shared run is connected; this is not final multiplayer restoration."
+    ],
+    "query_context_limit": 32
+}

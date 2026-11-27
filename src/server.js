@@ -111,6 +111,16 @@ export async function startServer(config, logger = console) {
             session = socket && sessions.get(socket)?.session
         return socket && !socket.destroyed && session?.entered ? session.token : null
     }
+    game.teamV2.isOnline = game.legacyMatchTeams.isOnline
+    game.teamV2.connectionKey = game.legacyMatchTeams.connectionKey
+    function notifyTeamV2Presence(id, online) {
+        if (closing) return
+        try {
+            for (const packet of game.teamV2.presence(id, online, game.clock())) deliverTo(packet.recipient, packet)
+        } catch (error) {
+            logger.warn('TeamV2 presence omitted: ' + error.message)
+        }
+    }
     function notifyLegacyTeamPresence(id, online) {
         if (closing) return
         try {
@@ -227,7 +237,10 @@ export async function startServer(config, logger = console) {
             if (session.entryChatNoticeTimer) clearTimeout(session.entryChatNoticeTimer)
             if (owners.get(session.id) === socket) {
                 owners.delete(session.id)
-                if (session.entered) notifyLegacyTeamPresence(session.id, false)
+                if (session.entered) {
+                    notifyLegacyTeamPresence(session.id, false)
+                    notifyTeamV2Presence(session.id, false)
+                }
             }
         })
         socket.on('data', (chunk) => {
@@ -298,12 +311,15 @@ export async function startServer(config, logger = console) {
                             // before the new connection has sent EnterGame.
                             // Its old close callback must not erase the new
                             // owner, but teammates still need the offline edge.
-                            if (replacedEnteredConnection && !session.entered)
+                            if (replacedEnteredConnection && !session.entered) {
                                 notifyLegacyTeamPresence(session.id, false)
+                                notifyTeamV2Presence(session.id, false)
+                            }
                         }
                         if (entering && session.entered) {
                             scheduleEntryWorldChatNotice(session, socket)
                             notifyLegacyTeamPresence(session.id, true)
+                            notifyTeamV2Presence(session.id, true)
                         }
                     } catch (err) {
                         diagnostics.record({ protocol, frame, accountId: session.id, error: err })

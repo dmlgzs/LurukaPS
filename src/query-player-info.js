@@ -1,3 +1,4 @@
+import { teamV2QueryContexts, projectTeamV2QueryContexts } from './team-v2-eligibility.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
 import { publicProfile } from './public-profile.js'
@@ -41,18 +42,17 @@ export function queryPlayerInfo(c, request, store) {
         'Unknown player query selector',
     )
     ensure(uint(request.qtype ?? 0), 'Player query mode is malformed')
-    ensure(
-        (request.qtype ?? 0) === 0 && dungeonQueries.length === 0,
-        'Dungeon invitation eligibility queries are not implemented',
-        ErrorCode.FunctionClosed,
-    )
+    ensure((request.qtype ?? 0) === 0, 'Player query mode is not implemented', ErrorCode.FunctionClosed)
     ensure(uint(c.id) && c.id > 0, 'Query account identity is malformed', ErrorCode.GameConfig)
+    const contexts = dungeonQueries.length ? teamV2QueryContexts(c.tables, dungeonQueries) : []
     const ids = [...new Set(playerIds.length ? playerIds : [c.id])],
         playerInfos = []
     let deactivated = false
     for (const id of ids) {
         if (id === c.id) {
-            playerInfos.push(structuredClone(basicInfo(c.state, id)))
+            playerInfos.push(
+                projectTeamV2QueryContexts(c, structuredClone(basicInfo(c.state, id)), c.state, id, contexts),
+            )
             continue
         }
         if (!store.hasPlayer(id)) continue
@@ -61,7 +61,7 @@ export function queryPlayerInfo(c, request, store) {
             if (basic.deleted === true) return null
             // No borrowed pending object may escape this synchronous read.
             // No peer migration, flush, timestamp or online status is invented.
-            return structuredClone(publicProfile(basic))
+            return projectTeamV2QueryContexts(c, structuredClone(publicProfile(basic)), state, id, contexts)
         })
         if (profile === null) deactivated = true
         else playerInfos.push(profile)
