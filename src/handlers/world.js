@@ -227,6 +227,10 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
     const cultivationExtra = cultActivityAttrExtra(s)
     c.push('CSProtoWorldMapPointSync', { u32s: w.points })
     if (includeMarks) c.push('CSProtoWorldMapMarkListSync', worldMarkPayload(s))
+    if (s.sharedTeamRun && s.entrust?.run?.map_id === w.map_id) {
+        ensure(c.sharedTeamRuns, 'Shared encounter authority is unavailable', ErrorCode.GameConfig)
+        c.sharedTeamRuns.ensureEncounter(c, { states: c.sharedTeamStates })
+    }
     const shared =
         s.sharedTeamRun && s.entrust?.run?.map_id === w.map_id
             ? c.sharedTeamRuns?.worldActors(c, { states: c.sharedTeamStates })
@@ -237,6 +241,12 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
         ErrorCode.GameConfig,
     )
     const creator = shared?.creator_id ?? c.id
+    const ownObjects = Object.entries(s.worldObjects ?? {})
+        .filter(([key]) => key.startsWith(w.map_id + ':') && isCurrentSavedWorldObject(c.tables, s, key))
+        .map(([, record]) => {
+            const { claims, ...object } = record
+            return object
+        })
     // CheckHeroData06029d39 caches by actual GUID before map actors are built;
     // it only updates the owned config map for this receiver's own player ID.
     if (shared) c.push('CSProtoHeroAttrInfoSync', shared.attributes)
@@ -256,12 +266,7 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
             area_id: w.area_id,
             ...(s.abyssRun?.map_id === w.map_id ? { map_ele: abyssHeroMapElements(c.tables, s.abyssRun) } : {}),
             ...(r.campaign_start ? { campaign_start: r.campaign_start } : {}),
-            objs: Object.entries(s.worldObjects ?? {})
-                .filter(([key]) => key.startsWith(w.map_id + ':') && isCurrentSavedWorldObject(c.tables, s, key))
-                .map(([, record]) => {
-                    const { claims, ...obj } = record
-                    return obj
-                }),
+            objs: shared ? c.sharedTeamRuns.encounterObjects(c, ownObjects) : ownObjects,
             players: shared?.players ?? [currentWorldPlayer(c.tables, s, c.id, c.now)],
         },
     })
@@ -271,8 +276,11 @@ export function worldSync(c, r = {}, cmd = WORLD_MAP_CMD_ENTER, includeMarks = t
         // 9103 can discard the client's nonbattle EntitySyncBlock cache.
         // Restore destination state after that packet, in the same stream.
         const ready = { ...c, pushBefore: c.push }
-        publishCombatEnemyActivations(ready)
-        replayCombatEnemyTerminals(ready)
+        if (shared) c.push('CSProtoObjBattleInfoSync', c.sharedTeamRuns.encounterBattleInfo(c))
+        else {
+            publishCombatEnemyActivations(ready)
+            replayCombatEnemyTerminals(ready)
+        }
     }
     if ([WORLD_MAP_CMD_ENTER, 49].includes(cmd)) c.push('CSProtoWorldCheckpointSync', checkpointSnapshot(s))
     // CutWorld creates the destination SceneProxy synchronously before its

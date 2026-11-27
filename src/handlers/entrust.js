@@ -208,6 +208,7 @@ export function syncEntrustStage(
 export function syncEntrustEnemyBattle(c, previousEnemyObjectId, publishObjects = () => {}) {
     const run = c.state.entrust?.run
     if (!run || run.map_id !== c.state.world.map_id || c.state.combat?.map_id !== run.map_id) return
+    ensure(!c.state.sharedTeamRun, 'Shared NPC control requires its canonical adapter', ErrorCode.FunctionClosed)
     const enemies = Object.values(c.state.combat.entities ?? {}).filter(
         (enemy) => c.state.worldObjects?.[`${run.map_id}:${enemy.object_id}`]?.active,
     )
@@ -260,6 +261,7 @@ export function validateEntrustObjectInteraction(c, objectId, completing) {
     if (!context) return
     const stage = context.stages.find((entry) => entry.row.id === objectId)
     if (!stage) return
+    ensure(!c.state.sharedTeamRun, 'Shared stage interaction requires its canonical adapter', ErrorCode.FunctionClosed)
     ensure(stage.index <= context.run.stage_index, 'Entrust stage is not active')
     if (stage.type === 50 && stage.index === context.run.stage_index)
         ensure(
@@ -283,6 +285,7 @@ export function completeEntrustObject(c, objectId, completing) {
     const { run, stages } = context
     const position = stages.findIndex((entry) => entry.row.id === objectId)
     if (position < 0 || stages[position].index !== run.stage_index) return []
+    ensure(!c.state.sharedTeamRun, 'Shared stage completion requires its canonical adapter', ErrorCode.FunctionClosed)
     const stage = stages[position]
     if (stage.type === 13) {
         if (prepareMaterialStory(c)) {
@@ -370,7 +373,16 @@ export function advanceEntrustCombat(c, deadGroups = new Set()) {
 }
 
 export function syncEntrust(c, run) {
-    const multi = entrustMultiSnapshot(run)
+    ensure(
+        !(c.state.sharedTeamRun && run.map_id === c.state.world.map_id) || c.sharedTeamRuns,
+        'Shared dungeon snapshot authority is unavailable',
+        ErrorCode.GameConfig,
+    )
+    const participants =
+            c.state.sharedTeamRun && run.map_id === c.state.world.map_id
+                ? c.sharedTeamRuns.requireCurrent(c).run.members.length
+                : 1,
+        multi = entrustMultiSnapshot(run, participants)
     const active = [2, 3].includes(run.status) && run.map_id === c.state.world.map_id
     if (isSingleEntrust(c)) c.pushBefore('CSProtoCampaignInfoSync', campaignSnapshot(run))
     else {
@@ -578,8 +590,13 @@ export function registerEntrust(on, tables) {
         if (c.state.sharedTeamRun && c.state.entrust?.run?.map_id === c.state.world.map_id) {
             ensure(c.sharedTeamRuns, 'Shared loading authority is unavailable', ErrorCode.GameConfig)
             c.sharedTeamRuns.requireScene(c)
+            c.sharedTeamRuns.ensureEncounter(c, { states: c.sharedTeamStates })
             const appearances = c.sharedTeamRuns.playerAppearances(c, { states: c.sharedTeamStates })
+            c.sharedTeamRuns.noteProxyReport(c)
             c.state.entrust.run.loading_complete_at ??= c.now
+            // Rebind after the scene/proxy change as well as at initial entry;
+            // native GetTeamMemberCount reads PlayingData.dungeonPlayerNum.
+            syncEntrust(c, c.state.entrust.run)
             pushSceneMode({ ...c, push: c.pushBefore }, { multiplayer: true })
             for (const appearance of appearances) c.pushBefore('SCProtoObjAppearNtf', appearance)
             c.pushBefore('CSProtoMultiCampaignPlayerLoadingPageCompleteNtf', { u32: c.id })

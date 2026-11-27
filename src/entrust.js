@@ -328,9 +328,15 @@ export function campaignSnapshot(run) {
     }
 }
 
-export function entrustMultiSnapshot(run) {
+export function entrustMultiSnapshot(run, participants = 1) {
+    ensure(
+        Number.isInteger(participants) && participants >= 1 && participants <= 3,
+        'Dungeon participant count is malformed',
+        ErrorCode.GameConfig,
+    )
     return {
         dungeon_id: run.dungeon_id,
+        dungeon_player_num: participants,
         status:
             run.status === 2
                 ? !materialStoryPending(run) && run.stage_index > 1

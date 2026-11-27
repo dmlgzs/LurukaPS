@@ -11,7 +11,22 @@ import { worldCondition } from './handlers/world-objects.js'
 import { trackingConditionResult } from './pet-tracking-conditions.js'
 import { ErrorCode } from './error-codes.js'
 import { ensure } from './handlers/common.js'
+import { dungeonEnemyScales, scaledEnemyHp } from './dungeon-enemy-scale.js'
 const catalogs = new WeakMap()
+export function enemyBaseHpValue(tables, definition) {
+    const pack = tables.find('enemy_pack', definition.pack_id),
+        enemy =
+            pack?.specialCreateType === 1
+                ? tables.find('hero', definition.config_id)
+                : tables.find('enemy', definition.config_id)
+    if (!enemy) return null
+    const property = tables.find('unit_property', pack?.propertyId || enemy.propertyId),
+        template = (3000 + (pack?.templateID || enemy.enemyType)) * 1000 + definition.level,
+        base = tables.find('template_value', property?.baseAttributeId),
+        growth = tables.find('template_value', template)
+    if (!base || !growth) return null
+    return Math.fround(Math.fround(pairs(base.baseAttribute).get(5) * pairs(growth.baseAttribute).get(5)) / 10000)
+}
 export function enemyDefinition(tables, state, uuid) {
     if (state.abyssRun?.map_id === state.world.map_id) tables = abyssTables(tables)
     const arena = state.combat?.npcDuel
@@ -35,7 +50,16 @@ export function enemyDefinition(tables, state, uuid) {
         cached = { world: new WorldObjectCatalog(tables, tables.abyss_directory), graphs: new TaskGraphs(tables) }
         catalogs.set(tables, cached)
     }
-    let packId, worldRow, taskConfig, groupSize, taskGroup, livePack, taskSourceId, taskSourceNode, activationSource
+    let packId,
+        worldRow,
+        taskConfig,
+        groupSize,
+        taskGroup,
+        livePack,
+        taskSourceId,
+        taskSourceNode,
+        activationSource,
+        scaleGroupId
     if (kind === 7) {
         for (const [key, entry] of Object.entries(state.playableEnemies ?? {})) {
             if (!key.startsWith(state.world.map_id + ':')) continue
@@ -86,7 +110,10 @@ export function enemyDefinition(tables, state, uuid) {
                 const record = state.worldObjects?.[state.world.map_id + ':' + object]
                 const dynamic = record?.expand_data?.dynamic_obj
                 const spawner = cached.world.find('world_spawner', dynamic?.spawner_id || row.spawnerId)
-                if (spawner?.objectType === 50) groupId = dynamic?.expand_id || row.expandId
+                if (spawner?.objectType === 50) {
+                    groupId = dynamic?.expand_id || row.expandId
+                    scaleGroupId = groupId
+                }
                 // Random habitats are potential pools. Only a selected current
                 // server snapshot defines which group and pack can be fought/caught.
                 if (spawner?.objectType === 51) {
@@ -194,7 +221,6 @@ export function enemyDefinition(tables, state, uuid) {
                 ? tables.find('hero', pack.enemyId)
                 : tables.find('enemy', pack?.enemyId || packId)
     if (!enemy) return null
-    const property = tables.find('unit_property', pack?.propertyId || enemy.propertyId)
     // EntityLevelUtility0600e009 uses the first worldAreaId override.
     let parameter = pack?.levelParameter ?? 0
     if (pack?.levelPolicy === 1 && worldRow) {
@@ -233,18 +259,27 @@ export function enemyDefinition(tables, state, uuid) {
                 : undefined
     const defaultLevel = Number(tables.get('game').find((r) => r.title === 'DEFAULT_MONSTER_LEVEL')?.value ?? 1)
     const level = Math.max(
-            1,
-            pack?.levelPolicy === 3 && dungeon
-                ? (configured ?? state.combat?.entities?.[uuid]?.level ?? defaultLevel)
-                : (state.combat?.entities?.[uuid]?.level ?? configured ?? defaultLevel),
-        ),
-        template = (3000 + (pack?.templateID || enemy.enemyType)) * 1000 + level
-    const base = tables.find('template_value', property?.baseAttributeId),
-        growth = tables.find('template_value', template)
-    if (!base || !growth) return null
-    let maxHp = Math.floor(
-        Math.fround(Math.fround(pairs(base.baseAttribute).get(5) * pairs(growth.baseAttribute).get(5)) / 10000),
+        1,
+        pack?.levelPolicy === 3 && dungeon
+            ? (configured ?? state.combat?.entities?.[uuid]?.level ?? defaultLevel)
+            : (state.combat?.entities?.[uuid]?.level ?? configured ?? defaultLevel),
     )
+    const rawHp = enemyBaseHpValue(tables, { pack_id: packId, config_id: enemy.id, level })
+    if (rawHp === null) return null
+    let maxHp = Math.floor(rawHp)
+    // Current normal/multiple commission groups both apply the dungeon's
+    // base group scale. A private run has one participant; the shared ledger
+    // compiles its own actual-count definition from the same raw value.
+    if (
+        kind === 3 &&
+        worldRow &&
+        !taskConfig &&
+        dungeon &&
+        state.entrust?.run?.map_id === state.world.map_id &&
+        scaleGroupId > 0
+    ) {
+        maxHp = scaledEnemyHp(rawHp, dungeonEnemyScales(tables, dungeon.id, state.world.map_id, scaleGroupId, 1))
+    }
     if (state.abyssRun?.map_id === state.world.map_id)
         maxHp = Math.floor((maxHp * abyssEnemyHpScale(tables, state.abyssRun.dungeon_id, object)) / 10000)
     if (!Number.isSafeInteger(maxHp) || maxHp <= 0 || maxHp > 0xffffffff) return null

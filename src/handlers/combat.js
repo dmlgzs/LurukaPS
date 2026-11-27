@@ -336,6 +336,11 @@ export function registerCombat(on) {
         }
     })
     on('BattleInfoReduce', (c, r) => {
+        ensure(
+            !(c.state.sharedTeamRun && c.state.entrust?.run?.map_id === c.state.world.map_id),
+            'Shared battle reports require the canonical combat adapter',
+            ErrorCode.FunctionClosed,
+        )
         // The configured boss intro is a cinematic barrier, not a kill report.
         // Ignore stale HP reports until the issued story's 11468 callback.
         if (c.state.abyssRun?.map_id === c.state.world.map_id && c.state.abyssRun.phase === 'intro') return {}

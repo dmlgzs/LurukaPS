@@ -202,6 +202,7 @@ export function beginMaterialStory(c, objectId) {
     const run = c.state.entrust?.run,
         plan = materialStoryPlan(c.tables, run)
     if (!plan || objectId !== plan.trigger_id || run.map_id !== c.state.world.map_id) return false
+    ensure(!c.state.sharedTeamRun, 'Shared intro requires its participant barrier', ErrorCode.FunctionClosed)
     if (run.materialStory?.phase === 'done' || run.battle_start_time) return false
     ensure(run.status === 2, 'Material story run is not active', ErrorCode.InvalidLogic)
     ensure(run.loading_complete_at, 'Material scene has not finished loading', ErrorCode.InvalidLogic)

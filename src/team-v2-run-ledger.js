@@ -5,6 +5,13 @@ import { compileSharedTeamTarget } from './team-v2-run-target.js'
 import { currentMapMember } from './current-map-member.js'
 import { currentMapMemberAttribute } from './current-map-attributes.js'
 import { currentWorldPlayer, currentWorldActorInfo, currentOtherPlayerInfo } from './current-world-player.js'
+import {
+    sharedEncounterBlueprint,
+    newSharedEncounter,
+    validateSharedEncounter,
+    requireFreshSharedEntry,
+    sharedEncounterObjects,
+} from './team-v2-encounter.js'
 
 const uint = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff
 const positive = (value) => uint(value) && value > 0
@@ -107,6 +114,8 @@ export class TeamV2RunLedger {
             'Shared run configuration changed',
             ErrorCode.GameConfig,
         )
+        if (run.encounter)
+            validateSharedEncounter(run, sharedEncounterBlueprint(this.teams.tables, compiled, run.members.length))
         return run
     }
     requireCurrent(c) {
@@ -273,7 +282,9 @@ export class TeamV2RunLedger {
             'Shared scene binding is not in its admission phase',
             ErrorCode.TeamInBattle,
         )
-        const { definition } = compileSharedTeamTarget(c.tables, room),
+        const compiled = compileSharedTeamTarget(c.tables, room),
+            { definition } = compiled,
+            blueprint = sharedEncounterBlueprint(this.teams.tables, compiled, run.members.length),
             states = new Map()
         for (const member of run.members) {
             const state = member.id === c.id ? c.state : c.editPlayer(member.id),
@@ -303,6 +314,7 @@ export class TeamV2RunLedger {
                 ErrorCode.TeamTargetChanged,
             )
             ensure(positive(entry.instance_id), 'Shared entry instance identity is malformed', ErrorCode.GameConfig)
+            requireFreshSharedEntry(state, blueprint)
             states.set(member.id, state)
         }
         // Only identity is shared here. Do not copy another player's combat,
@@ -317,7 +329,12 @@ export class TeamV2RunLedger {
             }
         }
         return {
-            run: this.#save(run, { ...run, phase: 'loading', player_agents: this.#allocatePlayerAgents(run) }),
+            run: this.#save(run, {
+                ...run,
+                phase: 'loading',
+                player_agents: this.#allocatePlayerAgents(run),
+                encounter: newSharedEncounter(blueprint, c.now),
+            }),
             room,
             states,
         }
@@ -501,5 +518,83 @@ export class TeamV2RunLedger {
             agent_type: 1, // Current1.0 AgentType.Player;not FightObjType.Hero.
             player: value.player,
         }))
+    }
+    ensureEncounter(c, { states } = {}) {
+        const { room, run } = this.requireScene(c)
+        if (run.encounter) return run.encounter
+        const compiled = compileSharedTeamTarget(this.teams.tables, room),
+            blueprint = sharedEncounterBlueprint(this.teams.tables, compiled, run.members.length)
+        // Compatibility for an old internal run is an explicit authenticated
+        // scene/load mutation. Never reset an already used private encounter.
+        this.#sceneMembers(c, states, (state) => {
+            requireFreshSharedEntry(state, blueprint)
+            return null
+        })
+        return this.#save(run, { ...run, encounter: newSharedEncounter(blueprint, c.now) }).encounter
+    }
+    encounterObjects(c, records) {
+        const { room, run } = this.requireScene(c)
+        ensure(run.encounter, 'Shared encounter has not been initialized', ErrorCode.FunctionClosed)
+        const blueprint = sharedEncounterBlueprint(
+            this.teams.tables,
+            compileSharedTeamTarget(this.teams.tables, room),
+            run.members.length,
+        )
+        return sharedEncounterObjects(records, run.encounter, blueprint)
+    }
+    encounterBattleInfo(c) {
+        const { run } = this.requireScene(c)
+        ensure(run.encounter, 'Shared encounter has not been initialized', ErrorCode.FunctionClosed)
+        return {
+            infos: Object.values(run.encounter.entities).map((entity) => ({
+                uuid: entity.uuid,
+                hp: entity.hp,
+                sp: entity.sp,
+                alive_state: entity.alive_state,
+                final_blow_guid: entity.final_blow_guid ?? '0',
+                reason: 1,
+            })),
+        }
+    }
+    noteProxyReport(c) {
+        this.ensureEncounter(c)
+        const { run } = this.requireScene(c),
+            member = run.members.find((value) => value.id === c.id)
+        if (!run.encounter.proxy_reports[c.id]) {
+            ensure(uint(c.now), 'Shared proxy report clock is malformed', ErrorCode.GameConfig)
+            this.#save(run, {
+                ...run,
+                encounter: {
+                    ...run.encounter,
+                    proxy_reports: {
+                        ...run.encounter.proxy_reports,
+                        [c.id]: {
+                            generation: run.generation,
+                            lease: member.lease,
+                            connection_hash: member.admission_connection_hash,
+                            at: c.now,
+                        },
+                    },
+                },
+            })
+        }
+        return this.proxyReportStatus(c)
+    }
+    proxyReportStatus(c) {
+        const { run } = this.requireScene(c)
+        ensure(run.encounter, 'Shared encounter has not been initialized', ErrorCode.FunctionClosed)
+        const pending = run.members
+            .filter((member) => {
+                const report = run.encounter.proxy_reports[member.id],
+                    connection = this.teams.connectionKey(member.id)
+                return (
+                    !report ||
+                    !this.teams.isOnline(member.id) ||
+                    !key(connection) ||
+                    digest(connection) !== report.connection_hash
+                )
+            })
+            .map((member) => member.id)
+        return { all_current: pending.length === 0, pending }
     }
 }

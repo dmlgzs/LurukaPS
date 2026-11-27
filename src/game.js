@@ -1560,8 +1560,26 @@ export class Game {
                             combatSnapshotStream: target,
                             pushBefore: (key, data) => emit(target, key, data, meta),
                         }
-                        publishCombatEnemyActivations(ready)
-                        replayCombatEnemyTerminals(ready)
+                        if (state.sharedTeamRun && state.entrust?.run?.map_id === state.world.map_id) {
+                            const shared = {
+                                id: session.id,
+                                state,
+                                tables: this.tables,
+                                now,
+                                combatSessionId: session.token,
+                            }
+                            this.teamV2.runs.ensureEncounter(shared)
+                            target.push(
+                                this.packet(
+                                    'CSProtoObjBattleInfoSync',
+                                    this.teamV2.runs.encounterBattleInfo(shared),
+                                    meta,
+                                ),
+                            )
+                        } else {
+                            publishCombatEnemyActivations(ready)
+                            replayCombatEnemyTerminals(ready)
+                        }
                     }
                 }
                 const petIdsBefore = state.pets.map((p) => p.guid)
@@ -2308,6 +2326,10 @@ export class Game {
     }
     loginPackets(state, session, r, frame, id) {
         const now = this.clock()
+        const dungeonParticipants =
+            state.sharedTeamRun && state.entrust?.run?.map_id === state.world.map_id
+                ? this.teamV2.runs.requireCurrent({ id: session.id, combatSessionId: session.token }).run.members.length
+                : 1
         validateMedicineLedger(state)
         reconcileMedicine({ state, now, tables: this.tables })
         repairPetModelBindings(this.tables, state)
@@ -2449,7 +2471,7 @@ export class Game {
                                 this.packet('CSProtoMultiCampaignInfoSync', {
                                     camp: [
                                         {
-                                            ...entrustMultiSnapshot(state.entrust.run),
+                                            ...entrustMultiSnapshot(state.entrust.run, dungeonParticipants),
                                             ...(state.entrust.run.kind === 'weekly'
                                                 ? {
                                                       star:
@@ -2462,7 +2484,10 @@ export class Game {
                                         },
                                     ],
                                 }),
-                                this.packet('CSProtoCurMultiCampaignInfoSync', entrustMultiSnapshot(state.entrust.run)),
+                                this.packet(
+                                    'CSProtoCurMultiCampaignInfoSync',
+                                    entrustMultiSnapshot(state.entrust.run, dungeonParticipants),
+                                ),
                             ]),
                       this.packet('SCProtoMultiCampaignPlayerDmgInfoSync', entrustDamageSnapshot(state, session.id)),
                       this.packet('CSProtoStaminaBoxSync', entrustChestSnapshot(this.tables, state)),
