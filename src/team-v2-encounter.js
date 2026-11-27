@@ -164,6 +164,40 @@ export function validateSharedEncounter(run, blueprint) {
             ErrorCode.GameConfig,
         )
     }
+    if (value.battle_start_time !== undefined)
+        ensure(
+            uint(value.battle_start_time) && value.battle_start_time > 0,
+            'Shared battle start clock is malformed',
+            ErrorCode.GameConfig,
+        )
+    if (value.control !== undefined && value.control !== null) {
+        const control = value.control,
+            group = blueprint.groups[control.object_id],
+            member = run.members.find((candidate) => candidate.id === control.player_id)
+        ensure(
+            uint(control.object_id) &&
+                control.object_id > 0 &&
+                group &&
+                group.stage_index === value.stage_index &&
+                member &&
+                control.generation === run.generation &&
+                control.lease === member.lease &&
+                control.connection_hash === member.admission_connection_hash &&
+                uint(control.granted_at) &&
+                uint(control.epoch) &&
+                control.epoch > 0 &&
+                value.control_epoch === control.epoch &&
+                value.battle_start_time !== undefined,
+            'Shared NPC control grant is malformed or detached',
+            ErrorCode.GameConfig,
+        )
+    }
+    if (value.control_epoch !== undefined)
+        ensure(
+            uint(value.control_epoch) && value.control_epoch > 0,
+            'Shared control epoch is malformed',
+            ErrorCode.GameConfig,
+        )
     return value
 }
 export function requireFreshSharedEntry(state, blueprint) {

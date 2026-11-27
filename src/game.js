@@ -2326,10 +2326,10 @@ export class Game {
     }
     loginPackets(state, session, r, frame, id) {
         const now = this.clock()
-        const dungeonParticipants =
+        const dungeonSnapshot = () =>
             state.sharedTeamRun && state.entrust?.run?.map_id === state.world.map_id
-                ? this.teamV2.runs.requireCurrent({ id: session.id, combatSessionId: session.token }).run.members.length
-                : 1
+                ? this.teamV2.runs.multiSnapshot({ id: session.id, state, now, combatSessionId: session.token })
+                : entrustMultiSnapshot(state.entrust.run, 1)
         validateMedicineLedger(state)
         reconcileMedicine({ state, now, tables: this.tables })
         repairPetModelBindings(this.tables, state)
@@ -2471,7 +2471,7 @@ export class Game {
                                 this.packet('CSProtoMultiCampaignInfoSync', {
                                     camp: [
                                         {
-                                            ...entrustMultiSnapshot(state.entrust.run, dungeonParticipants),
+                                            ...dungeonSnapshot(),
                                             ...(state.entrust.run.kind === 'weekly'
                                                 ? {
                                                       star:
@@ -2484,10 +2484,7 @@ export class Game {
                                         },
                                     ],
                                 }),
-                                this.packet(
-                                    'CSProtoCurMultiCampaignInfoSync',
-                                    entrustMultiSnapshot(state.entrust.run, dungeonParticipants),
-                                ),
+                                this.packet('CSProtoCurMultiCampaignInfoSync', dungeonSnapshot()),
                             ]),
                       this.packet('SCProtoMultiCampaignPlayerDmgInfoSync', entrustDamageSnapshot(state, session.id)),
                       this.packet('CSProtoStaminaBoxSync', entrustChestSnapshot(this.tables, state)),

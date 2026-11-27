@@ -261,7 +261,7 @@ export function validateEntrustObjectInteraction(c, objectId, completing) {
     if (!context) return
     const stage = context.stages.find((entry) => entry.row.id === objectId)
     if (!stage) return
-    ensure(!c.state.sharedTeamRun, 'Shared stage interaction requires its canonical adapter', ErrorCode.FunctionClosed)
+    if (c.state.sharedTeamRun) return c.sharedTeamRuns.validateStageInteraction(c, objectId)
     ensure(stage.index <= context.run.stage_index, 'Entrust stage is not active')
     if (stage.type === 50 && stage.index === context.run.stage_index)
         ensure(
@@ -284,8 +284,12 @@ export function completeEntrustObject(c, objectId, completing) {
     if (!context) return []
     const { run, stages } = context
     const position = stages.findIndex((entry) => entry.row.id === objectId)
-    if (position < 0 || stages[position].index !== run.stage_index) return []
-    ensure(!c.state.sharedTeamRun, 'Shared stage completion requires its canonical adapter', ErrorCode.FunctionClosed)
+    if (position < 0) return []
+    if (c.state.sharedTeamRun) {
+        c.sharedTeamRuns.completeStageMarker(c, objectId)
+        return []
+    }
+    if (stages[position].index !== run.stage_index) return []
     const stage = stages[position]
     if (stage.type === 13) {
         if (prepareMaterialStory(c)) {
@@ -382,7 +386,10 @@ export function syncEntrust(c, run) {
             c.state.sharedTeamRun && run.map_id === c.state.world.map_id
                 ? c.sharedTeamRuns.requireCurrent(c).run.members.length
                 : 1,
-        multi = entrustMultiSnapshot(run, participants)
+        multi =
+            c.state.sharedTeamRun && run.map_id === c.state.world.map_id
+                ? c.sharedTeamRuns.multiSnapshot(c, run)
+                : entrustMultiSnapshot(run, participants)
     const active = [2, 3].includes(run.status) && run.map_id === c.state.world.map_id
     if (isSingleEntrust(c)) c.pushBefore('CSProtoCampaignInfoSync', campaignSnapshot(run))
     else {
@@ -601,7 +608,8 @@ export function registerEntrust(on, tables) {
             for (const appearance of appearances) c.pushBefore('SCProtoObjAppearNtf', appearance)
             c.pushBefore('CSProtoMultiCampaignPlayerLoadingPageCompleteNtf', { u32: c.id })
             // Do not run the private syncEntrustEnemyBattle path for every
-            // participant. Canonical loading/controller authority is next.
+            // participant. Replay only an already issued canonical grant.
+            c.sharedTeamRuns.replayEncounterControl(c)
             return
         }
         if (c.state.combat?.npcDuel && c.state.multiCampaign?.map_id === c.state.world.map_id) {

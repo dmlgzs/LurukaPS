@@ -5,6 +5,8 @@ import { compileSharedTeamTarget } from './team-v2-run-target.js'
 import { currentMapMember } from './current-map-member.js'
 import { currentMapMemberAttribute } from './current-map-attributes.js'
 import { currentWorldPlayer, currentWorldActorInfo, currentOtherPlayerInfo } from './current-world-player.js'
+import { entrustMultiSnapshot } from './entrust.js'
+import { materialStoryPlan } from './multiple-material-story.js'
 import {
     sharedEncounterBlueprint,
     newSharedEncounter,
@@ -555,6 +557,140 @@ export class TeamV2RunLedger {
                 reason: 1,
             })),
         }
+    }
+    multiSnapshot(c, personalRun = c.state.entrust?.run) {
+        const { run } = this.requireScene(c)
+        ensure(run.encounter, 'Shared encounter has not been initialized', ErrorCode.FunctionClosed)
+        return entrustMultiSnapshot(
+            {
+                ...personalRun,
+                stage_index: run.encounter.stage_index,
+                battle_start_time: run.encounter.battle_start_time ?? personalRun.battle_start_time,
+            },
+            run.members.length,
+        )
+    }
+    validateStageInteraction(c, objectId) {
+        const { room, run } = this.requireScene(c),
+            compiled = compileSharedTeamTarget(this.teams.tables, room),
+            blueprint = sharedEncounterBlueprint(this.teams.tables, compiled, run.members.length),
+            encounter = run.encounter,
+            position = blueprint.stages.findIndex((stage) => stage.object_id === objectId),
+            stage = blueprint.stages[position]
+        ensure(encounter, 'Shared encounter has not been initialized', ErrorCode.FunctionClosed)
+        ensure(
+            stage?.type === 13,
+            'Shared enemy completion and chest claims require their own adapter',
+            ErrorCode.FunctionClosed,
+        )
+        const source = compiled.stages[position].row
+        ensure(!source.statusReward, 'Shared marker reward source is not implemented', ErrorCode.FunctionClosed)
+        ensure(stage.index <= encounter.stage_index, 'Shared challenge marker is not active', ErrorCode.TeamInBattle)
+        if (stage.index < encounter.stage_index) return { room, run, compiled, blueprint, position, stage }
+        ensure(
+            this.proxyReportStatus(c).all_current,
+            'Shared participants have not all reported their current scene proxy',
+            ErrorCode.TeamWaitStateSync,
+        )
+        ensure(
+            !materialStoryPlan(this.teams.tables, c.state.entrust.run),
+            'Shared boss intro barrier is not implemented',
+            ErrorCode.FunctionClosed,
+        )
+        const next = blueprint.stages[position + 1],
+            group = blueprint.groups[next?.object_id]
+        ensure(
+            next?.type === 50 && group?.ids.length,
+            'Shared marker has no configured next enemy wave',
+            ErrorCode.GameConfig,
+        )
+        ensure(
+            group.ids.every((id) => encounter.entities[id].hp === encounter.entities[id].max_hp),
+            'Shared marker would restart an already damaged or defeated wave',
+            ErrorCode.TeamInBattle,
+        )
+        return { room, run, compiled, blueprint, position, stage }
+    }
+    completeStageMarker(c, objectId) {
+        const { run, blueprint, position, stage } = this.validateStageInteraction(c, objectId)
+        if (stage.index < run.encounter.stage_index) return false
+        ensure(uint(c.now) && c.now > 0, 'Shared stage clock is malformed', ErrorCode.GameConfig)
+        // LOCAL controller selection: one admitted captain owns the static
+        // NPC group. A member clicking the marker does not become its owner.
+        const controller = run.members.find((member) => member.id === run.captain),
+            next = blueprint.stages[position + 1],
+            epoch = (run.encounter.control_epoch ?? 0) + 1,
+            { values } = this.#sceneMembers(c, undefined, (state, member) => ({ member, entry: state.entrust.run }))
+        ensure(positive(epoch), 'Shared control epoch exhausted', ErrorCode.GameConfig)
+        const encounter = {
+            ...run.encounter,
+            stage_index: next.index,
+            battle_start_time: run.encounter.battle_start_time ?? c.now,
+            control_epoch: epoch,
+            control: {
+                object_id: next.object_id,
+                player_id: controller.id,
+                generation: run.generation,
+                lease: controller.lease,
+                connection_hash: controller.admission_connection_hash,
+                epoch,
+                granted_at: c.now,
+            },
+        }
+        this.#save(run, { ...run, phase: 'playing', encounter })
+        for (const { member, entry } of values) {
+            const multi = this.multiSnapshot(c, entry)
+            c.pushTo(member.id, 'CSProtoMultiCampaignInfoSync', { camp: [multi] })
+            c.pushTo(member.id, 'CSProtoCurMultiCampaignInfoSync', multi)
+            c.pushTo(member.id, 'CSProtoObjBattleInfoSync', this.encounterBattleInfo(c))
+            c.pushTo(member.id, 'CSProtoWorldMapSync', {
+                cmd: 47,
+                creator_id: run.captain,
+                map_id: run.map_id,
+                map_info: {
+                    creator_id: run.captain,
+                    map_id: run.map_id,
+                    objs: sharedEncounterObjects(entry.scene_objects, encounter, blueprint),
+                },
+            })
+            this.#publishControl(c, member.id, encounter, blueprint)
+        }
+        return true
+    }
+    #publishControl(c, recipient, encounter, blueprint) {
+        const control = encounter.control
+        if (!control) return
+        const group = blueprint.groups[control.object_id],
+            agent_uid = ((3n << 56n) | BigInt(control.object_id)).toString()
+        c.pushTo(recipient, 'SCProtoObjAppearNtf', {
+            agent_uid,
+            agent_type: 4,
+            obj: { obj_id: control.object_id, obj_type: 3 },
+            lv: blueprint.entities[group.ids[0]].level,
+        })
+        if (recipient === control.player_id)
+            c.pushTo(recipient, 'SCProtoControlChangeByAddNtf', { agent_uid, cli_data: { uuid: agent_uid } })
+    }
+    replayEncounterControl(c) {
+        const { room, run } = this.requireScene(c),
+            control = run.encounter?.control
+        if (!control) return
+        ensure(
+            this.teams.isOnline(control.player_id) &&
+                digest(this.teams.connectionKey(control.player_id) ?? '') === control.connection_hash,
+            'Shared NPC controller connection changed',
+            ErrorCode.TeamTargetChanged,
+        )
+        this.#publishControl(
+            c,
+            c.id,
+            run.encounter,
+            sharedEncounterBlueprint(
+                this.teams.tables,
+                compileSharedTeamTarget(this.teams.tables, room),
+                run.members.length,
+            ),
+        )
     }
     noteProxyReport(c) {
         this.ensureEncounter(c)
