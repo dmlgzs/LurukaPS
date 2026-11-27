@@ -95,7 +95,7 @@ export function productionSeconds(tables, state, build, recipe) {
             laborReduction =
                 Math.max(0, Number(build.build_type === 8 ? efficiency.AccessoryTimeReduct : efficiency.TimeReduct)) /
                 10000
-            if (pet.satiety_val <= data.constants.get('PET_HOME_TIRED_SATIETY'))
+            if (pet.satiety_val < data.constants.get('PET_HOME_TIRED_SATIETY'))
                 laborReduction *= data.constants.get('HOME_LABOR_PROCESS_DECREASE') / 10000
         }
     }

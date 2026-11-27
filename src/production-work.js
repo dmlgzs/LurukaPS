@@ -296,6 +296,10 @@ function secondsFor(tables, state, build, job, balance, fallback) {
     if (!recipe) return fallback
     const threshold = Number(tables.get('game').find((row) => row.title === 'PET_HOME_TIRED_SATIETY')?.value)
     ensure(uint(threshold), 'Production tired threshold is missing', ErrorCode.GameConfig)
+    // Preserve the existing local continuous-fee interval rate: at equality,
+    // any positive assisted interval immediately consumes below the threshold.
+    // Integer client quotes at equality remain healthy; the integrator needs
+    // the right-hand interval rate to retain exact crossing/cadence behavior.
     const shadow =
         balance === null
             ? state
@@ -303,7 +307,10 @@ function secondsFor(tables, state, build, job, balance, fallback) {
                   ...state,
                   pets: state.pets.map((pet) =>
                       pet.guid === String(build.station_pet_guid)
-                          ? { ...pet, satiety_val: cmp(balance, threshold) > 0 ? threshold + 1 : threshold }
+                          ? {
+                                ...pet,
+                                satiety_val: cmp(balance, threshold) > 0 ? threshold : Math.max(0, threshold - 1),
+                            }
                           : pet,
                   ),
               }

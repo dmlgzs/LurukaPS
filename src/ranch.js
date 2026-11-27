@@ -159,7 +159,7 @@ export function ranchSeconds(tables, state, pet, row) {
             ErrorCode.GameConfig,
         )
         speed = Math.max(0, efficiency.PastureTimeReduct) / 10000
-        if (pet.satiety_val <= data.constants.get('PET_HOME_TIRED_SATIETY'))
+        if (pet.satiety_val < data.constants.get('PET_HOME_TIRED_SATIETY'))
             speed *= data.constants.get('HOME_LABOR_PASTURE_DECREASE') / 10000
     }
     const seconds = Math.floor(row.dropTime * (1 - reduction) * (1 - speed))

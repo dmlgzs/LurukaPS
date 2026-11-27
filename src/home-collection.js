@@ -138,7 +138,7 @@ export function collectionPlan(tables, state, build) {
             ErrorCode.GameConfig,
         )
         speed = Math.max(0, efficiency.GatherTimeReduct) / 10000
-        if (pet.satiety_val <= data.constants.get('PET_HOME_TIRED_SATIETY'))
+        if (pet.satiety_val < data.constants.get('PET_HOME_TIRED_SATIETY'))
             speed *= data.constants.get('HOME_LABOR_GATHER_DECREASE') / 10000
     }
     const streams = [...ids].map((id) => {
