@@ -23,7 +23,7 @@ test('6569 fills six client slots, replaces occupied placeholders and synchroniz
         f.grant()
         const before = f.state(),
             writes = f.store.db.prepare('select total_changes() n').get().n
-        assert.equal(quickIds.length, 228)
+        assert.equal(quickIds.length, f.game.tables.get('common_item').filter((row) => row.isQuickBar === 1).length)
         for (let slot = 6; slot >= 1; slot--) {
             const result = f.add(quickIds[slot - 1], slot)
             assert.deepEqual(

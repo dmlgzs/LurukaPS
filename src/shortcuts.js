@@ -2,8 +2,10 @@ import { readTable } from './table-source.js'
 const items = readTable('common_item')
 import { ensure } from './handlers/common.js'
 import { ErrorCode } from './error-codes.js'
+import { compileItemShortcutCompatibility } from './item-shortcut-compatibility.js'
 
 const quickItems = new Set(items.filter((row) => row.isQuickBar === 1).map((row) => row.id))
+const compatibility = compileItemShortcutCompatibility(items)
 const uint = (n) => Number.isInteger(n) && n >= 0 && n <= 0xffffffff
 const slot = (n) => Number.isInteger(n) && n >= 1 && n <= 6
 
@@ -29,6 +31,7 @@ function held(state, id, now) {
 }
 
 export function shortcutSnapshot(state, now) {
+    compatibility.validate(state)
     return {
         item_infos: rows(state)
             .filter((row) => quickItems.has(row.item_id) && held(state, row.item_id, now))
@@ -38,10 +41,17 @@ export function shortcutSnapshot(state, now) {
 }
 
 export function pruneItemShortcuts(state, now) {
-    if (state.itemShortcuts === undefined) return false
+    if (state.itemShortcuts === undefined) {
+        compatibility.validate(state)
+        return false
+    }
     const current = rows(state),
-        next = shortcutSnapshot(state, now).item_infos
-    if (current.length === next.length) return false
+        archived = compatibility.remember(state, current),
+        next = [
+            ...shortcutSnapshot(state, now).item_infos,
+            ...current.filter((row) => compatibility.retired(row.item_id)),
+        ].sort((a, b) => a.slot_id - b.slot_id)
+    if (current.length === next.length) return archived
     state.itemShortcuts = next
     return true
 }
@@ -66,7 +76,9 @@ export function changeItemShortcut(c, r) {
     ensure(r.type === 1, 'Unsupported shortcut key type', ErrorCode.ShortcutItemType)
     const source = requestEntry(r.item?.src_item, true),
         target = r.item?.tar_item == null ? null : requestEntry(r.item.tar_item),
-        current = new Map(rows(c.state).map((row) => [row.slot_id, row.item_id]))
+        originalRows = rows(c.state),
+        current = new Map(originalRows.map((row) => [row.slot_id, row.item_id]))
+    compatibility.validate(c.state)
     ensure(source.item_id > 0, 'Shortcut source item must be nonzero')
     if (source.slot_id === 0) {
         ensure(target && target.item_id === 0, 'Bag insertion requires a target placeholder')
@@ -87,7 +99,8 @@ export function changeItemShortcut(c, r) {
         requireHeld(c.state, source.item_id, c.now)
         if (target.item_id) requireHeld(c.state, target.item_id, c.now)
         const atSource = current.get(source.slot_id) ?? 0,
-            atTarget = current.get(target.slot_id) ?? 0
+            rawTarget = current.get(target.slot_id) ?? 0,
+            atTarget = compatibility.retired(rawTarget) ? 0 : rawTarget
         const original = atSource === source.item_id && atTarget === target.item_id
         const repeated = atSource === target.item_id && atTarget === source.item_id
         ensure(original || repeated, 'Shortcut exchange snapshot is stale')
@@ -98,6 +111,7 @@ export function changeItemShortcut(c, r) {
             current.set(target.slot_id, source.item_id)
         }
     }
+    compatibility.remember(c.state, originalRows)
     c.state.itemShortcuts = [...current].map(([slot_id, item_id]) => ({ slot_id, item_id }))
     pruneItemShortcuts(c.state, c.now)
     c.pushBefore('CSProtoShortcutDataSync', shortcutSnapshot(c.state, c.now))
